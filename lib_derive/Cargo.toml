@@ -1,7 +1,7 @@
 [package]
 authors = ["Tamaro Skaljic<mail@tamaro-skaljic.de>"]
 name = "spacetimedsl_derive"
-version = "0.1.3-1.1.0"
+version = "0.2.0-1.1.0"
 edition = "2024"
 description = "Macros to extend SpacetimeDSL. You shouldn't depend on this directly and instead use the spacetimedsl crate."
 documentation = "https://docs.rs/spacetimedsl_derive"
