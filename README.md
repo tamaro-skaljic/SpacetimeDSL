@@ -80,7 +80,7 @@ pub mod component {
 
 Which produces the following methods:
 
-![Generated methods](test/dsl.png)
+![Generated methods](dsl.png)
 
 If you want to have a direct look into Code which uses SpacetimeDSL, look into the [test/src/lib.rs](test/src/lib.rs) file.
 
