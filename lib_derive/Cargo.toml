@@ -1,8 +1,22 @@
 [package]
+authors = ["Tamaro Skaljic<mail@tamaro-skaljic.de>"]
 name = "spacetimedsl_derive"
 version = "0.1.0-1.1.0"
 edition = "2024"
-publish = false
+description = "Macros to extend SpacetimeDSL. You shouldn't depend on this directly and instead use the spacetimedsl crate."
+documentation = "https://docs.rs/spacetimedsl_derive"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tamaro-skaljic/SpacetimeDSL"
+publish = true
+include = [
+    "/Cargo.toml",
+    "../LICENSE-Apache",
+    "../LICENSE-MIT",
+    "../README.md",
+    "/src/**",
+]
+keywords = ["dsl", "spacetime", "macro", "code gen", "boilerplate", "ergonomic"]
+readme = "../README.md"
 
 [lib]
 proc-macro = true

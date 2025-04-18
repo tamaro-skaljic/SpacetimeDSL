@@ -13,17 +13,9 @@ include = [
     "../LICENSE-Apache",
     "../LICENSE-MIT",
     "../README.md",
-    "../test/dsl.png",
     "/src/**",
 ]
-keywords = [
-    "dsl",
-    "spacetime",
-    "macro",
-    "code gen",
-    "boilerplate",
-    "ergonomic",
-]
+keywords = ["dsl", "spacetime", "macro", "code gen", "boilerplate", "ergonomic"]
 readme = "../README.md"
 
 [dependencies]
@@ -31,4 +23,4 @@ readme = "../README.md"
 spacetimedb = "1.1.0"
 
 # https://crates.io/crates/spacetimedb Macros to extend SpacetimeDSL
-spacetimedsl_derive = { version = "0.1.0-1.1.0", path = "../lib_derive" }
+spacetimedsl_derive = { version = "0.1.0-1.1.0" }
