@@ -2,24 +2,24 @@
 
 echo Building module...
 echo.
-cd test
+cd example
 spacetime publish spacetimedsl
 echo.
 
 echo Creating Debug Output ...
 echo.
 
-echo Expanding test library ...
+echo Expanding example library ...
 echo.
 cargo expand --lib > ..\debug\output\lib.expanded.rs
 
 cd ..\debug
-echo Creating AST of initial test lib.
+echo Creating AST of initial example lib.
 echo.
-cargo run -- ..\test\src\lib.rs > output\lib.rs.ast
+cargo run -- ..\example\src\lib.rs > output\lib.rs.ast
 echo.
 
-echo Creating AST of expanded test lib.
+echo Creating AST of expanded example lib.
 echo.
 cargo run -- output/lib.expanded.rs > output/lib.expanded.rs.ast
 

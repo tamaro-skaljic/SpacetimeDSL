@@ -18,3 +18,10 @@ spacetimedb = "1.1.0"
 
 # https://crates.io/crates/spacetimedb Macros to extend SpacetimeDSL
 spacetimedsl_derive = { version = "0.2.2-1.1.0", path = "derive" }
+
+[workspace]
+members = [
+    "debug",
+    "derive",
+    "example"
+]
