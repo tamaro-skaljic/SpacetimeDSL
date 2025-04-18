@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/tamaro-skaljic/SpacetimeDSL"
 publish = true
 include = ["../README.md", "/src/**"]
-keywords = ["dsl", "spacetime", "macro", "code gen", "boilerplate"]
+keywords = ["dsl", "spacetime", "macro", "codegen", "boilerplate"]
 readme = "../README.md"
 
 [lib]
