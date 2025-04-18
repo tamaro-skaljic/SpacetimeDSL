@@ -1,5 +1,5 @@
 pub mod entity {
-    use spacetimedsl_derive::SpacetimeDSL;
+    use spacetimedsl::derive::SpacetimeDSL;
 
     /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
     #[derive(Debug, SpacetimeDSL, Clone, PartialEq)]
@@ -16,7 +16,7 @@ pub mod entity {
 
 pub mod component {
     pub mod identifier {
-        use spacetimedsl_derive::SpacetimeDSL;
+        use spacetimedsl::derive::SpacetimeDSL;
 
         /// A Identifier is a developer-friendly String.
         #[derive(Debug, SpacetimeDSL, Clone, PartialEq)]
@@ -41,7 +41,7 @@ pub mod component {
     }
 
     pub mod position {
-        use spacetimedsl_derive::SpacetimeDSL;
+        use spacetimedsl::derive::SpacetimeDSL;
 
         /// A Position in the World.
         #[derive(Debug, SpacetimeDSL, Clone, PartialEq)]

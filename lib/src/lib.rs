@@ -1,3 +1,4 @@
+pub use spacetimedsl_derive as derive;
 use spacetimedb::ReducerContext;
 
 pub struct DSL<'a> {

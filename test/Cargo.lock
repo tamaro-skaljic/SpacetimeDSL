@@ -563,11 +563,8 @@ dependencies = [
 name = "spacetimedsl"
 version = "0.1.0-1.1.0"
 dependencies = [
- "ident_case",
- "proc-macro2",
- "quote",
  "spacetimedb",
- "syn",
+ "spacetimedsl_derive",
 ]
 
 [[package]]
@@ -577,7 +574,6 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "spacetimedsl",
  "syn",
 ]
 
@@ -589,7 +585,6 @@ dependencies = [
  "proc-macro2",
  "spacetimedb",
  "spacetimedsl",
- "spacetimedsl_derive",
  "syn",
 ]
 

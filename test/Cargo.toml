@@ -8,15 +8,21 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-proc-macro2 = { version = "1", features = [
-    "span-locations",
-] } # https://crates.io/crates/proc_macro2
-spacetimedb = "1.0.1" # https://crates.io/crates/spacetimedb
+# https://crates.io/crates/proc_macro2 A substitute implementation of the compiler's `proc_macro` API to decouple token-based libraries from the procedural macro use case.
+proc-macro2 = { version = "1", features = ["span-locations"] }
+
+# https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
+spacetimedb = "1.1.0"
+
+# https://crates.io/crates/syn Parser for Rust source code
 syn = { default-features = false, features = [
     "extra-traits",
     "full",
     "parsing",
-], version = "2.0" } # https://crates.io/crates/syn
-spacetimedsl_derive = { version = "0.1.0-1.1.0", path = "../lib_derive" }
+], version = "2.0" }
+
+# https://crates.io/crates/spacetimedsl Ergonomic DSL for SpacetimeDB
 spacetimedsl = { version = "0.1.0-1.1.0", path = "../lib" }
-log = "0.4" # https://crates.io/crates/log
+
+# https://crates.io/crates/log A lightweight logging facade for Rust
+log = "0.4"
