@@ -34,9 +34,8 @@ pub fn output(mut table: TableSchema) -> TokenStream {
     output.push(delete_many_rows_by_methods::build(&table));
 
     quote! {
-        use spacetimedsl::Wrapper;
-        use spacetimedb::{DbContext, Table};
-
+        use spacetimedsl::Wrapper as _;
+        use spacetimedb::{DbContext as _, Table as _};
         #(#output)*
     }
 }

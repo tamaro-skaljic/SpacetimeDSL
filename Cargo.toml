@@ -1,20 +1,20 @@
 [package]
 authors = ["Tamaro Skaljic<mail@tamaro-skaljic.de>"]
 name = "spacetimedsl"
-version = "0.2.0-1.1.0"
+version = "0.2.2-1.1.0"
 edition = "2024"
 description = "Ergonomic DSL for SpacetimeDB"
 documentation = "https://docs.rs/spacetimedsl"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tamaro-skaljic/SpacetimeDSL"
 publish = true
-include = ["../README.md", "/src/**"]
+include = ["README.md", "/src/**"]
 keywords = ["dsl", "spacetime", "macro", "codegen", "boilerplate"]
-readme = "../README.md"
+readme = "README.md"
 
 [dependencies]
 # https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
 spacetimedb = "1.1.0"
 
 # https://crates.io/crates/spacetimedb Macros to extend SpacetimeDSL
-spacetimedsl_derive = { version = "0.2.0-1.1.0" }
+spacetimedsl_derive = { version = "0.2.2-1.1.0", path = "derive" }

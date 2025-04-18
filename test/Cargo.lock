@@ -561,7 +561,7 @@ dependencies = [
 
 [[package]]
 name = "spacetimedsl"
-version = "0.2.0-1.1.0"
+version = "0.2.2-1.1.0"
 dependencies = [
  "spacetimedb",
  "spacetimedsl_derive",
@@ -569,13 +569,22 @@ dependencies = [
 
 [[package]]
 name = "spacetimedsl_derive"
-version = "0.2.0-1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74c794a6a00f3ab7b43c49a1228fe937e015b18e83a7bce2e158d43613ad4ae7"
+version = "0.2.2-1.1.0"
 dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
+ "syn",
+]
+
+[[package]]
+name = "spacetimedsl_test"
+version = "0.2.2-1.1.0"
+dependencies = [
+ "log",
+ "proc-macro2",
+ "spacetimedb",
+ "spacetimedsl",
  "syn",
 ]
 

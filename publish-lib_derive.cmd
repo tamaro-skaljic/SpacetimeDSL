@@ -1,6 +1,6 @@
 @echo off
 
 echo Publishing lib_derive...
-cd lib_derive
-cargo publish
+cd derive
+cargo publish --allow-dirty
 cd ..
