@@ -1,0 +1,16 @@
+[package]
+name = "spacetimedsl_debug"
+version = "1.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+colored = "3" # https://crates.io/crates/colored
+proc-macro2 = { version = "1", features = [
+    "span-locations",
+] } # https://crates.io/crates/proc_macro2
+syn = { default-features = false, features = [
+    "extra-traits",
+    "full",
+    "parsing",
+], version = "2.0" } # https://crates.io/crates/syn

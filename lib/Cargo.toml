@@ -1,0 +1,11 @@
+[package]
+name = "spacetimedsl"
+version = "0.1.0-1.1.0"
+edition = "2024"
+
+[dependencies]
+spacetimedb = "1.1.0"     # https://crates.io/crates/spacetimedb
+ident_case = "1.0.1"      # https://crates.io/crates/ident_case
+proc-macro2 = "1.0"       # https://crates.io/crates/proc_macro2
+syn = { version = "2.0" } # https://crates.io/crates/syn
+quote = "1.0"             # https://crates.io/crates/quote

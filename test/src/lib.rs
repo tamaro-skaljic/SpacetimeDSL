@@ -1,0 +1,271 @@
+pub mod entity {
+    use spacetimedsl_derive::SpacetimeDSL;
+
+    /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
+    #[derive(Debug, SpacetimeDSL, Clone, PartialEq)]
+    #[spacetimedb::table(name = entity, public)]
+    #[plural_table_name(entities)]
+    pub struct Entity {
+        /// The unique ID of the Entity.
+        #[primary_key]
+        #[auto_inc]
+        #[wrap]
+        id: u128,
+    }
+}
+
+pub mod component {
+    pub mod identifier {
+        use spacetimedsl_derive::SpacetimeDSL;
+
+        /// A Identifier is a developer-friendly String.
+        #[derive(Debug, SpacetimeDSL, Clone, PartialEq)]
+        #[spacetimedb::table(name = identifier, public)]
+        #[plural_table_name(identifiers)]
+        pub struct Identifier {
+            /// The unique ID of the Identifier.
+            #[primary_key]
+            #[auto_inc]
+            #[wrap]
+            id: u128,
+
+            /// The unique ID of the Entity the Identifier belongs to.
+            #[unique]
+            #[wrap(crate::entity::EntityId)]
+            entity_id: u128,
+
+            // The unique value of the Identifier.
+            #[unique]
+            pub value: String,
+        }
+    }
+
+    pub mod position {
+        use spacetimedsl_derive::SpacetimeDSL;
+
+        /// A Position in the World.
+        #[derive(Debug, SpacetimeDSL, Clone, PartialEq)]
+        #[spacetimedb::table(name = position, public, index(name = x_y_z, btree(columns = [x, y, z])))]
+        #[plural_table_name(positions)]
+        pub struct Position {
+            /// The unique ID of the Position.
+            #[primary_key]
+            #[auto_inc]
+            #[wrap]
+            id: u128,
+
+            /// The unique ID of the Entity the Position belongs to.
+            #[unique]
+            #[wrap(crate::entity::EntityId)]
+            entity_id: u128,
+
+            pub x: i128,
+
+            pub y: i128,
+
+            pub z: i128,
+        }
+    }
+}
+
+pub mod test {
+    use std::iter::zip;
+
+    use log::info;
+    use spacetimedb::{ReducerContext, reducer};
+    use spacetimedsl::{Wrapper, dsl};
+
+    use crate::{
+        component::{
+            identifier::{
+                CreateIdentifier, GetIdentifierRowOptionByEntityId, GetIdentifierRowOptionByValue,
+                Identifier, UpdateIdentifierRowById,
+            },
+            position::{
+                CreatePosition, GetAllPositionRows, GetCountOfPositionRows,
+                GetPositionRowOptionsById, Position, PositionId,
+            },
+        },
+        entity::{CreateEntity, DeleteEntityRowById, GetEntityRowOptionById},
+    };
+
+    #[reducer]
+    fn test(ctx: &ReducerContext) -> Result<(), String> {
+        let dsl = dsl(ctx);
+
+        let mut player;
+        match dsl.create_entity() {
+            Ok(entity) => {
+                player = entity;
+            }
+            Err(_) => {
+                return Err("Should be able to create an Entity!".to_string());
+            }
+        };
+        match dsl.get_entity_by_id(&player) {
+            Some(entity) => {
+                player = entity;
+            }
+            None => {
+                return Err("Should be able to get an Entity by it's ID!".to_string());
+            }
+        };
+        if !dsl.delete_entity_by_id(&player) {
+            return Err("Should be able to delete an Entity by it's ID!".to_string());
+        }
+        if dsl.get_entity_by_id(&player).is_some() {
+            return Err(
+                "Shouldn't be able to get an Entity by an ID which doesn't exist!".to_string(),
+            );
+        }
+        match dsl.create_entity() {
+            Ok(entity) => {
+                player = entity;
+            }
+            Err(_) => {
+                return Err("Should be able to create an Entity!".to_string());
+            }
+        };
+
+        let mut player_identifier;
+        match dsl.create_identifier(Identifier::new(&player, "PLAYER".to_string())) {
+            Ok(identifier) => {
+                player_identifier = identifier;
+            }
+            Err(_) => {
+                return Err(format!(
+                    "{:?}: Should be able to add an newly created Identifier.",
+                    player
+                ));
+            }
+        };
+
+        /* TODO: Uncomment if https://github.com/clockworklabs/SpacetimeDB/pull/2610 is fixed
+        player_identifier.set_value("ENEMY".to_string());
+        match dsl.create_identifier(player_identifier) {
+            Ok(identifier) => {
+                return Err(format!(
+                    "Entity {} ({}): Shouldn't be able to add an Identifier because it has already one.",
+                    player.get_id().value(),
+                    identifier.get_value()
+                ));
+            }
+            Err(_) => {}
+        };
+         */
+        match dsl.get_identifier_by_value("PLAYER".to_string()) {
+            Some(identifier) => {
+                player_identifier = identifier;
+            }
+            None => {
+                return Err("Should be able to get an Identifier by it's value!".to_string());
+            }
+        }
+
+        player_identifier.set_value("ENEMY".to_string());
+        let enemy_identifier = dsl.update_identifier_by_id(player_identifier);
+        let enemy = player;
+
+        match dsl.get_identifier_by_entity_id(&enemy) {
+            Some(identifier) => {
+                if identifier.get_value().ne(enemy_identifier.get_value()) {
+                    return Err(format!(
+                        "The Identifier values should equal. Expected: {}, Actual: {}.",
+                        enemy_identifier.get_value(),
+                        identifier.get_value()
+                    ));
+                }
+            }
+            None => {
+                return Err("Should be able to get an Identifier by it's Entity!".to_string());
+            }
+        }
+
+        match dsl.create_position(Position::new(&enemy, 0, 0, 0)) {
+            Ok(_) => {}
+            Err(_) => {
+                return Err(format!(
+                    "{:?}: Should be able to add an newly created Position.",
+                    enemy
+                ));
+            }
+        }
+
+        let player;
+        match dsl.create_entity() {
+            Ok(entity) => {
+                player = entity;
+            }
+            Err(_) => {
+                return Err("Should be able to create an Entity!".to_string());
+            }
+        };
+
+        match dsl.create_position(Position::new(&player, 0, 0, 0)) {
+            Ok(_) => {}
+            Err(_) => {
+                return Err(format!(
+                    "{:?}: Should be able to add an newly created Position.",
+                    player
+                ));
+            }
+        }
+
+        let positions_iter = dsl.get_all_positions();
+        let position_count_two: usize = dsl.get_count_of_positions().try_into().unwrap();
+
+        let mut position_count_one = 0;
+        let mut positions = vec![];
+        let mut position_ids = vec![];
+
+        for position in positions_iter {
+            position_count_one = position_count_one + 1;
+            position_ids.push(position.get_id());
+            positions.push(Some(position));
+        }
+        position_ids.push(PositionId::new(
+            1 + position_ids
+                .last()
+                .expect("Should have a position in it")
+                .value(),
+        ));
+        positions.push(None);
+
+        if position_count_one != position_count_two {
+            return Err("The count of Positions should equal.".to_string());
+        }
+
+        for (position_one, position_two) in zip(positions, dsl.get_positions_by_id_in(position_ids))
+        {
+            match position_one.as_ref() {
+                Some(position_one) => {
+                    if position_two.is_none() {
+                        return Err(format!(
+                            "Got {:?} and {:?} but they should be both Some.",
+                            position_one, position_two
+                        ));
+                    }
+
+                    if position_one.ne(&position_two.as_ref().unwrap()) {
+                        return Err(format!(
+                            "Got {:?} and {:?} but they should be equal.",
+                            position_one, position_two
+                        ));
+                    }
+                }
+                None => {
+                    if position_two.is_some() {
+                        return Err(format!(
+                            "Got {:?} and {:?} but they should be both None.",
+                            position_one, position_two
+                        ));
+                    }
+                }
+            }
+        }
+
+        info!("Test executed successfully!");
+
+        Ok(())
+    }
+}

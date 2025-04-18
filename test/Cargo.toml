@@ -1,0 +1,22 @@
+[package]
+name = "spacetimedsl_test"
+version = "0.1.0-1.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+proc-macro2 = { version = "1", features = [
+    "span-locations",
+] } # https://crates.io/crates/proc_macro2
+spacetimedb = "1.0.1" # https://crates.io/crates/spacetimedb
+syn = { default-features = false, features = [
+    "extra-traits",
+    "full",
+    "parsing",
+], version = "2.0" } # https://crates.io/crates/syn
+spacetimedsl_derive = { version = "0.1.0-1.1.0", path = "../lib_derive" }
+spacetimedsl = { version = "0.1.0-1.1.0", path = "../lib" }
+log = "0.4" # https://crates.io/crates/log
