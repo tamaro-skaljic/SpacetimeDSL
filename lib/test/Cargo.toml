@@ -22,7 +22,7 @@ syn = { default-features = false, features = [
 ], version = "2.0" }
 
 # https://crates.io/crates/spacetimedsl Ergonomic DSL for SpacetimeDB
-spacetimedsl = { version = "0.2.0-1.1.0", path = "../lib" }
+spacetimedsl = { version = "0.2.0-1.1.0", path = "../" }
 
 # https://crates.io/crates/log A lightweight logging facade for Rust
 log = "0.4"

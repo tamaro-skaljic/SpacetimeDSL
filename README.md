@@ -82,7 +82,7 @@ Which produces the following methods:
 
 ![Generated methods](dsl.png)
 
-If you want to have a direct look into Code which uses SpacetimeDSL, look into the [test/src/lib.rs](test/src/lib.rs) file.
+If you want to have a direct look into Code which uses SpacetimeDSL, look into the [lib/test/src/lib.rs](/lib/test/src/lib.rs) file.
 
 ### Wrapper Types
 
