@@ -2,6 +2,19 @@
 
 SpacetimeDSL provides you a high-level [*D*omain *S*pecific *L*anguage (DSL)](https://en.wikipedia.org/wiki/Domain-specific_language) to interact in an ergonomic and type-safe way with the data in your SpacetimeDB instance.
 
+## Limitations
+
+The following things aren't considered during code generation yet:
+
+- [Multi Column Indices](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/2)
+- [Scheduled Reducers](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/3)
+- [Row Level Security](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/9)
+
+The following SpacetimeDB features can't be used and will result in compilation errors:
+
+- [More than one `#[table]` attribute macro on the same struct](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/10)
+- [More than one struct with `#[derive(SpacetimeDSL)` in the same rust module](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/11)
+
 ## Features
 
 If features contain snippets of generated code, they relate to the following input code:
