@@ -9,7 +9,6 @@ pub struct TableSchema {
     pub plural_table_name: Ident,
     pub struct_name: Ident,
     pub columns: Vec<ColumnSchema>,
-    pub no_args_constructor: bool,
 }
 
 pub struct ColumnSchema {
@@ -33,6 +32,5 @@ pub fn parse(syntax_tree: DeriveInput) -> Option<TableSchema> {
         plural_table_name,
         struct_name,
         columns,
-        no_args_constructor: false, // Is set in the constructor module
     })
 }

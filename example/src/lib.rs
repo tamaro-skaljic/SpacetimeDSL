@@ -79,11 +79,11 @@ pub mod test {
         component::{
             identifier::{
                 CreateIdentifier, GetIdentifierRowOptionByEntityId, GetIdentifierRowOptionByValue,
-                Identifier, UpdateIdentifierRowById,
+                UpdateIdentifierRowById,
             },
             position::{
                 CreatePosition, GetAllPositionRows, GetCountOfPositionRows,
-                GetPositionRowOptionsById, Position, PositionId,
+                GetPositionRowOptionsById, PositionId,
             },
         },
         entity::{CreateEntity, DeleteEntityRowById, GetEntityRowOptionById},
@@ -128,7 +128,7 @@ pub mod test {
         };
 
         let mut player_identifier;
-        match dsl.create_identifier(Identifier::new(&player, "PLAYER".to_string())) {
+        match dsl.create_identifier(&player, "PLAYER".to_string()) {
             Ok(identifier) => {
                 player_identifier = identifier;
             }
@@ -181,7 +181,7 @@ pub mod test {
             }
         }
 
-        match dsl.create_position(Position::new(&enemy, 0, 0, 0)) {
+        match dsl.create_position(&enemy, 0, 0, 0) {
             Ok(_) => {}
             Err(_) => {
                 return Err(format!(
@@ -201,7 +201,7 @@ pub mod test {
             }
         };
 
-        match dsl.create_position(Position::new(&player, 0, 0, 0)) {
+        match dsl.create_position(&player, 0, 0, 0) {
             Ok(_) => {}
             Err(_) => {
                 return Err(format!(

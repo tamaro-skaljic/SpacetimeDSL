@@ -4,7 +4,6 @@ use quote::quote;
 use crate::input::{ColumnSchema, TableSchema};
 
 mod accessor_methods;
-mod constructor;
 mod create_row_methods;
 mod delete_many_rows_by_methods;
 mod delete_one_row_by_methods;
@@ -16,11 +15,10 @@ mod get_one_row_option_by_methods;
 mod update_row_by_methods;
 mod wrapper_types;
 
-pub fn output(mut table: TableSchema) -> TokenStream {
+pub fn output(table: TableSchema) -> TokenStream {
     let mut output: Vec<TokenStream> = vec![];
 
     output.push(wrapper_types::build(&table));
-    output.push(constructor::build(&mut table));
     output.push(accessor_methods::build(&table));
 
     output.push(create_row_methods::build(&table));
