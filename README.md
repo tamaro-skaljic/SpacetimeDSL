@@ -7,8 +7,6 @@ SpacetimeDSL provides you a high-level [*D*omain *S*pecific *L*anguage (DSL)](ht
 The following things aren't considered during code generation yet:
 
 - [Multi Column Indices](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/2)
-- [Scheduled Reducers](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/3)
-- [Row Level Security](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/9)
 
 The following SpacetimeDB features can't be used and will result in compilation errors:
 
