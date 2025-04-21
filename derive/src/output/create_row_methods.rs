@@ -97,7 +97,7 @@ fn column_type_wrapper_init_arg(column_name: &Ident) -> TokenStream {
 
 fn normal_init_arg(column_name: &Ident) -> TokenStream {
     quote! {
-        #column_name: #column_name.clone(),
+        #column_name,
     }
 }
 
