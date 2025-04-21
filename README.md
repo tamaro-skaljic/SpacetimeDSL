@@ -190,52 +190,6 @@ impl spacetimedsl::Wrapper<u128, PositionId> for PositionId {
 }
 ```
 
-### Constructors
-
-A constructor is generated for each table-struct. A constructor is a function, which can be accessed through the table-struct (`Entity::new()`), which creates a new instance of the struct.
-
-For each field which is not `#[auto_inc]` the developer needs to provide an argument to the function, for the others the default is assumed.
-This can result in no-args constructors, like in the example for the `Entity`-struct, which reduces boilerplate code.
-
-For each `#[wrap]` field the developer needs to provide a `impl Into<WrapperType>` instead of a instance of the field type (which is automatically implemented).
-To create a Position, you can provide either an `&Entity` (which you'll do if you have it in your scope) or an `EntityId` (which you'll do if you have it as a reducer argument provided by clients) for the `entity_id` parameter.
-
-```rust
-impl Entity {
-    pub fn new() -> Entity {
-        Entity { id: u128::default() }
-    }
-}
-impl Identifier {
-    pub fn new(
-        entity_id: impl Into<crate::entity::EntityId>,
-        value: String,
-    ) -> Identifier {
-        Identifier {
-            id: u128::default(),
-            entity_id: entity_id.into().value(),
-            value: value.clone(),
-        }
-    }
-}
-impl Position {
-    pub fn new(
-        entity_id: impl Into<crate::entity::EntityId>,
-        x: i128,
-        y: i128,
-        z: i128,
-    ) -> Position {
-        Position {
-            id: u128::default(),
-            entity_id: entity_id.into().value(),
-            x: x.clone(),
-            y: y.clone(),
-            z: z.clone(),
-        }
-    }
-}
-```
-
 ### Accessors (Getters and Setters)
 
 For any field in the table-struct, a public getter is generated. It returns either a reference to the table field value or if `#[wrap]` it clones the value and creates a new instance of the Wrapper Type.
@@ -313,9 +267,10 @@ In the next sections,
 
 For any table-struct, a `create_row` DSL extension method is created, which performs a `row().try_insert(row)`.
 
-If a row can be crated without arguments (if only `#[auto_inc]` fields exist, determined during constructor generation), the method needs no argument - as can be seen in the `create_entity` method.
+For each field which is not `#[auto_inc]` the developer needs to provide an argument to the function, for the others the default is assumed.
+like in the example for the `Entity`-struct, which reduces boilerplate code.
 
-If a row needs arguments to be created, a row must be provided as argument to the method.
+For each `#[wrap]` field the developer needs to provide a `impl Into<WrapperType>` instead of a instance of the field type. So to create a Position, you can provide either an `&Entity` (which you'll do if you have it in your scope) or an `EntityId` (which you'll do if you have it as a reducer argument provided by clients) for the `entity_id` parameter.
 
 ```rust
 pub trait CreateEntity: spacetimedsl::DSLContext {
@@ -323,7 +278,8 @@ pub trait CreateEntity: spacetimedsl::DSLContext {
     fn create_entity(
         &self,
     ) -> Result<Entity, spacetimedb::TryInsertError<entity__TableHandle>> {
-        return self.ctx().db().entity().try_insert(Entity::new());
+        let entity = Entity { id: u128::default() };
+        return self.ctx().db().entity().try_insert(entity);
     }
 }
 impl CreateEntity for spacetimedsl::DSL<'_> {}
@@ -332,11 +288,17 @@ pub trait CreateIdentifier: spacetimedsl::DSLContext {
     ///Create a Identifier.
     fn create_identifier(
         &self,
-        identifier: Identifier,
+        entity_id: impl Into<crate::entity::EntityId>,
+        value: String,
     ) -> Result<
         Identifier,
         spacetimedb::TryInsertError<identifier__TableHandle>,
     > {
+        let identifier = Identifier {
+            id: u128::default(),
+            entity_id: entity_id.into().value(),
+            value,
+        };
         return self.ctx().db().identifier().try_insert(identifier);
     }
 }
@@ -346,8 +308,18 @@ pub trait CreatePosition: spacetimedsl::DSLContext {
     ///Create a Position.
     fn create_position(
         &self,
-        position: Position,
+        entity_id: impl Into<crate::entity::EntityId>,
+        x: i128,
+        y: i128,
+        z: i128,
     ) -> Result<Position, spacetimedb::TryInsertError<position__TableHandle>> {
+        let position = Position {
+            id: u128::default(),
+            entity_id: entity_id.into().value(),
+            x,
+            y,
+            z,
+        };
         return self.ctx().db().position().try_insert(position);
     }
 }
