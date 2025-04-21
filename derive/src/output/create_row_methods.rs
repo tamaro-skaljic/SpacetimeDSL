@@ -53,7 +53,10 @@ pub fn build(table: &TableSchema) -> TokenStream {
 fn method_arg(column: &ColumnSchema) -> TokenStream {
     let method_arg;
 
-    if column.is_auto_inc {
+    if column.is_auto_inc
+        || column.column_name.to_string().eq("created_at")
+        || column.column_name.to_string().eq("modified_at")
+    {
         method_arg = TokenStream::default();
     } else {
         let column_name = &column.column_name;
@@ -74,18 +77,32 @@ fn method_arg(column: &ColumnSchema) -> TokenStream {
 fn init_arg(column: &ColumnSchema) -> TokenStream {
     if column.is_auto_inc {
         auto_inc_init_arg(&column.column_name, &column.column_type)
+    } else if column.column_name.to_string().eq("created_at") {
+        created_at_init_arg()
+    } else if column.column_name.to_string().eq("modified_at") {
+        modified_at_init_arg()
+    } else if column.column_type_wrapper.is_some() {
+        column_type_wrapper_init_arg(&column.column_name)
     } else {
-        if column.column_type_wrapper.is_some() {
-            column_type_wrapper_init_arg(&column.column_name)
-        } else {
-            normal_init_arg(&column.column_name)
-        }
+        normal_init_arg(&column.column_name)
     }
 }
 
 fn auto_inc_init_arg(column_name: &Ident, column_type: &Type) -> TokenStream {
     quote! {
         #column_name: #column_type::default(),
+    }
+}
+
+fn created_at_init_arg() -> TokenStream {
+    quote! {
+        created_at: self.ctx().timestamp,
+    }
+}
+
+fn modified_at_init_arg() -> TokenStream {
+    quote! {
+        modified_at: self.ctx().timestamp,
     }
 }
 

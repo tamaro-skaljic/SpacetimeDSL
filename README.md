@@ -267,8 +267,16 @@ In the next sections,
 
 For any table-struct, a `create_row` DSL extension method is created, which performs a `row().try_insert(row)`.
 
-For each field which is not `#[auto_inc]` the developer needs to provide an argument to the function, for the others the default is assumed.
-like in the example for the `Entity`-struct, which reduces boilerplate code.
+For each field which
+
+- is not `#[auto_inc]` or
+- has the name
+  - `created_at` or
+  - `modified_at`,
+
+the developer needs to provide an argument to the function.
+
+For the others the default (`0` for `auto_inc`, `self.ctx().timestamp` for `created_at`/`modified_at`) is assumed, like in the example for the `Entity`-struct, which reduces boilerplate code.
 
 For each `#[wrap]` field the developer needs to provide a `impl Into<WrapperType>` instead of a instance of the field type. So to create a Position, you can provide either an `&Entity` (which you'll do if you have it in your scope) or an `EntityId` (which you'll do if you have it as a reducer argument provided by clients) for the `entity_id` parameter.
 
@@ -278,7 +286,10 @@ pub trait CreateEntity: spacetimedsl::DSLContext {
     fn create_entity(
         &self,
     ) -> Result<Entity, spacetimedb::TryInsertError<entity__TableHandle>> {
-        let entity = Entity { id: u128::default() };
+        let entity = Entity {
+            id: u128::default(),
+            created_at: self.ctx().timestamp,
+        };
         return self.ctx().db().entity().try_insert(entity);
     }
 }
@@ -298,6 +309,8 @@ pub trait CreateIdentifier: spacetimedsl::DSLContext {
             id: u128::default(),
             entity_id: entity_id.into().value(),
             value,
+            created_at: self.ctx().timestamp,
+            modified_at: self.ctx().timestamp,
         };
         return self.ctx().db().identifier().try_insert(identifier);
     }
@@ -319,6 +332,8 @@ pub trait CreatePosition: spacetimedsl::DSLContext {
             x,
             y,
             z,
+            created_at: self.ctx().timestamp,
+            modified_at: self.ctx().timestamp,
         };
         return self.ctx().db().position().try_insert(position);
     }
@@ -607,13 +622,17 @@ impl GetCountOfPositionRows for spacetimedsl::DSL<'_> {}
 #### Update Row by Column
 
 For any `#[primary_key]` and `#[unique]` field on a table-struct, a `update_row_by_column` DSL extension method is created, which performs a `row().column().update(row)`.
+
+If the table has a column with name `modified_at`, it's value is set to the current timestamp before updating.
+
 If a table has only private (non-public) fields, no update method is generated. You can see that because for the `Entity` table, no one was generated, because its only field is a private field which is a primary key and auto inc and shouldn't change.
 
 ```rust
 
 pub trait UpdateIdentifierRowById: spacetimedsl::DSLContext {
     ///Update a Identifier row by it's id.
-    fn update_identifier_by_id(&self, identifier: Identifier) -> Identifier {
+    fn update_identifier_by_id(&self, mut identifier: Identifier) -> Identifier {
+        identifier.set_modified_at(self.ctx().timestamp);
         return self.ctx().db().identifier().id().update(identifier);
     }
 }
@@ -623,8 +642,9 @@ pub trait UpdateIdentifierRowByEntityId: spacetimedsl::DSLContext {
     ///Update a Identifier row by it's entity_id.
     fn update_identifier_by_entity_id(
         &self,
-        identifier: Identifier,
+        mut identifier: Identifier,
     ) -> Identifier {
+        identifier.set_modified_at(self.ctx().timestamp);
         return self.ctx().db().identifier().entity_id().update(identifier);
     }
 }
@@ -632,7 +652,8 @@ impl UpdateIdentifierRowByEntityId for spacetimedsl::DSL<'_> {}
 
 pub trait UpdateIdentifierRowByValue: spacetimedsl::DSLContext {
     ///Update a Identifier row by it's value.
-    fn update_identifier_by_value(&self, identifier: Identifier) -> Identifier {
+    fn update_identifier_by_value(&self, mut identifier: Identifier) -> Identifier {
+        identifier.set_modified_at(self.ctx().timestamp);
         return self.ctx().db().identifier().value().update(identifier);
     }
 }
@@ -640,7 +661,8 @@ impl UpdateIdentifierRowByValue for spacetimedsl::DSL<'_> {}
 
 pub trait UpdatePositionRowById: spacetimedsl::DSLContext {
     ///Update a Position row by it's id.
-    fn update_position_by_id(&self, position: Position) -> Position {
+    fn update_position_by_id(&self, mut position: Position) -> Position {
+        position.set_modified_at(self.ctx().timestamp);
         return self.ctx().db().position().id().update(position);
     }
 }
@@ -648,7 +670,8 @@ impl UpdatePositionRowById for spacetimedsl::DSL<'_> {}
 
 pub trait UpdatePositionRowByEntityId: spacetimedsl::DSLContext {
     ///Update a Position row by it's entity_id.
-    fn update_position_by_entity_id(&self, position: Position) -> Position {
+    fn update_position_by_entity_id(&self, mut position: Position) -> Position {
+        position.set_modified_at(self.ctx().timestamp);
         return self.ctx().db().position().entity_id().update(position);
     }
 }

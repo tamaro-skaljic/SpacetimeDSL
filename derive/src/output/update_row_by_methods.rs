@@ -5,23 +5,27 @@ use quote::{format_ident, quote};
 use syn::Visibility;
 
 pub fn build(table: &TableSchema) -> TokenStream {
-    let mut traits: Vec<TokenStream> = vec![];
+    let mut is_mutable: bool = false;
+    let mut has_modified_at: bool = false;
 
-    let a_mutable_field = table.columns.iter().find(|c| match &c.visibility {
-        Visibility::Inherited => {
-            return false;
+    table.columns.iter().for_each(|c| {
+        if c.column_name.to_string().eq("modified_at") {
+            has_modified_at = true;
         }
-        _ => {
-            return true;
+
+        if c.visibility.ne(&Visibility::Inherited) {
+            is_mutable = true;
         }
     });
 
-    if a_mutable_field.is_none() {
+    if !is_mutable {
         return TokenStream::default();
     }
 
+    let mut traits: Vec<TokenStream> = vec![];
+
     table.columns.iter().for_each(|column| {
-        traits.push(update_one_row_by(table, column));
+        traits.push(update_one_row_by(table, column, has_modified_at));
     });
 
     quote! {
@@ -29,7 +33,11 @@ pub fn build(table: &TableSchema) -> TokenStream {
     }
 }
 
-fn update_one_row_by(table: &TableSchema, column: &ColumnSchema) -> TokenStream {
+fn update_one_row_by(
+    table: &TableSchema,
+    column: &ColumnSchema,
+    has_modified_at: bool,
+) -> TokenStream {
     if !column.is_primary_key && !column.has_unique_constraint {
         return TokenStream::default();
     }
@@ -52,13 +60,24 @@ fn update_one_row_by(table: &TableSchema, column: &ColumnSchema) -> TokenStream 
     let struct_name = &table.struct_name;
     let table_name = &table.singular_table_name;
 
+    let modified_at;
+
+    if has_modified_at {
+        modified_at = quote! {
+            #table_name.set_modified_at(self.ctx().timestamp);
+        }
+    } else {
+        modified_at = TokenStream::default();
+    }
+
     quote! {
         pub trait #trait_name: spacetimedsl::DSLContext {
             #[doc=#comment]
             fn #method_name(
                 &self,
-                #table_name: #struct_name,
+                mut #table_name: #struct_name,
             ) -> #struct_name {
+                #modified_at
                 return self
                         .ctx()
                         .db()

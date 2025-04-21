@@ -1,4 +1,5 @@
 pub mod entity {
+    use spacetimedb::Timestamp;
     use spacetimedsl::derive::SpacetimeDSL;
 
     /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
@@ -11,11 +12,14 @@ pub mod entity {
         #[auto_inc]
         #[wrap]
         id: u128,
+
+        created_at: Timestamp,
     }
 }
 
 pub mod component {
     pub mod identifier {
+        use spacetimedb::Timestamp;
         use spacetimedsl::derive::SpacetimeDSL;
 
         /// A Identifier is a developer-friendly String.
@@ -37,10 +41,15 @@ pub mod component {
             // The unique value of the Identifier.
             #[unique]
             pub value: String,
+
+            created_at: Timestamp,
+
+            pub modified_at: Timestamp,
         }
     }
 
     pub mod position {
+        use spacetimedb::Timestamp;
         use spacetimedsl::derive::SpacetimeDSL;
 
         /// A Position in the World.
@@ -64,6 +73,10 @@ pub mod component {
             pub y: i128,
 
             pub z: i128,
+
+            created_at: Timestamp,
+
+            pub modified_at: Timestamp,
         }
     }
 }
@@ -72,7 +85,7 @@ pub mod test {
     use std::iter::zip;
 
     use log::info;
-    use spacetimedb::{ReducerContext, reducer};
+    use spacetimedb::{ReducerContext, TimeDuration, reducer};
     use spacetimedsl::{Wrapper, dsl};
 
     use crate::{
@@ -102,6 +115,15 @@ pub mod test {
                 return Err("Should be able to create an Entity!".to_string());
             }
         };
+
+        let time = ctx.timestamp.to_system_time();
+        if player.get_created_at().to_system_time().ne(&time) {
+            return Err(
+                "The create method should have set the created_at column of the entity."
+                    .to_string(),
+            );
+        }
+
         match dsl.get_entity_by_id(&player) {
             Some(entity) => {
                 player = entity;
@@ -140,6 +162,28 @@ pub mod test {
             }
         };
 
+        if player_identifier
+            .get_created_at()
+            .to_system_time()
+            .ne(&time)
+        {
+            return Err(
+                "The create method should have set the created_at column of the identifier."
+                    .to_string(),
+            );
+        }
+
+        if player_identifier
+            .get_modified_at()
+            .to_system_time()
+            .ne(&time)
+        {
+            return Err(
+                "The create method should have set the modified_at column of the identifier."
+                    .to_string(),
+            );
+        }
+
         /* TODO: Uncomment if https://github.com/clockworklabs/SpacetimeDB/pull/2610 is fixed
         player_identifier.set_value("ENEMY".to_string());
         match dsl.create_identifier(player_identifier) {
@@ -163,7 +207,25 @@ pub mod test {
         }
 
         player_identifier.set_value("ENEMY".to_string());
+        player_identifier.set_modified_at(
+            ctx.timestamp
+                .checked_add(TimeDuration::from_micros(500000))
+                .unwrap(),
+        );
+
         let enemy_identifier = dsl.update_identifier_by_id(player_identifier);
+
+        if enemy_identifier
+            .get_modified_at()
+            .to_system_time()
+            .ne(&time)
+        {
+            return Err(
+                "The update method should have set the modified_at column of the identifier."
+                    .to_string(),
+            );
+        }
+
         let enemy = player;
 
         match dsl.get_identifier_by_entity_id(&enemy) {
