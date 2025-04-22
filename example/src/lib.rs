@@ -98,6 +98,8 @@ pub mod component {
             #[wrap(crate::entity::EntityId)]
             pub entity_id: Option<u128>,
 
+            pub another_entity_id: Option<u128>,
+
             created_at: Timestamp,
 
             pub modified_at: Timestamp,
@@ -351,9 +353,9 @@ pub mod test {
             }
         }
 
-        let world1 = handle_world_result(dsl.create_world(None))?;
-        let mut world2 = handle_world_result(dsl.create_world(&player))?;
-        let _ = handle_world_result(dsl.create_world(player.get_id()))?;
+        let world1 = handle_world_result(dsl.create_world(None, None))?;
+        let mut world2 = handle_world_result(dsl.create_world(&player, None))?;
+        let _ = handle_world_result(dsl.create_world(player.get_id(), None))?;
         let _: Option<EntityId> = world1.get_entity_id();
         world2.set_entity_id(None);
         world2.set_entity_id(&player);

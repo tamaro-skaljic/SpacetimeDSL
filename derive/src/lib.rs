@@ -17,7 +17,7 @@ pub fn dsl(input: TokenStream) -> TokenStream {
     }
 
     // Build the output, possibly using quasi-quotation
-    let output = output::output(input.unwrap());
+    let output = output::output(input.expect("Expected input, found none."));
 
     // Hand the output tokens back to the compiler
     TokenStream::from(output)

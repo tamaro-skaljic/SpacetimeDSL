@@ -21,7 +21,7 @@ pub fn build(table: &TableSchema) -> TokenStream {
         method_arguments.push(method_arg(column));
         initializer_arguments.push(init_arg(column));
 
-        if is_option(column) {
+        if column.column_type_wrapper.is_some() && is_option(column) {
             option_wrappers.push(into_option(column));
         }
     });

@@ -22,7 +22,11 @@ fn wrapper_type(table: &TableSchema, column: &ColumnSchema) -> TokenStream {
 
     let mut path = None;
 
-    match column.column_type_wrapper.as_ref().unwrap() {
+    match column
+        .column_type_wrapper
+        .as_ref()
+        .expect("Expected column_type_wrapper in wrapper_type(), found None!")
+    {
         Type::Path(tp) => {
             let _ = tp.path.require_ident().inspect(|i| {
                 path = Some(format_ident!("{}", i));
@@ -31,11 +35,18 @@ fn wrapper_type(table: &TableSchema, column: &ColumnSchema) -> TokenStream {
         _ => {}
     }
 
-    if path.is_none() || path.as_ref().unwrap().to_string().contains("::") {
+    if path.is_none() {
         return TokenStream::default();
     }
 
-    let wrapper_struct_name = path.as_ref().unwrap();
+    let wrapper_struct_name = path
+        .as_ref()
+        .expect("Expected path in wrapper_type(), found None!");
+
+    if wrapper_struct_name.to_string().contains("::") {
+        return TokenStream::default();
+    }
+
     let wrapped_struct_name = &column.column_type;
     let struct_name = &table.struct_name;
     let getter_name = format_ident!("get_{}", &column.column_name);

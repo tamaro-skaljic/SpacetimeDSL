@@ -31,7 +31,7 @@ pub fn get(syntax_tree: &DeriveInput) -> Option<(Ident, Ident)> {
     let mut singular_table_name = None;
 
     for token in attribute_containing_singular_table_name
-        .unwrap()
+        .expect("Expected attribute_containing_singular_table_name, found None.")
         .into_iter()
     {
         match token {
@@ -55,7 +55,10 @@ pub fn get(syntax_tree: &DeriveInput) -> Option<(Ident, Ident)> {
 
     let mut plural_table_name: Option<Ident> = None;
 
-    match parse2::<Ident>(attribute_containing_plural_table_name.unwrap()) {
+    match parse2::<Ident>(
+        attribute_containing_plural_table_name
+            .expect("Expected attribute_containing_plural_table_name, found none!"),
+    ) {
         Ok(name) => {
             plural_table_name = Some(name.clone());
         }
@@ -66,5 +69,8 @@ pub fn get(syntax_tree: &DeriveInput) -> Option<(Ident, Ident)> {
         return None;
     }
 
-    Some((singular_table_name.unwrap(), plural_table_name.unwrap()))
+    Some((
+        singular_table_name.expect("Expected singular_table_name, found none!"),
+        plural_table_name.expect("Expected plural_table_name, found none!"),
+    ))
 }

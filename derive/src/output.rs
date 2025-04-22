@@ -45,7 +45,10 @@ pub fn get_column_type(column: &ColumnSchema) -> TokenStream {
             #column_type
         }
     } else {
-        let column_type = column.column_type_wrapper.as_ref().unwrap();
+        let column_type = column
+            .column_type_wrapper
+            .as_ref()
+            .expect("Expected column_type_wrapper in get_column_type(), found None!");
 
         if is_option(column) {
             quote! {
@@ -90,9 +93,11 @@ pub fn is_option(column: &ColumnSchema) -> bool {
 pub fn into_option(column: &ColumnSchema) -> TokenStream {
     let column_name = &column.column_name;
     let column_value_name = format_ident!("{column_name}_value");
-    let wrapper_type = column.column_type_wrapper.as_ref();
+    let wrapper_type = column
+        .column_type_wrapper
+        .as_ref()
+        .expect("Expected wrapper_type in into_option(), found None!");
 
-    let wrapper_type = wrapper_type.unwrap();
     quote! {
         let #column_name = #column_name.into();
         let mut #column_value_name = None;

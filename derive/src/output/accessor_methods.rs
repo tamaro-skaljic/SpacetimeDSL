@@ -39,7 +39,10 @@ fn normal_return_type(column: &ColumnSchema) -> TokenStream {
 }
 
 fn wrapped_return_type(column: &ColumnSchema) -> TokenStream {
-    let column_type = column.column_type_wrapper.as_ref().unwrap();
+    let column_type = column
+        .column_type_wrapper
+        .as_ref()
+        .expect("Expected column_type_wrapper in wrapped_return_type(), found None!");
 
     if is_option(column) {
         quote! {
@@ -86,7 +89,10 @@ fn normal_getter_impl(column: &ColumnSchema) -> TokenStream {
 }
 
 fn getter_impl_for_wrapper_types(column: &ColumnSchema) -> TokenStream {
-    let column_type = column.column_type_wrapper.as_ref().unwrap();
+    let column_type = column
+        .column_type_wrapper
+        .as_ref()
+        .expect("Expected column_type_wrapper in getter_impl_for_wrapper_types(), found None!");
     let column_name = &column.column_name;
 
     if is_option(column) {
