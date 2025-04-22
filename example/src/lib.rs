@@ -79,6 +79,30 @@ pub mod component {
             pub modified_at: Timestamp,
         }
     }
+
+    pub mod world {
+        use spacetimedb::Timestamp;
+        use spacetimedsl::derive::SpacetimeDSL;
+
+        /// A Position in the World.
+        #[derive(Debug, SpacetimeDSL, Clone, PartialEq)]
+        #[spacetimedb::table(name = world, public)]
+        #[plural_table_name(worlds)]
+        pub struct World {
+            /// The unique ID of the World.
+            #[primary_key]
+            #[auto_inc]
+            #[wrap]
+            id: u128,
+
+            #[wrap(crate::entity::EntityId)]
+            pub entity_id: Option<u128>,
+
+            created_at: Timestamp,
+
+            pub modified_at: Timestamp,
+        }
+    }
 }
 
 pub mod test {
@@ -98,8 +122,9 @@ pub mod test {
                 CreatePosition, GetAllPositionRows, GetCountOfPositionRows,
                 GetPositionRowOptionsById, PositionId,
             },
+            world::{CreateWorld, World, world__TableHandle},
         },
-        entity::{CreateEntity, DeleteEntityRowById, GetEntityRowOptionById},
+        entity::{CreateEntity, DeleteEntityRowById, EntityId, GetEntityRowOptionById},
     };
 
     #[reducer]
@@ -326,8 +351,31 @@ pub mod test {
             }
         }
 
+        let world1 = handle_world_result(dsl.create_world(None))?;
+        let mut world2 = handle_world_result(dsl.create_world(&player))?;
+        let _ = handle_world_result(dsl.create_world(player.get_id()))?;
+        let _: Option<EntityId> = world1.get_entity_id();
+        world2.set_entity_id(None);
+        world2.set_entity_id(&player);
+        world2.set_entity_id(player.get_id());
         info!("Test executed successfully!");
 
         Ok(())
+    }
+
+    fn handle_world_result(
+        result: Result<World, spacetimedb::TryInsertError<world__TableHandle>>,
+    ) -> Result<World, String> {
+        match result {
+            Ok(w) => {
+                return Ok(w);
+            }
+            Err(e) => {
+                return Err(format!(
+                    "Should have been able to create a world. Got: {}",
+                    e.to_string()
+                ));
+            }
+        }
     }
 }

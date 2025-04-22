@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Visibility;
 
-use super::get_column_type;
+use super::{get_column_type, into_option, is_option};
 
 pub fn build(table: &TableSchema) -> TokenStream {
     let struct_name = &table.struct_name;
@@ -40,8 +40,15 @@ fn normal_return_type(column: &ColumnSchema) -> TokenStream {
 
 fn wrapped_return_type(column: &ColumnSchema) -> TokenStream {
     let column_type = column.column_type_wrapper.as_ref().unwrap();
-    quote! {
-        #column_type
+
+    if is_option(column) {
+        quote! {
+            Option<#column_type>
+        }
+    } else {
+        quote! {
+            #column_type
+        }
     }
 }
 
@@ -82,8 +89,18 @@ fn getter_impl_for_wrapper_types(column: &ColumnSchema) -> TokenStream {
     let column_type = column.column_type_wrapper.as_ref().unwrap();
     let column_name = &column.column_name;
 
-    quote! {
-        #column_type::new(self.#column_name.clone())
+    if is_option(column) {
+        quote! {
+            if self.#column_name.is_none() {
+                None
+            } else {
+                Some(#column_type::new(self.#column_name.unwrap()))
+            }
+        }
+    } else {
+        quote! {
+            #column_type::new(self.#column_name.clone())
+        }
     }
 }
 
@@ -108,7 +125,7 @@ fn setter(column: &ColumnSchema) -> TokenStream {
 
     quote! {
         #visibility fn #method_name(&mut self, #column_name: #column_type) {
-            #setter_impl;
+            #setter_impl
         }
     }
 }
@@ -125,15 +142,24 @@ fn normal_setter_impl(column: &ColumnSchema) -> TokenStream {
     let column_name = &column.column_name;
 
     quote! {
-        self.#column_name = #column_name
+        self.#column_name = #column_name;
     }
 }
 
 fn setter_impl_for_wrapper_types(column: &ColumnSchema) -> TokenStream {
     let column_name = &column.column_name;
 
-    quote! {
-        self.#column_name = #column_name.value()
+    if is_option(column) {
+        let into_option = into_option(column);
+        let column_value_name = format_ident!("{column_name}_value");
+        quote! {
+            #into_option
+            self.#column_name = #column_value_name;
+        }
+    } else {
+        quote! {
+            self.#column_name = #column_name.value();
+        }
     }
 }
 

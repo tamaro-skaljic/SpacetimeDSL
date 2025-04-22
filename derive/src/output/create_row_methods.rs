@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, Type};
 
-use super::get_column_type;
+use super::{get_column_type, into_option, is_option};
 
 pub fn build(table: &TableSchema) -> TokenStream {
     let table_name = &table.singular_table_name;
@@ -15,10 +15,15 @@ pub fn build(table: &TableSchema) -> TokenStream {
 
     let mut method_arguments = vec![];
     let mut initializer_arguments = vec![];
+    let mut option_wrappers = vec![];
 
     table.columns.iter().for_each(|column| {
         method_arguments.push(method_arg(column));
         initializer_arguments.push(init_arg(column));
+
+        if is_option(column) {
+            option_wrappers.push(into_option(column));
+        }
     });
 
     let trait_definition = quote! {
@@ -28,6 +33,7 @@ pub fn build(table: &TableSchema) -> TokenStream {
                 &self,
                 #(#method_arguments)*
             ) -> Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>> {
+                #(#option_wrappers)*
                 let #table_name = #struct_name {
                     #(#initializer_arguments)*
                 };
@@ -82,7 +88,11 @@ fn init_arg(column: &ColumnSchema) -> TokenStream {
     } else if column.column_name.to_string().eq("modified_at") {
         modified_at_init_arg()
     } else if column.column_type_wrapper.is_some() {
-        column_type_wrapper_init_arg(&column.column_name)
+        if is_option(column) {
+            column_type_wrapper_option_init_arg(&column.column_name)
+        } else {
+            column_type_wrapper_init_arg(&column.column_name)
+        }
     } else {
         normal_init_arg(&column.column_name)
     }
@@ -103,6 +113,13 @@ fn created_at_init_arg() -> TokenStream {
 fn modified_at_init_arg() -> TokenStream {
     quote! {
         modified_at: self.ctx().timestamp,
+    }
+}
+
+fn column_type_wrapper_option_init_arg(column_name: &Ident) -> TokenStream {
+    let column_value_name = format_ident!("{column_name}_value");
+    quote! {
+        #column_name: #column_value_name,
     }
 }
 

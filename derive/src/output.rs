@@ -1,5 +1,5 @@
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{ToTokens, format_ident, quote};
 
 use crate::input::{ColumnSchema, TableSchema};
 
@@ -46,8 +46,15 @@ pub fn get_column_type(column: &ColumnSchema) -> TokenStream {
         }
     } else {
         let column_type = column.column_type_wrapper.as_ref().unwrap();
-        quote! {
-            impl Into<#column_type>
+
+        if is_option(column) {
+            quote! {
+                impl Into<Option<#column_type>>
+            }
+        } else {
+            quote! {
+                impl Into<#column_type>
+            }
         }
     }
 }
@@ -59,8 +66,38 @@ pub fn get_column_value(column: &ColumnSchema) -> TokenStream {
             #column_name
         }
     } else {
-        quote! {
-            #column_name.into().value()
+        if is_option(column) {
+            let column_value_name = format_ident!("{column_name}_value");
+            quote! {
+                #column_name: #column_value_name
+            }
+        } else {
+            quote! {
+                #column_name.into().value()
+            }
+        }
+    }
+}
+
+pub fn is_option(column: &ColumnSchema) -> bool {
+    column
+        .column_type
+        .to_token_stream()
+        .to_string()
+        .contains("Option")
+}
+
+pub fn into_option(column: &ColumnSchema) -> TokenStream {
+    let column_name = &column.column_name;
+    let column_value_name = format_ident!("{column_name}_value");
+    let wrapper_type = column.column_type_wrapper.as_ref();
+
+    let wrapper_type = wrapper_type.unwrap();
+    quote! {
+        let #column_name = #column_name.into();
+        let mut #column_value_name = None;
+        if #column_name.is_some() {
+            #column_value_name = Some(Into::<#wrapper_type>::into(#column_name.unwrap()).value());
         }
     }
 }

@@ -52,6 +52,12 @@ fn wrapper_type(table: &TableSchema, column: &ColumnSchema) -> TokenStream {
             }
         }
 
+        impl From<&#struct_name> for Option<#wrapper_struct_name> {
+            fn from(value: &#struct_name) -> Option<#wrapper_struct_name> {
+                Some(value.#getter_name())
+            }
+        }
+
         impl spacetimedsl::Wrapper<#wrapped_struct_name, #wrapper_struct_name> for #wrapper_struct_name {
             fn new(value: #wrapped_struct_name) -> Self {
                 Self { value }

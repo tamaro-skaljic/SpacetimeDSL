@@ -1,4 +1,7 @@
-use crate::input::{ColumnSchema, TableSchema};
+use crate::{
+    input::{ColumnSchema, TableSchema},
+    output::{into_option, is_option},
+};
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -42,6 +45,14 @@ fn get_one_row_option_by(table: &TableSchema, column: &ColumnSchema) -> TokenStr
     let table_name = &table.singular_table_name;
     let column_value = get_column_value(column);
 
+    let option_wrapper;
+
+    if is_option(column) {
+        option_wrapper = into_option(column);
+    } else {
+        option_wrapper = TokenStream::default();
+    }
+
     quote! {
         pub trait #trait_name: spacetimedsl::DSLContext {
             #[doc=#comment]
@@ -49,6 +60,7 @@ fn get_one_row_option_by(table: &TableSchema, column: &ColumnSchema) -> TokenStr
                 &self,
                 #column_name: #column_type,
             ) -> Option<#struct_name> {
+                #option_wrapper
                 return self
                         .ctx()
                         .db()
