@@ -13,8 +13,11 @@ pub fn build(table: &TableSchema) -> TokenStream {
             has_modified_at = true;
         }
 
-        if c.visibility.ne(&Visibility::Inherited) {
-            is_mutable = true;
+        match &c.visibility {
+            Visibility::Inherited => {}
+            _ => {
+                is_mutable = true;
+            }
         }
     });
 
