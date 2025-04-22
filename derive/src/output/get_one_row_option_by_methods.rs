@@ -47,7 +47,7 @@ fn get_one_row_option_by(table: &TableSchema, column: &ColumnSchema) -> TokenStr
 
     let option_wrapper;
 
-    if is_option(column) {
+    if column.column_type_wrapper.is_some() && is_option(column) {
         option_wrapper = into_option(column);
     } else {
         option_wrapper = TokenStream::default();
