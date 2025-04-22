@@ -80,15 +80,15 @@ pub mod component {
         }
     }
 
-    pub mod world {
+    pub mod test {
         use spacetimedb::Timestamp;
         use spacetimedsl::derive::SpacetimeDSL;
 
         /// A Position in the World.
         #[derive(Debug, SpacetimeDSL, Clone, PartialEq)]
-        #[spacetimedb::table(name = world, public)]
-        #[plural_table_name(worlds)]
-        pub struct World {
+        #[spacetimedb::table(name = test, public)]
+        #[plural_table_name(tests)]
+        pub struct Test {
             /// The unique ID of the World.
             #[primary_key]
             #[auto_inc]
@@ -96,11 +96,23 @@ pub mod component {
             id: u128,
 
             #[wrap(crate::entity::EntityId)]
-            pub entity_id: Option<u128>,
+            pub wrapped_option: Option<u128>,
 
-            pub another_entity_id: Option<u128>,
+            // TODO: Add #[unique] if it's allowed by SpacetimeDB
+            pub option: Option<u128>,
 
-            created_at: Timestamp,
+            #[unique]
+            #[wrap(crate::entity::EntityId)]
+            pub wrapped_unique: u128,
+
+            #[index(btree)]
+            #[wrap(crate::entity::EntityId)]
+            pub wrapped_index: u128,
+
+            #[index(btree)]
+            pub index: u128,
+
+            pub created_at: Timestamp,
 
             pub modified_at: Timestamp,
         }
@@ -124,13 +136,13 @@ pub mod test {
                 CreatePosition, GetAllPositionRows, GetCountOfPositionRows,
                 GetPositionRowOptionsById, PositionId,
             },
-            world::{CreateWorld, World, world__TableHandle},
+            test::{CreateTest, Test, test__TableHandle},
         },
         entity::{CreateEntity, DeleteEntityRowById, EntityId, GetEntityRowOptionById},
     };
 
     #[reducer]
-    fn test(ctx: &ReducerContext) -> Result<(), String> {
+    fn tester(ctx: &ReducerContext) -> Result<(), String> {
         let dsl = dsl(ctx);
 
         let mut player;
@@ -353,28 +365,39 @@ pub mod test {
             }
         }
 
-        let world1 = handle_world_result(dsl.create_world(None, None))?;
-        let mut world2 = handle_world_result(dsl.create_world(&player, None))?;
-        let _ = handle_world_result(dsl.create_world(player.get_id(), None))?;
-        let _: Option<EntityId> = world1.get_entity_id();
-        world2.set_entity_id(None);
-        world2.set_entity_id(&player);
-        world2.set_entity_id(player.get_id());
+        let world1 = handle_test_result(dsl.create_test(
+            None,
+            Some(player.get_id().value()),
+            &player,
+            &player,
+            player.get_id().value(),
+        ))?;
+        let mut world2 = handle_test_result(dsl.create_test(
+            &player,
+            None,
+            enemy.get_id(),
+            player.get_id(),
+            player.get_id().value(),
+        ))?;
+        let _: Option<EntityId> = world1.get_wrapped_option();
+        world2.set_wrapped_option(None);
+        world2.set_wrapped_option(&player);
+        world2.set_wrapped_option(player.get_id());
         info!("Test executed successfully!");
 
         Ok(())
     }
 
-    fn handle_world_result(
-        result: Result<World, spacetimedb::TryInsertError<world__TableHandle>>,
-    ) -> Result<World, String> {
+    fn handle_test_result(
+        result: Result<Test, spacetimedb::TryInsertError<test__TableHandle>>,
+    ) -> Result<Test, String> {
         match result {
             Ok(w) => {
                 return Ok(w);
             }
             Err(e) => {
                 return Err(format!(
-                    "Should have been able to create a world. Got: {}",
+                    "Should have been able to create a test. Got: {}",
                     e.to_string()
                 ));
             }

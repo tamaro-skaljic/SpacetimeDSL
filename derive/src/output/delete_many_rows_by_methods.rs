@@ -37,7 +37,14 @@ fn delete_many_rows_by(table: &TableSchema, column: &ColumnSchema) -> TokenStrea
         &column.column_name
     );
     let column_name = &column.column_name;
-    let column_type = get_column_type(column);
+    let mut column_type = get_column_type(column);
+
+    if column.column_type_wrapper.is_none() {
+        column_type = quote! {
+            &'a #column_type
+        }
+    }
+
     let table_name = &table.singular_table_name;
     let column_value = get_column_value(column);
 
@@ -46,7 +53,7 @@ fn delete_many_rows_by(table: &TableSchema, column: &ColumnSchema) -> TokenStrea
             #[doc=#comment]
             fn #method_name<'a>(
                 &'a self,
-                #column_name: &'a #column_type,
+                #column_name: #column_type,
             ) -> u64 {
                 return self
                     .ctx()

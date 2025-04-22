@@ -164,7 +164,7 @@ fn setter_impl_for_wrapper_types(column: &ColumnSchema) -> TokenStream {
         }
     } else {
         quote! {
-            self.#column_name = #column_name.value();
+            self.#column_name = #column_name.into().value();
         }
     }
 }
