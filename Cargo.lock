@@ -570,7 +570,7 @@ dependencies = [
 
 [[package]]
 name = "spacetimedsl"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "spacetimedb",
  "spacetimedsl_derive",
@@ -587,7 +587,7 @@ dependencies = [
 
 [[package]]
 name = "spacetimedsl_derive"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "ident_case",
  "proc-macro2",
@@ -597,7 +597,7 @@ dependencies = [
 
 [[package]]
 name = "spacetimedsl_test"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "log",
  "proc-macro2",
