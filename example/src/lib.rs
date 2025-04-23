@@ -141,7 +141,6 @@ pub mod test {
                 CreatePosition, GetAllPositionRows, GetCountOfPositionRows,
                 GetPositionRowOptionsById, PositionId,
             },
-            test::{CreateTest, Test, test__TableHandle},
             test::{
                 CreateTest, DeleteTestRowsByBtreeIndex, DeleteTestRowsByWrappedIndex,
                 GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex, Test, test__TableHandle,
