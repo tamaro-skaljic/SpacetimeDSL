@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use syn::{DeriveInput, parse_macro_input};
 
-mod input;
+use spacetimedsl_derive_output as input;
 mod output;
 
 /// Add `#[derive(SpacetimeDSL)]` to your structs with `#[spacetimedb::table]`

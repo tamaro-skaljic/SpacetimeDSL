@@ -1,18 +1,15 @@
 [package]
 authors = ["Tamaro Skaljic<mail@tamaro-skaljic.de>"]
-name = "spacetimedsl_derive"
+name = "spacetimedsl_derive-output"
 version = "0.4.0"
 edition = "2024"
-description = "Macros to extend SpacetimeDSL. You shouldn't depend on this directly and instead use the spacetimedsl crate."
-documentation = "https://docs.rs/spacetimedsl_derive"
+description = "Contains structs which represent the output of SpacetimeDSL. Can be used by other proc-macro crates to build Macros which utilize SpacetimeDSL under the hood."
+documentation = "https://docs.rs/spacetimedsl_derive-output"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/tamaro-skaljic/SpacetimeDSL/derive"
+repository = "https://github.com/tamaro-skaljic/SpacetimeDSL/derive-output"
 publish = true
 include = ["/src/**"]
 keywords = ["dsl", "spacetime", "macro", "codegen", "boilerplate"]
-
-[lib]
-proc-macro = true
 
 [dependencies]
 # https://crates.io/crates/ident_case Utility for applying case rules to Rust identifiers.
@@ -26,6 +23,3 @@ syn = { version = "2.0" }
 
 # https://crates.io/crates/quote Quasi-quoting macro quote!(...)
 quote = "1.0"
-
-# https://crates.io/crates/spacetimedsl_derive-output Contains structs which represent the output of SpacetimeDSL. Can be used by other proc-macro crates to build Macros which utilize SpacetimeDSL under the hood.
-spacetimedsl_derive-output = { version = "0.4.0", path = "../derive-output" }
