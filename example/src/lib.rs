@@ -76,7 +76,7 @@ pub mod component {
 
             created_at: Timestamp,
 
-            pub modified_at: Timestamp,
+            modified_at: Timestamp,
         }
     }
 
@@ -117,9 +117,9 @@ pub mod component {
             //#[unique]
             //pub direct_index: u8,
 
-            pub created_at: Timestamp,
+            created_at: Timestamp,
 
-            pub modified_at: Timestamp,
+            modified_at: Timestamp,
         }
     }
 }

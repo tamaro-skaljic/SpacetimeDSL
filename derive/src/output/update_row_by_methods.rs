@@ -67,7 +67,7 @@ fn update_one_row_by(
 
     if has_modified_at {
         modified_at = quote! {
-            #table_name.set_modified_at(self.ctx().timestamp);
+            #table_name.modified_at = self.ctx().timestamp;
         }
     } else {
         modified_at = TokenStream::default();
