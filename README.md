@@ -24,7 +24,7 @@ pub mod entity {
     use spacetimedsl::derive::SpacetimeDSL;
 
     /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
-    #[derive(SpacetimeDSL)]
+    #[derive(Clone, Debug, PartialEq, SpacetimeDSL)]
     #[spacetimedb::table(name = entity, public)]
     #[plural_table_name(entities)]
     pub struct Entity {
@@ -41,7 +41,7 @@ pub mod component {
         use spacetimedsl::derive::SpacetimeDSL;
 
         /// A Identifier is a developer-friendly String.
-        #[derive(SpacetimeDSL)]
+        #[derive(Clone, Debug, PartialEq, SpacetimeDSL)]
         #[spacetimedb::table(name = identifier, public)]
         #[plural_table_name(identifiers)]
         pub struct Identifier {
@@ -66,7 +66,7 @@ pub mod component {
         use spacetimedsl::derive::SpacetimeDSL;
 
         /// A Position in the World.
-        #[derive(SpacetimeDSL)]
+        #[derive(Clone, Debug, PartialEq, SpacetimeDSL)]
         #[spacetimedb::table(name = position, public, index(name = x_y_z, btree(columns = [x, y, z])))]
         #[plural_table_name(positions)]
         pub struct Position {
@@ -119,7 +119,7 @@ For example, if we would want Entities to have a parent, you would add `#[wrap(s
 The input code produces the following output (and many side effects in other features generated code, see the feature's respective section in the docs):
 
 ```rust
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, spacetimedb::SpacetimeType)]
 pub struct EntityId {
     value: u128,
 }
@@ -145,7 +145,7 @@ impl spacetimedsl::Wrapper<u128, EntityId> for EntityId {
 }
 
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, spacetimedb::SpacetimeType)]
 pub struct IdentifierId {
     value: u128,
 }
@@ -168,7 +168,7 @@ impl spacetimedsl::Wrapper<u128, IdentifierId> for IdentifierId {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, spacetimedb::SpacetimeType)]
 pub struct PositionId {
     value: u128,
 }
@@ -634,7 +634,7 @@ If a table has only private (non-public) fields, no update method is generated. 
 pub trait UpdateIdentifierRowById: spacetimedsl::DSLContext {
     ///Update a Identifier row by it's id.
     fn update_identifier_by_id(&self, mut identifier: Identifier) -> Identifier {
-        identifier.set_modified_at(self.ctx().timestamp);
+        identifier.modified_at = self.ctx().timestamp;
         return self.ctx().db().identifier().id().update(identifier);
     }
 }
@@ -646,7 +646,7 @@ pub trait UpdateIdentifierRowByEntityId: spacetimedsl::DSLContext {
         &self,
         mut identifier: Identifier,
     ) -> Identifier {
-        identifier.set_modified_at(self.ctx().timestamp);
+        identifier.modified_at = self.ctx().timestamp;
         return self.ctx().db().identifier().entity_id().update(identifier);
     }
 }
@@ -655,7 +655,7 @@ impl UpdateIdentifierRowByEntityId for spacetimedsl::DSL<'_> {}
 pub trait UpdateIdentifierRowByValue: spacetimedsl::DSLContext {
     ///Update a Identifier row by it's value.
     fn update_identifier_by_value(&self, mut identifier: Identifier) -> Identifier {
-        identifier.set_modified_at(self.ctx().timestamp);
+        identifier.modified_at = self.ctx().timestamp;
         return self.ctx().db().identifier().value().update(identifier);
     }
 }
@@ -664,7 +664,7 @@ impl UpdateIdentifierRowByValue for spacetimedsl::DSL<'_> {}
 pub trait UpdatePositionRowById: spacetimedsl::DSLContext {
     ///Update a Position row by it's id.
     fn update_position_by_id(&self, mut position: Position) -> Position {
-        position.set_modified_at(self.ctx().timestamp);
+        position.modified_at = self.ctx().timestamp;
         return self.ctx().db().position().id().update(position);
     }
 }
@@ -673,7 +673,7 @@ impl UpdatePositionRowById for spacetimedsl::DSL<'_> {}
 pub trait UpdatePositionRowByEntityId: spacetimedsl::DSLContext {
     ///Update a Position row by it's entity_id.
     fn update_position_by_entity_id(&self, mut position: Position) -> Position {
-        position.set_modified_at(self.ctx().timestamp);
+        position.modified_at = self.ctx().timestamp;
         return self.ctx().db().position().entity_id().update(position);
     }
 }

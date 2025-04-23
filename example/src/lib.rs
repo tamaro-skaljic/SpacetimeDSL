@@ -3,7 +3,7 @@ pub mod entity {
     use spacetimedsl::derive::SpacetimeDSL;
 
     /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
-    #[derive(Debug, SpacetimeDSL, Clone, PartialEq)]
+    #[derive(Clone, Debug, PartialEq, SpacetimeDSL)]
     #[spacetimedb::table(name = entity, public)]
     #[plural_table_name(entities)]
     pub struct Entity {
@@ -23,7 +23,7 @@ pub mod component {
         use spacetimedsl::derive::SpacetimeDSL;
 
         /// A Identifier is a developer-friendly String.
-        #[derive(Debug, SpacetimeDSL, Clone, PartialEq)]
+        #[derive(Clone, Debug, PartialEq, SpacetimeDSL)]
         #[spacetimedb::table(name = identifier, public)]
         #[plural_table_name(identifiers)]
         pub struct Identifier {
@@ -53,7 +53,7 @@ pub mod component {
         use spacetimedsl::derive::SpacetimeDSL;
 
         /// A Position in the World.
-        #[derive(Debug, SpacetimeDSL, Clone, PartialEq)]
+        #[derive(Clone, Debug, PartialEq, SpacetimeDSL)]
         #[spacetimedb::table(name = position, public, index(name = x_y_z, btree(columns = [x, y, z])))]
         #[plural_table_name(positions)]
         pub struct Position {
@@ -85,7 +85,7 @@ pub mod component {
         use spacetimedsl::derive::SpacetimeDSL;
 
         /// A Position in the World.
-        #[derive(Debug, SpacetimeDSL, Clone, PartialEq)]
+        #[derive(Clone, Debug, PartialEq, SpacetimeDSL)]
         #[spacetimedb::table(name = test, public)]
         #[plural_table_name(tests)]
         pub struct Test {
@@ -116,7 +116,6 @@ pub mod component {
             //#[index(direct)]
             //#[unique]
             //pub direct_index: u8,
-
             created_at: Timestamp,
 
             modified_at: Timestamp,

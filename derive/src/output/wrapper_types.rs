@@ -52,7 +52,7 @@ fn wrapper_type(table: &TableSchema, column: &ColumnSchema) -> TokenStream {
     let getter_name = format_ident!("get_{}", &column.column_name);
 
     quote! {
-        #[derive(spacetimedb::SpacetimeType, PartialEq, Clone, Debug)]
+        #[derive(Clone, Debug, PartialEq, spacetimedb::SpacetimeType)]
         pub struct #wrapper_struct_name {
             value: #wrapped_struct_name,
         }
