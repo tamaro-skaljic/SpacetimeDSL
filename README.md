@@ -7,11 +7,13 @@ SpacetimeDSL provides you a high-level [*D*omain *S*pecific *L*anguage (DSL)](ht
 The following things aren't considered during code generation yet:
 
 - [Multi Column Indices](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/2)
+- [Using IndexScanRangeBounds on get_many_by_column and delete_many_by_column](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21)
 
 The following SpacetimeDB features can't be used and will result in compilation errors:
 
 - [More than one `#[table]` attribute macro on the same struct](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/10)
 - [More than one struct with `#[derive(SpacetimeDSL)` in the same rust module](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/11)
+- [`[#index(direct)]`](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/20)
 
 ## Features
 

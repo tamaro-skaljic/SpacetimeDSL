@@ -110,7 +110,12 @@ pub mod component {
             pub wrapped_index: u128,
 
             #[index(btree)]
-            pub index: u128,
+            pub btree_index: u128,
+
+            // TODO: Add when https://github.com/tamaro-skaljic/SpacetimeDSL/issues/20 is fixed
+            //#[index(direct)]
+            //#[unique]
+            //pub direct_index: u8,
 
             pub created_at: Timestamp,
 
@@ -137,6 +142,10 @@ pub mod test {
                 GetPositionRowOptionsById, PositionId,
             },
             test::{CreateTest, Test, test__TableHandle},
+            test::{
+                CreateTest, DeleteTestRowsByBtreeIndex, DeleteTestRowsByWrappedIndex,
+                GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex, Test, test__TableHandle,
+            },
         },
         entity::{CreateEntity, DeleteEntityRowById, EntityId, GetEntityRowOptionById},
     };
@@ -383,6 +392,23 @@ pub mod test {
         world2.set_wrapped_option(None);
         world2.set_wrapped_option(&player);
         world2.set_wrapped_option(player.get_id());
+
+        // TODO: Add commented lines if https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21 is added
+        let _ = dsl.get_tests_by_wrapped_index(&player);
+        let _ = dsl.get_tests_by_wrapped_index(player.get_id());
+        let _ = dsl.get_tests_by_wrapped_index(world2.get_wrapped_index());
+        // TODO: let _ = dsl.get_tests_by_wrapped_index(&player..);
+        // TODO: let _ = dsl.get_tests_by_wrapped_index(world2.get_wrapped_index()..);
+        let _ = dsl.delete_tests_by_wrapped_index(&player);
+        let _ = dsl.delete_tests_by_wrapped_index(player.get_id());
+        let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index());
+        // TODO: let _ = dsl.delete_tests_by_wrapped_index(&player..);
+        // TODO: let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index()..);
+
+        let _ = dsl.get_tests_by_btree_index(world2.get_btree_index());
+        // TODO: let _ = dsl.get_tests_by_btree_index(world2.get_btree_index()..);
+        let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index());
+        // TODO: let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index()..);
         info!("Test executed successfully!");
 
         Ok(())
