@@ -1,8 +1,8 @@
-pub use spacetimedsl_derive as derive;
 use spacetimedb::ReducerContext;
+pub use spacetimedsl_derive as derive;
 
 pub struct DSL<'a> {
-    pub ctx: &'a ReducerContext,
+    ctx: &'a ReducerContext,
 }
 
 pub fn dsl<'a>(ctx: &'a ReducerContext) -> DSL<'a> {
