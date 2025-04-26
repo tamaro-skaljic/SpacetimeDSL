@@ -1,10 +1,10 @@
-use crate::input::{ColumnSchema, TableSchema};
+use crate::input::{Column, Table};
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Visibility;
 
-pub fn build(table: &TableSchema) -> TokenStream {
+pub fn build(table: &Table) -> TokenStream {
     let mut is_mutable: bool = false;
     let mut has_modified_at: bool = false;
 
@@ -37,8 +37,8 @@ pub fn build(table: &TableSchema) -> TokenStream {
 }
 
 fn update_one_row_by(
-    table: &TableSchema,
-    column: &ColumnSchema,
+    table: &Table,
+    column: &Column,
     has_modified_at: bool,
 ) -> TokenStream {
     if !column.is_primary_key && !column.has_unique_constraint {

@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 
-use crate::input::{ColumnSchema, TableSchema};
+use crate::input::{Column, Table};
 
 mod accessor_methods;
 mod create_row_methods;
@@ -15,30 +15,30 @@ mod get_one_row_option_by_methods;
 mod update_row_by_methods;
 mod wrapper_types;
 
-pub fn output(table: TableSchema) -> TokenStream {
+pub fn output(input: Table) -> syn::Result<TokenStream> {
     let mut output: Vec<TokenStream> = vec![];
 
-    output.push(wrapper_types::build(&table));
-    output.push(accessor_methods::build(&table));
+    output.push(wrapper_types::build(&input));
+    output.push(accessor_methods::build(&input));
 
-    output.push(create_row_methods::build(&table));
-    output.push(get_one_row_option_by_methods::build(&table));
-    output.push(get_many_row_options_by_methods::build(&table));
-    output.push(get_many_rows_by_methods::build(&table));
-    output.push(get_all_rows_method::build(&table));
-    output.push(get_count_of_rows_method::build(&table));
-    output.push(update_row_by_methods::build(&table));
-    output.push(delete_one_row_by_methods::build(&table));
-    output.push(delete_many_rows_by_methods::build(&table));
+    output.push(create_row_methods::build(&input));
+    output.push(get_one_row_option_by_methods::build(&input));
+    output.push(get_many_row_options_by_methods::build(&input));
+    output.push(get_many_rows_by_methods::build(&input));
+    output.push(get_all_rows_method::build(&input));
+    output.push(get_count_of_rows_method::build(&input));
+    output.push(update_row_by_methods::build(&input));
+    output.push(delete_one_row_by_methods::build(&input));
+    output.push(delete_many_rows_by_methods::build(&input));
 
-    quote! {
+    Ok(quote! {
         use spacetimedsl::Wrapper as _;
         use spacetimedb::{DbContext as _, Table as _};
         #(#output)*
-    }
+    })
 }
 
-pub fn get_column_type(column: &ColumnSchema) -> TokenStream {
+pub fn get_column_type(column: &Column) -> TokenStream {
     if column.column_type_wrapper.is_none() {
         let column_type = &column.column_type;
         quote! {
@@ -62,7 +62,7 @@ pub fn get_column_type(column: &ColumnSchema) -> TokenStream {
     }
 }
 
-pub fn get_column_value(column: &ColumnSchema) -> TokenStream {
+pub fn get_column_value(column: &Column) -> TokenStream {
     let column_name = &column.column_name;
     if column.column_type_wrapper.is_none() {
         quote! {
@@ -82,7 +82,7 @@ pub fn get_column_value(column: &ColumnSchema) -> TokenStream {
     }
 }
 
-pub fn is_option(column: &ColumnSchema) -> bool {
+pub fn is_option(column: &Column) -> bool {
     column
         .column_type
         .to_token_stream()
@@ -90,7 +90,7 @@ pub fn is_option(column: &ColumnSchema) -> bool {
         .contains("Option")
 }
 
-pub fn into_option(column: &ColumnSchema) -> TokenStream {
+pub fn into_option(column: &Column) -> TokenStream {
     let column_name = &column.column_name;
     let column_value_name = format_ident!("{column_name}_value");
     let wrapper_type = column

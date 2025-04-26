@@ -1,11 +1,11 @@
-use crate::input::{ColumnSchema, TableSchema};
+use crate::input::{Column, Table};
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
 use crate::output::{get_column_type, get_column_value};
 
-pub fn build(table: &TableSchema) -> TokenStream {
+pub fn build(table: &Table) -> TokenStream {
     let mut traits: Vec<TokenStream> = vec![];
 
     table.columns.iter().for_each(|column| {
@@ -17,7 +17,7 @@ pub fn build(table: &TableSchema) -> TokenStream {
     }
 }
 
-fn delete_many_rows_by(table: &TableSchema, column: &ColumnSchema) -> TokenStream {
+fn delete_many_rows_by(table: &Table, column: &Column) -> TokenStream {
     if !column.has_single_column_index {
         return TokenStream::default();
     }

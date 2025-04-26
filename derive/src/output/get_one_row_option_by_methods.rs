@@ -1,5 +1,5 @@
 use crate::{
-    input::{ColumnSchema, TableSchema},
+    input::{Column, Table},
     output::{into_option, is_option},
 };
 use ident_case::RenameRule;
@@ -8,7 +8,7 @@ use quote::{format_ident, quote};
 
 use crate::output::{get_column_type, get_column_value};
 
-pub fn build(table: &TableSchema) -> TokenStream {
+pub fn build(table: &Table) -> TokenStream {
     let mut traits: Vec<TokenStream> = vec![];
 
     table.columns.iter().for_each(|column| {
@@ -20,7 +20,7 @@ pub fn build(table: &TableSchema) -> TokenStream {
     }
 }
 
-fn get_one_row_option_by(table: &TableSchema, column: &ColumnSchema) -> TokenStream {
+fn get_one_row_option_by(table: &Table, column: &Column) -> TokenStream {
     if !column.is_primary_key && !column.has_unique_constraint {
         return TokenStream::default();
     }

@@ -1,8 +1,8 @@
-use crate::input::TableSchema;
+use crate::input::Table;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-pub fn build(table: &TableSchema) -> TokenStream {
+pub fn build(table: &Table) -> TokenStream {
     let trait_name = format_ident!("GetAll{}Rows", &table.struct_name,);
     let comment = format!("Get all {}.", &table.struct_name,);
     let method_name = format_ident!("get_all_{}", &table.plural_table_name,);

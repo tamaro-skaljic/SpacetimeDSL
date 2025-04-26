@@ -1,11 +1,11 @@
-use crate::input::{ColumnSchema, TableSchema};
+use crate::input::{Column, Table};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, Type};
 
 use super::{get_column_type, into_option, is_option};
 
-pub fn build(table: &TableSchema) -> TokenStream {
+pub fn build(table: &Table) -> TokenStream {
     let table_name = &table.singular_table_name;
     let struct_name = &table.struct_name;
     let trait_name = format_ident!("Create{struct_name}");
@@ -56,7 +56,7 @@ pub fn build(table: &TableSchema) -> TokenStream {
 
 //region method arg
 
-fn method_arg(column: &ColumnSchema) -> TokenStream {
+fn method_arg(column: &Column) -> TokenStream {
     let method_arg;
 
     if column.is_auto_inc
@@ -80,7 +80,7 @@ fn method_arg(column: &ColumnSchema) -> TokenStream {
 
 //region init arg
 
-fn init_arg(column: &ColumnSchema) -> TokenStream {
+fn init_arg(column: &Column) -> TokenStream {
     if column.is_auto_inc {
         auto_inc_init_arg(&column.column_name, &column.column_type)
     } else if column.column_name.to_string().eq("created_at") {

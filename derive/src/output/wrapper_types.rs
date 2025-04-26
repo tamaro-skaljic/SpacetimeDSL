@@ -1,9 +1,9 @@
-use crate::input::{ColumnSchema, TableSchema};
+use crate::input::{Column, Table};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Type;
 
-pub fn build(table: &TableSchema) -> TokenStream {
+pub fn build(table: &Table) -> TokenStream {
     let mut wrapper_types = vec![];
 
     table.columns.iter().for_each(|column| {
@@ -15,7 +15,7 @@ pub fn build(table: &TableSchema) -> TokenStream {
     }
 }
 
-fn wrapper_type(table: &TableSchema, column: &ColumnSchema) -> TokenStream {
+fn wrapper_type(table: &Table, column: &Column) -> TokenStream {
     if column.column_type_wrapper.is_none() {
         return TokenStream::default();
     }

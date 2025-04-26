@@ -1,11 +1,11 @@
-use crate::input::{ColumnSchema, TableSchema};
+use crate::input::{Column, Table};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Visibility;
 
 use super::{get_column_type, into_option, is_option};
 
-pub fn build(table: &TableSchema) -> TokenStream {
+pub fn build(table: &Table) -> TokenStream {
     let struct_name = &table.struct_name;
     let mut accessors: Vec<TokenStream> = vec![];
 
@@ -23,7 +23,7 @@ pub fn build(table: &TableSchema) -> TokenStream {
 
 //region return type
 
-fn return_type(column: &ColumnSchema) -> TokenStream {
+fn return_type(column: &Column) -> TokenStream {
     if column.column_type_wrapper.is_none() {
         normal_return_type(column)
     } else {
@@ -31,14 +31,14 @@ fn return_type(column: &ColumnSchema) -> TokenStream {
     }
 }
 
-fn normal_return_type(column: &ColumnSchema) -> TokenStream {
+fn normal_return_type(column: &Column) -> TokenStream {
     let column_type = &column.column_type;
     quote! {
         &#column_type
     }
 }
 
-fn wrapped_return_type(column: &ColumnSchema) -> TokenStream {
+fn wrapped_return_type(column: &Column) -> TokenStream {
     let column_type = column
         .column_type_wrapper
         .as_ref()
@@ -59,7 +59,7 @@ fn wrapped_return_type(column: &ColumnSchema) -> TokenStream {
 
 //region getter implementation
 
-fn getter(column: &ColumnSchema) -> TokenStream {
+fn getter(column: &Column) -> TokenStream {
     let column_name = &column.column_name;
     let method_name = format_ident!("get_{column_name}");
     let return_type = return_type(column);
@@ -72,7 +72,7 @@ fn getter(column: &ColumnSchema) -> TokenStream {
     }
 }
 
-fn getter_impl(column: &ColumnSchema) -> TokenStream {
+fn getter_impl(column: &Column) -> TokenStream {
     if column.column_type_wrapper.is_none() {
         normal_getter_impl(column)
     } else {
@@ -80,7 +80,7 @@ fn getter_impl(column: &ColumnSchema) -> TokenStream {
     }
 }
 
-fn normal_getter_impl(column: &ColumnSchema) -> TokenStream {
+fn normal_getter_impl(column: &Column) -> TokenStream {
     let column_name = &column.column_name;
 
     quote! {
@@ -88,7 +88,7 @@ fn normal_getter_impl(column: &ColumnSchema) -> TokenStream {
     }
 }
 
-fn getter_impl_for_wrapper_types(column: &ColumnSchema) -> TokenStream {
+fn getter_impl_for_wrapper_types(column: &Column) -> TokenStream {
     let column_type = column
         .column_type_wrapper
         .as_ref()
@@ -114,7 +114,7 @@ fn getter_impl_for_wrapper_types(column: &ColumnSchema) -> TokenStream {
 
 //region setter implementation
 
-fn setter(column: &ColumnSchema) -> TokenStream {
+fn setter(column: &Column) -> TokenStream {
     let visibility = &column.visibility;
 
     match &visibility {
@@ -136,7 +136,7 @@ fn setter(column: &ColumnSchema) -> TokenStream {
     }
 }
 
-fn setter_impl(column: &ColumnSchema) -> TokenStream {
+fn setter_impl(column: &Column) -> TokenStream {
     if column.column_type_wrapper.is_none() {
         normal_setter_impl(column)
     } else {
@@ -144,7 +144,7 @@ fn setter_impl(column: &ColumnSchema) -> TokenStream {
     }
 }
 
-fn normal_setter_impl(column: &ColumnSchema) -> TokenStream {
+fn normal_setter_impl(column: &Column) -> TokenStream {
     let column_name = &column.column_name;
 
     quote! {
@@ -152,7 +152,7 @@ fn normal_setter_impl(column: &ColumnSchema) -> TokenStream {
     }
 }
 
-fn setter_impl_for_wrapper_types(column: &ColumnSchema) -> TokenStream {
+fn setter_impl_for_wrapper_types(column: &Column) -> TokenStream {
     let column_name = &column.column_name;
 
     if is_option(column) {
