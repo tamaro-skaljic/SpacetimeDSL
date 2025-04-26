@@ -1,36 +1,51 @@
-use proc_macro2::Ident;
-use syn::{DeriveInput, Type, Visibility};
+pub mod api {
+    pub mod rust;
 
-mod columns;
-mod table_name;
+    pub mod db;
 
-pub struct TableSchema {
-    pub singular_table_name: Ident,
-    pub plural_table_name: Ident,
-    pub struct_name: Ident,
-    pub columns: Vec<ColumnSchema>,
+    #[cfg(feature = "spacetimedsl")]
+    pub mod dsl;
+
+    /**
+     * The representation of a Rust struct with `#[spacetimedb::table]` attribute macro and its columns with optional SpacetimeDSL support.
+     */
+    #[cfg_attr(feature = "clone", derive(Clone))]
+    #[cfg_attr(feature = "debug", derive(Debug))]
+    #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
+    #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
+    #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
+    pub struct Table {
+        pub rust: rust::RustStruct,
+        pub spacetimedb: db::SpacetimeDBTable,
+        #[cfg(feature = "spacetimedsl")]
+        pub spacetimedsl: Option<dsl::table::DSLTable>,
+        pub columns: Vec<Column>,
+    }
+
+    impl Table {
+        /**
+         * Supply the &DeriveInput which you've got from your own [derive macro](https://doc.rust-lang.org/reference/procedural-macros.html#derive-macros)
+         * to this function to build upon your SpacetimeDB rust server module with SpacetimeDSL support out-of-the-box in the default feature set.
+         */
+        pub fn parse(args: syn::Attribute, item: syn::DeriveInput) -> syn::Result<Table> {
+            crate::internal::try_parse(args, item)
+        }
+    }
+
+    /**
+     * The representation of a field of a Rust struct with `#[spacetimedb::table]` attribute macro with optional SpacetimeDSL support.
+     */
+    #[cfg_attr(feature = "clone", derive(Clone))]
+    #[cfg_attr(feature = "debug", derive(Debug))]
+    #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
+    #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
+    #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
+    pub struct Column {
+        pub rust: rust::RustField,
+        pub spacetimedb: db::DBColumn,
+        #[cfg(feature = "spacetimedsl")]
+        pub spacetimedsl: Option<dsl::column::DSLColumn>,
+    }
 }
 
-pub struct ColumnSchema {
-    pub column_name: Ident,
-    pub column_type: Type,
-    pub visibility: Visibility,
-    pub column_type_wrapper: Option<Type>,
-    pub is_primary_key: bool,
-    pub has_unique_constraint: bool,
-    pub has_single_column_index: bool,
-    pub is_auto_inc: bool,
-}
-
-pub fn parse(syntax_tree: DeriveInput) -> Option<TableSchema> {
-    let (singular_table_name, plural_table_name) = table_name::get(&syntax_tree)?;
-    let struct_name = syntax_tree.ident.clone();
-    let columns = columns::get(&syntax_tree, &singular_table_name);
-
-    Some(TableSchema {
-        singular_table_name,
-        plural_table_name,
-        struct_name,
-        columns,
-    })
-}
+mod internal;

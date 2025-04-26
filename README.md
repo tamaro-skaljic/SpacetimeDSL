@@ -483,7 +483,7 @@ pub trait GetIdentifierRowOptionsByValue: spacetimedsl::DSLContext {
     ///Get all Option<Identifier> by it's value's.
     fn get_identifiers_by_value_in<'a>(
         &'a self,
-        values: Vec<String>,
+        values: Vec<Box<str>>,
     ) -> impl Iterator<Item = Option<Identifier>> {
         let mut result: Vec<Option<Identifier>> = ::alloc::vec::Vec::new();
         for value in values {

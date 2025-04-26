@@ -11,6 +11,17 @@ publish = true
 include = ["/src/**"]
 keywords = ["dsl", "spacetime", "macro", "codegen", "boilerplate"]
 
+[features]
+default = ["spacetimedsl"]
+
+clone = []
+debug = []
+partial-eq = []
+partial-ord = []
+spacetimedsl = []
+# Use this feature if you want to use the provided structs and enums as field types inside SpacetimeDB tables
+spacetime-type = []
+
 [dependencies]
 # https://crates.io/crates/ident_case Utility for applying case rules to Rust identifiers.
 ident_case = "1.0.1"
@@ -23,3 +34,9 @@ syn = { version = "2.0" }
 
 # https://crates.io/crates/quote Quasi-quoting macro quote!(...)
 quote = "1.0"
+
+# https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
+spacetimedb = "^1"
+
+# https://crates.io/crates/spacetime-bindings-macro-input Unofficial Input Crate for the SpacetimeDB Macro Bindings.
+spacetime-bindings-macro-input = "1.1.1"

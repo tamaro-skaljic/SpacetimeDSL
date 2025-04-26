@@ -456,6 +456,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
 
 [[package]]
+name = "spacetime-bindings-macro-input"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac8908eb4c3329581641e61efa141201bde1c840a8a0fdc936a5721d3d9737b3"
+dependencies = [
+ "ident_case",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "spacetimedb"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -603,6 +615,8 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
+ "spacetime-bindings-macro-input",
+ "spacetimedb",
  "syn",
 ]
 

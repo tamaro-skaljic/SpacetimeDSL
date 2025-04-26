@@ -40,7 +40,7 @@ pub mod component {
 
             // The unique value of the Identifier.
             #[unique]
-            pub value: String,
+            pub value: Box<str>,
 
             created_at: Timestamp,
 
@@ -149,7 +149,7 @@ pub mod test {
     };
 
     #[reducer]
-    fn tester(ctx: &ReducerContext) -> Result<(), String> {
+    fn tester(ctx: &ReducerContext) -> Result<(), Box<str>> {
         let dsl = dsl(ctx);
 
         let mut player;
@@ -414,7 +414,7 @@ pub mod test {
 
     fn handle_test_result(
         result: Result<Test, spacetimedb::TryInsertError<test__TableHandle>>,
-    ) -> Result<Test, String> {
+    ) -> Result<Test, Box<str>> {
         match result {
             Ok(w) => {
                 return Ok(w);
