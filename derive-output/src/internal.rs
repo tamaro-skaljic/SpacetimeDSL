@@ -24,13 +24,7 @@ pub(crate) fn try_parse(args: syn::Attribute, item: syn::DeriveInput) -> syn::Re
     let spacetimedb_table = SpacetimeDBTable::map(&table_args);
 
     #[cfg(feature = "spacetimedsl")]
-    let spacetimedsl_table = crate::api::dsl::table::DSLTable::try_parse(
-        &args,
-        &item,
-        &column_args,
-        &rust_struct,
-        &spacetimedb_table,
-    )?;
+    let spacetimedsl_table = crate::api::dsl::table::DSLTable::try_parse(&args)?;
 
     let (spacetimedb_table, columns) = Column::try_parse(
         &item,
