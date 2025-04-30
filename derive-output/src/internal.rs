@@ -6,7 +6,6 @@ use crate::api::{
 };
 use db::{column::ParseSpacetimeColumn, table::ParseSpacetimeTable};
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
-use std::fmt::Display;
 
 mod rust;
 
@@ -18,23 +17,19 @@ pub(crate) fn try_parse(args: syn::Attribute, item: syn::DeriveInput) -> syn::Re
     let table_args = TableArgs::try_parse(&item)?;
     let (table_args, column_args) = ColumnArgs::try_parse(&item, table_args)?;
 
-    let rust_struct = RustStruct::map(&item);
+    let rust = RustStruct::map(&item);
 
-    let spacetimedb_table = SpacetimeDBTable::map(&table_args);
+    let spacetimedb = SpacetimeDBTable::map(&table_args);
 
-    let spacetimedsl_table = crate::api::dsl::table::DSLTable::try_parse(&args)?;
+    let spacetimedsl = crate::api::dsl::table::DSLTable::try_parse(&args)?;
 
-    let (spacetimedb_table, columns) = Column::try_parse(
-        &item,
-        &column_args,
-        spacetimedb_table,
-        &spacetimedsl_table,
-    )?;
+    let (spacetimedb, spacetimedsl, columns) =
+        Column::try_parse(&item, &column_args, spacetimedb, spacetimedsl)?;
 
     Ok(Table {
-        rust: rust_struct,
-        spacetimedb: spacetimedb_table,
-        spacetimedsl: spacetimedsl_table,
+        rust,
+        spacetimedb,
+        spacetimedsl,
         columns,
     })
 }
@@ -44,8 +39,8 @@ impl Column {
         item: &syn::DeriveInput,
         column_args: &ColumnArgs,
         mut spacetimedb_table: SpacetimeDBTable,
-    ) -> syn::Result<(SpacetimeDBTable, Vec<Column>)> {
         mut spacetimedsl_table: Option<DSLTable>,
+    ) -> syn::Result<(SpacetimeDBTable, Option<DSLTable>, Vec<Column>)> {
         let sequenced_columns = &columns_to_string(&column_args.sequenced_columns);
         let primary_key_column = &column_args
             .primary_key_column
@@ -64,21 +59,27 @@ impl Column {
                 field,
             );
             spacetimedb_table = res.0;
-            let spacetimedb_column = res.1;
-            let spacetimedsl = crate::api::dsl::column::DSLColumn::try_parse(
-                item,
-                spacetimedsl_table,
-                &spacetimedb_column,
-            )?;
+            let spacetimedb = res.1;
+
+            let mut spacetimedsl = None;
+            if spacetimedsl_table.is_some() {
+                let res = crate::api::dsl::column::DSLColumn::try_parse(
+                    item,
+                    &spacetimedb,
+                    spacetimedsl_table.unwrap(),
+                )?;
+                spacetimedsl_table = Some(res.0);
+                spacetimedsl = Some(res.1);
+            }
 
             columns.push(Column {
                 rust,
-                spacetimedb: spacetimedb_column,
+                spacetimedb,
                 spacetimedsl,
             });
         }
 
-        Ok((spacetimedb_table, columns))
+        Ok((spacetimedb_table, spacetimedsl_table, columns))
     }
 }
 
@@ -90,17 +91,4 @@ fn columns_to_string(
 
 fn column_to_string(column: &spacetime_bindings_macro_input::table::Column<'_>) -> String {
     column.ident.to_string()
-}
-
-trait IntoStringError<T> {
-    fn error_into_str(self) -> Result<T, Box<str>>;
-}
-
-impl<T, E: Display> IntoStringError<T> for Result<T, E> {
-    fn error_into_str(self) -> Result<T, Box<str>> {
-        match self {
-            Ok(value) => Ok(value),
-            Err(err) => return Err(err.to_string().into()),
-        }
-    }
 }
