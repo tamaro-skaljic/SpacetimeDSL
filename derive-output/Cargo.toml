@@ -12,13 +12,10 @@ include = ["/src/**"]
 keywords = ["dsl", "spacetime", "macro", "codegen", "boilerplate"]
 
 [features]
-default = ["spacetimedsl"]
-
 clone = []
 debug = []
 partial-eq = []
 partial-ord = []
-spacetimedsl = []
 # Use this feature if you want to use the provided structs and enums as field types inside SpacetimeDB tables
 spacetime-type = []
 

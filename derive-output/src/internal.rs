@@ -12,7 +12,6 @@ mod rust;
 
 mod db;
 
-#[cfg(feature = "spacetimedsl")]
 mod dsl;
 
 pub(crate) fn try_parse(args: syn::Attribute, item: syn::DeriveInput) -> syn::Result<Table> {
@@ -23,21 +22,18 @@ pub(crate) fn try_parse(args: syn::Attribute, item: syn::DeriveInput) -> syn::Re
 
     let spacetimedb_table = SpacetimeDBTable::map(&table_args);
 
-    #[cfg(feature = "spacetimedsl")]
     let spacetimedsl_table = crate::api::dsl::table::DSLTable::try_parse(&args)?;
 
     let (spacetimedb_table, columns) = Column::try_parse(
         &item,
         &column_args,
         spacetimedb_table,
-        #[cfg(feature = "spacetimedsl")]
         &spacetimedsl_table,
     )?;
 
     Ok(Table {
         rust: rust_struct,
         spacetimedb: spacetimedb_table,
-        #[cfg(feature = "spacetimedsl")]
         spacetimedsl: spacetimedsl_table,
         columns,
     })
@@ -48,8 +44,8 @@ impl Column {
         item: &syn::DeriveInput,
         column_args: &ColumnArgs,
         mut spacetimedb_table: SpacetimeDBTable,
-        #[cfg(feature = "spacetimedsl")] spacetimedsl_table: &Option<DSLTable>,
     ) -> syn::Result<(SpacetimeDBTable, Vec<Column>)> {
+        mut spacetimedsl_table: Option<DSLTable>,
         let sequenced_columns = &columns_to_string(&column_args.sequenced_columns);
         let primary_key_column = &column_args
             .primary_key_column
@@ -69,7 +65,6 @@ impl Column {
             );
             spacetimedb_table = res.0;
             let spacetimedb_column = res.1;
-            #[cfg(feature = "spacetimedsl")]
             let spacetimedsl = crate::api::dsl::column::DSLColumn::try_parse(
                 item,
                 spacetimedsl_table,
@@ -79,7 +74,6 @@ impl Column {
             columns.push(Column {
                 rust,
                 spacetimedb: spacetimedb_column,
-                #[cfg(feature = "spacetimedsl")]
                 spacetimedsl,
             });
         }

@@ -3,7 +3,6 @@ pub mod api {
 
     pub mod db;
 
-    #[cfg(feature = "spacetimedsl")]
     pub mod dsl;
 
     /**
@@ -17,7 +16,6 @@ pub mod api {
     pub struct Table {
         pub rust: rust::RustStruct,
         pub spacetimedb: db::SpacetimeDBTable,
-        #[cfg(feature = "spacetimedsl")]
         pub spacetimedsl: Option<dsl::table::DSLTable>,
         pub columns: Vec<Column>,
     }
@@ -43,7 +41,6 @@ pub mod api {
     pub struct Column {
         pub rust: rust::RustField,
         pub spacetimedb: db::DBColumn,
-        #[cfg(feature = "spacetimedsl")]
         pub spacetimedsl: Option<dsl::column::DSLColumn>,
     }
 }
