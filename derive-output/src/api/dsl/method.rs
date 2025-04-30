@@ -17,21 +17,34 @@ pub struct TableDSLMethods {
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub struct CreateRowDSLMethod {}
+pub struct CreateRowDSLMethod {
+    pub trait_name: Box<str>,
+    pub method_name: Box<str>,
+    pub method_args: Vec<Box<str>>,
+    pub return_type: Box<str>,
+}
 
 #[cfg_attr(feature = "clone", derive(Clone))]
 #[cfg_attr(feature = "debug", derive(Debug))]
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub struct GetAllRowsDSLMethod {}
+pub struct GetAllRowsDSLMethod {
+    pub trait_name: Box<str>,
+    pub method_name: Box<str>,
+    pub return_type: Box<str>,
+}
 
 #[cfg_attr(feature = "clone", derive(Clone))]
 #[cfg_attr(feature = "debug", derive(Debug))]
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub struct GetCountOfRowsDSLMethod {}
+pub struct GetCountOfRowsDSLMethod {
+    pub trait_name: Box<str>,
+    pub method_name: Box<str>,
+    pub return_type: Box<str>,
+}
 
 #[cfg_attr(feature = "clone", derive(Clone))]
 #[cfg_attr(feature = "debug", derive(Debug))]
@@ -70,39 +83,69 @@ pub struct ColumnDSLMethodsForUniqueConstraints {
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub struct GetManyRowsByDSLMethod {}
+pub struct GetManyRowsByDSLMethod {
+    pub trait_name: Box<str>,
+    pub method_name: Box<str>,
+    pub method_arg: Box<str>,
+    pub return_type: Box<str>,
+}
 
 #[cfg_attr(feature = "clone", derive(Clone))]
 #[cfg_attr(feature = "debug", derive(Debug))]
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub struct DeleteManyRowsByDSLMethod {}
+pub struct DeleteManyRowsByDSLMethod {
+    pub trait_name: Box<str>,
+    pub method_name: Box<str>,
+    pub method_arg: Box<str>,
+    pub return_type: Box<str>,
+}
 
 #[cfg_attr(feature = "clone", derive(Clone))]
 #[cfg_attr(feature = "debug", derive(Debug))]
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub struct GetOneRowOptionByDSLMethod {}
+pub struct GetOneRowOptionByDSLMethod {
+    pub trait_name: Box<str>,
+    pub method_name: Box<str>,
+    pub method_arg: Box<str>,
+    pub return_type: Box<str>,
+}
 
 #[cfg_attr(feature = "clone", derive(Clone))]
 #[cfg_attr(feature = "debug", derive(Debug))]
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub struct GetManyRowOptionsByDSLMethod {}
+pub struct GetManyRowOptionsByDSLMethod {
+    pub trait_name: Box<str>,
+    pub method_name: Box<str>,
+    pub method_arg: Box<str>,
+    pub return_type: Box<str>,
+}
 
 #[cfg_attr(feature = "clone", derive(Clone))]
 #[cfg_attr(feature = "debug", derive(Debug))]
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub struct UpdateRowByDSLMethod {}
+pub struct UpdateRowByDSLMethod {
+    pub trait_name: Box<str>,
+    pub method_name: Box<str>,
+    pub method_arg: Box<str>,
+    pub return_type: Box<str>,
+}
 
 #[cfg_attr(feature = "clone", derive(Clone))]
 #[cfg_attr(feature = "debug", derive(Debug))]
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub struct DeleteOneRowByDSLMethod {}
+pub struct DeleteOneRowByDSLMethod {
+    pub trait_name: Box<str>,
+    pub method_name: Box<str>,
+    pub method_arg: Box<str>,
+    pub return_type: Box<str>,
+}
