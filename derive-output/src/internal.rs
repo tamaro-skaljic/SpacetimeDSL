@@ -21,7 +21,8 @@ pub(crate) fn try_parse(args: syn::Attribute, item: syn::DeriveInput) -> syn::Re
 
     let spacetimedb = SpacetimeDBTable::map(&table_args);
 
-    let spacetimedsl = crate::api::dsl::table::DSLTable::try_parse(&args)?;
+    let (spacetimedb, spacetimedsl) =
+        crate::api::dsl::table::DSLTable::try_parse(&args, spacetimedb)?;
 
     let (spacetimedb, spacetimedsl, columns) =
         Column::try_parse(&item, &column_args, spacetimedb, spacetimedsl)?;
@@ -39,8 +40,8 @@ impl Column {
         item: &syn::DeriveInput,
         column_args: &ColumnArgs,
         mut spacetimedb_table: SpacetimeDBTable,
-        mut spacetimedsl_table: Option<DSLTable>,
-    ) -> syn::Result<(SpacetimeDBTable, Option<DSLTable>, Vec<Column>)> {
+        mut spacetimedsl_table: DSLTable,
+    ) -> syn::Result<(SpacetimeDBTable, DSLTable, Vec<Column>)> {
         let sequenced_columns = &columns_to_string(&column_args.sequenced_columns);
         let primary_key_column = &column_args
             .primary_key_column
@@ -61,16 +62,14 @@ impl Column {
             spacetimedb_table = res.0;
             let spacetimedb = res.1;
 
-            let mut spacetimedsl = None;
-            if spacetimedsl_table.is_some() {
-                let res = crate::api::dsl::column::DSLColumn::try_parse(
-                    item,
-                    &spacetimedb,
-                    spacetimedsl_table.unwrap(),
-                )?;
-                spacetimedsl_table = Some(res.0);
-                spacetimedsl = Some(res.1);
-            }
+            let res = crate::api::dsl::column::DSLColumn::try_parse(
+                item,
+                field,
+                &spacetimedb,
+                spacetimedsl_table,
+            )?;
+            spacetimedsl_table = res.0;
+            let spacetimedsl = res.1;
 
             columns.push(Column {
                 rust,

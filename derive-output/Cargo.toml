@@ -12,6 +12,7 @@ include = ["/src/**"]
 keywords = ["dsl", "spacetime", "macro", "codegen", "boilerplate"]
 
 [features]
+default = ["clone", "debug", "partial-eq", "partial-ord", "spacetime-type"]
 clone = []
 debug = []
 partial-eq = []
