@@ -1,4 +1,4 @@
-use crate::api::db::{DBColumn, IndexType, SpacetimeDBTable};
+use crate::api::db::{SpacetimeDBColumn, IndexType, SpacetimeDBTable};
 use spacetime_bindings_macro_input::{
     sats::SatsField,
     table::{ColumnArgs, TableArgs},
@@ -21,13 +21,13 @@ impl ParseSpacetimeColumn for ColumnArgs<'_> {
     }
 }
 
-impl DBColumn {
+impl SpacetimeDBColumn {
     pub(in crate::internal) fn map(
         mut spacetimedb_table: SpacetimeDBTable,
         primary_key_column: &Option<String>,
         sequenced_columns: &Vec<String>,
         field: &SatsField<'_>,
-    ) -> (SpacetimeDBTable, DBColumn) {
+    ) -> (SpacetimeDBTable, SpacetimeDBColumn) {
         let name = field.name.as_ref().unwrap();
 
         let is_primary_key = match &primary_key_column {
@@ -39,8 +39,8 @@ impl DBColumn {
         let mut single_column_index = None;
 
         for index in &spacetimedb_table.multi_column_indices {
-            match &index.r#type {
-                IndexType::SingleColumnBTree { column } => {
+            match &index.index_type {
+                IndexType::BTreeSingleColumn { column } => {
                     if column.to_string().eq(name) {
                         single_column_index = Some(i);
                         break;
@@ -65,7 +65,7 @@ impl DBColumn {
 
         (
             spacetimedb_table,
-            DBColumn {
+            SpacetimeDBColumn {
                 is_primary_key,
                 single_column_index,
                 is_auto_inc,

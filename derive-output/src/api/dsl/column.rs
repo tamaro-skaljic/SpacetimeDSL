@@ -5,8 +5,8 @@ use super::method::ColumnDSLMethods;
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub struct DSLColumn {
-    // Only `Some(T)` if it has `#[wrapper(name = MyTableId)]` or `#[wrapped(path = path::to::MyTableId)]`.
+pub struct SpacetimeDSLColumn {
+    // Only `Some(T)` if it has `#[wrap(name = MyTableId)]` or `#[wrapped(path = path::to::MyTableId)]`.
     pub wrapper_type: Option<WrapperType>,
     // Only `Some(T)` if it has `#[foreign_key(table = my_table, column = my_column, action = ForeignKeyAction)]``.
     pub foreign_key: Option<ForeignKey>,
@@ -23,7 +23,7 @@ pub struct DSLColumn {
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
 pub enum WrapperType {
-    Wrapper(Wrapper),
+    Wrap(Wrap),
     Wrapped(Wrapped),
 }
 
@@ -32,9 +32,9 @@ pub enum WrapperType {
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub struct Wrapper {
+pub struct Wrap {
     pub wrapper_struct_name: Box<str>,
-    pub wrapped_type: Box<str>,
+    pub wrapped_type_name_or_path: Box<str>,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -43,8 +43,8 @@ pub struct Wrapper {
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
 pub struct Wrapped {
-    pub wrapper_struct_path: Box<str>,
-    pub wrapped_type: Box<str>,
+    pub wrapper_struct_name_or_path: Box<str>,
+    pub wrapped_type_name_or_path: Box<str>,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -55,7 +55,7 @@ pub struct Wrapped {
 pub struct ForeignKey {
     pub table_name: Box<str>,
     pub column_name: Box<str>,
-    pub action: ForeignKeyAction,
+    pub on_delete: OnDeleteAction,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -63,10 +63,13 @@ pub struct ForeignKey {
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub enum ForeignKeyAction {
+pub enum OnDeleteAction {
+    /// Available independent from the column type.
+    Cascade,
+    /// Available only for columns with type `Option<T>`.
     SetNone,
+    /// Available only for columns with a numeric type.
     SetZero,
-    Delete,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]

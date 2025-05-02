@@ -91,10 +91,10 @@ impl Index {
                 let columns: Vec<Box<str>> = columns.iter().map(|c| c.to_string().into()).collect();
 
                 match columns.len() {
-                    1 => IndexType::SingleColumnBTree {
+                    1 => IndexType::BTreeSingleColumn {
                         column: columns.get(0).unwrap().clone(),
                     },
-                    _ => IndexType::MultiColumnBTree { columns },
+                    _ => IndexType::BTreeMultiColumn { columns },
                 }
             }
         };
@@ -102,7 +102,7 @@ impl Index {
         Index {
             name,
             is_unique,
-            r#type,
+            index_type: r#type,
         }
     }
 }
@@ -115,7 +115,7 @@ impl ScheduledReducer {
 
         ScheduledReducer {
             name,
-            path_to_reducer,
+            reducer_name: path_to_reducer,
         }
     }
 }

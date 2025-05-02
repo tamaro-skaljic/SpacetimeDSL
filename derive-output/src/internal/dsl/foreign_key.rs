@@ -1,4 +1,4 @@
-use crate::api::dsl::column::{ForeignKey, ForeignKeyAction};
+use crate::api::dsl::column::{ForeignKey, OnDeleteAction};
 use quote::ToTokens;
 use spacetime_bindings_macro_input::match_meta;
 use spacetime_bindings_macro_input::sym::Symbol;
@@ -29,13 +29,13 @@ pub(in crate::internal) fn parse_foreign_key(attr: &syn::Attribute) -> syn::Resu
 
                 match action_variant {
                     "SetNone" => {
-                        action_value = Some(ForeignKeyAction::SetNone);
+                        action_value = Some(OnDeleteAction::SetNone);
                     }
                     "SetZero" => {
-                        action_value = Some(ForeignKeyAction::SetZero);
+                        action_value = Some(OnDeleteAction::SetZero);
                     }
                     "Delete" => {
-                        action_value = Some(ForeignKeyAction::Delete);
+                        action_value = Some(OnDeleteAction::Delete);
                     }
                     _ => {}
                 };
@@ -76,7 +76,7 @@ pub(in crate::internal) fn parse_foreign_key(attr: &syn::Attribute) -> syn::Resu
     Ok(ForeignKey {
         table_name: table_value,
         column_name: column_value,
-        action: action_value,
+        on_delete: action_value,
     })
 }
 

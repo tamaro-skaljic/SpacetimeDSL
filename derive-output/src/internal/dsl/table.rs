@@ -1,5 +1,5 @@
 use crate::api::db::{IndexType, SpacetimeDBTable};
-use crate::api::dsl::table::{DSLTable, OnDeleteHook};
+use crate::api::dsl::table::{SpacetimeDSLTable, OnDeleteHook};
 use crate::internal::dsl::foreign_key::column;
 use crate::internal::dsl::foreign_key::table;
 use proc_macro2::Span;
@@ -12,11 +12,11 @@ use syn::Ident;
 use syn::meta::ParseNestedMeta;
 use syn::parse::Parser;
 
-impl DSLTable {
+impl SpacetimeDSLTable {
     pub(in crate::internal) fn try_parse(
         args: &syn::Attribute,
         mut spacetimedb_table: SpacetimeDBTable,
-    ) -> syn::Result<(SpacetimeDBTable, DSLTable)> {
+    ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
         let mut name_plural: Option<Ident> = None;
         let mut unique_indices = vec![];
         let mut on_delete_hooks = vec![];
@@ -44,8 +44,8 @@ impl DSLTable {
 
         for unique_index_name in unique_indices {
             for multi_column_index in &mut spacetimedb_table.multi_column_indices {
-                match &multi_column_index.r#type {
-                    IndexType::MultiColumnBTree { columns: _ } => {
+                match &multi_column_index.index_type {
+                    IndexType::BTreeMultiColumn { columns: _ } => {
                         if multi_column_index.name.eq(&unique_index_name) {
                             multi_column_index.is_unique = true;
                         }
@@ -66,7 +66,7 @@ impl DSLTable {
 
         Ok((
             spacetimedb_table,
-            DSLTable {
+            SpacetimeDSLTable {
                 plural_name: name_plural,
                 on_delete_hooks,
                 is_mutable,

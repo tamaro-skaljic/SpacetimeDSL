@@ -5,13 +5,13 @@ use super::method::TableDSLMethods;
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub struct DSLTable {
+pub struct SpacetimeDSLTable {
     pub plural_name: Box<str>,
     pub on_delete_hooks: Vec<OnDeleteHook>,
     pub is_mutable: bool,
     pub has_created_at_column: bool,
     pub has_modified_at_column: bool,
-    // Is always Some()
+    // TODO: Is always Some(), this is only an Option because the object is created long before the TableDSLMethods. Refactor the internals so the Option can be removed.
     pub dsl_methods: Option<TableDSLMethods>,
 }
 

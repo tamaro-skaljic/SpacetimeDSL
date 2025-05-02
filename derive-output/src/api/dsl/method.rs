@@ -71,18 +71,6 @@ pub struct ColumnDSLMethodsForBtreeIndices {
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub struct ColumnDSLMethodsForUniqueConstraints {
-    pub get_one_row_option_by: GetOneRowOptionByDSLMethod,
-    pub get_many_row_options_by: GetManyRowOptionsByDSLMethod,
-    pub update_row_by: UpdateRowByDSLMethod,
-    pub delete_one_row_by: DeleteOneRowByDSLMethod,
-}
-
-#[cfg_attr(feature = "clone", derive(Clone))]
-#[cfg_attr(feature = "debug", derive(Debug))]
-#[cfg_attr(feature = "partial-eq", derive(PartialEq))]
-#[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
-#[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
 pub struct GetManyRowsByDSLMethod {
     pub trait_name: Box<str>,
     pub method_name: Box<str>,
@@ -100,6 +88,18 @@ pub struct DeleteManyRowsByDSLMethod {
     pub method_name: Box<str>,
     pub method_arg: Box<str>,
     pub return_type: Box<str>,
+}
+
+#[cfg_attr(feature = "clone", derive(Clone))]
+#[cfg_attr(feature = "debug", derive(Debug))]
+#[cfg_attr(feature = "partial-eq", derive(PartialEq))]
+#[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
+#[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
+pub struct ColumnDSLMethodsForUniqueConstraints {
+    pub get_one_row_option_by: GetOneRowOptionByDSLMethod,
+    pub get_many_row_options_by: GetManyRowOptionsByDSLMethod,
+    pub update_row_by: UpdateRowByDSLMethod,
+    pub delete_one_row_by: DeleteOneRowByDSLMethod,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]

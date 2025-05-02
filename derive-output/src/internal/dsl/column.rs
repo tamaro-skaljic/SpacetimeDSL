@@ -1,20 +1,20 @@
 use crate::api::{
-    db::DBColumn,
+    db::SpacetimeDBColumn,
     dsl::{
-        column::{DSLColumn, WrapperType},
-        table::DSLTable,
+        column::{SpacetimeDSLColumn, WrapperType},
+        table::SpacetimeDSLTable,
     },
 };
 use spacetime_bindings_macro_input::{sats::SatsField, sym::Symbol, symbol};
 use syn::Ident;
 
-impl DSLColumn {
+impl SpacetimeDSLColumn {
     pub(in crate::internal) fn try_parse(
         item: &syn::DeriveInput,
         field: &SatsField<'_>,
-        spacetimedb_column: &DBColumn,
-        spacetimedsl_table: DSLTable,
-    ) -> syn::Result<(DSLTable, DSLColumn)> {
+        spacetimedb_column: &SpacetimeDBColumn,
+        spacetimedsl_table: SpacetimeDSLTable,
+    ) -> syn::Result<(SpacetimeDSLTable, SpacetimeDSLColumn)> {
         let wrapper_type =
             WrapperType::try_parse(item, field, spacetimedb_column, &spacetimedsl_table)?;
         let foreign_key;
@@ -24,7 +24,7 @@ impl DSLColumn {
 
         Ok((
             spacetimedsl_table,
-            DSLColumn {
+            SpacetimeDSLColumn {
                 wrapper_type,
                 foreign_key,
                 getter,

@@ -1,7 +1,7 @@
 use crate::api::{
     Column, Table,
-    db::{DBColumn, SpacetimeDBTable},
-    dsl::table::DSLTable,
+    db::{SpacetimeDBColumn, SpacetimeDBTable},
+    dsl::table::SpacetimeDSLTable,
     rust::{RustField, RustStruct},
 };
 use db::{column::ParseSpacetimeColumn, table::ParseSpacetimeTable};
@@ -22,7 +22,7 @@ pub(crate) fn try_parse(args: syn::Attribute, item: syn::DeriveInput) -> syn::Re
     let spacetimedb = SpacetimeDBTable::map(&table_args);
 
     let (spacetimedb, spacetimedsl) =
-        crate::api::dsl::table::DSLTable::try_parse(&args, spacetimedb)?;
+        crate::api::dsl::table::SpacetimeDSLTable::try_parse(&args, spacetimedb)?;
 
     let (spacetimedb, spacetimedsl, columns) =
         Column::try_parse(&item, &column_args, spacetimedb, spacetimedsl)?;
@@ -40,8 +40,8 @@ impl Column {
         item: &syn::DeriveInput,
         column_args: &ColumnArgs,
         mut spacetimedb_table: SpacetimeDBTable,
-        mut spacetimedsl_table: DSLTable,
-    ) -> syn::Result<(SpacetimeDBTable, DSLTable, Vec<Column>)> {
+        mut spacetimedsl_table: SpacetimeDSLTable,
+    ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable, Vec<Column>)> {
         let sequenced_columns = &columns_to_string(&column_args.sequenced_columns);
         let primary_key_column = &column_args
             .primary_key_column
@@ -53,7 +53,7 @@ impl Column {
         for field in &column_args.fields {
             let rust = RustField::map(field);
 
-            let res = DBColumn::map(
+            let res = SpacetimeDBColumn::map(
                 spacetimedb_table,
                 primary_key_column,
                 sequenced_columns,
@@ -62,7 +62,7 @@ impl Column {
             spacetimedb_table = res.0;
             let spacetimedb = res.1;
 
-            let res = crate::api::dsl::column::DSLColumn::try_parse(
+            let res = crate::api::dsl::column::SpacetimeDSLColumn::try_parse(
                 item,
                 field,
                 &spacetimedb,

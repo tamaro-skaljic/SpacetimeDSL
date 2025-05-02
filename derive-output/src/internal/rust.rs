@@ -22,7 +22,7 @@ impl RustField {
         RustField {
             visibility,
             name,
-            r#type,
+            type_name_or_path: r#type,
         }
     }
 }
