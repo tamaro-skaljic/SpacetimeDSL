@@ -9,7 +9,7 @@ pub(in crate::internal) fn get_getter(
 ) -> Getter {
     let column_name = field.name.as_ref().unwrap();
 
-    let method_name = format!("get_{column_name}").into();
+    let method_name = get_getter_method_name(column_name);
     let return_type;
     let method_impl;
 
@@ -61,4 +61,8 @@ pub(in crate::internal) fn get_getter(
         return_type,
         method_impl,
     }
+}
+
+pub(in crate::internal) fn get_getter_method_name(column_name: &String) -> Box<str> {
+    format!("get_{column_name}").into()
 }

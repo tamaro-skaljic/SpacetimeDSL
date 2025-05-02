@@ -2,6 +2,7 @@ use crate::api::dsl::column::{Wrap, Wrapped, WrapperType};
 use crate::internal::dsl::table::path;
 use ident_case::RenameRule;
 use quote::ToTokens;
+use quote::quote;
 use spacetime_bindings_macro_input::{
     match_meta,
     sats::SatsField,
@@ -10,6 +11,8 @@ use spacetime_bindings_macro_input::{
     util::check_duplicate,
 };
 use syn::{Ident, Path};
+
+use super::getter::get_getter_method_name;
 
 impl WrapperType {
     pub(in crate::internal) fn try_parse(
@@ -69,11 +72,18 @@ impl WrapperType {
 
             let wrapper_struct_name_or_path = wrapper_struct_name_or_path.unwrap();
             let wrapped_type_name_or_path = field.ty.to_token_stream().to_string().into();
+            let wrapper_impl = get_wrapper_impl(
+                &item.ident.to_string().into(),
+                &wrapper_struct_name_or_path,
+                &wrapped_type_name_or_path,
+                &get_getter_method_name(field.name.as_ref().unwrap()),
+            );
 
             if attr.meta.path().eq(&wrap) {
                 wrapper_type = Some(WrapperType::Wrap(Wrap {
                     wrapper_struct_name: wrapper_struct_name_or_path,
                     wrapped_type_name_or_path,
+                    wrapper_impl,
                 }));
             } else {
                 wrapper_type = Some(WrapperType::Wrapped(Wrapped {
@@ -89,3 +99,43 @@ impl WrapperType {
 
 symbol!(wrap);
 symbol!(wrapped);
+
+fn get_wrapper_impl(
+    struct_name: &Box<str>,
+    wrapper_struct_name: &Box<str>,
+    wrapped_type_name_or_path: &Box<str>,
+    getter_name: &Box<str>,
+) -> Box<str> {
+    quote! {
+        #[derive(Clone, Debug, PartialEq, spacetimedb::SpacetimeType)]
+        pub struct #wrapper_struct_name {
+            value: #wrapped_type_name_or_path,
+        }
+
+        impl From<&#struct_name> for #wrapper_struct_name {
+            fn from(value: &#struct_name) -> Self {
+                value.#getter_name()
+            }
+        }
+
+        impl From<&#struct_name> for Option<#wrapper_struct_name> {
+            fn from(value: &#struct_name) -> Option<#wrapper_struct_name> {
+                Some(value.#getter_name())
+            }
+        }
+
+        impl spacetimedsl::Wrapper<#wrapped_type_name_or_path, #wrapper_struct_name> for #wrapper_struct_name {
+            fn new(value: #wrapped_type_name_or_path) -> Self {
+                Self { value }
+            }
+            fn default() -> Self {
+                Self {
+                    value: #wrapped_type_name_or_path::default(),
+                }
+            }
+            fn value(&self) -> #wrapped_type_name_or_path {
+                self.value.clone()
+            }
+        }
+    }.to_string().into()
+}

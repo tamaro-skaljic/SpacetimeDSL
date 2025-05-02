@@ -38,6 +38,7 @@ pub enum WrapperType {
 pub struct Wrap {
     pub wrapper_struct_name: Box<str>,
     pub wrapped_type_name_or_path: Box<str>,
+    pub wrapper_impl: Box<str>,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
