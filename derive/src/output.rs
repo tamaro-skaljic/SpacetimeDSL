@@ -1,7 +1,6 @@
+use crate::input::{Column, Table};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
-
-use crate::input::{Column, Table};
 
 mod accessor_methods;
 mod create_row_methods;
@@ -88,21 +87,4 @@ pub fn is_option(column: &Column) -> bool {
         .to_token_stream()
         .to_string()
         .contains("Option")
-}
-
-pub fn into_option(column: &Column) -> TokenStream {
-    let column_name = &column.column_name;
-    let column_value_name = format_ident!("{column_name}_value");
-    let wrapper_type = column
-        .column_type_wrapper
-        .as_ref()
-        .expect("Expected wrapper_type in into_option(), found None!");
-
-    quote! {
-        let #column_name = #column_name.into();
-        let mut #column_value_name = None;
-        if #column_name.is_some() {
-            #column_value_name = Some(Into::<#wrapper_type>::into(#column_name.unwrap()).value());
-        }
-    }
 }

@@ -5,6 +5,8 @@ use crate::api::{
     rust::{RustField, RustStruct},
 };
 use db::{column::ParseSpacetimeColumn, table::ParseSpacetimeTable};
+use proc_macro2::TokenStream;
+use quote::quote;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 
 mod rust;
@@ -82,6 +84,8 @@ impl Column {
     }
 }
 
+// TODO: Anything under this should probably be refactored
+
 fn columns_to_string(
     columns: &Vec<spacetime_bindings_macro_input::table::Column<'_>>,
 ) -> Vec<String> {
@@ -90,4 +94,18 @@ fn columns_to_string(
 
 fn column_to_string(column: &spacetime_bindings_macro_input::table::Column<'_>) -> String {
     column.ident.to_string()
+}
+
+pub(in crate::internal) fn wrapper_type_into_option(
+    column_name: &Box<str>,
+    column_option_name: &Box<str>,
+    wrapper_type_name_or_path: &Box<str>,
+) -> TokenStream {
+    quote! {
+        let #column_name = #column_name.into();
+        let mut #column_option_name = None;
+        if #column_name.is_some() {
+            #column_option_name = Some(Into::<#wrapper_type_name_or_path>::into(#column_name.unwrap()).value());
+        }
+    }
 }

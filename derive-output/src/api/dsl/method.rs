@@ -22,6 +22,7 @@ pub struct CreateRowDSLMethod {
     pub method_name: Box<str>,
     pub method_args: Vec<Box<str>>,
     pub return_type: Box<str>,
+    pub method_impl: Box<str>,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -33,6 +34,7 @@ pub struct GetAllRowsDSLMethod {
     pub trait_name: Box<str>,
     pub method_name: Box<str>,
     pub return_type: Box<str>,
+    pub method_impl: Box<str>,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -44,6 +46,7 @@ pub struct GetCountOfRowsDSLMethod {
     pub trait_name: Box<str>,
     pub method_name: Box<str>,
     pub return_type: Box<str>,
+    pub method_impl: Box<str>,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -76,6 +79,7 @@ pub struct GetManyRowsByDSLMethod {
     pub method_name: Box<str>,
     pub method_arg: Box<str>,
     pub return_type: Box<str>,
+    pub method_impl: Box<str>,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -88,6 +92,7 @@ pub struct DeleteManyRowsByDSLMethod {
     pub method_name: Box<str>,
     pub method_arg: Box<str>,
     pub return_type: Box<str>,
+    pub method_impl: Box<str>,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -112,6 +117,7 @@ pub struct GetOneRowOptionByDSLMethod {
     pub method_name: Box<str>,
     pub method_arg: Box<str>,
     pub return_type: Box<str>,
+    pub method_impl: Box<str>,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -124,6 +130,7 @@ pub struct GetManyRowOptionsByDSLMethod {
     pub method_name: Box<str>,
     pub method_arg: Box<str>,
     pub return_type: Box<str>,
+    pub method_impl: Box<str>,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -136,6 +143,7 @@ pub struct UpdateRowByDSLMethod {
     pub method_name: Box<str>,
     pub method_arg: Box<str>,
     pub return_type: Box<str>,
+    pub method_impl: Box<str>,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -148,4 +156,5 @@ pub struct DeleteOneRowByDSLMethod {
     pub method_name: Box<str>,
     pub method_arg: Box<str>,
     pub return_type: Box<str>,
+    pub method_impl: Box<str>,
 }

@@ -1,3 +1,5 @@
+use crate::api::rust::RustVisibility;
+
 use super::method::ColumnDSLMethods;
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -6,6 +8,7 @@ use super::method::ColumnDSLMethods;
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
 pub struct SpacetimeDSLColumn {
+    pub is_option: bool,
     // Only `Some(T)` if it has `#[wrap(name = MyTableId)]` or `#[wrapped(path = path::to::MyTableId)]`.
     pub wrapper_type: Option<WrapperType>,
     // Only `Some(T)` if it has `#[foreign_key(table = my_table, column = my_column, action = ForeignKeyAction)]``.
@@ -55,7 +58,7 @@ pub struct Wrapped {
 pub struct ForeignKey {
     pub table_name: Box<str>,
     pub column_name: Box<str>,
-    pub on_delete: OnDeleteAction,
+    pub on_delete_strategy: OnDeleteStrategy,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -63,7 +66,7 @@ pub struct ForeignKey {
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub enum OnDeleteAction {
+pub enum OnDeleteStrategy {
     /// Available independent from the column type.
     Cascade,
     /// Available only for columns with type `Option<T>`.
@@ -80,6 +83,7 @@ pub enum OnDeleteAction {
 pub struct Getter {
     pub method_name: Box<str>,
     pub return_type: Box<str>,
+    pub method_impl: Box<str>,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -88,7 +92,9 @@ pub struct Getter {
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
 pub struct Setter {
+    pub method_visibility: RustVisibility,
     pub method_name: Box<str>,
     pub method_arg: Box<str>,
     pub return_type: Box<str>,
+    pub method_impl: Box<str>,
 }

@@ -28,7 +28,7 @@ impl RustField {
 }
 
 impl RustVisibility {
-    fn map(value: &Visibility) -> RustVisibility {
+    pub(in crate::internal) fn map(value: &Visibility) -> RustVisibility {
         match value {
             Visibility::Public(_) => RustVisibility::Public,
             Visibility::Restricted(vis) => {
