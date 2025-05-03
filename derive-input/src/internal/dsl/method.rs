@@ -24,8 +24,6 @@ pub mod delete_many;
 
 pub mod get_one_option;
 
-pub mod get_many_options;
-
 pub mod update;
 
 pub mod delete_one;
@@ -75,13 +73,6 @@ impl SpacetimeDSLTableMethods {
                         spacetimedsl_table,
                         columns,
                     );
-                    let get_many_options = get_many_options::for_multi_column_index(
-                        rust_struct,
-                        spacetimedb_table,
-                        multi_column_index,
-                        spacetimedsl_table,
-                        columns,
-                    );
 
                     let update = match spacetimedsl_table.is_mutable {
                         false => None,
@@ -105,7 +96,6 @@ impl SpacetimeDSLTableMethods {
                     multi_column_indices.push(SpacetimeDSLColumnMethods::ForUniqueIndex(
                         SpacetimeDSLColumnMethodsForUniqueIndex {
                             get_one_option,
-                            get_many_options,
                             update,
                             delete_one,
                         },
@@ -169,13 +159,6 @@ impl SpacetimeDSLColumnMethods {
                     rust_field,
                     spacetimedsl_column,
                 );
-                let get_many_options = get_many_options::for_single_column_index(
-                    rust_struct,
-                    spacetimedb_table,
-                    spacetimedsl_table,
-                    rust_field,
-                    spacetimedsl_column,
-                );
 
                 let update = match spacetimedsl_table.is_mutable {
                     false => None,
@@ -194,7 +177,6 @@ impl SpacetimeDSLColumnMethods {
                 );
                 SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
                     get_one_option,
-                    get_many_options,
                     update,
                     delete_one,
                 })

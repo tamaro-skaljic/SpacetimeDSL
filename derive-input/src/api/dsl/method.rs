@@ -41,7 +41,6 @@ pub enum SpacetimeDSLColumnMethods {
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
 pub struct SpacetimeDSLColumnMethodsForUniqueIndex {
     pub get_one_option: SpacetimeDSLMethod,
-    pub get_many_options: SpacetimeDSLMethod,
     pub update: Option<SpacetimeDSLMethod>,
     pub delete_one: SpacetimeDSLMethod,
 }
