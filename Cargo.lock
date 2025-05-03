@@ -604,12 +604,12 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "spacetimedsl_derive-output",
+ "spacetimedsl_derive-input",
  "syn",
 ]
 
 [[package]]
-name = "spacetimedsl_derive-output"
+name = "spacetimedsl_derive-input"
 version = "0.4.0"
 dependencies = [
  "ident_case",

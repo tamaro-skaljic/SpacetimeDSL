@@ -37,11 +37,11 @@ pub struct Index {
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
 pub enum IndexType {
-    /// Available from `SpacetimeDBTable.multi_column_indices`.
+    /// Available from `SpacetimeDBTable.multi_column_indices`
     BTreeMultiColumn { columns: Vec<Box<str>> },
-    /// Available from `SpacetimeDBColumn.single_column_index`.
+    /// Available from `SpacetimeDBColumn.single_column_index`
     BTreeSingleColumn { column: Box<str> },
-    /// Available from `SpacetimeDBColumn.single_column_index`.
+    /// Available from `SpacetimeDBColumn.single_column_index`
     Direct { column: Box<str> },
 }
 

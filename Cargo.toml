@@ -17,12 +17,7 @@ readme = "README.md"
 spacetimedb = "^1"
 
 # https://crates.io/crates/spacetimedb Macros to extend SpacetimeDSL
-spacetimedsl_derive = { version = "0.4.0", path = "derive" }
+spacetimedsl_derive = { version = "0.4.0", path = "derive-output" }
 
 [workspace]
-members = [
-    "debug-helper",
-    "derive-output",
-    "derive",
-    "example"
-]
+members = ["debug-helper", "derive-input", "derive-output", "example"]

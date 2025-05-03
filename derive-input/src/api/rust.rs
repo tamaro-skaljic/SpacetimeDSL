@@ -25,10 +25,10 @@ pub struct RustField {
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
 pub enum RustVisibility {
-    /// `pub`.
+    /// `pub`
     Public,
-    /// `pub(crate)`, `pub(super)` or `pub(in path::to::module)`.
+    /// `pub(crate)`, `pub(super)` or `pub(in path::to::module)`
     Restricted(Box<str>),
-    /// Default.
+    /// Default
     Private,
 }

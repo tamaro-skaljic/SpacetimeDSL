@@ -1,24 +1,18 @@
 [package]
 authors = ["Tamaro Skaljic<mail@tamaro-skaljic.de>"]
-name = "spacetimedsl_derive-output"
+name = "spacetimedsl_derive"
 version = "0.4.0"
 edition = "2024"
-description = "Contains structs which represent the output of SpacetimeDSL. Can be used by other proc-macro crates to build Macros which utilize SpacetimeDSL under the hood."
-documentation = "https://docs.rs/spacetimedsl_derive-output"
+description = "Macros to extend SpacetimeDSL. You shouldn't depend on this directly and instead use the spacetimedsl crate."
+documentation = "https://docs.rs/spacetimedsl_derive"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/tamaro-skaljic/SpacetimeDSL/derive-output"
+repository = "https://github.com/tamaro-skaljic/SpacetimeDSL/derive"
 publish = true
 include = ["/src/**"]
 keywords = ["dsl", "spacetime", "macro", "codegen", "boilerplate"]
 
-[features]
-default = ["clone", "debug", "partial-eq", "partial-ord", "spacetime-type"]
-clone = []
-debug = []
-partial-eq = []
-partial-ord = []
-# Use this feature if you want to use the provided structs and enums as field types inside SpacetimeDB tables
-spacetime-type = []
+[lib]
+proc-macro = true
 
 [dependencies]
 # https://crates.io/crates/ident_case Utility for applying case rules to Rust identifiers.
@@ -33,8 +27,5 @@ syn = { version = "2.0" }
 # https://crates.io/crates/quote Quasi-quoting macro quote!(...)
 quote = "1.0"
 
-# https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
-spacetimedb = "^1"
-
-# https://crates.io/crates/spacetime-bindings-macro-input Unofficial Input Crate for the SpacetimeDB Macro Bindings.
-spacetime-bindings-macro-input = "1.1.1"
+# https://crates.io/crates/spacetimedsl_derive-input Contains structs which represent the output of SpacetimeDSL. Can be used by other proc-macro crates to build Macros which utilize SpacetimeDSL under the hood.
+spacetimedsl_derive-input = { version = "0.4.0", path = "../derive-input" }
