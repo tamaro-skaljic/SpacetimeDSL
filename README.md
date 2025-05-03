@@ -538,10 +538,6 @@ impl GetPositionRowOptionsByEntityId for spacetimedsl::DSL<'_> {}
 For any `#[index]` (field) on a table-struct, a `get_rows_by_column` DSL extension method is created, which performs a `row().column().filter(column)`.
 If the field is `#[wrap]`, developers must provide a `Wrapper Type` or `Row` instead of an `Column`.
 
-TODO: This feature is not yet implemented for table indices, only for fields with #[index]. Therefore the example produces no output.
-
-Assuming the `y` column would have a `#[index]`, the following output would be produced:
-
 ```rust
 pub trait GetPositionRowsByXYZ: spacetimedsl::DSLContext {
     #[doc=#comment]
@@ -756,10 +752,6 @@ impl DeletePositionRowByEntityId for spacetimedsl::DSL<'_> {}
 
 For any `#[index]` (field) on a table-struct, a `delete_rows_by_columns` DSL extension method is created, which performs a `row().column().delete(column)` (deletes many rows).
 If the field is `#[wrap]`, developers must provide a `Wrapper Type` or `Row` instead of an `Column`.
-
-TODO: This feature is not yet implemented for table indices, only for fields with #[index]. Therefore the example produces no output.
-
-Assuming the `y` column would have a `#[index]`, the following output would be produced:
 
 ```rust
 pub trait DeletePositionRowsByY: spacetimedsl::DSLContext {

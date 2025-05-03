@@ -78,9 +78,9 @@ dependencies = [
 
 [[package]]
 name = "bytemuck"
-version = "1.22.0"
+version = "1.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6b1fc10dbac614ebc03540c9dbd60e83887fda27794998c6528f1782047d540"
+checksum = "9134a6ef01ce4b366b50689c94f82c14bc72bc5d0386829828a2e2752ef7958c"
 
 [[package]]
 name = "bytes"
@@ -90,9 +90,9 @@ checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 
 [[package]]
 name = "cc"
-version = "1.2.19"
+version = "1.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e3a13707ac958681c13b39b458c073d0d9bc8a22cb1b2f4c8e55eb72c13f362"
+checksum = "8691782945451c1c383942c4874dbe63814f61cb57ef773cda2972682b7bb3c0"
 dependencies = [
  "shlex",
 ]
@@ -105,9 +105,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chrono"
-version = "0.4.40"
+version = "0.4.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a7964611d71df112cb1730f2ee67324fcf4d0fc6606acbbe9bfe06df124637c"
+checksum = "c469d952047f47f91b68d1cba3f10d63c11d73e4636f24f08daf0278abf01c4d"
 dependencies = [
  "num-traits",
 ]
@@ -164,9 +164,9 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "0.99.19"
+version = "0.99.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3da29a38df43d6f156149c9b43ded5e018ddff2a855cf2cfd62e8cd7d079c69f"
+checksum = "6edb4b64a43d977b8e99788fe3a04d483834fba1215a7e02caa415b626497f7f"
 dependencies = [
  "convert_case",
  "proc-macro2",
@@ -241,9 +241,9 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.15.2"
+version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
+checksum = "84b26c544d002229e640969970a2e74021aadf6e2f96372b9c58eff97de08eb3"
 dependencies = [
  "equivalent",
 ]
@@ -344,7 +344,17 @@ version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
 dependencies = [
- "zerocopy 0.8.24",
+ "zerocopy 0.8.25",
+]
+
+[[package]]
+name = "prettyplease"
+version = "0.2.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "664ec5419c51e34154eec046ebcba56312d5a2fc3b09a06da188e1ad21afadf6"
+dependencies = [
+ "proc-macro2",
+ "syn",
 ]
 
 [[package]]
@@ -478,9 +488,9 @@ dependencies = [
 
 [[package]]
 name = "spacetimedb"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d595c729163810394910fea961d52754fab1d098e803458b849a6e5df4605b34"
+checksum = "3af9382ff04f966f39e3e1b475ee5de16ecc53b2ce9549b15a2fec9dcf82b319"
 dependencies = [
  "bytemuck",
  "derive_more",
@@ -496,9 +506,9 @@ dependencies = [
 
 [[package]]
 name = "spacetimedb-bindings-macro"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d03a1fd20efaef18e120c2f58e3627792ac940cf4ba2c7ab257c14f93af4630"
+checksum = "af99d92f47ec82a929ef2b790c4e6a192929bb4b336447afbcff79d21f56a0c4"
 dependencies = [
  "heck 0.4.1",
  "humantime",
@@ -510,18 +520,18 @@ dependencies = [
 
 [[package]]
 name = "spacetimedb-bindings-sys"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffc7635d6cee5b6d9023d77892233d15039010202b0717fb8aef99bda10a6f4b"
+checksum = "98f20547ab6205b3604819236c574c0144b12ba418deff986ceb1d5ee45c89c0"
 dependencies = [
  "spacetimedb-primitives",
 ]
 
 [[package]]
 name = "spacetimedb-data-structures"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6dfabc712bba5caed8e9c640aef5b15593632803a184a4f4c189e29203606051"
+checksum = "eb2e73d36e70f961f10b337d8e1fc56a1b51520bf3dcfe19b9924c8ee157ed7a"
 dependencies = [
  "ahash",
  "hashbrown",
@@ -532,9 +542,9 @@ dependencies = [
 
 [[package]]
 name = "spacetimedb-lib"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8512ccf4e88eb5e7a3e372698b1906f8c0b00048a42f65d08f3835f5d905b50"
+checksum = "0daf9e273bff482f13df676f91670ce3eb22a980a0e8e000cb6be007df7f6f67"
 dependencies = [
  "anyhow",
  "bitflags",
@@ -553,9 +563,9 @@ dependencies = [
 
 [[package]]
 name = "spacetimedb-primitives"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "618e216164cc4d31ae097404bcd941ccd18f0e6032770b8eb7fd3ba062129513"
+checksum = "e00f410fae725b19c85dee268bf75d498229e9fefa5dcc3595262a4eb48edf78"
 dependencies = [
  "bitflags",
  "either",
@@ -565,9 +575,9 @@ dependencies = [
 
 [[package]]
 name = "spacetimedb-sats"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "097b2267e8efe5a0bda872468e81e726d28d8e1595b48708da0d64966c7972de"
+checksum = "8bc6ace4942e4f477ddaef7e23204d8e8eed01e79119fb4e4f99d3eb3a462db3"
 dependencies = [
  "anyhow",
  "arrayvec",
@@ -612,6 +622,7 @@ name = "spacetimedsl_derive"
 version = "0.4.0"
 dependencies = [
  "ident_case",
+ "prettyplease",
  "proc-macro2",
  "quote",
  "spacetimedsl_derive-input",
@@ -643,9 +654,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.100"
+version = "2.0.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b09a44accad81e1ba1cd74a32461ba89dee89095ba17b32f5d03683b1b1fc2a0"
+checksum = "8ce2b7fc941b3a24138a0a7cf8e858bfc6a992e7978a068a5c760deb0ed43caf"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -780,11 +791,11 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.8.24"
+version = "0.8.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2586fea28e186957ef732a5f8b3be2da217d65c5969d4b1e17f973ebbe876879"
+checksum = "a1702d9583232ddb9174e01bb7c15a2ab8fb1bc6f227aa1233858c351a3ba0cb"
 dependencies = [
- "zerocopy-derive 0.8.24",
+ "zerocopy-derive 0.8.25",
 ]
 
 [[package]]
@@ -800,9 +811,9 @@ dependencies = [
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.24"
+version = "0.8.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a996a8f63c5c4448cd959ac1bab0aaa3306ccfd060472f85943ee0750f0169be"
+checksum = "28a6e20d751156648aa063f3800b706ee209a32c0b4d9f24be3d980b01be55ef"
 dependencies = [
  "proc-macro2",
  "quote",

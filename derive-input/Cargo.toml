@@ -33,7 +33,7 @@ syn = { version = "2.0" }
 # https://crates.io/crates/quote Quasi-quoting macro quote!(...)
 quote = "1.0"
 
-# https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
+# https://crates.io/crates/spacetimedb-sats Easy support for interacting between SpacetimeDB and Rust.
 spacetimedb = "^1"
 
 # https://crates.io/crates/spacetime-bindings-macro-input Unofficial Input Crate for the SpacetimeDB Macro Bindings.

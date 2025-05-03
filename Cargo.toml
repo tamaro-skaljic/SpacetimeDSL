@@ -17,10 +17,10 @@ readme = "README.md"
 spacetimedb = "^1"
 
 # https://crates.io/crates/spacetimedb Macros to extend SpacetimeDSL
-spacetimedsl_derive = { version = "0.4.0", path = "derive-output" }
+spacetimedsl_derive = { version = "0.4.0", path = "derive" }
 
 # https://crates.io/crates/itertools Extra iterator adaptors, iterator methods, free functions, and macros.
 itertools = "^0.14"
 
 [workspace]
-members = ["debug-helper", "derive-input", "derive-output", "example"]
+members = ["debug-helper", "derive-input", "derive", "example"]

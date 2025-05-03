@@ -1,6 +1,5 @@
 pub use spacetimedb::{DbContext, ReducerContext, Table};
 pub use spacetimedsl_derive as derive;
-pub use {DSL, DSLContext, Wrapper};
 
 pub struct DSL<'a> {
     ctx: &'a ReducerContext,
