@@ -1,3 +1,4 @@
+use crate::api::db::IndexType;
 use crate::internal::utils::wrapper_type_into_option;
 use crate::{
     api::{
@@ -51,7 +52,7 @@ pub(in crate::internal) fn for_single_column_index(
 
     let mut method_arg = quote! { #column_name: };
 
-    // TODO: I think this is wrong...
+    // TODO: I think this is wrong... should be u64 or so.
     let return_type = get_return_table_type_iterator(&rust_struct.name);
 
     let column_value;
@@ -120,6 +121,15 @@ pub(in crate::internal) fn for_multi_column_index(
     let struct_name = &rust_struct.name;
     let table_name = &spacetimedb_table.singular_name;
     let index_name = &multi_column_index.name;
+    let index_columns = match &multi_column_index.index_type {
+        IndexType::BTreeMultiColumn { columns } => columns,
+        i => {
+            panic!(
+                "There shouldn't be an index with another type when this code is running. Found: {:#?}",
+                i
+            )
+        }
+    };
 
     let doc_comment = format!(
         "Delete all {} rows inside the {} table filtered by {}.",
@@ -142,7 +152,7 @@ pub(in crate::internal) fn for_multi_column_index(
 
     let mut method_args = vec![];
 
-    // TODO: I think this is wrong...
+    // TODO: I think this is wrong... should be u64 or so.
     let return_type = get_return_table_type_iterator(&rust_struct.name);
 
     let mut column_values = vec![];
@@ -152,6 +162,10 @@ pub(in crate::internal) fn for_multi_column_index(
     for column in columns {
         let column_name = &column.rust_field.name;
         let column_type = &column.rust_field.type_name_or_path;
+
+        if !index_columns.contains(column_name) {
+            continue;
+        }
 
         match &column.spacetimedsl_column.wrapper_type {
             Some(wrapper_type) => {

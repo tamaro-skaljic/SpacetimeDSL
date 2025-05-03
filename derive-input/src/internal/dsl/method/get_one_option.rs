@@ -1,3 +1,4 @@
+use crate::api::db::IndexType;
 use crate::internal::utils::wrapper_type_into_option;
 use crate::{
     api::{
@@ -116,9 +117,18 @@ pub(in crate::internal) fn for_multi_column_index(
     let struct_name = &rust_struct.name;
     let table_name = &spacetimedb_table.singular_name;
     let index_name = &multi_column_index.name;
+    let index_columns = match &multi_column_index.index_type {
+        IndexType::BTreeMultiColumn { columns } => columns,
+        i => {
+            panic!(
+                "There shouldn't be an index with another type when this code is running. Found: {:#?}",
+                i
+            )
+        }
+    };
 
     let doc_comment = format!(
-        "Get an Option<{}> row inside the {} table filtered by {}.",
+        "Get an Option<{}> row inside the {} table filtered by {}.\n\nPanics if it finds more than one, because then the unique constraint is violated somewhere.",
         struct_name, table_name, index_name,
     )
     .into();
@@ -143,6 +153,10 @@ pub(in crate::internal) fn for_multi_column_index(
     for column in columns {
         let column_name = &column.rust_field.name;
         let column_type = &column.rust_field.type_name_or_path;
+
+        if !index_columns.contains(column_name) {
+            continue;
+        }
 
         match &column.spacetimedsl_column.wrapper_type {
             Some(wrapper_type) => {
@@ -196,7 +210,7 @@ pub(in crate::internal) fn for_multi_column_index(
     let mut panic_msg = format!(
         "There must be only one {struct_name} row inside the {table_name} table when filtering on the unique multi-column index {index_name} with value "
     );
-    panic_msg.push_str("{:?}. Found: {:#?}");
+    panic_msg.push_str("{:?}. Found more than one. There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the SpacetimeDSL feature is broken. Found: {:#?}");
 
     let method_args = method_args.iter().map(|ts| ts.to_string().into()).collect();
     let method_impl = quote! {
@@ -204,8 +218,8 @@ pub(in crate::internal) fn for_multi_column_index(
 
         #(#into_options)*
 
-        match ctx.db.#table_name().#index_name().filter((#(#column_values),*)).exactly_one() {
-            Ok(#table_name) => Some(#table_name),
+        match ctx.db.#table_name().#index_name().filter((#(#column_values),*)).at_most_one() {
+            Ok(#table_name) => #table_name,
             Err(e) => {
                 panic!(
                     #panic_msg,
