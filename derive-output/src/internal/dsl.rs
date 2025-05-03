@@ -11,3 +11,5 @@ pub mod getter;
 pub mod setter;
 
 pub mod method;
+
+pub mod quote;

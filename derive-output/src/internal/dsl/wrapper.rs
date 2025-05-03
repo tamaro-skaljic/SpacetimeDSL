@@ -75,7 +75,7 @@ impl WrapperType {
                 &item.ident.to_string().into(),
                 &wrapper_struct_name_or_path,
                 &wrapped_type_name_or_path,
-                &get_getter_method_name(field.name.as_ref().unwrap()),
+                &get_getter_method_name(&field.name.as_ref().unwrap().to_string().into_boxed_str()),
             );
 
             if attr.meta.path().eq(&wrap) {

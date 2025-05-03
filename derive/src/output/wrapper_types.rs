@@ -7,7 +7,7 @@ pub fn build(table: &Table) -> TokenStream {
     let mut wrapper_types = vec![];
 
     table.columns.iter().for_each(|column| {
-        match &column.spacetimedsl.wrapper_type {
+        match &column.spacetimedsl_column.wrapper_type {
             Some(wrapper_type) => match wrapper_type {
                 WrapperType::Wrap(wrap) => {
                     wrapper_types.push(&wrap.wrapper_impl);

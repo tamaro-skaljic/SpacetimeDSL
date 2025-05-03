@@ -42,7 +42,7 @@ pub enum SpacetimeDSLColumnMethods {
 pub struct SpacetimeDSLColumnMethodsForUniqueIndex {
     pub get_one_option: SpacetimeDSLMethod,
     pub get_many_options: SpacetimeDSLMethod,
-    pub update: SpacetimeDSLMethod,
+    pub update: Option<SpacetimeDSLMethod>,
     pub delete_one: SpacetimeDSLMethod,
 }
 

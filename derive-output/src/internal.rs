@@ -22,21 +22,30 @@ pub(crate) fn try_parse(args: syn::Attribute, item: syn::DeriveInput) -> syn::Re
     let table_args = TableArgs::try_parse(&item)?;
     let (table_args, column_args) = ColumnArgs::try_parse(&item, table_args)?;
 
-    let rust = RustStruct::map(&item);
+    let rust_struct = RustStruct::map(&item);
 
     let spacetimedb_table = SpacetimeDBTable::map(&table_args);
 
     let (spacetimedb_table, spacetimedsl_table) =
         crate::api::dsl::table::SpacetimeDSLTable::try_parse(&args, spacetimedb_table)?;
 
-    let (spacetimedb_table, spacetimedsl_table, columns) =
-        Column::try_parse(&item, &column_args, spacetimedb_table, spacetimedsl_table)?;
+    let (spacetimedb_table, spacetimedsl_table, columns) = Column::try_parse(
+        &item,
+        &column_args,
+        &rust_struct,
+        spacetimedb_table,
+        spacetimedsl_table,
+    )?;
 
-    let spacetimedsl_methods =
-        SpacetimeDSLTableMethods::try_parse(&spacetimedb_table, &spacetimedsl_table, &columns)?;
+    let spacetimedsl_methods = SpacetimeDSLTableMethods::try_parse(
+        &rust_struct,
+        &spacetimedb_table,
+        &spacetimedsl_table,
+        &columns,
+    )?;
 
     Ok(Table {
-        rust_struct: rust,
+        rust_struct,
         spacetimedb_table,
         spacetimedsl_table,
         columns,
@@ -48,6 +57,7 @@ impl Column {
     fn try_parse(
         item: &syn::DeriveInput,
         column_args: &ColumnArgs,
+        rust_struct: &RustStruct,
         mut spacetimedb_table: SpacetimeDBTable,
         mut spacetimedsl_table: SpacetimeDSLTable,
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable, Vec<Column>)> {
@@ -74,13 +84,20 @@ impl Column {
             let res = crate::api::dsl::column::SpacetimeDSLColumn::try_parse(
                 item,
                 field,
+                &rust_field,
                 spacetimedsl_table,
             )?;
             spacetimedsl_table = res.0;
             let spacetimedsl_column = res.1;
 
-            let spacetimedsl_methods =
-                SpacetimeDSLColumnMethods::try_parse(item, field, &spacetimedb_column);
+            let spacetimedsl_methods = SpacetimeDSLColumnMethods::try_parse(
+                &rust_struct,
+                &spacetimedb_table,
+                &spacetimedsl_table,
+                &rust_field,
+                &spacetimedb_column,
+                &spacetimedsl_column,
+            );
 
             columns.push(Column {
                 rust_field,
@@ -108,14 +125,15 @@ fn column_to_string(column: &spacetime_bindings_macro_input::table::Column<'_>) 
 
 pub(in crate::internal) fn wrapper_type_into_option(
     column_name: &Box<str>,
-    column_option_name: &Box<str>,
     wrapper_type_name_or_path: &Box<str>,
 ) -> TokenStream {
+    let column_option_name = &format!("{column_name}_option");
     quote! {
         let #column_name = #column_name.into();
         let mut #column_option_name = None;
         if #column_name.is_some() {
             #column_option_name = Some(Into::<#wrapper_type_name_or_path>::into(#column_name.unwrap()).value());
         }
+        let #column_name = #column_option_name;
     }
 }

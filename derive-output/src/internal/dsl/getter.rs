@@ -1,13 +1,19 @@
-use crate::api::dsl::{getter::Getter, wrapper::WrapperType};
+use crate::api::{
+    dsl::{getter::Getter, wrapper::WrapperType},
+    rust::RustField,
+};
 use quote::quote;
-use spacetime_bindings_macro_input::sats::SatsField;
+
+use super::quote::{
+    get_return_column_type_reference, get_return_wrapper_type, get_return_wrapper_type_option,
+};
 
 pub(in crate::internal) fn get_getter(
-    field: &SatsField<'_>,
+    rust_field: &RustField,
     is_option: bool,
     wrapper_type: &Option<WrapperType>,
 ) -> Getter {
-    let column_name = field.name.as_ref().unwrap();
+    let column_name = &rust_field.name;
 
     let method_name = get_getter_method_name(column_name);
     let return_type;
@@ -21,9 +27,7 @@ pub(in crate::internal) fn get_getter(
             };
 
             if is_option {
-                return_type = quote! {
-                    Option<#wrapper_type_name_or_path>
-                };
+                return_type = get_return_wrapper_type_option(wrapper_type_name_or_path);
 
                 method_impl = quote! {
                     if self.#column_name.is_none() {
@@ -33,9 +37,7 @@ pub(in crate::internal) fn get_getter(
                     }
                 };
             } else {
-                return_type = quote! {
-                    #wrapper_type_name_or_path
-                };
+                return_type = get_return_wrapper_type(wrapper_type_name_or_path);
 
                 method_impl = quote! {
                     #wrapper_type_name_or_path::new(self.#column_name.clone())
@@ -43,17 +45,14 @@ pub(in crate::internal) fn get_getter(
             }
         }
         None => {
-            let column_type = field.ty;
-            return_type = quote! {
-                &#column_type
-            };
+            return_type = get_return_column_type_reference(&rust_field.type_name_or_path);
+
             method_impl = quote! {
                 &self.#column_name
             };
         }
     };
 
-    let return_type = return_type.to_string().into();
     let method_impl = method_impl.to_string().into();
 
     Getter {
@@ -63,6 +62,6 @@ pub(in crate::internal) fn get_getter(
     }
 }
 
-pub(in crate::internal) fn get_getter_method_name(column_name: &String) -> Box<str> {
+pub(in crate::internal) fn get_getter_method_name(column_name: &Box<str>) -> Box<str> {
     format!("get_{column_name}").into()
 }

@@ -1,30 +1,35 @@
 use crate::{
     api::{
         dsl::{setter::Setter, wrapper::WrapperType},
-        rust::RustVisibility,
+        rust::{RustField, RustVisibility},
     },
     internal::wrapper_type_into_option,
 };
-use quote::quote;
-use spacetime_bindings_macro_input::sats::SatsField;
+use quote::{TokenStreamExt, quote};
+
+use super::quote::{
+    get_method_arg_column_type, get_method_arg_into_wrapper_type,
+    get_method_arg_into_wrapper_type_option, get_return_column_type, get_return_wrapper_type,
+    get_return_wrapper_type_option,
+};
 
 pub(in crate::internal) fn get_setter(
-    field: &SatsField<'_>,
+    rust_field: &RustField,
     is_option: bool,
     wrapper_type: &Option<WrapperType>,
 ) -> Option<Setter> {
-    match field.vis {
-        syn::Visibility::Inherited => {
+    match rust_field.visibility {
+        RustVisibility::Private => {
             return None;
         }
         _ => {}
     };
 
-    let column_name = field.name.as_ref().unwrap().to_string().into();
+    let column_name = &rust_field.name;
 
-    let method_visibility = RustVisibility::map(field.vis);
+    let method_visibility = rust_field.visibility.clone();
     let method_name = format!("set_{column_name}").into();
-    let method_arg;
+    let mut method_arg = quote! { #column_name: };
     let return_type;
     let method_impl;
 
@@ -36,32 +41,21 @@ pub(in crate::internal) fn get_setter(
             };
 
             if is_option {
-                method_arg = quote! {
-                    #column_name: impl Into<Option<#wrapper_type_name_or_path>>
-                };
-
-                return_type = quote! {
-                    Option<#wrapper_type_name_or_path>
-                };
-
-                let column_option_name = format!("{column_name}_option").into();
-                let into_option = wrapper_type_into_option(
-                    &column_name,
-                    &column_option_name,
+                method_arg.append_all(get_method_arg_into_wrapper_type_option(
                     wrapper_type_name_or_path,
-                );
+                ));
+
+                return_type = get_return_wrapper_type_option(wrapper_type_name_or_path);
+
+                let into_option = wrapper_type_into_option(column_name, wrapper_type_name_or_path);
                 method_impl = quote! {
                     #into_option
-                    self.#column_name = #column_option_name;
+                    self.#column_name = #column_name;
                 };
             } else {
-                method_arg = quote! {
-                    #column_name: impl Into<#wrapper_type_name_or_path>
-                };
+                method_arg.append_all(get_method_arg_into_wrapper_type(wrapper_type_name_or_path));
 
-                return_type = quote! {
-                    #wrapper_type_name_or_path
-                };
+                return_type = get_return_wrapper_type(wrapper_type_name_or_path);
 
                 method_impl = quote! {
                     self.#column_name = #column_name.into().value();
@@ -69,15 +63,9 @@ pub(in crate::internal) fn get_setter(
             }
         }
         None => {
-            let column_type = field.ty;
+            method_arg.append_all(get_method_arg_column_type(&rust_field.type_name_or_path));
 
-            method_arg = quote! {
-                #column_name: #column_type
-            };
-
-            return_type = quote! {
-                #column_type
-            };
+            return_type = get_return_column_type(&rust_field.type_name_or_path);
 
             method_impl = quote! {
                 self.#column_name = #column_name;
@@ -86,7 +74,6 @@ pub(in crate::internal) fn get_setter(
     };
 
     let method_arg = method_arg.to_string().into();
-    let return_type = return_type.to_string().into();
     let method_impl = method_impl.to_string().into();
 
     Some(Setter {

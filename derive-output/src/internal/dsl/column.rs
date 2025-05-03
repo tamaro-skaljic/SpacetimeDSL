@@ -1,5 +1,5 @@
 use super::{foreign_key, getter, setter};
-use crate::api::dsl::{column::SpacetimeDSLColumn, table::SpacetimeDSLTable, wrapper::WrapperType};
+use crate::api::{dsl::{column::SpacetimeDSLColumn, table::SpacetimeDSLTable, wrapper::WrapperType}, rust::RustField};
 use quote::ToTokens;
 use spacetime_bindings_macro_input::sats::SatsField;
 
@@ -7,6 +7,7 @@ impl SpacetimeDSLColumn {
     pub(in crate::internal) fn try_parse(
         item: &syn::DeriveInput,
         field: &SatsField<'_>,
+        rust_field: &RustField,
         mut spacetimedsl_table: SpacetimeDSLTable,
     ) -> syn::Result<(SpacetimeDSLTable, SpacetimeDSLColumn)> {
         let is_option = field
@@ -19,9 +20,9 @@ impl SpacetimeDSLColumn {
 
         let foreign_key = foreign_key::try_parse(field)?;
 
-        let getter = getter::get_getter(field, is_option, &wrapper_type);
+        let getter = getter::get_getter(rust_field, is_option, &wrapper_type);
 
-        let setter = setter::get_setter(field, is_option, &wrapper_type);
+        let setter = setter::get_setter(rust_field, is_option, &wrapper_type);
 
         if setter.is_some() {
             spacetimedsl_table.is_mutable = true;
