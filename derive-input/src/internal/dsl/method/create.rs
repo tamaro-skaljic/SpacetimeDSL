@@ -14,7 +14,7 @@ use crate::{
 use proc_macro2::TokenStream;
 use quote::{TokenStreamExt, quote};
 
-pub(crate) fn build(
+pub(in crate::internal) fn build(
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
     columns: &Vec<Column>,

@@ -19,7 +19,7 @@ use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::{TokenStreamExt, quote};
 
-pub(crate) fn for_single_column_index(
+pub(in crate::internal) fn for_single_column_index(
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
