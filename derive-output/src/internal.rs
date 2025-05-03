@@ -33,7 +33,7 @@ pub(crate) fn try_parse(args: syn::Attribute, item: syn::DeriveInput) -> syn::Re
         Column::try_parse(&item, &column_args, spacetimedb_table, spacetimedsl_table)?;
 
     let spacetimedsl_methods =
-        SpacetimeDSLTableMethods::try_parse(&item, &spacetimedb_table, &spacetimedsl_table)?;
+        SpacetimeDSLTableMethods::try_parse(&spacetimedb_table, &spacetimedsl_table, &columns)?;
 
     Ok(Table {
         rust_struct: rust,
