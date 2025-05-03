@@ -1,4 +1,3 @@
-
 #[cfg_attr(feature = "clone", derive(Clone))]
 #[cfg_attr(feature = "debug", derive(Debug))]
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
@@ -7,6 +6,7 @@
 pub struct ForeignKey {
     pub table_name: Box<str>,
     pub column_name: Box<str>,
+    // TODO: Implement
     pub on_delete_strategy: OnDeleteStrategy,
 }
 

@@ -2,6 +2,7 @@ use crate::api::db::{IndexType, SpacetimeDBTable};
 use crate::api::dsl::table::{OnDeleteHook, SpacetimeDSLTable};
 use crate::internal::dsl::foreign_key::column;
 use crate::internal::dsl::foreign_key::table;
+use crate::internal::get_table_attribute_macro;
 use proc_macro2::Span;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::sym::Symbol;
@@ -14,9 +15,11 @@ use syn::parse::Parser;
 
 impl SpacetimeDSLTable {
     pub(in crate::internal) fn try_parse(
-        args: &syn::Attribute,
+        item: &syn::DeriveInput,
         mut spacetimedb_table: SpacetimeDBTable,
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
+        let input = get_table_attribute_macro(item, "spacetimedsl :: table")?;
+
         let mut name_plural: Option<Ident> = None;
         let mut unique_indices = vec![];
         let mut on_delete_hooks = vec![];
@@ -33,7 +36,7 @@ impl SpacetimeDSLTable {
             });
             Ok(())
         })
-        .parse2(args.to_token_stream())?;
+        .parse2(input)?;
 
         let name_plural = name_plural.ok_or_else(|| {
             syn::Error::new(

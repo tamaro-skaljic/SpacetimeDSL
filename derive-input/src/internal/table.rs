@@ -1,0 +1,47 @@
+use crate::api::{
+    Table,
+    dsl::{method::SpacetimeDSLTableMethods, table::SpacetimeDSLTable},
+};
+use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
+
+mod rust;
+
+mod db;
+
+mod dsl;
+
+pub(in crate::internal) fn try_parse(
+    item: &syn::DeriveInput,
+    table_args: &TableArgs,
+    column_args: &ColumnArgs<'_>,
+) -> syn::Result<Table> {
+    let rust_struct = rust::map(&item);
+
+    let spacetimedb_table = db::map(&table_args);
+
+    let (spacetimedb_table, spacetimedsl_table) =
+        SpacetimeDSLTable::try_parse(&item, spacetimedb_table)?;
+
+    let (spacetimedb_table, spacetimedsl_table, columns) = super::column::try_parse(
+        &item,
+        &column_args,
+        &rust_struct,
+        spacetimedb_table,
+        spacetimedsl_table,
+    )?;
+
+    let spacetimedsl_methods = SpacetimeDSLTableMethods::try_parse(
+        &rust_struct,
+        &spacetimedb_table,
+        &spacetimedsl_table,
+        &columns,
+    )?;
+
+    Ok(Table {
+        rust_struct,
+        spacetimedb_table,
+        spacetimedsl_table,
+        columns,
+        spacetimedsl_methods,
+    })
+}

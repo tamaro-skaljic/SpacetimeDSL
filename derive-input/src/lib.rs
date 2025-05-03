@@ -23,13 +23,11 @@ pub mod api {
 
     impl Table {
         /**
-         * TODO: This function should only take `item: syn::DeriveInput`. The internal implementation should get the `args: syn::Attribute` itself. The SpacetimeDBTable does that internally already (TableArgs::try_parse).
-         *
          * Supply the &DeriveInput which you've got from your own [derive macro](https://doc.rust-lang.org/reference/procedural-macros.html#derive-macros)
          * to this function to build upon your SpacetimeDB rust server module with SpacetimeDSL.
          */
-        pub fn parse(args: syn::Attribute, item: syn::DeriveInput) -> syn::Result<Table> {
-            crate::internal::try_parse(args, item)
+        pub fn try_parse(item: &syn::DeriveInput) -> syn::Result<Table> {
+            crate::internal::try_parse(item)
         }
     }
 
@@ -49,4 +47,5 @@ pub mod api {
     }
 }
 
+#[doc(hidden)]
 mod internal;

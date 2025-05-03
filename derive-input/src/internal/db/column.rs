@@ -1,25 +1,9 @@
-use crate::api::db::{SpacetimeDBColumn, IndexType, SpacetimeDBTable};
+use crate::api::db::{IndexType, SpacetimeDBColumn, SpacetimeDBTable};
 use spacetime_bindings_macro_input::{
     sats::SatsField,
     table::{ColumnArgs, TableArgs},
 };
 use syn::DeriveInput;
-
-pub(in crate::internal) trait ParseSpacetimeColumn {
-    fn try_parse(item: &DeriveInput, table_args: TableArgs)
-    -> syn::Result<(TableArgs, ColumnArgs)>;
-}
-
-impl ParseSpacetimeColumn for ColumnArgs<'_> {
-    fn try_parse(
-        item: &DeriveInput,
-        table_args: TableArgs,
-    ) -> syn::Result<(TableArgs, ColumnArgs)> {
-        let (table_args, column_args) = ColumnArgs::parse(table_args, item)?;
-
-        Ok((table_args, column_args))
-    }
-}
 
 impl SpacetimeDBColumn {
     pub(in crate::internal) fn map(

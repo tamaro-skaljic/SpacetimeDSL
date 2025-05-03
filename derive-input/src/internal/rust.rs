@@ -2,15 +2,6 @@ use crate::api::rust::{RustField, RustStruct, RustVisibility};
 use quote::ToTokens;
 use syn::Visibility;
 
-impl RustStruct {
-    pub(in crate::internal) fn map(input: &syn::DeriveInput) -> RustStruct {
-        let visibility = RustVisibility::map(&input.vis);
-        let name = input.ident.to_string().into();
-
-        RustStruct { visibility, name }
-    }
-}
-
 impl RustField {
     pub(in crate::internal) fn map(
         field: &spacetime_bindings_macro_input::sats::SatsField<'_>,
