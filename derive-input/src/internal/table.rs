@@ -26,7 +26,6 @@ pub(in crate::internal) fn try_parse(
 
     let (spacetimedb_table, spacetimedsl_table, columns, primary_key_column_name) =
         super::column::try_parse(
-            &item,
             &column_args,
             &rust_struct,
             spacetimedb_table,

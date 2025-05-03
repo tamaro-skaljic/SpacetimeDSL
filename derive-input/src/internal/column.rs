@@ -7,7 +7,6 @@ use crate::api::{
     rust::{RustField, RustStruct},
 };
 use spacetime_bindings_macro_input::table::ColumnArgs;
-use syn::DeriveInput;
 
 mod rust;
 
@@ -16,7 +15,6 @@ mod db;
 mod dsl;
 
 pub(in crate::internal) fn try_parse(
-    item: &DeriveInput,
     column_args: &ColumnArgs,
     rust_struct: &RustStruct,
     mut spacetimedb_table: SpacetimeDBTable,
@@ -46,7 +44,6 @@ pub(in crate::internal) fn try_parse(
         let spacetimedb_column = res.1;
 
         let res = SpacetimeDSLColumn::try_parse(
-            item,
             field,
             &rust_struct,
             &rust_field,

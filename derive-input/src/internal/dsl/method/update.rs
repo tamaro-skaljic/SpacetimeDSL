@@ -9,7 +9,7 @@ use quote::quote;
 
 use super::get_unique_multi_column_index_checks;
 
-// TODO: Use try_update and create UniqueConstraintViolation error if applicable
+// TODO: Use try_update instead of update and create a UniqueConstraintViolation error if a unique multi-column index is violated. (return a Result)
 pub(in crate::internal) fn for_single_column_index(
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
@@ -85,7 +85,7 @@ pub(in crate::internal) fn for_single_column_index(
     }
 }
 
-// TODO: Use try_update and create UniqueConstraintViolation error if applicable
+// TODO: Use try_update instead of update and create a UniqueConstraintViolation error if a unique multi-column index is violated. (return a Result)
 pub(in crate::internal) fn for_multi_column_index(
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,

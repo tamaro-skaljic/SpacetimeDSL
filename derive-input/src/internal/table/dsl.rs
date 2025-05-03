@@ -44,7 +44,6 @@ impl SpacetimeDSLTable {
             )
         })?.to_token_stream().to_string().into();
 
-        // TODO: Implement multi-column unique indices
         for unique_index_name in unique_indices {
             for multi_column_index in &mut spacetimedb_table.multi_column_indices {
                 match &multi_column_index.index_type {

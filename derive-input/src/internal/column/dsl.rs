@@ -10,7 +10,6 @@ use spacetime_bindings_macro_input::sats::SatsField;
 
 impl SpacetimeDSLColumn {
     pub(in crate::internal) fn try_parse(
-        item: &syn::DeriveInput,
         field: &SatsField<'_>,
         rust_struct: &RustStruct,
         rust_field: &RustField,

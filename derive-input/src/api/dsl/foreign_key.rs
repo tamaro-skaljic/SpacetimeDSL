@@ -6,7 +6,7 @@
 pub struct ForeignKey {
     pub table_name: Box<str>,
     pub column_name: Box<str>,
-    // TODO: Implement
+    // TODO: Implement On Delete Strategies
     pub on_delete_strategy: OnDeleteStrategy,
 }
 

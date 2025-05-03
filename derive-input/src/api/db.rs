@@ -51,8 +51,6 @@ pub enum IndexType {
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
 pub struct ScheduledReducer {
-    // TODO: Check if the name is an internal thing or should be exposed
-    pub name: Box<str>,
     pub reducer_name: Box<str>,
 }
 

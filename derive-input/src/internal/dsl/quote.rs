@@ -3,12 +3,6 @@ use quote::quote;
 
 //region Method Arguments
 
-pub(in crate::internal::dsl) fn get_method_arg_vec(method_arg: TokenStream) -> TokenStream {
-    quote! {
-        Vec<#method_arg>
-    }
-}
-
 pub(in crate::internal::dsl) fn get_method_arg_column_type(column_type: &Box<str>) -> TokenStream {
     quote! {
         #column_type
@@ -54,16 +48,6 @@ pub(in crate::internal::dsl) fn get_return_table_type_option(table_type: &Box<st
 pub(in crate::internal::dsl) fn get_return_table_type_iterator(table_type: &Box<str>) -> Box<str> {
     quote! {
         impl Iterator<Item = #table_type>
-    }
-    .to_string()
-    .into()
-}
-
-pub(in crate::internal::dsl) fn get_return_table_type_option_iterator(
-    table_type: &Box<str>,
-) -> Box<str> {
-    quote! {
-        impl Iterator<Item = Option<#table_type>>
     }
     .to_string()
     .into()

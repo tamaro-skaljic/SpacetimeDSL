@@ -16,7 +16,7 @@ use quote::{TokenStreamExt, quote};
 
 use super::get_unique_multi_column_index_checks;
 
-// TODO: create a UniqueConstraintViolation error if a unique multi-column index is violated.
+// TODO: Use try_update instead of update and create a UniqueConstraintViolation error if a unique multi-column index is violated. (return a Result)
 pub(in crate::internal) fn build(
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,

@@ -10,7 +10,7 @@ use syn::meta::ParseNestedMeta;
 use syn::{Error, Ident};
 
 impl ForeignKey {
-    // TODOs: Check that the referenced field has a valid type (This field: T | Option<T> | Vec<T>, the other field: T). But this probably won't work from inside rust macros, more likely in a build.rs
+    // TODO: Check that the referenced field has a valid type (This field: T | Option<T> | Vec<T>, the other field: T). But this probably won't work from inside rust macros, more likely in a build.rs
     pub(in crate::internal) fn try_parse(field: &SatsField<'_>) -> syn::Result<Option<ForeignKey>> {
         let mut foreign_key_value = None;
 

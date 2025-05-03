@@ -65,13 +65,8 @@ impl Index {
 
 impl ScheduledReducer {
     fn map(scheduled: &ScheduledArg) -> ScheduledReducer {
-        let name = scheduled.at.as_ref().unwrap().to_string().into();
+        let reducer_name = scheduled.reducer.to_token_stream().to_string().into();
 
-        let path_to_reducer = scheduled.reducer.to_token_stream().to_string().into();
-
-        ScheduledReducer {
-            name,
-            reducer_name: path_to_reducer,
-        }
+        ScheduledReducer { reducer_name }
     }
 }

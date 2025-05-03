@@ -47,7 +47,7 @@ fn derive_table_helper_attr() -> syn::Attribute {
 }
 
 /// Provides helper attributes for `#[spacetimedsl::table]` because proc_macro_attribute's currently don't support them.
-/// TODO: Remove if https://github.com/rust-lang/rust/issues/65823 is implemented.
+// TODO: Remove if https://github.com/rust-lang/rust/issues/65823 is implemented.
 #[proc_macro_derive(SpacetimeDSL, attributes(wrap))]
 pub fn table_helper(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     proc_macro::TokenStream::default()
