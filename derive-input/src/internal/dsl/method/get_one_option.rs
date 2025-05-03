@@ -20,6 +20,8 @@ use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::{TokenStreamExt, quote};
 
+use super::get_unique_multi_column_index_check;
+
 pub(in crate::internal) fn for_single_column_index(
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
@@ -113,6 +115,7 @@ pub(in crate::internal) fn for_multi_column_index(
     multi_column_index: &Index,
     spacetimedsl_table: &SpacetimeDSLTable,
     columns: &[Column],
+    primary_key_column_name: &Box<str>,
 ) -> SpacetimeDSLMethod {
     let struct_name = &rust_struct.name;
     let table_name = &spacetimedb_table.singular_name;
@@ -213,21 +216,24 @@ pub(in crate::internal) fn for_multi_column_index(
     panic_msg.push_str("{:?}. Found more than one. There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the unique multi-column index SpacetimeDSL feature is broken. Found: {:#?}");
 
     let method_args = method_args.iter().map(|ts| ts.to_string().into()).collect();
+
+    let multi_column_index_check = get_unique_multi_column_index_check(
+        struct_name,
+        table_name,
+        multi_column_index,
+        primary_key_column_name,
+        column_values,
+    );
+    let field_name_for_found_value = format!("the_same_or_another_{table_name}");
+
     let method_impl = quote! {
         use itertools::Itertools;
 
         #(#into_options)*
 
-        match ctx.db.#table_name().#index_name().filter((#(#column_values),*)).at_most_one() {
-            Ok(#table_name) => #table_name,
-            Err(e) => {
-                panic!(
-                    #panic_msg,
-                    (#(#column_values),*),
-                    e.collect()
-                );
-            }
-        }
+        #multi_column_index_check
+
+        #field_name_for_found_value
     }
     .to_string()
     .into();
