@@ -12,12 +12,12 @@ pub mod method;
 
 pub mod quote;
 
-symbol!(foreign_key);
 symbol!(table);
+symbol!(plural_name);
+symbol!(unique_index);
+symbol!(foreign_key);
+symbol!(path);
 symbol!(column);
 symbol!(on_delete);
 symbol!(wrap);
 symbol!(wrapped);
-symbol!(plural_name);
-symbol!(unique_index);
-symbol!(path);

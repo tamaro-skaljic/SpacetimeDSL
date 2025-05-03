@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::api::rust::RustVisibility;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
@@ -53,5 +55,33 @@ pub(in crate::internal) fn wrapper_type_into_option(
             #column_option_name = Some(Into::<#wrapper_type_name_or_path>::into(#column_name.unwrap()).value());
         }
         let #column_name = #column_option_name;
+    }
+}
+
+impl Display for RustVisibility {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Public => {
+                write!(f, "pub")
+            }
+            Self::Restricted(str) => {
+                let str: &str = str;
+
+                match str {
+                    "crate" => {
+                        write!(f, "pub (crate)")
+                    }
+                    "super" => {
+                        write!(f, "pub (super)")
+                    }
+                    str => {
+                        write!(f, "pub (in {str})")
+                    }
+                }
+            }
+            Self::Private => {
+                write!(f, "")
+            }
+        }
     }
 }

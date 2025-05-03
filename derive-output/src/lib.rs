@@ -1,21 +1,20 @@
 use quote::quote;
-use spacetimedsl_derive_input::api as input;
+use spacetimedsl_derive_input::api::Table;
 mod output;
 
 /// Add `#[spacetimedsl::table]` to your structs with `#[spacetimedb::table]`
 /// to interact in a more ergonomic way than SpacetimeDB allows you by default.
 #[proc_macro_attribute]
 pub fn table(
-    args: proc_macro::TokenStream,
+    _args: proc_macro::TokenStream,
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     // put this on the struct so we don't get unknown attribute errors
-    let derive_table_helper: syn::Attribute = derive_table_helper_attr();
+    let derive_table_helper = derive_table_helper_attr();
 
     ok_or_compile_error(|| {
-        // Parse the input tokens into syntax trees
-        let args: syn::Attribute = syn::parse2(args)?;
-        let mut item: syn::DeriveInput = syn::parse2(item)?;
+        // Parse the input tokens into a syntax tree
+        let mut item: syn::DeriveInput = syn::parse(item)?;
 
         // Add `derive(SpacetimeDSL)` only if it's not already in the attributes of the item.
         // If multiple `#[spacetimedsl::table]` attributes are applied to the same `struct` item,
@@ -24,10 +23,10 @@ pub fn table(
             item.attrs.push(derive_table_helper);
         }
 
-        let input = input::api::parse(args, item)?;
+        let input = Table::try_parse(&item)?;
 
         // Build the output, possibly using quasi-quotation
-        let output = output::output(input)?;
+        let output = output::output(&input)?;
 
         Ok(quote! {
             #item
@@ -48,8 +47,8 @@ fn derive_table_helper_attr() -> syn::Attribute {
 
 /// Provides helper attributes for `#[spacetimedsl::table]` because proc_macro_attribute's currently don't support them.
 // TODO: Remove if https://github.com/rust-lang/rust/issues/65823 is implemented.
-#[proc_macro_derive(SpacetimeDSL, attributes(wrap))]
-pub fn table_helper(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+#[proc_macro_derive(SpacetimeDSL, attributes(wrap, wrapped, foreign_key))]
+pub fn table_helper(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     proc_macro::TokenStream::default()
 }
 
