@@ -14,10 +14,11 @@ pub mod api {
     #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
     #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
     pub struct Table {
-        pub rust: rust::RustStruct,
-        pub spacetimedb: db::SpacetimeDBTable,
-        pub spacetimedsl: dsl::table::SpacetimeDSLTable,
+        pub rust_struct: rust::RustStruct,
+        pub spacetimedb_table: db::SpacetimeDBTable,
+        pub spacetimedsl_table: dsl::table::SpacetimeDSLTable,
         pub columns: Vec<Column>,
+        pub spacetimedsl_methods: dsl::method::SpacetimeDSLTableMethods,
     }
 
     impl Table {
@@ -41,9 +42,10 @@ pub mod api {
     #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
     #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
     pub struct Column {
-        pub rust: rust::RustField,
-        pub spacetimedb: db::SpacetimeDBColumn,
-        pub spacetimedsl: dsl::column::SpacetimeDSLColumn,
+        pub rust_field: rust::RustField,
+        pub spacetimedb_column: db::SpacetimeDBColumn,
+        pub spacetimedsl_column: dsl::column::SpacetimeDSLColumn,
+        pub spacetimedsl_methods: dsl::method::SpacetimeDSLColumnMethods,
     }
 }
 

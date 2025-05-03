@@ -30,9 +30,9 @@ pub(crate) fn try_parse(args: syn::Attribute, item: syn::DeriveInput) -> syn::Re
         Column::try_parse(&item, &column_args, spacetimedb, spacetimedsl)?;
 
     Ok(Table {
-        rust,
-        spacetimedb,
-        spacetimedsl,
+        rust_struct: rust,
+        spacetimedb_table: spacetimedb,
+        spacetimedsl_table: spacetimedsl,
         columns,
     })
 }
@@ -74,9 +74,9 @@ impl Column {
             let spacetimedsl = res.1;
 
             columns.push(Column {
-                rust,
-                spacetimedb,
-                spacetimedsl,
+                rust_field: rust,
+                spacetimedb_column: spacetimedb,
+                spacetimedsl_column: spacetimedsl,
             });
         }
 

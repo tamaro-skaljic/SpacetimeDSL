@@ -34,7 +34,7 @@ impl SpacetimeDSLColumn {
             spacetimedsl_table.is_mutable = true;
         }
 
-        let dsl_methods = method::get_column_dsl_methods();
+        let dsl_methods = method::get_column_dsl_methods(item, field, spacetimedb_column);
 
         Ok((
             spacetimedsl_table,
