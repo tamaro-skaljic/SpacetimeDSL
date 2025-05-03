@@ -4,10 +4,6 @@ mod table;
 
 mod column;
 
-mod rust;
-
-mod db;
-
 mod dsl;
 
 mod utils;

@@ -1,3 +1,4 @@
+use crate::internal::utils::wrapper_type_into_option;
 use crate::{
     api::{
         Column,
@@ -8,12 +9,9 @@ use crate::{
         },
         rust::{RustField, RustStruct},
     },
-    internal::{
-        dsl::quote::{
-            get_column_value, get_column_value_from_wrapper, get_method_arg_column_type,
-            get_method_arg_into_wrapper_type, get_method_arg_into_wrapper_type_option,
-        },
-        wrapper_type_into_option,
+    internal::dsl::quote::{
+        get_column_value, get_column_value_from_wrapper, get_method_arg_column_type,
+        get_method_arg_into_wrapper_type, get_method_arg_into_wrapper_type_option,
     },
 };
 use ident_case::RenameRule;

@@ -1,21 +1,19 @@
 use super::getter::get_getter_method_name;
+use super::{path, wrap, wrapped};
 use crate::api::dsl::wrapper::{Wrap, Wrapped, WrapperType};
-use crate::internal::dsl::table::path;
+use crate::api::rust::{RustField, RustStruct};
 use ident_case::RenameRule;
 use quote::ToTokens;
 use quote::quote;
 use spacetime_bindings_macro_input::{
-    match_meta,
-    sats::SatsField,
-    sym::{Symbol, name},
-    symbol,
-    util::check_duplicate,
+    match_meta, sats::SatsField, sym::name, util::check_duplicate,
 };
-use syn::{Ident, Path};
+use syn::{Error, Ident, Path};
 
 impl WrapperType {
     pub(in crate::internal) fn try_parse(
-        item: &syn::DeriveInput,
+        rust_struct: &RustStruct,
+        rust_field: &RustField,
         field: &SatsField<'_>,
     ) -> syn::Result<Option<WrapperType>> {
         let mut wrapper_type = None;
@@ -26,13 +24,13 @@ impl WrapperType {
             }
 
             if wrapper_type.is_some() {
-                return Err(syn::Error::new_spanned(
+                return Err(Error::new_spanned(
                     &attr,
                     "Only one of `#[wrap]` or `#[wrapped]` is allowed per column!",
                 ));
             }
 
-            let mut wrapper_struct_name_or_path: Option<Box<str>> = None;
+            let mut wrapper_struct_name_or_path = None;
 
             attr.parse_nested_meta(|meta| {
                 match_meta!(match meta {
@@ -56,7 +54,7 @@ impl WrapperType {
                     wrapper_struct_name_or_path = Some(
                         format!(
                             "{}{}",
-                            RenameRule::PascalCase.apply_to_field(item.ident.to_string()),
+                            RenameRule::PascalCase.apply_to_field(&rust_struct.name),
                             RenameRule::PascalCase.apply_to_field(field.name.as_ref().unwrap()),
                         )
                         .into(),
@@ -64,7 +62,7 @@ impl WrapperType {
                 } else {
                     return Err(syn::Error::new_spanned(
                         &attr.meta,
-                        "WrapperPath must be set in `#[wrapped(WrapperPath)]`, e.g. `path::to::TableId`.",
+                        "WrapperPath must be set in `#[wrapped(path = WrapperPath)]`, e.g. `path = path::to::my::WrapperType`.",
                     ));
                 }
             }
@@ -72,10 +70,10 @@ impl WrapperType {
             let wrapper_struct_name_or_path = wrapper_struct_name_or_path.unwrap();
             let wrapped_type_name_or_path = field.ty.to_token_stream().to_string().into();
             let wrapper_impl = get_wrapper_impl(
-                &item.ident.to_string().into(),
+                &rust_struct.name,
                 &wrapper_struct_name_or_path,
                 &wrapped_type_name_or_path,
-                &get_getter_method_name(&field.name.as_ref().unwrap().to_string().into_boxed_str()),
+                &get_getter_method_name(&rust_field.name),
             );
 
             if attr.meta.path().eq(&wrap) {
@@ -96,9 +94,8 @@ impl WrapperType {
     }
 }
 
-symbol!(wrap);
-symbol!(wrapped);
-
+// TODO: Make sure that the wrapped type implements Default and fail if not. Implement default instead of a custom method.
+// TODO: Doc comments on Wrapper Types
 fn get_wrapper_impl(
     struct_name: &Box<str>,
     wrapper_struct_name: &Box<str>,
@@ -106,7 +103,7 @@ fn get_wrapper_impl(
     getter_name: &Box<str>,
 ) -> Box<str> {
     quote! {
-        #[derive(Clone, Debug, PartialEq, spacetimedb::SpacetimeType)]
+        #[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType)]
         pub struct #wrapper_struct_name {
             value: #wrapped_type_name_or_path,
         }

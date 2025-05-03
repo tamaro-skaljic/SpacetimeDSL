@@ -1,6 +1,19 @@
+use crate::api::rust::RustVisibility;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
-use syn::{DeriveInput, Error};
+use syn::{DeriveInput, Error, Visibility};
+
+impl RustVisibility {
+    pub(in crate::internal) fn map(value: &Visibility) -> RustVisibility {
+        match value {
+            Visibility::Public(_) => RustVisibility::Public,
+            Visibility::Restricted(vis) => {
+                RustVisibility::Restricted(vis.path.to_token_stream().to_string().into())
+            }
+            Visibility::Inherited => RustVisibility::Private,
+        }
+    }
+}
 
 pub(in crate::internal) fn get_table_attribute_macro(
     item: &DeriveInput,

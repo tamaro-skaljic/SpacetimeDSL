@@ -111,7 +111,7 @@ pub(in crate::internal::dsl) fn get_return_wrapper_type_option(
 
 //region Column Values
 
-pub fn get_column_value(column_name: &Box<str>) -> Box<str> {
+pub(in crate::internal::dsl) fn get_column_value(column_name: &Box<str>) -> Box<str> {
     quote! {
         #column_name
     }
@@ -119,7 +119,7 @@ pub fn get_column_value(column_name: &Box<str>) -> Box<str> {
     .into()
 }
 
-pub fn get_column_value_from_wrapper(column_name: &Box<str>) -> Box<str> {
+pub(in crate::internal::dsl) fn get_column_value_from_wrapper(column_name: &Box<str>) -> Box<str> {
     quote! {
         #column_name.into().value()
     }

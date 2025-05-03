@@ -1,53 +1,54 @@
+use super::foreign_key;
 use crate::api::dsl::foreign_key::{ForeignKey, OnDeleteStrategy};
+use crate::internal::dsl::{column, on_delete, table};
 use proc_macro2::Span;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::match_meta;
 use spacetime_bindings_macro_input::sats::SatsField;
-use spacetime_bindings_macro_input::sym::Symbol;
-use spacetime_bindings_macro_input::symbol;
 use spacetime_bindings_macro_input::util::check_duplicate;
 use syn::meta::ParseNestedMeta;
 use syn::{Error, Ident};
 
-/// TODOs: Check that the referenced field has a valid type (This field: T | Option<T> | Vec<T>, the other field: T)
-pub(in crate::internal) fn try_parse(field: &SatsField<'_>) -> syn::Result<Option<ForeignKey>> {
-    let mut foreign_key_value = None;
+impl ForeignKey {
+    // TODOs: Check that the referenced field has a valid type (This field: T | Option<T> | Vec<T>, the other field: T). But this probably won't work from inside rust macros, more likely in a build.rs
+    pub(in crate::internal) fn try_parse(field: &SatsField<'_>) -> syn::Result<Option<ForeignKey>> {
+        let mut foreign_key_value = None;
 
-    for attr in field.original_attrs {
-        if attr.meta.path().ne(&foreign_key) {
-            continue;
-        }
+        for attr in field.original_attrs {
+            if attr.meta.path().ne(&foreign_key) {
+                continue;
+            }
 
-        if foreign_key_value.is_some() {
-            return Err(syn::Error::new_spanned(
-                &attr,
-                "`#[foreign_key]` is only allowed once per column!",
-            ));
-        }
+            if foreign_key_value.is_some() {
+                return Err(syn::Error::new_spanned(
+                    &attr,
+                    "`#[foreign_key]` is only allowed once per column!",
+                ));
+            }
 
-        let mut table_name: Option<Ident> = None;
-        let mut column_name: Option<Ident> = None;
-        let mut on_delete_strategy = None;
+            let mut table_name: Option<Ident> = None;
+            let mut column_name: Option<Ident> = None;
+            let mut on_delete_strategy = None;
 
-        attr.parse_nested_meta(|meta| {
-            match_meta!(match meta {
-                table => {
-                    check_duplicate(&table_name, &meta)?;
-                    table_name = Some(meta.value()?.parse()?);
-                }
-                column => {
-                    check_duplicate(&column_name, &meta)?;
-                    column_name = Some(meta.value()?.parse()?);
-                }
-                on_delete => {
-                    check_duplicate(&on_delete_strategy, &meta)?;
-                    on_delete_strategy = Some(OnDeleteStrategy::try_parse(&meta)?);
-                }
-            });
-            Ok(())
-        })?;
+            attr.parse_nested_meta(|meta| {
+                match_meta!(match meta {
+                    table => {
+                        check_duplicate(&table_name, &meta)?;
+                        table_name = Some(meta.value()?.parse()?);
+                    }
+                    column => {
+                        check_duplicate(&column_name, &meta)?;
+                        column_name = Some(meta.value()?.parse()?);
+                    }
+                    on_delete => {
+                        check_duplicate(&on_delete_strategy, &meta)?;
+                        on_delete_strategy = Some(OnDeleteStrategy::try_parse(&meta)?);
+                    }
+                });
+                Ok(())
+            })?;
 
-        let table_name = table_name
+            let table_name = table_name
             .ok_or_else(|| {
                 syn::Error::new_spanned(
                     &attr.meta,
@@ -58,7 +59,7 @@ pub(in crate::internal) fn try_parse(field: &SatsField<'_>) -> syn::Result<Optio
             .to_string()
             .into();
 
-        let column_name = column_name
+            let column_name = column_name
             .ok_or_else(|| {
                 syn::Error::new_spanned(
                     &attr.meta,
@@ -69,27 +70,23 @@ pub(in crate::internal) fn try_parse(field: &SatsField<'_>) -> syn::Result<Optio
             .to_string()
             .into();
 
-        let on_delete_strategy = on_delete_strategy.ok_or_else(|| {
+            let on_delete_strategy = on_delete_strategy.ok_or_else(|| {
             syn::Error::new_spanned(
                 &attr.meta,
-                "OnDeleteStrategy must be set in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Cascade`.",
+                "OnDeleteStrategy must be set in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Cascade` (or SetNone or SetZero).",
             )
         })?;
 
-        foreign_key_value = Some(ForeignKey {
-            table_name,
-            column_name,
-            on_delete_strategy,
-        });
+            foreign_key_value = Some(ForeignKey {
+                table_name,
+                column_name,
+                on_delete_strategy,
+            });
+        }
+
+        Ok(foreign_key_value)
     }
-
-    Ok(foreign_key_value)
 }
-
-symbol!(foreign_key);
-symbol!(table);
-symbol!(column);
-symbol!(on_delete);
 
 impl OnDeleteStrategy {
     fn try_parse(meta: &ParseNestedMeta<'_>) -> syn::Result<OnDeleteStrategy> {
