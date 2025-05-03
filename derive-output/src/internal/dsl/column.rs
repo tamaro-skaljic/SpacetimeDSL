@@ -1,11 +1,5 @@
-use super::{foreign_key, getter, method, setter};
-use crate::api::{
-    db::SpacetimeDBColumn,
-    dsl::{
-        column::{SpacetimeDSLColumn, WrapperType},
-        table::SpacetimeDSLTable,
-    },
-};
+use super::{foreign_key, getter, setter};
+use crate::api::dsl::{column::SpacetimeDSLColumn, table::SpacetimeDSLTable, wrapper::WrapperType};
 use quote::ToTokens;
 use spacetime_bindings_macro_input::sats::SatsField;
 
@@ -13,7 +7,6 @@ impl SpacetimeDSLColumn {
     pub(in crate::internal) fn try_parse(
         item: &syn::DeriveInput,
         field: &SatsField<'_>,
-        spacetimedb_column: &SpacetimeDBColumn,
         mut spacetimedsl_table: SpacetimeDSLTable,
     ) -> syn::Result<(SpacetimeDSLTable, SpacetimeDSLColumn)> {
         let is_option = field
@@ -34,8 +27,6 @@ impl SpacetimeDSLColumn {
             spacetimedsl_table.is_mutable = true;
         }
 
-        let dsl_methods = method::get_column_dsl_methods(item, field, spacetimedb_column);
-
         Ok((
             spacetimedsl_table,
             SpacetimeDSLColumn {
@@ -44,7 +35,6 @@ impl SpacetimeDSLColumn {
                 foreign_key,
                 getter,
                 setter,
-                dsl_methods,
             },
         ))
     }

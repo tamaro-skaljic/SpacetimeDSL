@@ -1,4 +1,5 @@
-use crate::api::dsl::column::{Wrap, Wrapped, WrapperType};
+use super::getter::get_getter_method_name;
+use crate::api::dsl::wrapper::{Wrap, Wrapped, WrapperType};
 use crate::internal::dsl::table::path;
 use ident_case::RenameRule;
 use quote::ToTokens;
@@ -11,8 +12,6 @@ use spacetime_bindings_macro_input::{
     util::check_duplicate,
 };
 use syn::{Ident, Path};
-
-use super::getter::get_getter_method_name;
 
 impl WrapperType {
     pub(in crate::internal) fn try_parse(

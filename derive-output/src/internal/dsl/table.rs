@@ -1,5 +1,5 @@
 use crate::api::db::{IndexType, SpacetimeDBTable};
-use crate::api::dsl::table::{SpacetimeDSLTable, OnDeleteHook};
+use crate::api::dsl::table::{OnDeleteHook, SpacetimeDSLTable};
 use crate::internal::dsl::foreign_key::column;
 use crate::internal::dsl::foreign_key::table;
 use proc_macro2::Span;
@@ -61,8 +61,6 @@ impl SpacetimeDSLTable {
         let has_created_at_column = false;
         // Is set to true later if the column exists
         let has_modified_at_column = false;
-        // Is set to Some(T) later after all columns are parsed.
-        let dsl_methods = None;
 
         Ok((
             spacetimedb_table,
@@ -72,7 +70,6 @@ impl SpacetimeDSLTable {
                 is_mutable,
                 has_created_at_column,
                 has_modified_at_column,
-                dsl_methods,
             },
         ))
     }

@@ -45,7 +45,7 @@ pub mod api {
         pub rust_field: rust::RustField,
         pub spacetimedb_column: db::SpacetimeDBColumn,
         pub spacetimedsl_column: dsl::column::SpacetimeDSLColumn,
-        pub spacetimedsl_methods: dsl::method::SpacetimeDSLColumnMethods,
+        pub spacetimedsl_methods: Option<dsl::method::SpacetimeDSLColumnMethods>,
     }
 }
 

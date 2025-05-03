@@ -1,4 +1,4 @@
-use crate::api::dsl::column::{ForeignKey, OnDeleteStrategy};
+use crate::api::dsl::foreign_key::{ForeignKey, OnDeleteStrategy};
 use proc_macro2::Span;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::match_meta;

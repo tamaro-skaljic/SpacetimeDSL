@@ -1,6 +1,6 @@
 use crate::{
     api::{
-        dsl::column::{Setter, WrapperType},
+        dsl::{setter::Setter, wrapper::WrapperType},
         rust::RustVisibility,
     },
     internal::wrapper_type_into_option,

@@ -1,4 +1,4 @@
-use crate::api::dsl::column::{Getter, WrapperType};
+use crate::api::dsl::{getter::Getter, wrapper::WrapperType};
 use quote::quote;
 use spacetime_bindings_macro_input::sats::SatsField;
 

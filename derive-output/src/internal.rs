@@ -1,7 +1,10 @@
 use crate::api::{
     Column, Table,
     db::{SpacetimeDBColumn, SpacetimeDBTable},
-    dsl::table::SpacetimeDSLTable,
+    dsl::{
+        method::{SpacetimeDSLColumnMethods, SpacetimeDSLTableMethods},
+        table::SpacetimeDSLTable,
+    },
     rust::{RustField, RustStruct},
 };
 use db::{column::ParseSpacetimeColumn, table::ParseSpacetimeTable};
@@ -21,19 +24,23 @@ pub(crate) fn try_parse(args: syn::Attribute, item: syn::DeriveInput) -> syn::Re
 
     let rust = RustStruct::map(&item);
 
-    let spacetimedb = SpacetimeDBTable::map(&table_args);
+    let spacetimedb_table = SpacetimeDBTable::map(&table_args);
 
-    let (spacetimedb, spacetimedsl) =
-        crate::api::dsl::table::SpacetimeDSLTable::try_parse(&args, spacetimedb)?;
+    let (spacetimedb_table, spacetimedsl_table) =
+        crate::api::dsl::table::SpacetimeDSLTable::try_parse(&args, spacetimedb_table)?;
 
-    let (spacetimedb, spacetimedsl, columns) =
-        Column::try_parse(&item, &column_args, spacetimedb, spacetimedsl)?;
+    let (spacetimedb_table, spacetimedsl_table, columns) =
+        Column::try_parse(&item, &column_args, spacetimedb_table, spacetimedsl_table)?;
+
+    let spacetimedsl_methods =
+        SpacetimeDSLTableMethods::try_parse(&item, &spacetimedb_table, &spacetimedsl_table)?;
 
     Ok(Table {
         rust_struct: rust,
-        spacetimedb_table: spacetimedb,
-        spacetimedsl_table: spacetimedsl,
+        spacetimedb_table,
+        spacetimedsl_table,
         columns,
+        spacetimedsl_methods,
     })
 }
 
@@ -53,7 +60,7 @@ impl Column {
         let mut columns = vec![];
 
         for field in &column_args.fields {
-            let rust = RustField::map(field);
+            let rust_field = RustField::map(field);
 
             let res = SpacetimeDBColumn::map(
                 spacetimedb_table,
@@ -62,21 +69,24 @@ impl Column {
                 field,
             );
             spacetimedb_table = res.0;
-            let spacetimedb = res.1;
+            let spacetimedb_column = res.1;
 
             let res = crate::api::dsl::column::SpacetimeDSLColumn::try_parse(
                 item,
                 field,
-                &spacetimedb,
                 spacetimedsl_table,
             )?;
             spacetimedsl_table = res.0;
-            let spacetimedsl = res.1;
+            let spacetimedsl_column = res.1;
+
+            let spacetimedsl_methods =
+                SpacetimeDSLColumnMethods::try_parse(item, field, &spacetimedb_column);
 
             columns.push(Column {
-                rust_field: rust,
-                spacetimedb_column: spacetimedb,
-                spacetimedsl_column: spacetimedsl,
+                rust_field,
+                spacetimedb_column,
+                spacetimedsl_column,
+                spacetimedsl_methods,
             });
         }
 
