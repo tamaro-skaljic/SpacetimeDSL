@@ -288,6 +288,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "keccak"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -534,7 +543,7 @@ dependencies = [
  "derive_more",
  "enum-as-inner",
  "hex",
- "itertools",
+ "itertools 0.12.1",
  "spacetimedb-bindings-macro",
  "spacetimedb-data-structures",
  "spacetimedb-primitives",
@@ -550,7 +559,7 @@ checksum = "618e216164cc4d31ae097404bcd941ccd18f0e6032770b8eb7fd3ba062129513"
 dependencies = [
  "bitflags",
  "either",
- "itertools",
+ "itertools 0.12.1",
  "nohash-hasher",
 ]
 
@@ -571,7 +580,7 @@ dependencies = [
  "enum-as-inner",
  "ethnum",
  "hex",
- "itertools",
+ "itertools 0.12.1",
  "second-stack",
  "sha3",
  "smallvec",
@@ -584,6 +593,7 @@ dependencies = [
 name = "spacetimedsl"
 version = "0.4.0"
 dependencies = [
+ "itertools 0.14.0",
  "spacetimedb",
  "spacetimedsl_derive",
 ]
