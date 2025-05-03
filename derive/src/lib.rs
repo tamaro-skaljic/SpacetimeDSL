@@ -28,10 +28,13 @@ pub fn table(
         // Build the output, possibly using quasi-quotation
         let output = output::output(&input)?;
 
-        Ok(quote! {
+        let output: proc_macro::TokenStream = quote! {
             #item
             #output
-        })
+        }
+        .into();
+
+        Ok(output)
     })
 }
 

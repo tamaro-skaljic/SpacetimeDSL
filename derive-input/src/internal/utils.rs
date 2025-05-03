@@ -18,12 +18,12 @@ impl RustVisibility {
 }
 
 pub(in crate::internal) fn get_table_attribute_macro(
-    item: &DeriveInput,
+    input: &DeriveInput,
     path: &str,
 ) -> syn::Result<TokenStream> {
     let mut table = None;
 
-    for attr in item.attrs.iter() {
+    for attr in input.attrs.iter() {
         match attr.meta.require_list() {
             Ok(list) => {
                 if list.path.to_token_stream().to_string().eq(path) {

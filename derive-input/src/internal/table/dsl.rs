@@ -14,10 +14,10 @@ use syn::{
 
 impl SpacetimeDSLTable {
     pub(in crate::internal) fn try_parse(
-        item: &DeriveInput,
+        input: &DeriveInput,
         mut spacetimedb_table: SpacetimeDBTable,
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
-        let input = get_table_attribute_macro(item, "spacetimedsl :: table")?;
+        let input = get_table_attribute_macro(input, "spacetimedsl :: table")?;
 
         let mut name_plural: Option<Ident> = None;
         let mut unique_indices = vec![];
