@@ -21,9 +21,15 @@ pub(in crate::internal) fn try_parse(
     rust_struct: &RustStruct,
     mut spacetimedb_table: SpacetimeDBTable,
     mut spacetimedsl_table: SpacetimeDSLTable,
-) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable, Vec<Column>)> {
+) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable, Vec<Column>, Box<str>)> {
+    let primary_key_column_name = match get_primary_key_column_name(column_args) {
+        Some(pk) => pk,
+        None => {
+            panic!("The table should have a column with `#[primary_key]` helper attribute!")
+        }
+    };
+
     let auto_inc_column_names = get_auto_inc_column_names(column_args);
-    let primary_key_column_name = get_primary_key_column_name(column_args);
 
     let mut columns = vec![];
 
@@ -39,7 +45,13 @@ pub(in crate::internal) fn try_parse(
         spacetimedb_table = res.0;
         let spacetimedb_column = res.1;
 
-        let res = SpacetimeDSLColumn::try_parse(item, field, &rust_struct, &rust_field, spacetimedsl_table)?;
+        let res = SpacetimeDSLColumn::try_parse(
+            item,
+            field,
+            &rust_struct,
+            &rust_field,
+            spacetimedsl_table,
+        )?;
         spacetimedsl_table = res.0;
         let spacetimedsl_column = res.1;
 
@@ -50,6 +62,7 @@ pub(in crate::internal) fn try_parse(
             &rust_field,
             &spacetimedb_column,
             &spacetimedsl_column,
+            &primary_key_column_name,
         );
 
         columns.push(Column {
@@ -60,7 +73,12 @@ pub(in crate::internal) fn try_parse(
         });
     }
 
-    Ok((spacetimedb_table, spacetimedsl_table, columns))
+    Ok((
+        spacetimedb_table,
+        spacetimedsl_table,
+        columns,
+        primary_key_column_name,
+    ))
 }
 
 fn get_auto_inc_column_names(column_args: &ColumnArgs<'_>) -> Vec<Box<str>> {
@@ -71,7 +89,9 @@ fn get_auto_inc_column_names(column_args: &ColumnArgs<'_>) -> Vec<Box<str>> {
         .collect()
 }
 
-fn get_primary_key_column_name(column_args: &ColumnArgs<'_>) -> Option<Box<str>> {
+pub(in crate::internal) fn get_primary_key_column_name(
+    column_args: &ColumnArgs<'_>,
+) -> Option<Box<str>> {
     column_args
         .primary_key_column
         .as_ref()

@@ -14,10 +14,14 @@ use crate::{
 use proc_macro2::TokenStream;
 use quote::{TokenStreamExt, quote};
 
+use super::get_unique_multi_column_index_checks;
+
+// TODO: create a UniqueConstraintViolation error if a unique multi-column index is violated.
 pub(in crate::internal) fn build(
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
     columns: &Vec<Column>,
+    primary_key_column_name: &Box<str>,
 ) -> SpacetimeDSLMethod {
     let struct_name = &rust_struct.name;
     let table_name = &spacetimedb_table.singular_name;
@@ -127,12 +131,22 @@ pub(in crate::internal) fn build(
         };
     }
 
+    let multi_column_index_checks = get_unique_multi_column_index_checks(
+        rust_struct,
+        spacetimedb_table,
+        primary_key_column_name,
+    );
+
     let method_args = method_args.iter().map(|ts| ts.to_string().into()).collect();
     let method_impl = quote! {
+        use itertools::Itertools;
+
         #(#into_options)*
         let #table_name = #struct_name {
             #(#constructor_args),*
         };
+
+        #(#multi_column_index_checks)*
 
         return self
                 .ctx()

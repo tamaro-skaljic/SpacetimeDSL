@@ -29,7 +29,7 @@ pub(in crate::internal) fn for_single_column_index(
     let column_name = &rust_field.name;
 
     let doc_comment = format!(
-        "Delete a {} row inside the {} table filtered by {}.",
+        "Delete a {} row inside the {} table filtered by the unique single-column index {}.",
         struct_name, table_name, column_name,
     )
     .into();

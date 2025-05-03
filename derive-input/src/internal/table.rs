@@ -24,19 +24,21 @@ pub(in crate::internal) fn try_parse(
     let (spacetimedb_table, spacetimedsl_table) =
         SpacetimeDSLTable::try_parse(&item, spacetimedb_table)?;
 
-    let (spacetimedb_table, spacetimedsl_table, columns) = super::column::try_parse(
-        &item,
-        &column_args,
-        &rust_struct,
-        spacetimedb_table,
-        spacetimedsl_table,
-    )?;
+    let (spacetimedb_table, spacetimedsl_table, columns, primary_key_column_name) =
+        super::column::try_parse(
+            &item,
+            &column_args,
+            &rust_struct,
+            spacetimedb_table,
+            spacetimedsl_table,
+        )?;
 
     let spacetimedsl_methods = SpacetimeDSLTableMethods::try_parse(
         &rust_struct,
         &spacetimedb_table,
         &spacetimedsl_table,
         &columns,
+        &primary_key_column_name,
     )?;
 
     Ok(Table {

@@ -32,7 +32,7 @@ pub(in crate::internal) fn for_single_column_index(
     let column_name = &rust_field.name;
 
     let doc_comment = format!(
-        "Get all {} rows inside the {} table filtered by {}.",
+        "Get all {} rows inside the {} table filtered by the single-column index {}.",
         struct_name, table_name, column_name,
     )
     .into();
@@ -127,7 +127,7 @@ pub(in crate::internal) fn for_multi_column_index(
     };
 
     let doc_comment = format!(
-        "Get all {} rows inside the {} table filtered by {}.",
+        "Get all {} rows inside the {} table filtered by the multi-column index {}.",
         struct_name, table_name, index_name,
     )
     .into();

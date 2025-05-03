@@ -8,14 +8,11 @@ impl SpacetimeDBColumn {
         rust_field: &RustField,
         mut spacetimedb_table: SpacetimeDBTable,
         auto_inc_column_names: &Vec<Box<str>>,
-        primary_key_column_name: &Option<Box<str>>,
+        primary_key_column_name: &Box<str>,
     ) -> (SpacetimeDBTable, SpacetimeDBColumn) {
         let column_name = &rust_field.name;
 
-        let is_primary_key = match &primary_key_column_name {
-            Some(primary_key_column_name) => column_name.eq(primary_key_column_name),
-            None => false,
-        };
+        let is_primary_key = column_name.eq(primary_key_column_name);
 
         let mut i: usize = 0;
         let mut single_column_index = None;

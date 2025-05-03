@@ -13,7 +13,6 @@ use crate::{
     internal::dsl::quote::{
         get_column_value, get_column_value_from_wrapper, get_method_arg_column_type_reference,
         get_method_arg_into_wrapper_type, get_method_arg_into_wrapper_type_option,
-        get_return_table_type_iterator,
     },
 };
 use ident_case::RenameRule;
@@ -32,7 +31,7 @@ pub(in crate::internal) fn for_single_column_index(
     let column_name = &rust_field.name;
 
     let doc_comment = format!(
-        "Delete all {} rows inside the {} table filtered by {}.",
+        "Delete all {} rows inside the {} table filtered by the single-column index {}.",
         struct_name, table_name, column_name,
     )
     .into();
@@ -131,7 +130,7 @@ pub(in crate::internal) fn for_multi_column_index(
     };
 
     let doc_comment = format!(
-        "Delete all {} rows inside the {} table filtered by {}.",
+        "Delete all {} rows inside the {} table filtered by the multi-column index {}.",
         struct_name, table_name, index_name,
     )
     .into();

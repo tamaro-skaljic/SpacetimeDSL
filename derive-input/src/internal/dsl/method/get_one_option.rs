@@ -31,7 +31,7 @@ pub(in crate::internal) fn for_single_column_index(
     let column_name = &rust_field.name;
 
     let doc_comment = format!(
-        "Get an Option<{}> row inside the {} table filtered by {}.",
+        "Get an Option<{}> row inside the {} table filtered by the unique single-column index {}.",
         struct_name, table_name, column_name,
     )
     .into();
@@ -128,7 +128,7 @@ pub(in crate::internal) fn for_multi_column_index(
     };
 
     let doc_comment = format!(
-        "Get an Option<{}> row inside the {} table filtered by {}.\n\nPanics if it finds more than one, because then the unique constraint is violated somewhere.",
+        "Get an Option<{}> row inside the {} table filtered by the unique multi-column index {}.\n\nPanics if it finds more than one, because then the unique constraint is violated somewhere.",
         struct_name, table_name, index_name,
     )
     .into();
@@ -210,7 +210,7 @@ pub(in crate::internal) fn for_multi_column_index(
     let mut panic_msg = format!(
         "There must be only one {struct_name} row inside the {table_name} table when filtering on the unique multi-column index {index_name} with value "
     );
-    panic_msg.push_str("{:?}. Found more than one. There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the SpacetimeDSL feature is broken. Found: {:#?}");
+    panic_msg.push_str("{:?}. Found more than one. There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the unique multi-column index SpacetimeDSL feature is broken. Found: {:#?}");
 
     let method_args = method_args.iter().map(|ts| ts.to_string().into()).collect();
     let method_impl = quote! {

@@ -38,3 +38,6 @@ spacetimedb = "^1"
 
 # https://crates.io/crates/spacetime-bindings-macro-input Unofficial Input Crate for the SpacetimeDB Macro Bindings.
 spacetime-bindings-macro-input = "1.1.1"
+
+# TODO: Remove https://crates.io/crates/itertools Extra iterator adaptors, iterator methods, free functions, and macros.
+itertools = "^0.14"
