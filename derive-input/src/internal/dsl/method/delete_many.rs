@@ -52,8 +52,7 @@ pub(in crate::internal) fn for_single_column_index(
 
     let mut method_arg = quote! { #column_name: };
 
-    // TODO: I think this is wrong... should be u64 or so.
-    let return_type = get_return_table_type_iterator(&rust_struct.name);
+    let return_type = "u64".into();
 
     let column_value;
 
@@ -152,8 +151,7 @@ pub(in crate::internal) fn for_multi_column_index(
 
     let mut method_args = vec![];
 
-    // TODO: I think this is wrong... should be u64 or so.
-    let return_type = get_return_table_type_iterator(&rust_struct.name);
+    let return_type = "u64".into();
 
     let mut column_values = vec![];
 
