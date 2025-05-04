@@ -5,7 +5,8 @@ use crate::api::{
     dsl::{getter::Getter, wrapper::WrapperType},
     rust::RustField,
 };
-use quote::quote;
+use quote::{format_ident, quote};
+use syn::{parse_str, Ident, Type};
 
 impl Getter {
     pub(in crate::internal) fn map(
@@ -13,18 +14,15 @@ impl Getter {
         is_option: bool,
         wrapper_type: &Option<WrapperType>,
     ) -> Getter {
-        let column_name = &rust_field.name;
+        let column_name = format_ident!("{}", *rust_field.name);
 
-        let method_name = get_getter_method_name(column_name);
+        let method_name = get_getter_method_name(&column_name);
         let return_type;
         let method_impl;
 
         match wrapper_type {
             Some(wrapper_type) => {
-                let wrapper_type_name_or_path = match wrapper_type {
-                    WrapperType::Wrap(wrap) => &wrap.wrapper_struct_name,
-                    WrapperType::Wrapped(wrapped) => &wrapped.wrapper_struct_name_or_path,
-                };
+                let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
 
                 if is_option {
                     return_type = get_return_wrapper_type_option(wrapper_type_name_or_path);
@@ -45,7 +43,8 @@ impl Getter {
                 }
             }
             None => {
-                return_type = get_return_column_type_reference(&rust_field.type_name_or_path);
+                let rt: Type = parse_str(&rust_field.type_name_or_path).expect("getter");
+                return_type = get_return_column_type_reference(&rt);
 
                 method_impl = quote! {
                     &self.#column_name
@@ -63,6 +62,6 @@ impl Getter {
     }
 }
 
-pub(in crate::internal) fn get_getter_method_name(column_name: &Box<str>) -> Box<str> {
+pub(in crate::internal) fn get_getter_method_name(column_name: &Ident) -> Box<str> {
     format!("get_{column_name}").into()
 }

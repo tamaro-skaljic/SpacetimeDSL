@@ -1,9 +1,8 @@
-use std::fmt::Display;
-
-use crate::api::rust::RustVisibility;
+use crate::api::{dsl::wrapper::WrapperType, rust::RustVisibility};
 use proc_macro2::{Span, TokenStream};
-use quote::{ToTokens, quote};
-use syn::{DeriveInput, Error, Visibility};
+use quote::{format_ident, quote, ToTokens};
+use std::fmt::Display;
+use syn::{parse_str, DeriveInput, Error, Ident, Type, Visibility};
 
 impl RustVisibility {
     pub(in crate::internal) fn map(value: &Visibility) -> RustVisibility {
@@ -13,6 +12,21 @@ impl RustVisibility {
                 RustVisibility::Restricted(vis.path.to_token_stream().to_string().into())
             }
             Visibility::Inherited => RustVisibility::Private,
+        }
+    }
+}
+
+impl WrapperType {
+    pub(in crate::internal) fn map(value: &WrapperType) -> Type {
+        match value {
+            WrapperType::Wrap(w) => parse_str(&w.wrapper_struct_name).expect(&format!(
+                "Failed to parse {} as Ident in WrapperType::map for WrapperType::Wrap.",
+                &w.wrapper_struct_name
+            )),
+            WrapperType::Wrapped(w) => parse_str(&w.wrapper_struct_name_or_path).expect(&format!(
+                "Failed to parse {} as Path in WrapperType::map for WrapperType::Wrapped.",
+                &w.wrapper_struct_name_or_path
+            )),
         }
     }
 }
@@ -44,10 +58,10 @@ pub(in crate::internal) fn get_table_attribute_macro(
 }
 
 pub(in crate::internal) fn wrapper_type_into_option(
-    column_name: &Box<str>,
-    wrapper_type_name_or_path: &Box<str>,
+    column_name: &Ident,
+    wrapper_type_name_or_path: &Type,
 ) -> TokenStream {
-    let column_option_name = &format!("{column_name}_option");
+    let column_option_name = &format_ident!("{column_name}_option");
     quote! {
         let #column_name = #column_name.into();
         let mut #column_option_name = None;

@@ -1,3 +1,4 @@
+use super::get_unique_multi_column_index_checks;
 use crate::internal::utils::wrapper_type_into_option;
 use crate::{
     api::{
@@ -12,19 +13,18 @@ use crate::{
     },
 };
 use proc_macro2::TokenStream;
-use quote::{TokenStreamExt, quote};
+use quote::{format_ident, quote};
+use syn::{Type, parse_str};
 
-use super::get_unique_multi_column_index_checks;
-
-// TODO: Use try_update instead of update and create a UniqueConstraintViolation error if a unique multi-column index is violated. (return a Result)
+// TODO: Create a UniqueConstraintViolation error if a unique multi-column index is violated. (return a Result)
 pub(in crate::internal) fn build(
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
     columns: &Vec<Column>,
     primary_key_column_name: &Box<str>,
 ) -> SpacetimeDSLMethod {
-    let struct_name = &rust_struct.name;
-    let table_name = &spacetimedb_table.singular_name;
+    let struct_name = format_ident!("{}", *rust_struct.name);
+    let table_name = format_ident!("{}", *spacetimedb_table.singular_name);
 
     let doc_comment = format!("Create a {} row.", struct_name).into();
 
@@ -34,7 +34,7 @@ pub(in crate::internal) fn build(
 
     let mut method_args = vec![];
 
-    let try_insert_error_generic_type = format!("{table_name}__TableHandle");
+    let try_insert_error_generic_type = format_ident!("{table_name}__TableHandle");
     let return_type = quote! {
         Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>
     }
@@ -45,88 +45,65 @@ pub(in crate::internal) fn build(
     let mut constructor_args = vec![];
 
     for column in columns {
-        let column_name = &column.rust_field.name;
-        let column_type = &column.rust_field.type_name_or_path;
+        let column_name = format_ident!("{}", *column.rust_field.name);
+        let column_type: Type =
+            parse_str(&column.rust_field.type_name_or_path).expect("create.build");
 
         if column.spacetimedb_column.is_auto_inc
             || column.rust_field.name.eq(&"created_at".to_string().into())
             || column.rust_field.name.eq(&"modified_at".to_string().into())
         {
-            method_args.push(TokenStream::default());
-
             if column.spacetimedb_column.is_auto_inc {
-                constructor_args.push(
-                    quote! {
-                        #column_name: #column_type::default()
-                    }
-                    .to_string()
-                    .into(),
-                );
+                constructor_args.push(quote! {
+                    #column_name: #column_type::default()
+                });
             } else if column.rust_field.name.eq(&"created_at".to_string().into()) {
-                constructor_args.push(
-                    quote! {
-                        created_at: self.ctx().timestamp
-                    }
-                    .to_string()
-                    .into(),
-                );
+                constructor_args.push(quote! {
+                    created_at: self.ctx().timestamp
+                });
             } else if column.rust_field.name.eq(&"modified_at".to_string().into()) {
-                constructor_args.push(
-                    quote! {
-                        modified_at: self.ctx().timestamp
-                    }
-                    .to_string()
-                    .into(),
-                );
+                constructor_args.push(quote! {
+                    modified_at: self.ctx().timestamp
+                });
             }
             continue;
         }
 
         match &column.spacetimedsl_column.wrapper_type {
             Some(wrapper_type) => {
-                let wrapper_type_name_or_path = match wrapper_type {
-                    WrapperType::Wrap(wrap) => &wrap.wrapper_struct_name,
-                    WrapperType::Wrapped(wrapped) => &wrapped.wrapper_struct_name_or_path,
-                };
+                let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
 
                 if column.spacetimedsl_column.is_option {
-                    let mut method_arg = quote! {
-                        #column_name:
-                    };
-                    method_arg.append_all(get_method_arg_into_wrapper_type_option(
-                        wrapper_type_name_or_path,
-                    ));
-                    method_args.push(method_arg);
+                    let ma = get_method_arg_into_wrapper_type_option(wrapper_type_name_or_path);
+                    method_args.push(quote! {
+                        #column_name: #ma
+                    });
 
                     into_options.push(wrapper_type_into_option(
-                        column_name,
+                        &column_name,
                         wrapper_type_name_or_path,
                     ));
 
-                    let mut constructor_arg = format!("{column_name}: ");
-                    constructor_arg.push_str(&get_column_value(column_name));
-                    constructor_args.push(constructor_arg.into());
+                    constructor_args.push(get_column_value(&column_name));
                 } else {
-                    let mut method_arg = quote! {
-                        #column_name:
-                    };
-                    method_arg
-                        .append_all(get_method_arg_into_wrapper_type(wrapper_type_name_or_path));
-                    method_args.push(method_arg);
+                    let ma = get_method_arg_into_wrapper_type(wrapper_type_name_or_path);
+                    method_args.push(quote! {
+                        #column_name: #ma
+                    });
 
-                    let mut constructor_arg = format!("{column_name}: ");
-                    constructor_arg.push_str(&get_column_value_from_wrapper(column_name));
-                    constructor_args.push(constructor_arg.into());
+                    let column_value = &get_column_value_from_wrapper(&column_name);
+                    constructor_args.push(quote! {
+                        #column_name: #column_value
+                    });
                 }
             }
             None => {
-                let mut method_arg = quote! {
-                    #column_name:
-                };
-                method_arg.append_all(get_method_arg_column_type(column_type));
-                method_args.push(method_arg);
+                let ma = get_method_arg_column_type(&column_type);
+                method_args.push(quote! {
+                    #column_name: #ma
+                });
 
-                constructor_args.push(get_column_value(column_name));
+                constructor_args.push(get_column_value(&column_name));
             }
         };
     }
@@ -138,8 +115,17 @@ pub(in crate::internal) fn build(
     );
 
     let method_args = method_args.iter().map(|ts| ts.to_string().into()).collect();
+
+    let use_itertools = if multi_column_index_checks.len() > 0 {
+        quote! {
+            use itertools::Itertools;
+        }
+    } else {
+        TokenStream::default()
+    };
+
     let method_impl = quote! {
-        use itertools::Itertools;
+        #use_itertools
 
         #(#into_options)*
         let #table_name = #struct_name {

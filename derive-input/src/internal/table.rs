@@ -13,7 +13,7 @@ mod db;
 mod dsl;
 
 pub(in crate::internal) fn try_parse(
-    args: proc_macro2::TokenStream, 
+    args: proc_macro2::TokenStream,
     input: &DeriveInput,
     table_args: &TableArgs,
     column_args: &ColumnArgs<'_>,

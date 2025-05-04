@@ -1,3 +1,4 @@
+use super::get_unique_multi_column_index_checks;
 use crate::api::{
     db::{Index, SpacetimeDBTable},
     dsl::{method::SpacetimeDSLMethod, table::SpacetimeDSLTable},
@@ -5,9 +6,7 @@ use crate::api::{
 };
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
-use quote::quote;
-
-use super::get_unique_multi_column_index_checks;
+use quote::{format_ident, quote};
 
 // TODO: Use try_update instead of update and create a UniqueConstraintViolation error if a unique multi-column index is violated. (return a Result)
 pub(in crate::internal) fn for_single_column_index(
@@ -17,8 +16,8 @@ pub(in crate::internal) fn for_single_column_index(
     rust_field: &RustField,
     primary_key_column_name: &Box<str>,
 ) -> SpacetimeDSLMethod {
-    let struct_name = &rust_struct.name;
-    let table_name = &spacetimedb_table.singular_name;
+    let struct_name = format_ident!("{}", &rust_struct.name.to_string());
+    let table_name = format_ident!("{}", *spacetimedb_table.singular_name);
     let column_name = &rust_field.name;
 
     let doc_comment = format!(
@@ -30,7 +29,7 @@ pub(in crate::internal) fn for_single_column_index(
     let trait_name = format!(
         "Update{}RowBy{}",
         struct_name,
-        RenameRule::PascalCase.apply_to_field(column_name)
+        RenameRule::PascalCase.apply_to_field(column_name.to_string())
     )
     .into();
 
@@ -42,7 +41,7 @@ pub(in crate::internal) fn for_single_column_index(
 
     let method_args = vec![quote! { mut #table_name: #struct_name }.to_string().into()];
 
-    let return_type = struct_name.clone();
+    let return_type = struct_name.to_string().into();
 
     let multi_column_index_checks = get_unique_multi_column_index_checks(
         rust_struct,
@@ -59,8 +58,16 @@ pub(in crate::internal) fn for_single_column_index(
         }
     };
 
+    let use_itertools = if multi_column_index_checks.len() > 0 {
+        quote! {
+            use itertools::Itertools;
+        }
+    } else {
+        TokenStream::default()
+    };
+
     let method_impl = quote! {
-        use itertools::Itertools;
+        #use_itertools
 
         #(#multi_column_index_checks)*
 
@@ -94,7 +101,7 @@ pub(in crate::internal) fn for_multi_column_index(
     primary_key_column_name: &Box<str>,
 ) -> SpacetimeDSLMethod {
     let struct_name = &rust_struct.name;
-    let table_name = &spacetimedb_table.singular_name;
+    let table_name = format_ident!("{}", *spacetimedb_table.singular_name);
     let index_name = &multi_column_index.name;
 
     let doc_comment = format!(

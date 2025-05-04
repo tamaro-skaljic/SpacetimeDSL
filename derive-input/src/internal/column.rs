@@ -43,16 +43,12 @@ pub(in crate::internal) fn try_parse(
         spacetimedb_table = res.0;
         let spacetimedb_column = res.1;
 
-        let res = SpacetimeDSLColumn::try_parse(
-            field,
-            &rust_struct,
-            &rust_field,
-            spacetimedsl_table,
-        )?;
+        let res =
+            SpacetimeDSLColumn::try_parse(field, &rust_struct, &rust_field, spacetimedsl_table)?;
         spacetimedsl_table = res.0;
         let spacetimedsl_column = res.1;
 
-        let spacetimedsl_methods = SpacetimeDSLColumnMethods::try_parse(
+        let spacetimedsl_methods = SpacetimeDSLColumnMethods::map(
             &rust_struct,
             &spacetimedb_table,
             &spacetimedsl_table,

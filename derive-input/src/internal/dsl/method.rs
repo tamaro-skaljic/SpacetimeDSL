@@ -12,7 +12,8 @@ use crate::api::{
     rust::{RustField, RustStruct},
 };
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
+use syn::Ident;
 
 pub mod create;
 
@@ -44,6 +45,7 @@ impl SpacetimeDSLTableMethods {
             columns,
             primary_key_column_name,
         );
+
         let get_all = get_all::build(rust_struct, spacetimedb_table, spacetimedsl_table);
         let get_count = get_count::build(rust_struct, spacetimedb_table, spacetimedsl_table);
         let mut multi_column_indices = vec![];
@@ -126,7 +128,7 @@ impl SpacetimeDSLTableMethods {
 }
 
 impl SpacetimeDSLColumnMethods {
-    pub(in crate::internal) fn try_parse(
+    pub(in crate::internal) fn map(
         rust_struct: &RustStruct,
         spacetimedb_table: &SpacetimeDBTable,
         spacetimedsl_table: &SpacetimeDSLTable,
@@ -205,30 +207,27 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_checks(
     primary_key_column_name: &Box<str>,
 ) -> Vec<TokenStream> {
     let struct_name = &rust_struct.name;
-    let table_name = &spacetimedb_table.singular_name;
+    let table_name = format_ident!("{}", *spacetimedb_table.singular_name);
 
     let mut multi_column_index_checks = vec![];
 
     for multi_column_index in &spacetimedb_table.multi_column_indices {
         let index_column_names = match &multi_column_index.index_type {
             IndexType::BTreeMultiColumn { columns } => columns,
-            i => {
-                panic!(
-                    "There shouldn't be an index with another type when this code is running. Found: {:#?}",
-                    i
-                )
+            _ => {
+                continue;
             }
         };
 
         let mut column_values = vec![];
 
         for column_name in index_column_names {
-            column_values.push(format!("{table_name}.{column_name}").into());
+            column_values.push(quote! {#table_name.#column_name}.into());
         }
 
         multi_column_index_checks.push(get_unique_multi_column_index_check(
             struct_name,
-            table_name,
+            &table_name,
             multi_column_index,
             primary_key_column_name,
             column_values,
@@ -240,12 +239,12 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_checks(
 
 pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_check(
     struct_name: &Box<str>,
-    table_name: &Box<str>,
+    table_name: &Ident,
     multi_column_index: &Index,
     primary_key_column_name: &Box<str>,
-    column_values: Vec<Box<str>>,
+    column_values: Vec<TokenStream>,
 ) -> TokenStream {
-    let index_name = &multi_column_index.name;
+    let index_name = format_ident!("{}", multi_column_index.name.to_string());
     match multi_column_index.is_unique {
         false => {
             return TokenStream::default();

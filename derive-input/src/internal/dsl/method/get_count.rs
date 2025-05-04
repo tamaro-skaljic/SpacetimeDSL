@@ -1,4 +1,4 @@
-use quote::quote;
+use quote::{format_ident, quote};
 
 use crate::api::{
     db::SpacetimeDBTable,
@@ -12,7 +12,7 @@ pub(in crate::internal) fn build(
     spacetimedsl_table: &SpacetimeDSLTable,
 ) -> SpacetimeDSLMethod {
     let struct_name = &rust_struct.name;
-    let table_name = &spacetimedb_table.singular_name;
+    let table_name = format_ident!("{}", *spacetimedb_table.singular_name);
 
     let doc_comment = format!(
         "Get the count of all {} rows inside the {} table.",
@@ -26,11 +26,7 @@ pub(in crate::internal) fn build(
 
     let method_args = vec![];
 
-    let return_type = quote! {
-        u64
-    }
-    .to_string()
-    .into();
+    let return_type = "u64".into();
 
     let method_impl = quote! {
         return self

@@ -17,7 +17,8 @@ use crate::{
 };
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
-use quote::{TokenStreamExt, quote};
+use quote::{format_ident, quote};
+use syn::{Type, parse_str};
 
 pub(in crate::internal) fn for_single_column_index(
     rust_struct: &RustStruct,
@@ -27,8 +28,8 @@ pub(in crate::internal) fn for_single_column_index(
     spacetimedsl_column: &SpacetimeDSLColumn,
 ) -> SpacetimeDSLMethod {
     let struct_name = &rust_struct.name;
-    let table_name = &spacetimedb_table.singular_name;
-    let column_name = &rust_field.name;
+    let table_name = format_ident!("{}", *spacetimedb_table.singular_name);
+    let column_name = format_ident!("{}", *rust_field.name);
 
     let doc_comment = format!(
         "Delete all {} rows inside the {} table filtered by the single-column index {}.",
@@ -39,7 +40,7 @@ pub(in crate::internal) fn for_single_column_index(
     let trait_name = format!(
         "Delete{}RowsBy{}",
         struct_name,
-        RenameRule::PascalCase.apply_to_field(column_name)
+        RenameRule::PascalCase.apply_to_field(column_name.to_string())
     )
     .into();
 
@@ -49,7 +50,7 @@ pub(in crate::internal) fn for_single_column_index(
     )
     .into();
 
-    let mut method_arg = quote! { #column_name: };
+    let method_arg;
 
     let return_type = "u64".into();
 
@@ -59,30 +60,28 @@ pub(in crate::internal) fn for_single_column_index(
 
     match &spacetimedsl_column.wrapper_type {
         Some(wrapper_type) => {
-            let wrapper_type_name_or_path = match wrapper_type {
-                WrapperType::Wrap(wrap) => &wrap.wrapper_struct_name,
-                WrapperType::Wrapped(wrapped) => &wrapped.wrapper_struct_name_or_path,
-            };
+            let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
 
             if spacetimedsl_column.is_option {
-                method_arg.append_all(get_method_arg_into_wrapper_type_option(
-                    wrapper_type_name_or_path,
-                ));
+                let ma = get_method_arg_into_wrapper_type_option(wrapper_type_name_or_path);
+                method_arg = quote! { #column_name: &#ma };
 
-                into_option = wrapper_type_into_option(column_name, wrapper_type_name_or_path);
-                column_value = get_column_value(column_name);
+                into_option = wrapper_type_into_option(&column_name, wrapper_type_name_or_path);
+                column_value = get_column_value(&column_name);
             } else {
-                method_arg.append_all(get_method_arg_into_wrapper_type(wrapper_type_name_or_path));
+                let ma = get_method_arg_into_wrapper_type(wrapper_type_name_or_path);
+                method_arg = quote! { #column_name: &#ma };
 
-                column_value = get_column_value_from_wrapper(column_name);
+                column_value = get_column_value_from_wrapper(&column_name);
             }
         }
         None => {
-            method_arg.append_all(get_method_arg_column_type_reference(
-                &rust_field.type_name_or_path,
-            ));
+            let column_type: Type = parse_str(&rust_field.type_name_or_path)
+                .expect("delete_many.for_single_column_index");
+            let ma = get_method_arg_column_type_reference(&column_type);
+            method_arg = quote! { #column_name: &#ma };
 
-            column_value = get_column_value(column_name);
+            column_value = get_column_value(&column_name);
         }
     };
 
@@ -117,13 +116,13 @@ pub(in crate::internal) fn for_multi_column_index(
     columns: &[Column],
 ) -> SpacetimeDSLMethod {
     let struct_name = &rust_struct.name;
-    let table_name = &spacetimedb_table.singular_name;
+    let table_name = format_ident!("{}", *spacetimedb_table.singular_name);
     let index_name = &multi_column_index.name;
     let index_columns = match &multi_column_index.index_type {
         IndexType::BTreeMultiColumn { columns } => columns,
         i => {
             panic!(
-                "There shouldn't be an index with another type when this code is running. Found: {:#?}",
+                "There shouldn't be an index with another type when delete_many.for_multi_column_index is running. Found: {:#?}",
                 i
             )
         }
@@ -157,63 +156,58 @@ pub(in crate::internal) fn for_multi_column_index(
     let mut into_options = vec![];
 
     for column in columns {
-        let column_name = &column.rust_field.name;
-        let column_type = &column.rust_field.type_name_or_path;
+        let column_name = format_ident!("{}", *column.rust_field.name);
+        let column_type: Type = parse_str(&column.rust_field.type_name_or_path)
+            .expect("delete_many.for_multi_column_index");
 
-        if !index_columns.contains(column_name) {
+        if !index_columns.contains(&column_name.to_string().into()) {
             continue;
         }
-
+        let column_name = format_ident!("{}", *column.rust_field.name);
         match &column.spacetimedsl_column.wrapper_type {
             Some(wrapper_type) => {
-                let wrapper_type_name_or_path = match wrapper_type {
-                    WrapperType::Wrap(wrap) => &wrap.wrapper_struct_name,
-                    WrapperType::Wrapped(wrapped) => &wrapped.wrapper_struct_name_or_path,
-                };
+                let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
 
                 if column.spacetimedsl_column.is_option {
-                    let mut method_arg = quote! {
-                        #column_name:
-                    };
-                    method_arg.append_all(get_method_arg_into_wrapper_type_option(
-                        wrapper_type_name_or_path,
-                    ));
-                    method_args.push(method_arg);
+                    let ma = get_method_arg_into_wrapper_type_option(wrapper_type_name_or_path);
+                    method_args.push(quote! {
+                        #column_name: &#ma
+                    });
 
                     into_options.push(wrapper_type_into_option(
-                        column_name,
+                        &column_name,
                         wrapper_type_name_or_path,
                     ));
 
-                    let mut column_value = format!("{column_name}: ");
-                    column_value.push_str(&get_column_value(column_name));
-                    column_values.push(column_value.into());
+                    let column_value = &get_column_value(&column_name);
+                    column_values.push(quote! {
+                        #column_name: #column_value
+                    });
                 } else {
-                    let mut method_arg = quote! {
-                        #column_name:
-                    };
-                    method_arg
-                        .append_all(get_method_arg_into_wrapper_type(wrapper_type_name_or_path));
-                    method_args.push(method_arg);
+                    let ma = get_method_arg_into_wrapper_type(wrapper_type_name_or_path);
+                    method_args.push(quote! {
+                        #column_name: &#ma
+                    });
 
-                    let mut column_value = format!("{column_name}: ");
-                    column_value.push_str(&get_column_value_from_wrapper(column_name));
-                    column_values.push(column_value.into());
+                    let column_value = &get_column_value_from_wrapper(&column_name);
+                    column_values.push(quote! {
+                        #column_name: #column_value
+                    });
                 }
             }
             None => {
-                let mut method_arg = quote! {
-                    #column_name:
-                };
-                method_arg.append_all(get_method_arg_column_type_reference(column_type));
-                method_args.push(method_arg);
+                let ma = get_method_arg_column_type_reference(&column_type);
+                method_args.push(quote! {
+                    #column_name: &#ma
+                });
 
-                column_values.push(get_column_value(column_name));
+                column_values.push(get_column_value(&column_name));
             }
         };
     }
 
     let method_args = method_args.iter().map(|ts| ts.to_string().into()).collect();
+    let index_name = format_ident!("{index_name}");
     let method_impl = quote! {
         #(#into_options)*
         return self
@@ -221,7 +215,7 @@ pub(in crate::internal) fn for_multi_column_index(
             .db()
             .#table_name()
             .#index_name()
-            .delete(#(#column_values),*);
+            .delete((#(#column_values),*));
     }
     .to_string()
     .into();

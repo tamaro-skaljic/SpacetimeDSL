@@ -15,11 +15,12 @@ impl SpacetimeDSLColumn {
         rust_field: &RustField,
         mut spacetimedsl_table: SpacetimeDSLTable,
     ) -> syn::Result<(SpacetimeDSLTable, SpacetimeDSLColumn)> {
+        
         let is_option = field
             .ty
             .to_token_stream()
             .to_string()
-            .starts_with("Option<");
+            .starts_with("Option <");
 
         let wrapper_type = WrapperType::try_parse(rust_struct, rust_field, field)?;
 
