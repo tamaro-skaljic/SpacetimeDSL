@@ -6,7 +6,7 @@ use crate::api::{
     rust::RustField,
 };
 use quote::{format_ident, quote};
-use syn::{parse_str, Ident, Type};
+use syn::{Ident, Type, parse_str};
 
 impl Getter {
     pub(in crate::internal) fn map(
@@ -27,13 +27,26 @@ impl Getter {
                 if is_option {
                     return_type = get_return_wrapper_type_option(wrapper_type_name_or_path);
 
-                    method_impl = quote! {
-                        if self.#column_name.is_none() {
-                            None
-                        } else {
-                            Some(#wrapper_type_name_or_path::new(self.#column_name.unwrap()))
+                    match wrapper_type {
+                        WrapperType::Wrap(_) => {
+                            method_impl = quote! {
+                                if self.#column_name.is_none() {
+                                    None
+                                } else {
+                                    Some(#wrapper_type_name_or_path::new(self.#column_name.clone()))
+                                }
+                            };
                         }
-                    };
+                        WrapperType::Wrapped(_) => {
+                            method_impl = quote! {
+                                if self.#column_name.is_none() {
+                                    None
+                                } else {
+                                    Some(#wrapper_type_name_or_path::new(self.#column_name.unwrap()))
+                                }
+                            };
+                        }
+                    }
                 } else {
                     return_type = get_return_wrapper_type(wrapper_type_name_or_path);
 

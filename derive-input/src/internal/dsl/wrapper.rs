@@ -7,7 +7,7 @@ use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::{
     match_meta, sats::SatsField, sym::name, util::check_duplicate,
 };
-use syn::{Error, Ident, Path};
+use syn::{parse_str, Error, Ident, Path, Type};
 
 impl WrapperType {
     pub(in crate::internal) fn try_parse(
@@ -109,13 +109,26 @@ fn get_wrapper_impl(
 ) -> Box<str> {
     let struct_name = format_ident!("{struct_name}");
     let wrapper_struct_name = format_ident!("{wrapper_struct_name}");
-    let wrapped_type_name_or_path = format_ident!("{wrapped_type_name_or_path}");
+    let wrapped_type: Type = parse_str(wrapped_type_name_or_path).expect(&format!("Expected to parse {wrapped_type_name_or_path} as Type in get_wrapper_impl!"));
     let field_name = format_ident!("{field_name}");
 
+    let default_impl;
+
+    if wrapped_type_name_or_path.starts_with("Option <") {
+        let wrapped_type_name_or_path: Type= parse_str(&wrapped_type_name_or_path.replace("Option <", "").replace(">", "")).unwrap();
+
+        default_impl = quote! {
+            Some(#wrapped_type_name_or_path::default())
+        }
+    } else {
+        default_impl = quote! {
+            #wrapped_type::default()
+        }
+    }
     quote! {
         #[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType)]
         pub struct #wrapper_struct_name {
-            value: #wrapped_type_name_or_path,
+            value: #wrapped_type,
         }
 
         impl From<&#struct_name> for #wrapper_struct_name {
@@ -130,16 +143,16 @@ fn get_wrapper_impl(
             }
         }
 
-        impl spacetimedsl::Wrapper<#wrapped_type_name_or_path, #wrapper_struct_name> for #wrapper_struct_name {
-            fn new(value: #wrapped_type_name_or_path) -> Self {
+        impl spacetimedsl::Wrapper<#wrapped_type, #wrapper_struct_name> for #wrapper_struct_name {
+            fn new(value: #wrapped_type) -> Self {
                 Self { value }
             }
             fn default() -> Self {
                 Self {
-                    value: #wrapped_type_name_or_path::default(),
+                    value: #default_impl,
                 }
             }
-            fn value(&self) -> #wrapped_type_name_or_path {
+            fn value(&self) -> #wrapped_type {
                 self.value.clone()
             }
         }
