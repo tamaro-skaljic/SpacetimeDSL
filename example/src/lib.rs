@@ -1,11 +1,11 @@
 pub mod entity {
     use spacetimedb::Timestamp;
-    use spacetimedsl::derive::SpacetimeDSL;
+    use spacetimedb::table;
+    use spacetimedsl::dsl;
 
     /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
-    #[derive(Clone, Debug, PartialEq, SpacetimeDSL)]
-    #[spacetimedb::table(name = entity, public)]
-    #[plural_table_name(entities)]
+    #[dsl(plural_name = entities)]
+    #[table(name = entity, public)]
     pub struct Entity {
         /// The unique ID of the Entity.
         #[primary_key]
@@ -19,13 +19,12 @@ pub mod entity {
 
 pub mod component {
     pub mod identifier {
-        use spacetimedb::Timestamp;
-        use spacetimedsl::derive::SpacetimeDSL;
+        use spacetimedb::{Timestamp, table};
+        use spacetimedsl::dsl;
 
         /// A Identifier is a developer-friendly String.
-        #[derive(Clone, Debug, PartialEq, SpacetimeDSL)]
-        #[spacetimedb::table(name = identifier, public)]
-        #[plural_table_name(identifiers)]
+        #[dsl(plural_name = identifiers)]
+        #[table(name = identifier, public)]
         pub struct Identifier {
             /// The unique ID of the Identifier.
             #[primary_key]
@@ -35,12 +34,12 @@ pub mod component {
 
             /// The unique ID of the Entity the Identifier belongs to.
             #[unique]
-            #[wrap(crate::entity::EntityId)]
+            #[wrapped(path = crate::entity::EntityId)]
             entity_id: u128,
 
             // The unique value of the Identifier.
             #[unique]
-            pub value: Box<str>,
+            pub value: String,
 
             created_at: Timestamp,
 
@@ -49,13 +48,12 @@ pub mod component {
     }
 
     pub mod position {
-        use spacetimedb::Timestamp;
-        use spacetimedsl::derive::SpacetimeDSL;
+        use spacetimedb::{Timestamp, table};
+        use spacetimedsl::dsl;
 
         /// A Position in the World.
-        #[derive(Clone, Debug, PartialEq, SpacetimeDSL)]
-        #[spacetimedb::table(name = position, public, index(name = x_y_z, btree(columns = [x, y, z])))]
-        #[plural_table_name(positions)]
+        #[dsl(plural_name = positions)]
+        #[table(name = position, public, index(name = x_y_z, btree(columns = [x, y, z])))]
         pub struct Position {
             /// The unique ID of the Position.
             #[primary_key]
@@ -65,7 +63,7 @@ pub mod component {
 
             /// The unique ID of the Entity the Position belongs to.
             #[unique]
-            #[wrap(crate::entity::EntityId)]
+            #[wrapped(path = crate::entity::EntityId)]
             entity_id: u128,
 
             pub x: i128,
@@ -81,13 +79,12 @@ pub mod component {
     }
 
     pub mod test {
-        use spacetimedb::Timestamp;
-        use spacetimedsl::derive::SpacetimeDSL;
+        use spacetimedb::{Timestamp, table};
+        use spacetimedsl::dsl;
 
         /// A Position in the World.
-        #[derive(Clone, Debug, PartialEq, SpacetimeDSL)]
-        #[spacetimedb::table(name = test, public)]
-        #[plural_table_name(tests)]
+        #[dsl(plural_name = tests)]
+        #[table(name = test, public)]
         pub struct Test {
             /// The unique ID of the World.
             #[primary_key]
@@ -95,18 +92,18 @@ pub mod component {
             #[wrap]
             id: u128,
 
-            #[wrap(crate::entity::EntityId)]
+            #[wrapped(path = crate::entity::EntityId)]
             pub wrapped_option: Option<u128>,
 
             // TODO: Add #[unique] if it's allowed by SpacetimeDB
             pub option: Option<u128>,
 
             #[unique]
-            #[wrap(crate::entity::EntityId)]
+            #[wrapped(path = crate::entity::EntityId)]
             pub wrapped_unique: u128,
 
             #[index(btree)]
-            #[wrap(crate::entity::EntityId)]
+            #[wrapped(path = crate::entity::EntityId)]
             pub wrapped_index: u128,
 
             #[index(btree)]
@@ -124,8 +121,6 @@ pub mod component {
 }
 
 pub mod test {
-    use std::iter::zip;
-
     use log::info;
     use spacetimedb::{ReducerContext, TimeDuration, reducer};
     use spacetimedsl::{Wrapper, dsl};
@@ -133,23 +128,20 @@ pub mod test {
     use crate::{
         component::{
             identifier::{
-                CreateIdentifier, GetIdentifierRowOptionByEntityId, GetIdentifierRowOptionByValue,
-                UpdateIdentifierRowById,
+                CreateIdentifierRow, GetIdentifierRowOptionByEntityId,
+                GetIdentifierRowOptionByValue, UpdateIdentifierRowById,
             },
-            position::{
-                CreatePosition, GetAllPositionRows, GetCountOfPositionRows,
-                GetPositionRowOptionsById, PositionId,
-            },
+            position::{CreatePositionRow, GetAllPositionRows, GetCountOfPositionRows, PositionId},
             test::{
-                CreateTest, DeleteTestRowsByBtreeIndex, DeleteTestRowsByWrappedIndex,
+                CreateTestRow, DeleteTestRowsByBtreeIndex, DeleteTestRowsByWrappedIndex,
                 GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex, Test, test__TableHandle,
             },
         },
-        entity::{CreateEntity, DeleteEntityRowById, EntityId, GetEntityRowOptionById},
+        entity::{CreateEntityRow, DeleteEntityRowById, EntityId, GetEntityRowOptionById},
     };
 
     #[reducer]
-    fn tester(ctx: &ReducerContext) -> Result<(), Box<str>> {
+    fn tester(ctx: &ReducerContext) -> Result<(), String> {
         let dsl = dsl(ctx);
 
         let mut player;
@@ -196,7 +188,7 @@ pub mod test {
         };
 
         let mut player_identifier;
-        match dsl.create_identifier(&player, "PLAYER".to_string()) {
+        match dsl.create_identifier(&player, "PLAYER") {
             Ok(identifier) => {
                 player_identifier = identifier;
             }
@@ -231,7 +223,7 @@ pub mod test {
         }
 
         /* TODO: Uncomment if https://github.com/clockworklabs/SpacetimeDB/pull/2610 is fixed
-        player_identifier.set_value("ENEMY".to_string());
+        player_identifier.set_value("ENEMY");
         match dsl.create_identifier(player_identifier) {
             Ok(identifier) => {
                 return Err(format!(
@@ -243,7 +235,7 @@ pub mod test {
             Err(_) => {}
         };
          */
-        match dsl.get_identifier_by_value("PLAYER".to_string()) {
+        match dsl.get_identifier_by_value("PLAYER") {
             Some(identifier) => {
                 player_identifier = identifier;
             }
@@ -252,7 +244,7 @@ pub mod test {
             }
         }
 
-        player_identifier.set_value("ENEMY".to_string());
+        player_identifier.set_value("ENEMY");
         player_identifier.set_modified_at(
             ctx.timestamp
                 .checked_add(TimeDuration::from_micros(500000))
@@ -343,35 +335,6 @@ pub mod test {
             return Err("The count of Positions should equal.".to_string());
         }
 
-        for (position_one, position_two) in zip(positions, dsl.get_positions_by_id_in(position_ids))
-        {
-            match position_one.as_ref() {
-                Some(position_one) => {
-                    if position_two.is_none() {
-                        return Err(format!(
-                            "Got {:?} and {:?} but they should be both Some.",
-                            position_one, position_two
-                        ));
-                    }
-
-                    if position_one.ne(&position_two.as_ref().unwrap()) {
-                        return Err(format!(
-                            "Got {:?} and {:?} but they should be equal.",
-                            position_one, position_two
-                        ));
-                    }
-                }
-                None => {
-                    if position_two.is_some() {
-                        return Err(format!(
-                            "Got {:?} and {:?} but they should be both None.",
-                            position_one, position_two
-                        ));
-                    }
-                }
-            }
-        }
-
         let world1 = handle_test_result(dsl.create_test(
             None,
             Some(player.get_id().value()),
@@ -423,7 +386,8 @@ pub mod test {
                 return Err(format!(
                     "Should have been able to create a test. Got: {}",
                     e.to_string()
-                ));
+                )
+                .into());
             }
         }
     }
