@@ -6,7 +6,7 @@ pub mod api {
     pub mod dsl;
 
     /**
-     * The representation of a Rust struct with `#[spacetimedb::table]` and `#[spacetimedsl::table]` attribute macros and its columns.
+     * The representation of a Rust struct with `#[table]` and `#[dsl]` attribute macros and its columns.
      */
     #[cfg_attr(feature = "clone", derive(Clone))]
     #[cfg_attr(feature = "debug", derive(Debug))]
@@ -26,13 +26,13 @@ pub mod api {
          * Supply the &DeriveInput which you've got from your own [derive macro](https://doc.rust-lang.org/reference/procedural-macros.html#derive-macros)
          * to this function to build upon your SpacetimeDB rust server module with SpacetimeDSL.
          */
-        pub fn try_parse(input: &syn::DeriveInput) -> syn::Result<Table> {
-            crate::internal::try_parse(input)
+        pub fn try_parse(args: proc_macro2::TokenStream, input: &syn::DeriveInput) -> syn::Result<Table> {
+            crate::internal::try_parse(args, input)
         }
     }
 
     /**
-     * The representation of a field of a Rust struct with `#[spacetimedb::table]` and `#[spacetimedsl::table]` attribute macros.
+     * The representation of a field of a Rust struct with `#[table]` and `#[dsl]` attribute macros.
      */
     #[cfg_attr(feature = "clone", derive(Clone))]
     #[cfg_attr(feature = "debug", derive(Debug))]

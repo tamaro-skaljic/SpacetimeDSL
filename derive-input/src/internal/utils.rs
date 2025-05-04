@@ -27,7 +27,7 @@ pub(in crate::internal) fn get_table_attribute_macro(
         match attr.meta.require_list() {
             Ok(list) => {
                 if list.path.to_token_stream().to_string().eq(path) {
-                    table = Some(attr);
+                    table = Some(list.tokens.to_token_stream());
                 }
             }
             Err(_) => {}

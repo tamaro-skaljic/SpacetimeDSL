@@ -6,7 +6,7 @@ use super::utils::get_table_attribute_macro;
 pub(in crate::internal) fn spacetime_bindings_macro_input(
     item: &DeriveInput,
 ) -> syn::Result<(TableArgs, ColumnArgs)> {
-    let input = get_table_attribute_macro(item, "spacetimedb :: table")?;
+    let input = get_table_attribute_macro(item, "table")?;
 
     let table_args = TableArgs::parse(input, item)?;
 

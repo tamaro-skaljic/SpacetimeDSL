@@ -13,6 +13,7 @@ mod db;
 mod dsl;
 
 pub(in crate::internal) fn try_parse(
+    args: proc_macro2::TokenStream, 
     input: &DeriveInput,
     table_args: &TableArgs,
     column_args: &ColumnArgs<'_>,
@@ -22,7 +23,7 @@ pub(in crate::internal) fn try_parse(
     let spacetimedb_table = SpacetimeDBTable::map(&table_args);
 
     let (spacetimedb_table, spacetimedsl_table) =
-        SpacetimeDSLTable::try_parse(&input, spacetimedb_table)?;
+        SpacetimeDSLTable::try_parse(args, spacetimedb_table)?;
 
     let (spacetimedb_table, spacetimedsl_table, columns, primary_key_column_name) =
         super::column::try_parse(

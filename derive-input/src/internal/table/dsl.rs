@@ -1,24 +1,21 @@
 use crate::api::db::{IndexType, SpacetimeDBTable};
 use crate::api::dsl::table::{OnDeleteHook, SpacetimeDSLTable};
 use crate::internal::dsl::{on_delete, path, plural_name, table, unique_index};
-use crate::internal::utils::get_table_attribute_macro;
 use proc_macro2::Span;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::sym::column;
 use spacetime_bindings_macro_input::{match_meta, sym, util::check_duplicate};
 use syn::{
-    DeriveInput, Ident,
+    Ident,
     meta::{ParseNestedMeta, parser},
     parse::Parser,
 };
 
 impl SpacetimeDSLTable {
     pub(in crate::internal) fn try_parse(
-        input: &DeriveInput,
+        args: proc_macro2::TokenStream,
         mut spacetimedb_table: SpacetimeDBTable,
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
-        let input = get_table_attribute_macro(input, "spacetimedsl :: table")?;
-
         let mut name_plural: Option<Ident> = None;
         let mut unique_indices = vec![];
         let mut on_delete_hooks = vec![];
@@ -35,12 +32,12 @@ impl SpacetimeDSLTable {
             });
             Ok(())
         })
-        .parse2(input)?;
+        .parse2(args)?;
 
         let name_plural = name_plural.ok_or_else(|| {
             syn::Error::new(
                 Span::call_site(),
-                format_args!("PluralName must be set in `#[spacetimedsl::table(plural_name = PluralName)]`, e.g. `plural_name = {}s`.", spacetimedb_table.singular_name),
+                format_args!("PluralName must be set in `#[dsl(plural_name = PluralName)]`, e.g. `plural_name = {}s`.", spacetimedb_table.singular_name),
             )
         })?.to_token_stream().to_string().into();
 
@@ -91,7 +88,7 @@ fn parse_unique_index(meta: ParseNestedMeta<'_>) -> syn::Result<Box<str>> {
     })?;
 
     let name = name
-        .ok_or_else(|| meta.error("IndexName must be set in `#[spacetimedsl::table(unique_index(name = IndexName))]`, e.g. `name = my_index`."))?
+        .ok_or_else(|| meta.error("IndexName must be set in `#[dsl(unique_index(name = IndexName))]`, e.g. `name = my_index`."))?
         .to_token_stream()
         .to_string()
         .into();
@@ -126,17 +123,17 @@ fn parse_on_delete(
     })?;
 
     let path_value: String = path_value
-        .ok_or_else(|| meta.error("ModulePath must be set in `#[spacetimedsl::table(on_delete(path = ModulePath))]`, e.g. `path = path::to::my::module`."))?
+        .ok_or_else(|| meta.error("ModulePath must be set in `#[dsl(on_delete(path = ModulePath))]`, e.g. `path = path::to::my::module`."))?
         .to_token_stream()
         .to_string();
 
     let table_value: String = table_value
-        .ok_or_else(|| meta.error("TableName must be set in `#[spacetimedsl::table(on_delete(table = TableName))]`, e.g. `table = my_table`."))?
+        .ok_or_else(|| meta.error("TableName must be set in `#[dsl(on_delete(table = TableName))]`, e.g. `table = my_table`."))?
         .to_token_stream()
         .to_string();
 
     let column_value: String = column_value
-        .ok_or_else(|| meta.error("ColumnName must be set in `#[spacetimedsl::table(on_delete(column = ColumnName))]`, e.g. `column = my_column`."))?
+        .ok_or_else(|| meta.error("ColumnName must be set in `#[dsl(on_delete(column = ColumnName))]`, e.g. `column = my_column`."))?
         .to_token_stream()
         .to_string();
 
