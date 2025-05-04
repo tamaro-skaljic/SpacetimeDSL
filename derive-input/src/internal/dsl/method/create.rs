@@ -120,16 +120,18 @@ pub(in crate::internal) fn build(
                 }
             },
             None => {
-                let ma = get_method_arg_column_type(&column_type);
-                method_args.push(quote! {
-                    #column_name: #ma
-                });
-
                 if column.rust_field.type_name_or_path.eq(&"String".into()) {
+                    method_args.push(quote! {
+                        #column_name: &str
+                    });
                     constructor_args.push(quote! {
                         #column_name: #column_name.to_string()
                     });
                 } else {
+                    let ma = get_method_arg_column_type(&column_type);
+                    method_args.push(quote! {
+                        #column_name: #ma
+                    });
                     constructor_args.push(get_column_value(&column_name));
                 }
             }
@@ -146,7 +148,7 @@ pub(in crate::internal) fn build(
 
     let use_itertools = if multi_column_index_checks.len() > 0 {
         quote! {
-            use itertools::Itertools;
+            use spacetimedsl::itertools::Itertools;
         }
     } else {
         TokenStream::default()

@@ -79,12 +79,18 @@ pub(in crate::internal) fn for_single_column_index(
             }
         }
         None => {
-            let column_type: Type = parse_str(&rust_field.type_name_or_path)
-                .expect("get_one_option.for_single_column_index");
-            let ma = get_method_arg_column_type(&column_type);
-            method_arg = quote! { #column_name: &#ma };
+            if rust_field.type_name_or_path.eq(&"String".into()) {
+                method_arg = quote! { #column_name: &str };
 
-            column_value = get_column_value(&column_name);
+                column_value = quote! { #column_name.to_string() };
+            } else {
+                let column_type: Type = parse_str(&rust_field.type_name_or_path)
+                    .expect("get_one_option.for_single_column_index");
+                let ma = get_method_arg_column_type(&column_type);
+                method_arg = quote! { #column_name: &#ma };
+
+                column_value = get_column_value(&column_name);
+            }
         }
     };
 

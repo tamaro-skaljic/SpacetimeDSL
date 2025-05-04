@@ -62,22 +62,35 @@ pub(in crate::internal) fn for_single_column_index(
         Some(wrapper_type) => {
             let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
 
-            if spacetimedsl_column.is_option {
-                let ma = get_method_arg_into_wrapper_type_option(wrapper_type_name_or_path);
-                method_arg = quote! { #column_name: &#ma };
+            if rust_field.type_name_or_path.eq(&"String".into()) {
+                method_arg = quote! { #column_name: &str };
 
-                into_option = wrapper_type_into_option(&column_name, wrapper_type_name_or_path);
                 column_value = get_column_value(&column_name);
             } else {
-                let ma = get_method_arg_into_wrapper_type(wrapper_type_name_or_path);
-                method_arg = quote! { #column_name: #ma };
+                if spacetimedsl_column.is_option {
+                    let ma = get_method_arg_into_wrapper_type_option(wrapper_type_name_or_path);
+                    method_arg = quote! { #column_name: &#ma };
 
-                column_value = get_column_value_from_wrapper(&column_name);
+                    into_option = wrapper_type_into_option(&column_name, wrapper_type_name_or_path);
+                    column_value = get_column_value(&column_name);
+                } else {
+                    let ma = get_method_arg_into_wrapper_type(wrapper_type_name_or_path);
+                    method_arg = quote! { #column_name: #ma };
+
+                    column_value = get_column_value_from_wrapper(&column_name);
+                }
             }
         }
         None => {
-            let column_type: Type = parse_str(&rust_field.type_name_or_path)
-                .expect("delete_many.for_single_column_index");
+            
+            let column_type: Type;
+            if rust_field.type_name_or_path.eq(&"String".into()) {
+                column_type = parse_str("str").unwrap();
+            } else {
+                column_type = parse_str(&rust_field.type_name_or_path)
+                    .expect("delete_many.for_single_column_index");
+            }
+
             let ma = get_method_arg_column_type_reference(&column_type);
             method_arg = quote! { #column_name: #ma };
 

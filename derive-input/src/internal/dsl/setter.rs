@@ -111,18 +111,34 @@ impl Setter {
                 }
             },
             None => {
-                let rt: Type = parse_str(&rust_field.type_name_or_path).expect("setter");
-                let ma = get_method_arg_column_type(&rt);
-                method_arg = quote! { #column_name: #ma };
+                if rust_field.type_name_or_path.eq(&"String".into()) {
+                    method_arg = quote! {
+                        #column_name: &str
+                    };
 
-                return_type = get_return_column_type(&rt);
-                return_expr = quote! {
-                    old_value
-                };
+                    let rt: Type = parse_str(&rust_field.type_name_or_path).expect("setter");
+                    return_type = get_return_column_type(&rt);
+                    return_expr = quote! {
+                        old_value.clone()
+                    };
 
-                method_impl = quote! {
-                    self.#column_name = #column_name;
-                };
+                    method_impl = quote! {
+                        self.#column_name = #column_name.to_string();
+                    };
+                } else {
+                    let rt: Type = parse_str(&rust_field.type_name_or_path).expect("setter");
+                    let ma = get_method_arg_column_type(&rt);
+                    method_arg = quote! { #column_name: #ma };
+
+                    return_type = get_return_column_type(&rt);
+                    return_expr = quote! {
+                        old_value
+                    };
+
+                    method_impl = quote! {
+                        self.#column_name = #column_name;
+                    };
+                }
             }
         };
 

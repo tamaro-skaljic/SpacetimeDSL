@@ -60,7 +60,7 @@ pub(in crate::internal) fn for_single_column_index(
 
     let use_itertools = if multi_column_index_checks.len() > 0 {
         quote! {
-            use itertools::Itertools;
+            use spacetimedsl::itertools::Itertools;
         }
     } else {
         TokenStream::default()

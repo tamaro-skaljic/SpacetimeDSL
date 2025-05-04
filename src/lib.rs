@@ -1,5 +1,6 @@
 use spacetimedb::ReducerContext;
 pub use spacetimedsl_derive::{SpacetimeDSL, dsl};
+pub use itertools;
 
 pub struct DSL<'a> {
     ctx: &'a ReducerContext,
