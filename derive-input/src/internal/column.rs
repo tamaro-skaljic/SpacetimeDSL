@@ -18,8 +18,8 @@ pub(in crate::internal) fn try_parse(
     column_args: &ColumnArgs,
     rust_struct: &RustStruct,
     mut spacetimedb_table: SpacetimeDBTable,
-    mut spacetimedsl_table: SpacetimeDSLTable,
-) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable, Vec<Column>, Box<str>)> {
+    spacetimedsl_table: &SpacetimeDSLTable,
+) -> syn::Result<(SpacetimeDBTable, Vec<Column>, Box<str>)> {
     let primary_key_column_name = match get_primary_key_column_name(column_args) {
         Some(pk) => pk,
         None => {
@@ -43,10 +43,7 @@ pub(in crate::internal) fn try_parse(
         spacetimedb_table = res.0;
         let spacetimedb_column = res.1;
 
-        let res =
-            SpacetimeDSLColumn::try_parse(field, &rust_struct, &rust_field, spacetimedsl_table)?;
-        spacetimedsl_table = res.0;
-        let spacetimedsl_column = res.1;
+        let spacetimedsl_column = SpacetimeDSLColumn::try_parse(field, &rust_struct, &rust_field)?;
 
         let spacetimedsl_methods = SpacetimeDSLColumnMethods::map(
             &rust_struct,
@@ -66,12 +63,7 @@ pub(in crate::internal) fn try_parse(
         });
     }
 
-    Ok((
-        spacetimedb_table,
-        spacetimedsl_table,
-        columns,
-        primary_key_column_name,
-    ))
+    Ok((spacetimedb_table, columns, primary_key_column_name))
 }
 
 fn get_auto_inc_column_names(column_args: &ColumnArgs<'_>) -> Vec<Box<str>> {

@@ -1,7 +1,6 @@
 use crate::api::{
     dsl::{
-        column::SpacetimeDSLColumn, foreign_key::ForeignKey, getter::Getter, setter::Setter,
-        table::SpacetimeDSLTable, wrapper::WrapperType,
+        column::SpacetimeDSLColumn, foreign_key::ForeignKey, getter::Getter, setter::Setter, wrapper::WrapperType,
     },
     rust::{RustField, RustStruct},
 };
@@ -13,9 +12,7 @@ impl SpacetimeDSLColumn {
         field: &SatsField<'_>,
         rust_struct: &RustStruct,
         rust_field: &RustField,
-        mut spacetimedsl_table: SpacetimeDSLTable,
-    ) -> syn::Result<(SpacetimeDSLTable, SpacetimeDSLColumn)> {
-        
+    ) -> syn::Result<SpacetimeDSLColumn> {
         let is_option = field
             .ty
             .to_token_stream()
@@ -30,12 +27,7 @@ impl SpacetimeDSLColumn {
 
         let setter = Setter::map(rust_field, is_option, &wrapper_type);
 
-        if setter.is_some() {
-            spacetimedsl_table.is_mutable = true;
-        }
-
-        Ok((
-            spacetimedsl_table,
+        Ok(
             SpacetimeDSLColumn {
                 is_option,
                 wrapper_type,
@@ -43,6 +35,6 @@ impl SpacetimeDSLColumn {
                 getter,
                 setter,
             },
-        ))
+        )
     }
 }

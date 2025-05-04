@@ -18,7 +18,7 @@ pub(in crate::internal) fn for_single_column_index(
 ) -> SpacetimeDSLMethod {
     let struct_name = format_ident!("{}", &rust_struct.name.to_string());
     let table_name = format_ident!("{}", *spacetimedb_table.singular_name);
-    let column_name = &rust_field.name;
+    let column_name = format_ident!("{}", *rust_field.name);
 
     let doc_comment = format!(
         "Update a {} row inside the {} table by the unique single-column index {}.",

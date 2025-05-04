@@ -1,7 +1,6 @@
+use super::utils::get_table_attribute_macro;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::DeriveInput;
-
-use super::utils::get_table_attribute_macro;
 
 pub(in crate::internal) fn spacetime_bindings_macro_input(
     item: &DeriveInput,

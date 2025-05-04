@@ -188,7 +188,7 @@ pub(in crate::internal) fn for_multi_column_index(
                 } else {
                     let ma = get_method_arg_into_wrapper_type(wrapper_type_name_or_path);
                     method_args.push(quote! {
-                        #column_name: &#ma
+                        #column_name: #ma
                     });
 
                     let column_value = &get_column_value_from_wrapper(&column_name);

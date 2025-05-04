@@ -27,6 +27,7 @@ syn = { version = "2.0" }
 # https://crates.io/crates/quote Quasi-quoting macro quote!(...)
 quote = "1.0"
 
+# TODO: Use
 # https://crates.io/crates/prettyplease A minimal `syn` syntax tree pretty-printer
 prettyplease = "0.2.32"
 

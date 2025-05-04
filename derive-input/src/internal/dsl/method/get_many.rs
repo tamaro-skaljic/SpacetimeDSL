@@ -68,7 +68,7 @@ pub(in crate::internal) fn for_single_column_index(
                 column_value = get_column_value(&column_name);
             } else {
                 let ma = get_method_arg_into_wrapper_type(wrapper_type_name_or_path);
-                method_arg = quote! { #column_name: &#ma };
+                method_arg = quote! { #column_name: #ma };
 
                 column_value = get_column_value_from_wrapper(&column_name);
             }
@@ -77,7 +77,7 @@ pub(in crate::internal) fn for_single_column_index(
             let column_type: Type =
                 parse_str(&rust_field.type_name_or_path).expect("get_many.for_single_column_index");
             let ma = get_method_arg_column_type_reference(&column_type);
-            method_arg = quote! { #column_name: &#ma };
+            method_arg = quote! { #column_name: #ma };
 
             column_value = get_column_value(&column_name);
         }
@@ -181,7 +181,7 @@ pub(in crate::internal) fn for_multi_column_index(
                 } else {
                     let ma = get_method_arg_into_wrapper_type(wrapper_type_name_or_path);
                     method_args.push(quote! {
-                        #column_name: &#ma
+                        #column_name: #ma
                     });
 
                     let column_value = &get_column_value_from_wrapper(&column_name);
@@ -193,7 +193,7 @@ pub(in crate::internal) fn for_multi_column_index(
             None => {
                 let ma = get_method_arg_column_type_reference(&column_type);
                 method_args.push(quote! {
-                    #column_name: &#ma
+                    #column_name: #ma
                 });
 
                 column_values.push(get_column_value(&column_name));

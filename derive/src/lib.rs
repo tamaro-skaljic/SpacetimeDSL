@@ -35,7 +35,7 @@ pub fn dsl(args: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 fn derive_table_helper_attr() -> syn::Attribute {
-    let source = quote!(#[derive(spacetimedsl::SpacetimeDSL)]);
+    let source = quote!(#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedsl::SpacetimeDSL)]);
 
     syn::parse::Parser::parse2(syn::Attribute::parse_outer, source)
         .unwrap()

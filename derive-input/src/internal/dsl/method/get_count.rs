@@ -1,10 +1,9 @@
-use quote::{format_ident, quote};
-
 use crate::api::{
     db::SpacetimeDBTable,
     dsl::{method::SpacetimeDSLMethod, table::SpacetimeDSLTable},
     rust::RustStruct,
 };
+use quote::{format_ident, quote};
 
 pub(in crate::internal) fn build(
     rust_struct: &RustStruct,

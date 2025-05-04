@@ -120,13 +120,13 @@ fn get_wrapper_impl(
 
         impl From<&#struct_name> for #wrapper_struct_name {
             fn from(value: &#struct_name) -> Self {
-                #wrapper_struct_name { value: value.#field_name }
+                #wrapper_struct_name { value: value.#field_name.clone() }
             }
         }
 
         impl From<&#struct_name> for Option<#wrapper_struct_name> {
             fn from(value: &#struct_name) -> Option<#wrapper_struct_name> {
-                Some(#wrapper_struct_name { value: value.#field_name })
+                Some(#wrapper_struct_name { value: value.#field_name.clone() })
             }
         }
 

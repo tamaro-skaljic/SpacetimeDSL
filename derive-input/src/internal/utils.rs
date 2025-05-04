@@ -1,8 +1,11 @@
-use crate::api::{dsl::wrapper::WrapperType, rust::RustVisibility};
+use crate::api::{
+    dsl::wrapper::{Wrap, WrapperType},
+    rust::RustVisibility,
+};
 use proc_macro2::{Span, TokenStream};
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 use std::fmt::Display;
-use syn::{parse_str, DeriveInput, Error, Ident, Type, Visibility};
+use syn::{DeriveInput, Error, Ident, Type, Visibility, parse_str};
 
 impl RustVisibility {
     pub(in crate::internal) fn map(value: &Visibility) -> RustVisibility {
@@ -17,14 +20,21 @@ impl RustVisibility {
 }
 
 impl WrapperType {
+    pub(in crate::internal) fn map_to_wrapped_type(value: &Wrap) -> Type {
+        parse_str(&value.wrapped_type_name_or_path).expect(&format!(
+            "Failed to parse {} as Ident in WrapperType::map_to_wrapped_type.",
+            &value.wrapped_type_name_or_path
+        ))
+    }
+
     pub(in crate::internal) fn map(value: &WrapperType) -> Type {
         match value {
             WrapperType::Wrap(w) => parse_str(&w.wrapper_struct_name).expect(&format!(
-                "Failed to parse {} as Ident in WrapperType::map for WrapperType::Wrap.",
+                "Failed to parse {} as Ident in WrapperType::map_to_wrapper_type for WrapperType::Wrap.",
                 &w.wrapper_struct_name
             )),
             WrapperType::Wrapped(w) => parse_str(&w.wrapper_struct_name_or_path).expect(&format!(
-                "Failed to parse {} as Path in WrapperType::map for WrapperType::Wrapped.",
+                "Failed to parse {} as Path in WrapperType::map_to_wrapper_type for WrapperType::Wrapped.",
                 &w.wrapper_struct_name_or_path
             )),
         }

@@ -4,6 +4,7 @@ use crate::internal::dsl::{on_delete, path, plural_name, table, unique_index};
 use proc_macro2::Span;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::sym::column;
+use spacetime_bindings_macro_input::table::ColumnArgs;
 use spacetime_bindings_macro_input::{match_meta, sym, util::check_duplicate};
 use syn::{
     Ident,
@@ -14,6 +15,7 @@ use syn::{
 impl SpacetimeDSLTable {
     pub(in crate::internal) fn try_parse(
         args: proc_macro2::TokenStream,
+        column_args: &ColumnArgs<'_>,
         mut spacetimedb_table: SpacetimeDBTable,
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
         let mut name_plural: Option<Ident> = None;
@@ -54,12 +56,26 @@ impl SpacetimeDSLTable {
             }
         }
 
-        // Is set to true later if a column is mutable
-        let is_mutable = false;
-        // Is set to true later if the column exists
-        let has_created_at_column = false;
-        // Is set to true later if the column exists
-        let has_modified_at_column = false;
+        let mut is_mutable = false;
+        let mut has_created_at_column = false;
+        let mut has_modified_at_column = false;
+        for field in &column_args.fields {
+            if !is_mutable {
+                is_mutable = match field.vis {
+                    syn::Visibility::Public(_) => true,
+                    syn::Visibility::Restricted(_) => true,
+                    _ => false,
+                };
+            }
+            if !has_created_at_column {
+                has_created_at_column = field.name.as_ref().unwrap().eq("created_at")
+                    && field.ty.to_token_stream().to_string().eq("Timestamp");
+            }
+            if !has_modified_at_column {
+                has_modified_at_column = field.name.as_ref().unwrap().eq("modified_at")
+                    && field.ty.to_token_stream().to_string().eq("Timestamp");
+            }
+        }
 
         Ok((
             spacetimedb_table,

@@ -9,7 +9,7 @@ use spacetimedsl_derive_input::api::{
         wrapper::WrapperType,
     },
 };
-use syn::{parse_str, Type, Visibility};
+use syn::{Type, Visibility, parse_str};
 
 pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     let struct_name = format_ident!("{}", &input.rust_struct.name.to_string());
@@ -37,12 +37,11 @@ pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
             }
         }
 
-        
         table_methods.push(getter(&column.spacetimedsl_column.getter)?);
         if column.spacetimedsl_column.setter.is_some() {
             table_methods.push(setter(column.spacetimedsl_column.setter.as_ref().unwrap())?);
         }
-        
+
         if column.spacetimedsl_methods.is_some() {
             dsl_methods.push(get_column_dsl_methods(
                 column.spacetimedsl_methods.as_ref().unwrap(),
@@ -70,17 +69,6 @@ fn get_column_dsl_methods(index: &SpacetimeDSLColumnMethods) -> syn::Result<Toke
             if index.update.is_some() {
                 token_streams.push(build_without_lifetime(index.update.as_ref().unwrap())?);
             }
-        }
-        SpacetimeDSLColumnMethods::ForIndex(index) => {
-        }
-    };
-
-    return Ok(quote! {
-        #(#token_streams)*
-    });
-
-    match index {
-        SpacetimeDSLColumnMethods::ForUniqueIndex(index) => {
             token_streams.push(build_without_lifetime(&index.delete_one)?);
         }
         SpacetimeDSLColumnMethods::ForIndex(index) => {

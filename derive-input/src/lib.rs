@@ -26,7 +26,10 @@ pub mod api {
          * Supply the &DeriveInput which you've got from your own [derive macro](https://doc.rust-lang.org/reference/procedural-macros.html#derive-macros)
          * to this function to build upon your SpacetimeDB rust server module with SpacetimeDSL.
          */
-        pub fn try_parse(args: proc_macro2::TokenStream, input: &syn::DeriveInput) -> syn::Result<Table> {
+        pub fn try_parse(
+            args: proc_macro2::TokenStream,
+            input: &syn::DeriveInput,
+        ) -> syn::Result<Table> {
             crate::internal::try_parse(args, input)
         }
     }

@@ -36,45 +36,80 @@ impl Setter {
         let method_impl;
 
         match wrapper_type {
-            Some(wrapper_type) => {
-                let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
+            Some(wrapper_type) => match wrapper_type {
+                WrapperType::Wrap(wrap) => {
+                    let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
 
-                if is_option {
-                    let ma = get_method_arg_into_wrapper_type_option(wrapper_type_name_or_path);
-                    method_arg = quote! { #column_name: #ma };
+                    if rust_field.type_name_or_path.eq(&"String".into()) {
+                        method_arg = quote! {
+                            #column_name: &str
+                        };
 
-                    return_type = get_return_wrapper_type_option(wrapper_type_name_or_path);
-                    return_expr = quote! {
-                        match old_value {
-                            Some(old_value) => {
-                                Some(#wrapper_type_name_or_path::new(old_value))
-                            }
-                            None => {
-                                None
-                            }
-                        }
-                    };
+                        return_expr = quote! {
+                            #wrapper_type_name_or_path::new(old_value)
+                        };
 
-                    let into_option =
-                        wrapper_type_into_option(&column_name, wrapper_type_name_or_path);
-                    method_impl = quote! {
-                        #into_option
-                        self.#column_name = #column_name;
-                    };
-                } else {
-                    let ma = get_method_arg_into_wrapper_type(wrapper_type_name_or_path);
-                    method_arg = quote! { #column_name: #ma };
+                        method_impl = quote! {
+                            self.#column_name = #column_name.to_string();
+                        };
+                    } else {
+                        let wrapped_type_name_or_path = &WrapperType::map_to_wrapped_type(wrap);
+                        let ma = get_method_arg_column_type(wrapped_type_name_or_path);
+                        method_arg = quote! {
+                            #column_name: #ma
+                        };
+
+                        return_expr = quote! {
+                            #wrapper_type_name_or_path::new(old_value)
+                        };
+
+                        method_impl = quote! {
+                            self.#column_name = #column_name;
+                        };
+                    }
 
                     return_type = get_return_wrapper_type(wrapper_type_name_or_path);
-                    return_expr = quote! {
-                        #wrapper_type_name_or_path::new(old_value)
-                    };
-
-                    method_impl = quote! {
-                        self.#column_name = #column_name.into().value();
-                    };
                 }
-            }
+                WrapperType::Wrapped(_) => {
+                    let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
+
+                    if is_option {
+                        let ma = get_method_arg_into_wrapper_type_option(wrapper_type_name_or_path);
+                        method_arg = quote! { #column_name: #ma };
+
+                        return_type = get_return_wrapper_type_option(wrapper_type_name_or_path);
+                        return_expr = quote! {
+                            match old_value {
+                                Some(old_value) => {
+                                    Some(#wrapper_type_name_or_path::new(old_value))
+                                }
+                                None => {
+                                    None
+                                }
+                            }
+                        };
+
+                        let into_option =
+                            wrapper_type_into_option(&column_name, wrapper_type_name_or_path);
+                        method_impl = quote! {
+                            #into_option
+                            self.#column_name = #column_name;
+                        };
+                    } else {
+                        let ma = get_method_arg_into_wrapper_type(wrapper_type_name_or_path);
+                        method_arg = quote! { #column_name: #ma };
+
+                        return_type = get_return_wrapper_type(wrapper_type_name_or_path);
+                        return_expr = quote! {
+                            #wrapper_type_name_or_path::new(old_value)
+                        };
+
+                        method_impl = quote! {
+                            self.#column_name = #column_name.into().value();
+                        };
+                    }
+                }
+            },
             None => {
                 let rt: Type = parse_str(&rust_field.type_name_or_path).expect("setter");
                 let ma = get_method_arg_column_type(&rt);

@@ -70,40 +70,68 @@ pub(in crate::internal) fn build(
         }
 
         match &column.spacetimedsl_column.wrapper_type {
-            Some(wrapper_type) => {
-                let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
+            Some(wrapper_type) => match wrapper_type {
+                WrapperType::Wrap(wrapper_type) => {
+                    if column.rust_field.type_name_or_path.eq(&"String".into()) {
+                        method_args.push(quote! {
+                            #column_name: &str
+                        });
 
-                if column.spacetimedsl_column.is_option {
-                    let ma = get_method_arg_into_wrapper_type_option(wrapper_type_name_or_path);
-                    method_args.push(quote! {
-                        #column_name: #ma
-                    });
+                        constructor_args.push(quote! {
+                            #column_name: #column_name.to_string()
+                        });
+                    } else {
+                        let wrapped_type_name_or_path =
+                            &WrapperType::map_to_wrapped_type(wrapper_type);
+                        let ma = get_method_arg_column_type(wrapped_type_name_or_path);
+                        method_args.push(quote! {
+                            #column_name: #ma
+                        });
 
-                    into_options.push(wrapper_type_into_option(
-                        &column_name,
-                        wrapper_type_name_or_path,
-                    ));
-
-                    constructor_args.push(get_column_value(&column_name));
-                } else {
-                    let ma = get_method_arg_into_wrapper_type(wrapper_type_name_or_path);
-                    method_args.push(quote! {
-                        #column_name: #ma
-                    });
-
-                    let column_value = &get_column_value_from_wrapper(&column_name);
-                    constructor_args.push(quote! {
-                        #column_name: #column_value
-                    });
+                        constructor_args.push(get_column_value(&column_name));
+                    }
                 }
-            }
+                WrapperType::Wrapped(_) => {
+                    let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
+
+                    if column.spacetimedsl_column.is_option {
+                        let ma = get_method_arg_into_wrapper_type_option(wrapper_type_name_or_path);
+                        method_args.push(quote! {
+                            #column_name: #ma
+                        });
+
+                        into_options.push(wrapper_type_into_option(
+                            &column_name,
+                            wrapper_type_name_or_path,
+                        ));
+
+                        constructor_args.push(get_column_value(&column_name));
+                    } else {
+                        let ma = get_method_arg_into_wrapper_type(wrapper_type_name_or_path);
+                        method_args.push(quote! {
+                            #column_name: #ma
+                        });
+
+                        let column_value = &get_column_value_from_wrapper(&column_name);
+                        constructor_args.push(quote! {
+                            #column_name: #column_value
+                        });
+                    }
+                }
+            },
             None => {
                 let ma = get_method_arg_column_type(&column_type);
                 method_args.push(quote! {
                     #column_name: #ma
                 });
 
-                constructor_args.push(get_column_value(&column_name));
+                if column.rust_field.type_name_or_path.eq(&"String".into()) {
+                    constructor_args.push(quote! {
+                        #column_name: #column_name.to_string()
+                    });
+                } else {
+                    constructor_args.push(get_column_value(&column_name));
+                }
             }
         };
     }
