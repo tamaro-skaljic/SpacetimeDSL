@@ -109,13 +109,33 @@ pub mod component {
             #[index(btree)]
             pub btree_index: u128,
 
-            // TODO: Add when https://github.com/tamaro-skaljic/SpacetimeDSL/issues/20 is fixed
-            //#[index(direct)]
-            //#[unique]
-            //pub direct_index: u8,
+            #[unique]
+            pub unique: u128,
+
+            pub string: String,
+
+            #[index(btree)]
+            pub index_on_string: String,
+
+            #[index(btree)]
+            #[wrap]
+            pub index_on_wrapped_string: String,
+
+            #[unique]
+            #[wrap]
+            pub unique_on_wrapped_string: String,
+
+            #[wrap]
+            pub wrapped_string_option: Option<String>,
+
+            #[index(direct)]
+            #[unique]
+            pub direct_index: u8,
+
             created_at: Timestamp,
 
             modified_at: Timestamp,
+            // TODO: Vec<T> columns with index, unique and solo, with wrap and without
         }
     }
 }
@@ -134,7 +154,7 @@ pub mod test {
             position::{CreatePositionRow, GetAllPositionRows, GetCountOfPositionRows, PositionId},
             test::{
                 CreateTestRow, DeleteTestRowsByBtreeIndex, DeleteTestRowsByWrappedIndex,
-                GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex, Test, test__TableHandle,
+                GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex, Test,
             },
         },
         entity::{CreateEntityRow, DeleteEntityRowById, EntityId, GetEntityRowOptionById},
@@ -223,8 +243,7 @@ pub mod test {
         }
 
         /* TODO: Uncomment if https://github.com/clockworklabs/SpacetimeDB/pull/2610 is fixed
-        player_identifier.set_value("ENEMY");
-        match dsl.create_identifier(player_identifier) {
+            match dsl.create_identifier(&player, "PLAYER") {
             Ok(identifier) => {
                 return Err(format!(
                     "Entity {} ({}): Shouldn't be able to add an Identifier because it has already one.",
@@ -341,13 +360,28 @@ pub mod test {
             &player,
             &player,
             player.get_id().value(),
+            0,
+            "string",
+            "index_on_string",
+            "index_on_wrapped_string",
+            "unique_on_wrapped_string1",
+            Some("wrapped_string_option".to_string()),
+            0,
         ))?;
+
         let mut world2 = handle_test_result(dsl.create_test(
             &player,
             None,
             enemy.get_id(),
             player.get_id(),
             player.get_id().value(),
+            1,
+            "string",
+            "index_on_string",
+            "index_on_wrapped_string",
+            "unique_on_wrapped_string2",
+            Some("wrapped_string_option".to_string()),
+            1,
         ))?;
         let _: Option<EntityId> = world1.get_wrapped_option();
         world2.set_wrapped_option(None);
@@ -358,25 +392,30 @@ pub mod test {
         let _ = dsl.get_tests_by_wrapped_index(&player);
         let _ = dsl.get_tests_by_wrapped_index(player.get_id());
         let _ = dsl.get_tests_by_wrapped_index(world2.get_wrapped_index());
-        // TODO: let _ = dsl.get_tests_by_wrapped_index(&player..);
-        // TODO: let _ = dsl.get_tests_by_wrapped_index(world2.get_wrapped_index()..);
+        //let _ = dsl.get_tests_by_wrapped_index(&player..);
+        //let _ = dsl.get_tests_by_wrapped_index(world2.get_wrapped_index()..);
         let _ = dsl.delete_tests_by_wrapped_index(&player);
         let _ = dsl.delete_tests_by_wrapped_index(player.get_id());
         let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index());
-        // TODO: let _ = dsl.delete_tests_by_wrapped_index(&player..);
-        // TODO: let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index()..);
+        //let _ = dsl.delete_tests_by_wrapped_index(&player..);
+        //let _ = dsl.delete_tests_by_wrapped_index(&player..&player);
+        //let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index()..);
+        //let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index()..world2.get_wrapped_index());
 
         let _ = dsl.get_tests_by_btree_index(world2.get_btree_index());
-        // TODO: let _ = dsl.get_tests_by_btree_index(world2.get_btree_index()..);
+        //let _ = dsl.get_tests_by_btree_index(world2.get_btree_index()..);
         let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index());
-        // TODO: let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index()..);
+        //let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index()..);
         info!("Test executed successfully!");
 
         Ok(())
     }
 
     fn handle_test_result(
-        result: Result<Test, spacetimedb::TryInsertError<test__TableHandle>>,
+        result: Result<
+            Test,
+            spacetimedb::TryInsertError<crate::component::test::test__TableHandle>,
+        >,
     ) -> Result<Test, Box<str>> {
         match result {
             Ok(w) => {

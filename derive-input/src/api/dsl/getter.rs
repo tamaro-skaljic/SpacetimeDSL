@@ -1,4 +1,3 @@
-// TODO: Doc comment field
 #[cfg_attr(feature = "clone", derive(Clone))]
 #[cfg_attr(feature = "debug", derive(Debug))]
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
