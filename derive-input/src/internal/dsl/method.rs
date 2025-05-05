@@ -219,6 +219,10 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_checks(
             }
         };
 
+        if !multi_column_index.is_unique {
+            continue;
+        }
+
         let mut column_values = vec![];
 
         for column_name in index_column_names {
@@ -245,54 +249,46 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_check(
     column_values: Vec<TokenStream>,
 ) -> TokenStream {
     let index_name = format_ident!("{}", multi_column_index.name.to_string());
-    match multi_column_index.is_unique {
-        false => {
-            return TokenStream::default();
-        }
-        true => {
-            let field_name_for_found_value = format!("the_same_or_another_{table_name}");
+    let field_name_for_found_value = format!("the_same_or_another_{table_name}");
 
-            let reasons = "There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the unique multi-column index SpacetimeDSL feature is broken. Found: {:#?}";
+    let reasons = "There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the unique multi-column index SpacetimeDSL feature is broken. Found: {:#?}";
 
-            let mut more_than_one_panic_msg = format!(
-                "There must be only one {struct_name} row inside the {table_name} table when filtering on the unique multi-column index {index_name} with value "
-            );
-            more_than_one_panic_msg.push_str("{:?}. Found more than one. ");
-            more_than_one_panic_msg.push_str(reasons);
+    let mut more_than_one_panic_msg = format!(
+        "There must be only one {struct_name} row inside the {table_name} table when filtering on the unique multi-column index {index_name} with value "
+    );
+    more_than_one_panic_msg.push_str("{:?}. Found more than one. ");
+    more_than_one_panic_msg.push_str(reasons);
 
-            let mut another_one_panic_msg = format!(
-                "There must be only one {struct_name} row inside the {table_name} table when filtering on the unique multi-column index {index_name} with value "
-            );
-            another_one_panic_msg.push_str(
-                "{:?}. Found another one with a different value in the primary key column. ",
-            );
-            another_one_panic_msg.push_str(reasons);
+    let mut another_one_panic_msg = format!(
+        "There must be only one {struct_name} row inside the {table_name} table when filtering on the unique multi-column index {index_name} with value "
+    );
+    another_one_panic_msg
+        .push_str("{:?}. Found another one with a different value in the primary key column. ");
+    another_one_panic_msg.push_str(reasons);
 
-            return quote! {
-                let #field_name_for_found_value = match ctx.db.#table_name().#index_name().filter((#(#column_values),*)).at_most_one() {
-                    Ok(#table_name) => #table_name,
-                    Err(e) => {
-                        panic!(
-                            #more_than_one_panic_msg,
-                            (#(#column_values),*),
-                            e.collect::<#struct_name>()
-                        );
-                    }
-                };
+    return quote! {
+        let #field_name_for_found_value = match ctx.db.#table_name().#index_name().filter((#(#column_values),*)).at_most_one() {
+            Ok(#table_name) => #table_name,
+            Err(e) => {
+                panic!(
+                    #more_than_one_panic_msg,
+                    (#(#column_values),*),
+                    e.collect::<#struct_name>()
+                );
+            }
+        };
 
-                match &#field_name_for_found_value {
-                    Some(#field_name_for_found_value) => {
-                        if #field_name_for_found_value.#primary_key_column_name.ne(&#table_name.#primary_key_column_name) {
-                            panic!(
-                                #another_one_panic_msg,
-                                (#(#column_values),*),
-                                #field_name_for_found_value
-                            );
-                        }
-                    },
-                    _ => {},
-                };
-            };
-        }
-    }
+        match &#field_name_for_found_value {
+            Some(#field_name_for_found_value) => {
+                if #field_name_for_found_value.#primary_key_column_name.ne(&#table_name.#primary_key_column_name) {
+                    panic!(
+                        #another_one_panic_msg,
+                        (#(#column_values),*),
+                        #field_name_for_found_value
+                    );
+                }
+            },
+            _ => {},
+        };
+    };
 }
