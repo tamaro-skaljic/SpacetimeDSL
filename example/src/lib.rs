@@ -78,6 +78,37 @@ pub mod component {
         }
     }
 
+    pub mod unique_position {
+        use spacetimedb::{Timestamp, table};
+        use spacetimedsl::dsl;
+
+        /// A unique Position in the World.
+        #[dsl(plural_name = unique_positions, unique_index(name = x_y_z))]
+        #[table(name = unique_position, public, index(name = x_y_z, btree(columns = [x, y, z])))]
+        pub struct UniquePosition {
+            /// The unique ID of the unique Position.
+            #[primary_key]
+            #[auto_inc]
+            #[wrap]
+            id: u128,
+
+            /// The unique ID of the Entity the unique Position belongs to.
+            #[unique]
+            #[wrapped(path = crate::entity::EntityId)]
+            entity_id: u128,
+
+            pub x: i128,
+
+            pub y: i128,
+
+            pub z: i128,
+
+            created_at: Timestamp,
+
+            modified_at: Timestamp,
+        }
+    }
+
     pub mod test {
         use spacetimedb::{Timestamp, table};
         use spacetimedsl::dsl;
@@ -141,24 +172,30 @@ pub mod component {
 }
 
 pub mod test {
-    use log::info;
-    use spacetimedb::{ReducerContext, TimeDuration, reducer};
-    use spacetimedsl::{Wrapper, dsl};
-
     use crate::{
         component::{
             identifier::{
                 CreateIdentifierRow, GetIdentifierRowOptionByEntityId,
                 GetIdentifierRowOptionByValue, UpdateIdentifierRowById,
             },
-            position::{CreatePositionRow, GetAllPositionRows, GetCountOfPositionRows, PositionId},
+            position::{
+                CreatePositionRow, GetAllPositionRows, GetCountOfPositionRows, PositionId,
+                UpdatePositionRowById,
+            },
             test::{
                 CreateTestRow, DeleteTestRowsByBtreeIndex, DeleteTestRowsByWrappedIndex,
                 GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex, Test,
             },
+            unique_position::{
+                CreateUniquePositionRow, GetAllUniquePositionRows, GetCountOfUniquePositionRows,
+                UniquePositionId, UpdateUniquePositionRowById,
+            },
         },
         entity::{CreateEntityRow, DeleteEntityRowById, EntityId, GetEntityRowOptionById},
     };
+    use log::info;
+    use spacetimedb::{ReducerContext, TimeDuration, reducer};
+    use spacetimedsl::{Wrapper, dsl};
 
     #[reducer]
     fn tester(ctx: &ReducerContext) -> Result<(), String> {
@@ -270,7 +307,16 @@ pub mod test {
                 .unwrap(),
         );
 
-        let enemy_identifier = dsl.update_identifier_by_id(player_identifier);
+        let enemy_identifier = match dsl.update_identifier_by_id(player_identifier) {
+            Ok(i) => i,
+            Err(e) => {
+                return Err(format!(
+                    "Should have been able to update the identifier. Got: {}",
+                    e.to_string()
+                )
+                .into());
+            }
+        };
 
         if enemy_identifier
             .get_modified_at()
@@ -320,22 +366,36 @@ pub mod test {
             }
         };
 
-        match dsl.create_position(&player, 0, 0, 0) {
-            Ok(_) => {}
+        let mut player_position = match dsl.create_position(&player, 1, 1, 1) {
+            Ok(p) => p,
             Err(_) => {
                 return Err(format!(
                     "{:?}: Should be able to add an newly created Position.",
                     player
                 ));
             }
-        }
+        };
+
+        player_position.set_x(0);
+        player_position.set_y(0);
+        player_position.set_z(0);
+
+        _ = match dsl.update_position_by_id(player_position) {
+            Ok(p) => p,
+            Err(_) => {
+                return Err(format!(
+                    "{:?}: Should be able to update an Position.",
+                    player
+                ));
+            }
+        };
 
         let positions_iter = dsl.get_all_positions();
         let position_count_two: usize = dsl.get_count_of_positions().try_into().unwrap();
 
         let mut position_count_one = 0;
-        let mut positions = vec![];
         let mut position_ids = vec![];
+        let mut positions = vec![];
 
         for position in positions_iter {
             position_count_one = position_count_one + 1;
@@ -352,6 +412,75 @@ pub mod test {
 
         if position_count_one != position_count_two {
             return Err("The count of Positions should equal.".to_string());
+        }
+
+        let _ = match dsl.create_unique_position(&enemy, 0, 0, 0) {
+            Ok(p) => p,
+            Err(_) => {
+                return Err(format!(
+                    "{:?}: Should be able to add an newly created unique Position.",
+                    enemy
+                ));
+            }
+        };
+
+        match dsl.create_unique_position(&player, 0, 0, 0) {
+            Ok(_) => {
+                return Err(format!(
+                    "{:?}: Shouldn't be able to add an newly created unique Position which does already exist.",
+                    enemy
+                ));
+            }
+            Err(_) => {}
+        }
+
+        let mut unique_player_position = match dsl.create_unique_position(&player, 1, 1, 1) {
+            Ok(p) => p,
+            Err(_) => {
+                return Err(format!(
+                    "{:?}: Should be able to add an newly created unique Position.",
+                    enemy
+                ));
+            }
+        };
+
+        unique_player_position.set_x(0);
+        unique_player_position.set_y(0);
+        unique_player_position.set_z(0);
+
+        match dsl.update_unique_position_by_id(unique_player_position) {
+            Ok(_) => {
+                return Err(format!(
+                    "{:?}: Shouldn't be able to update an unique Position to a value in x_y_z which does already exist.",
+                    enemy
+                ));
+            }
+            Err(_) => {}
+        }
+
+        let unique_positions_iter = dsl.get_all_unique_positions();
+        let unique_position_count_two: usize =
+            dsl.get_count_of_unique_positions().try_into().unwrap();
+
+        let mut unique_position_count_one = 0;
+        let mut unique_position_ids = vec![];
+        let mut unique_positions = vec![];
+
+        for unique_position in unique_positions_iter {
+            unique_position_count_one = unique_position_count_one + 1;
+            unique_position_ids.push(unique_position.get_id());
+            unique_positions.push(Some(unique_position));
+        }
+        unique_position_ids.push(UniquePositionId::new(
+            1 + unique_position_ids
+                .last()
+                .expect("Should have a unique position in it")
+                .value(),
+        ));
+        unique_positions.push(None);
+
+        if unique_position_count_one != unique_position_count_two {
+            return Err("The count of unique Positions should equal.".to_string());
         }
 
         let world1 = handle_test_result(dsl.create_test(
