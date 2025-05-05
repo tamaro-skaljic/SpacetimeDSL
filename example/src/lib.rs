@@ -52,8 +52,8 @@ pub mod component {
         use spacetimedsl::dsl;
 
         /// A Position in the World.
-        #[dsl(plural_name = positions)]
-        #[table(name = position, public, index(name = x_y_z, btree(columns = [x, y, z])))]
+        #[spacetimedsl::dsl(plural_name = positions)]
+        #[spacetimedb::table(name = position, public, index(name = x_y_z, btree(columns = [x, y, z])))]
         pub struct Position {
             /// The unique ID of the Position.
             #[primary_key]
@@ -76,11 +76,6 @@ pub mod component {
 
             modified_at: Timestamp,
         }
-    }
-
-    pub mod unique_position {
-        use spacetimedb::{Timestamp, table};
-        use spacetimedsl::dsl;
 
         /// A unique Position in the World.
         #[dsl(plural_name = unique_positions, unique_index(name = x_y_z))]
@@ -179,16 +174,13 @@ pub mod test {
                 GetIdentifierRowOptionByValue, UpdateIdentifierRowById,
             },
             position::{
-                CreatePositionRow, GetAllPositionRows, GetCountOfPositionRows, PositionId,
-                UpdatePositionRowById,
+                CreatePositionRow, CreateUniquePositionRow, GetAllPositionRows,
+                GetAllUniquePositionRows, GetCountOfPositionRows, GetCountOfUniquePositionRows,
+                PositionId, UniquePositionId, UpdatePositionRowById, UpdateUniquePositionRowById,
             },
             test::{
                 CreateTestRow, DeleteTestRowsByBtreeIndex, DeleteTestRowsByWrappedIndex,
                 GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex, Test,
-            },
-            unique_position::{
-                CreateUniquePositionRow, GetAllUniquePositionRows, GetCountOfUniquePositionRows,
-                UniquePositionId, UpdateUniquePositionRowById,
             },
         },
         entity::{CreateEntityRow, DeleteEntityRowById, EntityId, GetEntityRowOptionById},
