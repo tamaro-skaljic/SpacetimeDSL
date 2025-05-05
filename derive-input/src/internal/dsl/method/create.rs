@@ -21,7 +21,6 @@ pub(in crate::internal) fn build(
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
     columns: &Vec<Column>,
-    primary_key_column_name: &Box<str>,
 ) -> SpacetimeDSLMethod {
     let struct_name = format_ident!("{}", *rust_struct.name);
     let table_name = format_ident!("{}", *spacetimedb_table.singular_name);
@@ -138,11 +137,13 @@ pub(in crate::internal) fn build(
         };
     }
 
-    let multi_column_index_checks = get_unique_multi_column_index_checks(
-        rust_struct,
-        spacetimedb_table,
-        primary_key_column_name,
-    );
+    let multi_column_index_checks =
+        get_unique_multi_column_index_checks(rust_struct, spacetimedb_table);
+
+    let multi_column_index_checks: Vec<TokenStream> = multi_column_index_checks
+        .into_iter()
+        .map(|mcic| mcic.check)
+        .collect();
 
     let method_args = method_args.iter().map(|ts| ts.to_string().into()).collect();
 

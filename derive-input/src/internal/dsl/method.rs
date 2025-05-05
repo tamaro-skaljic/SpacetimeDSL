@@ -39,12 +39,7 @@ impl SpacetimeDSLTableMethods {
         columns: &Vec<Column>,
         primary_key_column_name: &Box<str>,
     ) -> syn::Result<SpacetimeDSLTableMethods> {
-        let create = create::build(
-            rust_struct,
-            spacetimedb_table,
-            columns,
-            primary_key_column_name,
-        );
+        let create = create::build(rust_struct, spacetimedb_table, columns);
 
         let get_all = get_all::build(rust_struct, spacetimedb_table, spacetimedsl_table);
         let get_count = get_count::build(rust_struct, spacetimedb_table, spacetimedsl_table);
@@ -80,9 +75,7 @@ impl SpacetimeDSLTableMethods {
                         rust_struct,
                         spacetimedb_table,
                         multi_column_index,
-                        spacetimedsl_table,
                         columns,
-                        primary_key_column_name,
                     );
 
                     let update = match spacetimedsl_table.is_mutable {
@@ -100,7 +93,6 @@ impl SpacetimeDSLTableMethods {
                         rust_struct,
                         spacetimedb_table,
                         multi_column_index,
-                        spacetimedsl_table,
                         columns,
                         primary_key_column_name,
                     );
@@ -201,11 +193,16 @@ impl SpacetimeDSLColumnMethods {
     }
 }
 
+pub(in crate::internal::dsl::method) struct MultiColumnIndexCheck {
+    index_name: Ident,
+    check: TokenStream,
+    values: Vec<TokenStream>,
+}
+
 pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_checks(
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
-    primary_key_column_name: &Box<str>,
-) -> Vec<TokenStream> {
+) -> Vec<MultiColumnIndexCheck> {
     let struct_name = &rust_struct.name;
     let table_name = format_ident!("{}", *spacetimedb_table.singular_name);
 
@@ -226,14 +223,14 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_checks(
         let mut column_values = vec![];
 
         for column_name in index_column_names {
-            column_values.push(quote! {#table_name.#column_name}.into());
+            let cn = format_ident!("{column_name}");
+            column_values.push(quote! {#table_name.#cn});
         }
 
         multi_column_index_checks.push(get_unique_multi_column_index_check(
             struct_name,
             &table_name,
             multi_column_index,
-            primary_key_column_name,
             column_values,
         ));
     }
@@ -245,13 +242,13 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_check(
     struct_name: &Box<str>,
     table_name: &Ident,
     multi_column_index: &Index,
-    primary_key_column_name: &Box<str>,
     column_values: Vec<TokenStream>,
-) -> TokenStream {
+) -> MultiColumnIndexCheck {
+    let struct_name = format_ident!("{struct_name}");
     let index_name = format_ident!("{}", multi_column_index.name.to_string());
-    let field_name_for_found_value = format!("the_same_or_another_{table_name}");
+    let field_name_for_found_value = format_ident!("the_same_or_another_{table_name}");
 
-    let reasons = "There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the unique multi-column index SpacetimeDSL feature is broken. Found: {:#?}";
+    let reasons = "There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the unique multi-column index SpacetimeDSL feature is broken.";
 
     let mut more_than_one_panic_msg = format!(
         "There must be only one {struct_name} row inside the {table_name} table when filtering on the unique multi-column index {index_name} with value "
@@ -259,36 +256,19 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_check(
     more_than_one_panic_msg.push_str("{:?}. Found more than one. ");
     more_than_one_panic_msg.push_str(reasons);
 
-    let mut another_one_panic_msg = format!(
-        "There must be only one {struct_name} row inside the {table_name} table when filtering on the unique multi-column index {index_name} with value "
-    );
-    another_one_panic_msg
-        .push_str("{:?}. Found another one with a different value in the primary key column. ");
-    another_one_panic_msg.push_str(reasons);
-
-    return quote! {
-        let #field_name_for_found_value = match ctx.db.#table_name().#index_name().filter((#(#column_values),*)).at_most_one() {
-            Ok(#table_name) => #table_name,
-            Err(e) => {
-                panic!(
-                    #more_than_one_panic_msg,
-                    (#(#column_values),*),
-                    e.collect::<#struct_name>()
-                );
-            }
-        };
-
-        match &#field_name_for_found_value {
-            Some(#field_name_for_found_value) => {
-                if #field_name_for_found_value.#primary_key_column_name.ne(&#table_name.#primary_key_column_name) {
-                    panic!(
-                        #another_one_panic_msg,
-                        (#(#column_values),*),
-                        #field_name_for_found_value
-                    );
-                }
-            },
-            _ => {},
-        };
-    };
+    MultiColumnIndexCheck {
+        index_name: index_name.clone(),
+        check: quote! {
+                let #field_name_for_found_value = match self.ctx().db().#table_name().#index_name().filter((#(#column_values),*)).at_most_one() {
+                    Ok(#table_name) => #table_name,
+                    Err(_) => {
+                        panic!(
+                            #more_than_one_panic_msg,
+                            (#(#column_values),*),
+                        );
+                    }
+                };
+        },
+        values: column_values,
+    }
 }

@@ -5,10 +5,7 @@ use crate::{
     api::{
         Column,
         db::{Index, SpacetimeDBTable},
-        dsl::{
-            column::SpacetimeDSLColumn, method::SpacetimeDSLMethod, table::SpacetimeDSLTable,
-            wrapper::WrapperType,
-        },
+        dsl::{column::SpacetimeDSLColumn, method::SpacetimeDSLMethod, wrapper::WrapperType},
         rust::{RustField, RustStruct},
     },
     internal::dsl::quote::{
@@ -112,11 +109,10 @@ pub(in crate::internal) fn for_multi_column_index(
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
     multi_column_index: &Index,
-    spacetimedsl_table: &SpacetimeDSLTable,
     columns: &[Column],
     primary_key_column_name: &Box<str>,
 ) -> SpacetimeDSLMethod {
-    let struct_name = &rust_struct.name;
+    let struct_name = format_ident!("{}", *rust_struct.name);
     let table_name = format_ident!("{}", *spacetimedb_table.singular_name);
     let index_name = &multi_column_index.name;
     let index_columns = match &multi_column_index.index_type {
@@ -144,7 +140,7 @@ pub(in crate::internal) fn for_multi_column_index(
 
     let method_name = format!(
         "delete_{}_by_{}",
-        &spacetimedsl_table.plural_name, index_name
+        &spacetimedb_table.singular_name, index_name
     )
     .into();
 
@@ -210,15 +206,18 @@ pub(in crate::internal) fn for_multi_column_index(
     let method_args = method_args.iter().map(|ts| ts.to_string().into()).collect();
 
     let multi_column_index_check = get_unique_multi_column_index_check(
-        struct_name,
+        &struct_name.to_string().into(),
         &table_name,
         multi_column_index,
-        primary_key_column_name,
         column_values,
-    );
+    )
+    .check;
+
+    let primary_key_column_name = format_ident!("{primary_key_column_name}");
+    let field_name_for_found_value = format_ident!("the_same_or_another_{table_name}");
 
     let method_impl = quote! {
-        use itertools::Itertools;
+        use spacetimedsl::itertools::Itertools;
 
         #(#into_options)*
 
@@ -229,7 +228,7 @@ pub(in crate::internal) fn for_multi_column_index(
             .db()
             .#table_name()
             .#primary_key_column_name()
-            .delete(#table_name);
+            .delete(#field_name_for_found_value.unwrap().#primary_key_column_name);
     }
     .to_string()
     .into();

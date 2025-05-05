@@ -14,17 +14,6 @@ use syn::{Type, Visibility, parse_str};
 pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     let struct_name = format_ident!("{}", &input.rust_struct.name.to_string());
     let mut wrapper_types = vec![];
-    let mut table_methods = vec![];
-    let mut dsl_methods = vec![];
-
-    dsl_methods.push(build_without_lifetime(&input.spacetimedsl_methods.create)?);
-
-    dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_all)?);
-    dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_count)?);
-
-    for multi_column_index in &input.spacetimedsl_methods.multi_column_indices {
-        dsl_methods.push(get_column_dsl_methods(multi_column_index)?);
-    }
 
     for column in &input.columns {
         if column.spacetimedsl_column.wrapper_type.is_some() {
@@ -36,7 +25,19 @@ pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
                 _ => {}
             }
         }
+    }
+    let mut table_methods = vec![];
+    let mut dsl_methods = vec![];
 
+    dsl_methods.push(build_without_lifetime(&input.spacetimedsl_methods.create)?);
+    dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_all)?);
+    dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_count)?);
+
+    for multi_column_index in &input.spacetimedsl_methods.multi_column_indices {
+        dsl_methods.push(get_column_dsl_methods(multi_column_index)?);
+    }
+
+    for column in &input.columns {
         table_methods.push(getter(&column.spacetimedsl_column.getter)?);
         if column.spacetimedsl_column.setter.is_some() {
             table_methods.push(setter(column.spacetimedsl_column.setter.as_ref().unwrap())?);

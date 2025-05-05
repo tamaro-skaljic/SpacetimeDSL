@@ -5,10 +5,7 @@ use crate::{
     api::{
         Column,
         db::{Index, SpacetimeDBTable},
-        dsl::{
-            column::SpacetimeDSLColumn, method::SpacetimeDSLMethod, table::SpacetimeDSLTable,
-            wrapper::WrapperType,
-        },
+        dsl::{column::SpacetimeDSLColumn, method::SpacetimeDSLMethod, wrapper::WrapperType},
         rust::{RustField, RustStruct},
     },
     internal::dsl::quote::{
@@ -121,9 +118,7 @@ pub(in crate::internal) fn for_multi_column_index(
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
     multi_column_index: &Index,
-    spacetimedsl_table: &SpacetimeDSLTable,
     columns: &[Column],
-    primary_key_column_name: &Box<str>,
 ) -> SpacetimeDSLMethod {
     let struct_name = &rust_struct.name;
     let table_name = format_ident!("{}", *spacetimedb_table.singular_name);
@@ -151,7 +146,7 @@ pub(in crate::internal) fn for_multi_column_index(
     )
     .into();
 
-    let method_name = format!("get_{}_by_{}", &spacetimedsl_table.plural_name, index_name).into();
+    let method_name = format!("get_{}_by_{}", &spacetimedb_table.singular_name, index_name).into();
 
     let mut method_args = vec![];
 
@@ -225,13 +220,14 @@ pub(in crate::internal) fn for_multi_column_index(
         struct_name,
         &table_name,
         multi_column_index,
-        primary_key_column_name,
         column_values,
-    );
-    let field_name_for_found_value = format!("the_same_or_another_{table_name}");
+    )
+    .check;
+
+    let field_name_for_found_value = format_ident!("the_same_or_another_{table_name}");
 
     let method_impl = quote! {
-        use itertools::Itertools;
+        use spacetimedsl::itertools::Itertools;
 
         #(#into_options)*
 
