@@ -124,7 +124,7 @@ impl SpacetimeDSLTable {
                             ));
                         }
                         syn::Visibility::Inherited => {
-                            has_created_at_column = true;
+                            has_modified_at_column = true;
                         }
                     }
                 }
