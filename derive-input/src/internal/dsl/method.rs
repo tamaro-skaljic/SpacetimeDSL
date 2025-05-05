@@ -196,7 +196,6 @@ impl SpacetimeDSLColumnMethods {
 pub(in crate::internal::dsl::method) struct MultiColumnIndexCheck {
     index_name: Ident,
     check: TokenStream,
-    values: Vec<TokenStream>,
 }
 
 pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_checks(
@@ -269,6 +268,5 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_check(
                     }
                 };
         },
-        values: column_values,
     }
 }
