@@ -1,108 +1,174 @@
 use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote};
+use quote::{format_ident, quote};
+use spacetimedsl_derive_input::api::{
+    Table,
+    dsl::{
+        getter::Getter,
+        method::{SpacetimeDSLColumnMethods, SpacetimeDSLMethod},
+        setter::Setter,
+        wrapper::WrapperType,
+    },
+};
+use syn::{Type, Visibility, parse_str};
 
-use crate::input::{ColumnSchema, TableSchema};
+pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
+    let struct_name = format_ident!("{}", &input.rust_struct.name.to_string());
+    let mut wrapper_types = vec![];
 
-mod accessor_methods;
-mod create_row_methods;
-mod delete_many_rows_by_methods;
-mod delete_one_row_by_methods;
-mod get_all_rows_method;
-mod get_count_of_rows_method;
-mod get_many_row_options_by_methods;
-mod get_many_rows_by_methods;
-mod get_one_row_option_by_methods;
-mod update_row_by_methods;
-mod wrapper_types;
-
-pub fn output(table: TableSchema) -> TokenStream {
-    let mut output: Vec<TokenStream> = vec![];
-
-    output.push(wrapper_types::build(&table));
-    output.push(accessor_methods::build(&table));
-
-    output.push(create_row_methods::build(&table));
-    output.push(get_one_row_option_by_methods::build(&table));
-    output.push(get_many_row_options_by_methods::build(&table));
-    output.push(get_many_rows_by_methods::build(&table));
-    output.push(get_all_rows_method::build(&table));
-    output.push(get_count_of_rows_method::build(&table));
-    output.push(update_row_by_methods::build(&table));
-    output.push(delete_one_row_by_methods::build(&table));
-    output.push(delete_many_rows_by_methods::build(&table));
-
-    quote! {
-        use spacetimedsl::Wrapper as _;
-        use spacetimedb::{DbContext as _, Table as _};
-        #(#output)*
-    }
-}
-
-pub fn get_column_type(column: &ColumnSchema) -> TokenStream {
-    if column.column_type_wrapper.is_none() {
-        let column_type = &column.column_type;
-        quote! {
-            #column_type
-        }
-    } else {
-        let column_type = column
-            .column_type_wrapper
-            .as_ref()
-            .expect("Expected column_type_wrapper in get_column_type(), found None!");
-
-        if is_option(column) {
-            quote! {
-                impl Into<Option<#column_type>>
-            }
-        } else {
-            quote! {
-                impl Into<#column_type>
+    for column in &input.columns {
+        if column.spacetimedsl_column.wrapper_type.is_some() {
+            match column.spacetimedsl_column.wrapper_type.as_ref().unwrap() {
+                WrapperType::Wrap(wrapper_type) => {
+                    let wrapper_type_impl: TokenStream = parse_str(&wrapper_type.wrapper_impl)?;
+                    wrapper_types.push(wrapper_type_impl);
+                }
+                _ => {}
             }
         }
     }
-}
+    let mut table_methods = vec![];
+    let mut dsl_methods = vec![];
 
-pub fn get_column_value(column: &ColumnSchema) -> TokenStream {
-    let column_name = &column.column_name;
-    if column.column_type_wrapper.is_none() {
-        quote! {
-            #column_name
+    dsl_methods.push(build_without_lifetime(&input.spacetimedsl_methods.create)?);
+    dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_all)?);
+    dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_count)?);
+
+    for multi_column_index in &input.spacetimedsl_methods.multi_column_indices {
+        dsl_methods.push(get_column_dsl_methods(multi_column_index)?);
+    }
+
+    for column in &input.columns {
+        table_methods.push(getter(&column.spacetimedsl_column.getter)?);
+        if column.spacetimedsl_column.setter.is_some() {
+            table_methods.push(setter(column.spacetimedsl_column.setter.as_ref().unwrap())?);
         }
-    } else {
-        if is_option(column) {
-            let column_value_name = format_ident!("{column_name}_value");
-            quote! {
-                #column_name: #column_value_name
-            }
-        } else {
-            quote! {
-                #column_name.into().value()
-            }
+
+        if column.spacetimedsl_methods.is_some() {
+            dsl_methods.push(get_column_dsl_methods(
+                column.spacetimedsl_methods.as_ref().unwrap(),
+            )?);
         }
     }
-}
 
-pub fn is_option(column: &ColumnSchema) -> bool {
-    column
-        .column_type
-        .to_token_stream()
-        .to_string()
-        .contains("Option")
-}
+    Ok(quote! {
+        #(#wrapper_types)*
 
-pub fn into_option(column: &ColumnSchema) -> TokenStream {
-    let column_name = &column.column_name;
-    let column_value_name = format_ident!("{column_name}_value");
-    let wrapper_type = column
-        .column_type_wrapper
-        .as_ref()
-        .expect("Expected wrapper_type in into_option(), found None!");
-
-    quote! {
-        let #column_name = #column_name.into();
-        let mut #column_value_name = None;
-        if #column_name.is_some() {
-            #column_value_name = Some(Into::<#wrapper_type>::into(#column_name.unwrap()).value());
+        impl #struct_name {
+            #(#table_methods)*
         }
+
+        #(#dsl_methods)*
+    })
+}
+
+fn get_column_dsl_methods(index: &SpacetimeDSLColumnMethods) -> syn::Result<TokenStream> {
+    let mut token_streams = vec![];
+
+    match index {
+        SpacetimeDSLColumnMethods::ForUniqueIndex(index) => {
+            token_streams.push(build_without_lifetime(&index.get_one_option)?);
+            if index.update.is_some() {
+                token_streams.push(build_without_lifetime(index.update.as_ref().unwrap())?);
+            }
+            token_streams.push(build_without_lifetime(&index.delete_one)?);
+        }
+        SpacetimeDSLColumnMethods::ForIndex(index) => {
+            token_streams.push(build_with_lifetime(&index.get_many)?);
+
+            token_streams.push(build_with_lifetime(&index.delete_many)?);
+        }
+    };
+
+    Ok(quote! {
+        #(#token_streams)*
+    })
+}
+
+// get_all, get_count, get_many, delete_many
+fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
+    let doc_comment = &method.doc_comment;
+    let trait_name = format_ident!("{}", *method.trait_name);
+    let method_name = format_ident!("{}", *method.method_name);
+    let mut method_args: Vec<TokenStream> = vec![];
+    for method_arg in &method.method_args {
+        method_args.push(parse_str(&method_arg)?);
     }
+
+    let return_type: Type = parse_str(&method.return_type)?;
+    let method_impl: TokenStream = parse_str(&method.method_impl)?;
+
+    Ok(quote! {
+        #[doc=#doc_comment]
+        pub trait #trait_name: spacetimedsl::DSLContext {
+            #[doc=#doc_comment]
+            fn #method_name<'a>(
+                &'a self,
+                #(#method_args),*
+            ) -> #return_type {
+                use spacetimedsl::Wrapper;
+                use spacetimedb::{DbContext,Table};
+                #method_impl
+            }
+        }
+
+        impl #trait_name for spacetimedsl::DSL<'_> {}
+    })
+}
+
+// create, get_one_option, update, delete_one
+pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
+    let doc_comment = &method.doc_comment;
+    let trait_name = format_ident!("{}", *method.trait_name);
+    let method_name = format_ident!("{}", *method.method_name);
+    let mut method_args: Vec<TokenStream> = vec![];
+    for method_arg in &method.method_args {
+        method_args.push(parse_str(&method_arg)?);
+    }
+    let return_type: Type = parse_str(&method.return_type)?;
+    let method_impl: TokenStream = parse_str(&method.method_impl)?;
+
+    Ok(quote! {
+        #[doc=#doc_comment]
+        pub trait #trait_name: spacetimedsl::DSLContext {
+            #[doc=#doc_comment]
+            fn #method_name(
+                &self,
+                #(#method_args),*
+            ) -> #return_type {
+                use spacetimedsl::Wrapper;
+                use spacetimedb::{DbContext,Table};
+                #method_impl
+            }
+        }
+
+        impl #trait_name for spacetimedsl::DSL<'_> {}
+    })
+}
+
+fn getter(getter: &Getter) -> syn::Result<TokenStream> {
+    let method_name = format_ident!("{}", *getter.method_name);
+    let return_type: Type = parse_str(&getter.return_type)?;
+    let method_impl: TokenStream = parse_str(&getter.method_impl)?;
+
+    Ok(quote! {
+        pub fn #method_name(&self) -> #return_type {
+            use spacetimedsl::Wrapper;
+            #method_impl
+        }
+    })
+}
+
+fn setter(setter: &Setter) -> syn::Result<TokenStream> {
+    let method_visibility: Visibility = parse_str(&setter.method_visibility.to_string())?;
+    let method_name = format_ident!("{}", *setter.method_name);
+    let method_arg: TokenStream = parse_str(&setter.method_arg)?;
+    let return_type: Type = parse_str(&setter.return_type)?;
+    let method_impl: TokenStream = parse_str(&setter.method_impl)?;
+
+    Ok(quote! {
+        #method_visibility fn #method_name(&mut self, #method_arg) -> #return_type {
+            use spacetimedsl::Wrapper;
+            #method_impl
+        }
+    })
 }

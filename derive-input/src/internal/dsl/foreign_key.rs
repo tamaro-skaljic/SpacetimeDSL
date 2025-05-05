@@ -1,0 +1,165 @@
+use super::foreign_key;
+use crate::api::dsl::foreign_key::{ForeignKey, OnDeleteStrategy};
+use crate::internal::dsl::{column, on_delete, table};
+use proc_macro2::Span;
+use quote::ToTokens;
+use spacetime_bindings_macro_input::match_meta;
+use spacetime_bindings_macro_input::sats::SatsField;
+use spacetime_bindings_macro_input::sym::{index, primary_key, unique};
+use spacetime_bindings_macro_input::util::check_duplicate;
+use syn::meta::ParseNestedMeta;
+use syn::{Error, Ident};
+
+/**
+ * TODO: MUST USE THE DSL METHODS FOR ON DELETION ACTIONS BECAUSE THE DELETION OF A ROW CAN TRIGGER ACTIONS IN OTHER CLASSES
+ *
+ * - in column.try_parse all #[foreign_key]'s must be parsed before the SpacetimeDSLColumnMethods are created (currently they are parsed one column by one before in SpacetimeDSLColumn, meaning that a column only knows all foreign keys of itself and the columns parsed before)
+ * - If there are any foreign keys
+ *   - There must be a data structure like HashMap<TableName, HashMap<OnDeleteStrategy, Vec<ColumnName>>>
+ * - For each table
+ *   - (the dsl reference is passed as argument to any function as well, though it isn't written below)
+ *   - Generate a function (for delete_one) in the same module.
+ *     - Name: perform_{table_name}_actions_after_{foreign_table_name}_deletion
+ *     - Arg: #foreign_table_name: &#column_type
+ *     - Return Type: Result<(), UniqueConstraintViolationError>
+ *     - Impl:
+ *       - For each OnDeleteStrategy (Sort Order: Error, Cascade, SetNone, SetZero):
+ *         - For Unique Indices
+```
+match dsl.ctx().db().#table_name().#column_name().find(#foreign_table_name){
+    Some(#table_name) => {
+        #on_delete_action
+    },
+    None => {
+    }
+};
+```
+*          - For Indices
+```
+match dsl.ctx().db().#table_name().#column_name().filter(#foreign_table_name){
+    Some(#plural_table_name) => {
+        #on_delete_action
+    },
+    None => {
+    }
+};
+```
+ *       - Ok(())
+ *   - Generate another function (delete_many) in the same module.
+ *     - Name: perform_{table_name}_actions_after_{foreign_table_name}_deletions
+ *     - Arg: #plural_table_name: Vec<&#column_type>
+ *     - Return Type: Result<(), UniqueConstraintViolationError>
+ *     - Impl:
+ *       - For each OnDeleteStrategy (Sort Order: Error, Cascade, SetNone, SetZero):
+ *         - TODO
+ *       - Ok(())
+ */
+impl ForeignKey {
+    // TODO: Check that the referenced field has a valid type (This field: T | Option<T> | Vec<T>, the other field: T). But this probably won't work from inside rust macros, more likely in a build.rs
+    pub(in crate::internal) fn try_parse(field: &SatsField<'_>) -> syn::Result<Option<ForeignKey>> {
+        let mut foreign_key_value = None;
+
+        let mut has_index = false;
+        for attr in field.original_attrs {
+            if attr.meta.path().eq(&primary_key)
+                || attr.meta.path().eq(&unique)
+                || attr.meta.path().eq(&index)
+            {
+                has_index = true;
+                break;
+            }
+        }
+
+        for attr in field.original_attrs {
+            if attr.meta.path().ne(&foreign_key) {
+                continue;
+            }
+
+            if !has_index {
+                return Err(syn::Error::new_spanned(
+                    &attr,
+                    "`#[foreign_key]` is only allowed in combination with `#[primary_key]`, `#[unique]` or `#[index]`!",
+                ));
+            }
+
+            if foreign_key_value.is_some() {
+                return Err(syn::Error::new_spanned(
+                    &attr,
+                    "`#[foreign_key]` is only allowed once per column!",
+                ));
+            }
+
+            let mut table_name: Option<Ident> = None;
+            let mut column_name: Option<Ident> = None;
+            let mut on_delete_strategy = None;
+
+            attr.parse_nested_meta(|meta| {
+                match_meta!(match meta {
+                    table => {
+                        check_duplicate(&table_name, &meta)?;
+                        table_name = Some(meta.value()?.parse()?);
+                    }
+                    column => {
+                        check_duplicate(&column_name, &meta)?;
+                        column_name = Some(meta.value()?.parse()?);
+                    }
+                    on_delete => {
+                        check_duplicate(&on_delete_strategy, &meta)?;
+                        on_delete_strategy = Some(OnDeleteStrategy::try_parse(&meta)?);
+                    }
+                });
+                Ok(())
+            })?;
+
+            let table_name = table_name
+            .ok_or_else(|| {
+                syn::Error::new_spanned(
+                    &attr.meta,
+                    "TableName must be set in `#[foreign_key(table = TableName)]`, e.g. `table = my_table`.",
+                )
+            })?
+            .to_token_stream()
+            .to_string()
+            .into();
+
+            let column_name = match column_name {
+                Some(column_name) => column_name.to_token_stream().to_string().into(),
+                None => "id".into(),
+            };
+
+            let on_delete_strategy = on_delete_strategy.ok_or_else(|| {
+            syn::Error::new_spanned(
+                &attr.meta,
+                "OnDeleteStrategy must be set in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Cascade` (or Error, SetNone or SetZero).",
+            )
+        })?;
+
+            foreign_key_value = Some(ForeignKey {
+                table_name,
+                column_name,
+                on_delete_strategy,
+            });
+        }
+
+        Ok(foreign_key_value)
+    }
+}
+
+impl OnDeleteStrategy {
+    fn try_parse(meta: &ParseNestedMeta<'_>) -> syn::Result<OnDeleteStrategy> {
+        let action_variant: Ident = meta.value()?.parse()?;
+        let action_variant: &str = &action_variant.to_string();
+
+        // TODO: Add Checks (Option, Numeric, ...)
+        match action_variant {
+            "Error" => Ok(OnDeleteStrategy::Error),
+            "Cascade" => Ok(OnDeleteStrategy::Cascade),
+            "SetNone" => Ok(OnDeleteStrategy::SetNone),
+            "SetZero" => Ok(OnDeleteStrategy::SetZero),
+            _ => Err(Error::new(
+                Span::call_site(),
+                "`OnDeleteStrategy` must be one of `Error`, `Cascade`, `SetNone` or `SetZero` in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Cascade`.".to_string(),
+            )),
+        }
+    }
+}
