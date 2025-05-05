@@ -1,7 +1,7 @@
 [package]
 authors = ["Tamaro Skaljic<mail@tamaro-skaljic.de>"]
 name = "spacetimedsl_derive-input"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 description = "Contains structs which represent the input and output of SpacetimeDSL. Can be used by other proc-macro crates to build Macros which utilize SpacetimeDSL under the hood."
 documentation = "https://docs.rs/spacetimedsl_derive-input"
