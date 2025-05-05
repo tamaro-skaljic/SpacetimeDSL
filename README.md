@@ -4,16 +4,15 @@ SpacetimeDSL provides you a high-level [*D*omain *S*pecific *L*anguage (DSL)](ht
 
 ## Limitations
 
+- The `#[spacetimedsl::dsl]` attribute macro must be above the `#[spacetimedb::table]` attribute macro.
+
 The following things aren't considered during code generation yet:
 
-- [Multi Column Indices](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/2)
-- [Using IndexScanRangeBounds on get_many_by_column and delete_many_by_column](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21)
+- [Using IndexScanRangeBounds / FilterableValue](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21)
 
-The following SpacetimeDB features can't be used and will result in compilation errors:
+The following SpacetimeDB features can't be used:
 
-- [More than one `#[table]` attribute macro on the same struct](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/10)
-- [More than one struct with `#[derive(SpacetimeDSL)` in the same rust module](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/11)
-- [`[#index(direct)]`](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/20)
+- [More than one `#[table]` attribute macro on the same struct](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/10) (only the last one is processed)
 
 ## Features
 
@@ -21,29 +20,35 @@ If features contain snippets of generated code, they relate to the following inp
 
 ```rust
 pub mod entity {
-    use spacetimedsl::derive::SpacetimeDSL;
+    use spacetimedb::Timestamp;
+    use spacetimedb::table;
+    use spacetimedsl::dsl;
 
     /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
-    #[derive(Clone, Debug, PartialEq, SpacetimeDSL)]
-    #[spacetimedb::table(name = entity, public)]
-    #[plural_table_name(entities)]
+    #[dsl(plural_name = entities)]
+    #[table(name = entity, public)]
     pub struct Entity {
         /// The unique ID of the Entity.
         #[primary_key]
         #[auto_inc]
         #[wrap]
+        #[referenced_by(path = crate::component::identifier, table = identifier)]
+        #[referenced_by(path = crate::component::position,   table = position)]
+        #[referenced_by(path = crate::component::position,   table = unique_position)]
         id: u128,
+
+        created_at: Timestamp,
     }
 }
 
 pub mod component {
     pub mod identifier {
-        use spacetimedsl::derive::SpacetimeDSL;
+        use spacetimedb::{Timestamp, table};
+        use spacetimedsl::dsl;
 
         /// A Identifier is a developer-friendly String.
-        #[derive(Clone, Debug, PartialEq, SpacetimeDSL)]
-        #[spacetimedb::table(name = identifier, public)]
-        #[plural_table_name(identifiers)]
+        #[dsl(plural_name = identifiers)]
+        #[table(name = identifier, public)]
         pub struct Identifier {
             /// The unique ID of the Identifier.
             #[primary_key]
@@ -53,22 +58,27 @@ pub mod component {
 
             /// The unique ID of the Entity the Identifier belongs to.
             #[unique]
-            #[wrap(crate::entity::EntityId)]
+            #[wrapped(path = crate::entity::EntityId)]
+            #[foreign_key(table = entity, on_delete = Cascade)]
             entity_id: u128,
 
             // The unique value of the Identifier.
             #[unique]
             pub value: String,
+
+            created_at: Timestamp,
+
+            modified_at: Timestamp,
         }
     }
 
     pub mod position {
-        use spacetimedsl::derive::SpacetimeDSL;
+        use spacetimedb::{Timestamp, table};
+        use spacetimedsl::dsl;
 
         /// A Position in the World.
-        #[derive(Clone, Debug, PartialEq, SpacetimeDSL)]
+        #[spacetimedsl::dsl(plural_name = positions)]
         #[spacetimedb::table(name = position, public, index(name = x_y_z, btree(columns = [x, y, z])))]
-        #[plural_table_name(positions)]
         pub struct Position {
             /// The unique ID of the Position.
             #[primary_key]
@@ -78,7 +88,8 @@ pub mod component {
 
             /// The unique ID of the Entity the Position belongs to.
             #[unique]
-            #[wrap(crate::entity::EntityId)]
+            #[wrapped(path = crate::entity::EntityId)]
+            #[foreign_key(table = entity, on_delete = Cascade)]
             entity_id: u128,
 
             pub x: i128,
@@ -86,18 +97,53 @@ pub mod component {
             pub y: i128,
 
             pub z: i128,
+
+            created_at: Timestamp,
+
+            modified_at: Timestamp,
+        }
+
+        /// A unique Position in the World.
+        #[dsl(plural_name = unique_positions, unique_index(name = x_y_z))]
+        #[table(name = unique_position, public, index(name = x_y_z, btree(columns = [x, y, z])))]
+        pub struct UniquePosition {
+            /// The unique ID of the unique Position.
+            #[primary_key]
+            #[auto_inc]
+            #[wrap]
+            id: u128,
+
+            /// The unique ID of the Entity the unique Position belongs to.
+            #[unique]
+            #[wrapped(path = crate::entity::EntityId)]
+            #[foreign_key(table = entity, on_delete = Cascade)]
+            entity_id: u128,
+
+            pub x: i128,
+
+            pub y: i128,
+
+            pub z: i128,
+
+            created_at: Timestamp,
+
+            modified_at: Timestamp,
         }
     }
 }
 ```
 
-Which produces the following methods:
+Which produces the following DSL methods:
 
-![Generated methods](dsl.png)
+![DSL methods generated by the example](example_dsl_methods.png)
 
-If you want to have a direct look into Code which uses SpacetimeDSL, look into the [example/src/lib.rs](example/src/lib.rs) file.
+Which can for example be used like so:
 
-### Wrapper Types
+![Example usage of the generated dsl methods](example_dsl_usage.png)
+
+
+
+### 🔥🥵 Wrapper Types
 
 SpacetimeDSL allows developers to wrap their (primitive) table fields into [unique, auto-generated alias types](https://medium.com/unil-ci-software-engineering/clean-ddd-lessons-modeling-identity-ff8bc17e0ae6#:~:text=We%20should%20not%20use%20primitives) to decrease [primitive obsession](https://refactoring.guru/smells/primitive-obsession). This allows the following:
 
@@ -192,7 +238,7 @@ impl spacetimedsl::Wrapper<u128, PositionId> for PositionId {
 }
 ```
 
-### Accessors (Getters and Setters)
+### 🔥🥵 Accessors (Getters and Setters)
 
 For any field in the table-struct, a public getter is generated. It returns either a reference to the table field value or if `#[wrap]` it clones the value and creates a new instance of the Wrapper Type.
 
@@ -265,7 +311,7 @@ In the next sections,
 
 - `Column Value` means a Reference to a Object Instance of a table's field type.
 
-#### Create Row
+#### 🔥🥵 Create Row
 
 For any table-struct, a `create_row` DSL extension method is created, which performs a `row().try_insert(row)`.
 

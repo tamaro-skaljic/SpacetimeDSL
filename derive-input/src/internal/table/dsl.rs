@@ -1,11 +1,11 @@
 use crate::api::db::{IndexType, SpacetimeDBTable};
-use crate::api::dsl::table::{OnDeleteHook, SpacetimeDSLTable};
-use crate::internal::dsl::{on_delete, path, plural_name, table, unique_index};
+use crate::api::dsl::reference::Reference;
+use crate::api::dsl::table::SpacetimeDSLTable;
+use crate::internal::dsl::{plural_name, unique_index};
 use proc_macro2::Span;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::table::ColumnArgs;
 use spacetime_bindings_macro_input::{match_meta, sym, util::check_duplicate};
-use syn::Path;
 use syn::{
     Ident,
     meta::{ParseNestedMeta, parser},
@@ -20,7 +20,6 @@ impl SpacetimeDSLTable {
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
         let mut name_plural: Option<Ident> = None;
         let mut unique_indices = vec![];
-        let mut on_delete_hooks = vec![];
 
         parser(|meta| {
             match_meta!(match meta {
@@ -30,7 +29,6 @@ impl SpacetimeDSLTable {
                     name_plural = Some(value.parse()?);
                 }
                 unique_index => unique_indices.push(parse_unique_index(meta)?),
-                on_delete => on_delete_hooks.push(parse_on_delete(meta, &spacetimedb_table)?),
             });
             Ok(())
         })
@@ -59,7 +57,18 @@ impl SpacetimeDSLTable {
         let mut is_mutable = false;
         let mut has_created_at_column = false;
         let mut has_modified_at_column = false;
+        let mut references = vec![];
         for field in &column_args.fields {
+            if column_args
+                .primary_key_column
+                .expect("The table should have a column with `#[primary_key]`!")
+                .ident
+                .to_string()
+                .eq(field.name.as_ref().unwrap())
+            {
+                references = Reference::try_parse(field)?;
+            }
+
             if !is_mutable {
                 is_mutable = match field.vis {
                     syn::Visibility::Public(_) => true,
@@ -135,10 +144,10 @@ impl SpacetimeDSLTable {
             spacetimedb_table,
             SpacetimeDSLTable {
                 plural_name: name_plural,
-                on_delete_hooks,
                 is_mutable,
                 has_created_at_column,
                 has_modified_at_column,
+                references,
             },
         ))
     }
@@ -164,47 +173,4 @@ fn parse_unique_index(meta: ParseNestedMeta<'_>) -> syn::Result<Box<str>> {
         .into();
 
     Ok(name)
-}
-
-fn parse_on_delete(
-    meta: ParseNestedMeta<'_>,
-    spacetimedb_table: &SpacetimeDBTable,
-) -> syn::Result<OnDeleteHook> {
-    let mut path_value: Option<Path> = None;
-    let mut table_value: Option<Ident> = None;
-
-    meta.parse_nested_meta(|meta| {
-        match_meta!(match meta {
-            path => {
-                check_duplicate(&path_value, &meta)?;
-                path_value = Some(meta.value()?.parse()?);
-            }
-            table => {
-                check_duplicate(&table_value, &meta)?;
-                table_value = Some(meta.value()?.parse()?);
-            }
-        });
-        Ok(())
-    })?;
-
-    let path_value: String = path_value
-        .ok_or_else(|| meta.error("ModulePath must be set in `#[dsl(on_delete(path = ModulePath))]`, e.g. `path = path::to::my::module`."))?
-        .to_token_stream()
-        .to_string();
-
-    let table_value: String = table_value
-        .ok_or_else(|| meta.error("TableName must be set in `#[dsl(on_delete(table = TableName))]`, e.g. `table = my_table`."))?
-        .to_token_stream()
-        .to_string();
-
-    // TODO: Implement deletion hooks
-    let function_name = format!(
-        "{path_value}::on_{}_delete_hook_for_{table_value}",
-        spacetimedb_table.singular_name
-    )
-    .into();
-
-    Ok(OnDeleteHook {
-        function_path: function_name,
-    })
 }

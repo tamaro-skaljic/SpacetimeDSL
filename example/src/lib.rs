@@ -11,6 +11,10 @@ pub mod entity {
         #[primary_key]
         #[auto_inc]
         #[wrap]
+        #[referenced_by(path = crate::component::identifier, table = identifier)]
+        #[referenced_by(path = crate::component::position,   table = position)]
+        #[referenced_by(path = crate::component::position,   table = unique_position)]
+        #[referenced_by(path = crate::component::test,       table = test)]
         id: u128,
 
         created_at: Timestamp,
@@ -35,6 +39,7 @@ pub mod component {
             /// The unique ID of the Entity the Identifier belongs to.
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
+            #[foreign_key(table = entity, on_delete = Cascade)]
             entity_id: u128,
 
             // The unique value of the Identifier.
@@ -43,7 +48,16 @@ pub mod component {
 
             created_at: Timestamp,
 
-            pub modified_at: Timestamp,
+            modified_at: Timestamp,
+        }
+
+        pub(crate) fn perform_identifier_actions_after_entity_deletion(
+            id: u128,
+        ) {
+        }
+
+        pub(crate) fn update_modified_at(identifier: &mut Identifier, new_value: Timestamp) {
+            identifier.modified_at = new_value;
         }
     }
 
@@ -64,6 +78,7 @@ pub mod component {
             /// The unique ID of the Entity the Position belongs to.
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
+            #[foreign_key(table = entity, on_delete = Cascade)]
             entity_id: u128,
 
             pub x: i128,
@@ -90,6 +105,7 @@ pub mod component {
             /// The unique ID of the Entity the unique Position belongs to.
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
+            #[foreign_key(table = entity, on_delete = Cascade)]
             entity_id: u128,
 
             pub x: i128,
@@ -122,20 +138,25 @@ pub mod component {
             pub wrapped_option: Option<u128>,
 
             // TODO: Add #[unique] if it's allowed by SpacetimeDB
-            pub option: Option<u128>,
+            pub unique_option: Option<u128>,
 
+            // TODO: Add #[unique] if it's allowed by SpacetimeDB
+            //#[wrapped(path = crate::entity::EntityId)]
+            //pub unique_wrapped_option: Option<u128>,
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
             pub wrapped_unique: u128,
 
             #[index(btree)]
             #[wrapped(path = crate::entity::EntityId)]
+            #[foreign_key(table = entity, on_delete = Cascade)]
             pub wrapped_index: u128,
 
             #[index(btree)]
             pub btree_index: u128,
 
             #[unique]
+            #[foreign_key(table = entity, on_delete = SetZero)]
             pub unique: u128,
 
             pub string: String,
@@ -171,7 +192,7 @@ pub mod test {
         component::{
             identifier::{
                 CreateIdentifierRow, GetIdentifierRowOptionByEntityId,
-                GetIdentifierRowOptionByValue, UpdateIdentifierRowById,
+                GetIdentifierRowOptionByValue, UpdateIdentifierRowById, update_modified_at,
             },
             position::{
                 CreatePositionRow, CreateUniquePositionRow, GetAllPositionRows,
@@ -293,9 +314,10 @@ pub mod test {
         }
 
         player_identifier.set_value("ENEMY");
-        player_identifier.set_modified_at(
+        update_modified_at(
+            &mut player_identifier,
             ctx.timestamp
-                .checked_add(TimeDuration::from_micros(500000))
+                .checked_add(TimeDuration::from_micros(99999999999))
                 .unwrap(),
         );
 

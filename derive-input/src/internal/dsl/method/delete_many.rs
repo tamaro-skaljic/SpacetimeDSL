@@ -82,7 +82,6 @@ pub(in crate::internal) fn for_single_column_index(
             }
         }
         None => {
-            
             let column_type: Type;
             if rust_field.type_name_or_path.eq(&"String".into()) {
                 column_type = parse_str("str").unwrap();

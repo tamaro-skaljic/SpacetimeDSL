@@ -1,6 +1,6 @@
 use crate::api::{
     dsl::{
-        column::SpacetimeDSLColumn, foreign_key::ForeignKey, getter::Getter, setter::Setter, wrapper::WrapperType,
+        column::SpacetimeDSLColumn, foreign_key::ForeignKey, getter::Getter, setter::Setter, wrapper::WrapperType
     },
     rust::{RustField, RustStruct},
 };

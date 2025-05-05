@@ -6,6 +6,8 @@ pub mod wrapper;
 
 pub mod foreign_key;
 
+pub mod reference;
+
 pub mod getter;
 
 pub mod setter;

@@ -17,6 +17,8 @@ pub struct ForeignKey {
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
 pub enum OnDeleteStrategy {
     /// Available independent from the column type.
+    Error,
+    /// Available independent from the column type.
     Cascade,
     /// Available only for columns with type `Option<T>`.
     SetNone,

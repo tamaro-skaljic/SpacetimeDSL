@@ -45,7 +45,7 @@ impl WrapperType {
                     } else {
                         return Err(syn::Error::new_spanned(
                             &attr.meta,
-                            "WrapperPath must be set in `#[wrapped(path = WrapperPath)]`, e.g. `path = path::to::my::WrapperType`.",
+                            "PathToWrapperType must be set in `#[wrapped(path = PathToWrapperType)]`, e.g. `path = path::to::my::WrapperType`.",
                         ));
                     }
                 }

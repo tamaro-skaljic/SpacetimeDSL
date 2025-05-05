@@ -10,6 +10,50 @@ use spacetime_bindings_macro_input::util::check_duplicate;
 use syn::meta::ParseNestedMeta;
 use syn::{Error, Ident};
 
+/**
+ * TODO: MUST USE THE DSL METHODS FOR ON DELETION ACTIONS BECAUSE THE DELETION OF A ROW CAN TRIGGER ACTIONS IN OTHER CLASSES
+ *
+ * - in column.try_parse all #[foreign_key]'s must be parsed before the SpacetimeDSLColumnMethods are created (currently they are parsed one column by one before in SpacetimeDSLColumn, meaning that a column only knows all foreign keys of itself and the columns parsed before)
+ * - If there are any foreign keys
+ *   - There must be a data structure like HashMap<TableName, HashMap<OnDeleteStrategy, Vec<ColumnName>>>
+ * - For each table
+ *   - (the dsl reference is passed as argument to any function as well, though it isn't written below)
+ *   - Generate a function (for delete_one) in the same module.
+ *     - Name: perform_{table_name}_actions_after_{foreign_table_name}_deletion
+ *     - Arg: #foreign_table_name: &#column_type
+ *     - Return Type: Result<(), UniqueConstraintViolationError>
+ *     - Impl:
+ *       - For each OnDeleteStrategy (Sort Order: Error, Cascade, SetNone, SetZero):
+ *         - For Unique Indices
+```
+match dsl.ctx().db().#table_name().#column_name().find(#foreign_table_name){
+    Some(#table_name) => {
+        #on_delete_action
+    },
+    None => {
+    }
+};
+```
+*          - For Indices
+```
+match dsl.ctx().db().#table_name().#column_name().filter(#foreign_table_name){
+    Some(#plural_table_name) => {
+        #on_delete_action
+    },
+    None => {
+    }
+};
+```
+ *       - Ok(())
+ *   - Generate another function (delete_many) in the same module.
+ *     - Name: perform_{table_name}_actions_after_{foreign_table_name}_deletions
+ *     - Arg: #plural_table_name: Vec<&#column_type>
+ *     - Return Type: Result<(), UniqueConstraintViolationError>
+ *     - Impl:
+ *       - For each OnDeleteStrategy (Sort Order: Error, Cascade, SetNone, SetZero):
+ *         - TODO
+ *       - Ok(())
+ */
 impl ForeignKey {
     // TODO: Check that the referenced field has a valid type (This field: T | Option<T> | Vec<T>, the other field: T). But this probably won't work from inside rust macros, more likely in a build.rs
     pub(in crate::internal) fn try_parse(field: &SatsField<'_>) -> syn::Result<Option<ForeignKey>> {
@@ -78,21 +122,15 @@ impl ForeignKey {
             .to_string()
             .into();
 
-            let column_name = column_name
-            .ok_or_else(|| {
-                syn::Error::new_spanned(
-                    &attr.meta,
-                    "ColumnName must be set in `#[foreign_key(column = ColumnName)]`, e.g. `column = my_column`.",
-                )
-            })?
-            .to_token_stream()
-            .to_string()
-            .into();
+            let column_name = match column_name {
+                Some(column_name) => column_name.to_token_stream().to_string().into(),
+                None => "id".into(),
+            };
 
             let on_delete_strategy = on_delete_strategy.ok_or_else(|| {
             syn::Error::new_spanned(
                 &attr.meta,
-                "OnDeleteStrategy must be set in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Cascade` (or SetNone or SetZero).",
+                "OnDeleteStrategy must be set in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Cascade` (or Error, SetNone or SetZero).",
             )
         })?;
 
@@ -112,13 +150,15 @@ impl OnDeleteStrategy {
         let action_variant: Ident = meta.value()?.parse()?;
         let action_variant: &str = &action_variant.to_string();
 
+        // TODO: Add Checks (Option, Numeric, ...)
         match action_variant {
+            "Error" => Ok(OnDeleteStrategy::Error),
             "Cascade" => Ok(OnDeleteStrategy::Cascade),
             "SetNone" => Ok(OnDeleteStrategy::SetNone),
             "SetZero" => Ok(OnDeleteStrategy::SetZero),
             _ => Err(Error::new(
                 Span::call_site(),
-                "`OnDeleteStrategy` must be one of `Cascade`, `SetNone` or `SetZero` in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Cascade`.".to_string(),
+                "`OnDeleteStrategy` must be one of `Error`, `Cascade`, `SetNone` or `SetZero` in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Cascade`.".to_string(),
             )),
         }
     }
