@@ -5,6 +5,7 @@ use proc_macro2::Span;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::match_meta;
 use spacetime_bindings_macro_input::sats::SatsField;
+use spacetime_bindings_macro_input::sym::{index, primary_key, unique};
 use spacetime_bindings_macro_input::util::check_duplicate;
 use syn::meta::ParseNestedMeta;
 use syn::{Error, Ident};
@@ -14,9 +15,27 @@ impl ForeignKey {
     pub(in crate::internal) fn try_parse(field: &SatsField<'_>) -> syn::Result<Option<ForeignKey>> {
         let mut foreign_key_value = None;
 
+        let mut has_index = false;
+        for attr in field.original_attrs {
+            if attr.meta.path().eq(&primary_key)
+                || attr.meta.path().eq(&unique)
+                || attr.meta.path().eq(&index)
+            {
+                has_index = true;
+                break;
+            }
+        }
+
         for attr in field.original_attrs {
             if attr.meta.path().ne(&foreign_key) {
                 continue;
+            }
+
+            if !has_index {
+                return Err(syn::Error::new_spanned(
+                    &attr,
+                    "`#[foreign_key]` is only allowed in combination with `#[primary_key]`, `#[unique]` or `#[index]`!",
+                ));
             }
 
             if foreign_key_value.is_some() {

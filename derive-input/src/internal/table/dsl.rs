@@ -3,9 +3,9 @@ use crate::api::dsl::table::{OnDeleteHook, SpacetimeDSLTable};
 use crate::internal::dsl::{on_delete, path, plural_name, table, unique_index};
 use proc_macro2::Span;
 use quote::ToTokens;
-use spacetime_bindings_macro_input::sym::column;
 use spacetime_bindings_macro_input::table::ColumnArgs;
 use spacetime_bindings_macro_input::{match_meta, sym, util::check_duplicate};
+use syn::Path;
 use syn::{
     Ident,
     meta::{ParseNestedMeta, parser},
@@ -68,12 +68,66 @@ impl SpacetimeDSLTable {
                 };
             }
             if !has_created_at_column {
-                has_created_at_column = field.name.as_ref().unwrap().eq("created_at")
-                    && field.ty.to_token_stream().to_string().eq("Timestamp");
+                if field.name.as_ref().unwrap().eq("created_at") {
+                    let field_type = field.ty.to_token_stream().to_string();
+                    if !field_type.eq("Timestamp") {
+                        return Err(syn::Error::new(
+                            Span::call_site(),
+                            format!(
+                                "A column with name `created_at` should have the type `spacetimedb::Timestamp`! Found: {field_type}"
+                            ),
+                        ));
+                    }
+
+                    match field.vis {
+                        syn::Visibility::Public(_) => {
+                            return Err(syn::Error::new(
+                                Span::call_site(),
+                                "A column with name `created_at` should have `Visibility::Inherited`! Found: Visibility::Public",
+                            ));
+                        }
+                        syn::Visibility::Restricted(_) => {
+                            return Err(syn::Error::new(
+                                Span::call_site(),
+                                "A column with name `created_at` should have `Visibility::Inherited`! Found: Visibility::Restricted",
+                            ));
+                        }
+                        syn::Visibility::Inherited => {
+                            has_created_at_column = true;
+                        }
+                    }
+                }
             }
             if !has_modified_at_column {
-                has_modified_at_column = field.name.as_ref().unwrap().eq("modified_at")
-                    && field.ty.to_token_stream().to_string().eq("Timestamp");
+                if field.name.as_ref().unwrap().eq("modified_at") {
+                    let field_type = field.ty.to_token_stream().to_string();
+                    if !field_type.eq("Timestamp") {
+                        return Err(syn::Error::new(
+                            Span::call_site(),
+                            format!(
+                                "A column with name `modified_at` should have the type `spacetimedb::Timestamp`! Found: {field_type}"
+                            ),
+                        ));
+                    }
+
+                    match field.vis {
+                        syn::Visibility::Public(_) => {
+                            return Err(syn::Error::new(
+                                Span::call_site(),
+                                "A column with name `modified_at` should have `Visibility::Inherited`! Found: Visibility::Public",
+                            ));
+                        }
+                        syn::Visibility::Restricted(_) => {
+                            return Err(syn::Error::new(
+                                Span::call_site(),
+                                "A column with name `modified_at` should have `Visibility::Inherited`! Found: Visibility::Restricted",
+                            ));
+                        }
+                        syn::Visibility::Inherited => {
+                            has_created_at_column = true;
+                        }
+                    }
+                }
             }
         }
 
@@ -116,9 +170,8 @@ fn parse_on_delete(
     meta: ParseNestedMeta<'_>,
     spacetimedb_table: &SpacetimeDBTable,
 ) -> syn::Result<OnDeleteHook> {
-    let mut path_value: Option<Ident> = None;
+    let mut path_value: Option<Path> = None;
     let mut table_value: Option<Ident> = None;
-    let mut column_value: Option<Ident> = None;
 
     meta.parse_nested_meta(|meta| {
         match_meta!(match meta {
@@ -129,10 +182,6 @@ fn parse_on_delete(
             table => {
                 check_duplicate(&table_value, &meta)?;
                 table_value = Some(meta.value()?.parse()?);
-            }
-            column => {
-                check_duplicate(&column_value, &meta)?;
-                column_value = Some(meta.value()?.parse()?);
             }
         });
         Ok(())
@@ -148,14 +197,9 @@ fn parse_on_delete(
         .to_token_stream()
         .to_string();
 
-    let column_value: String = column_value
-        .ok_or_else(|| meta.error("ColumnName must be set in `#[dsl(on_delete(column = ColumnName))]`, e.g. `column = my_column`."))?
-        .to_token_stream()
-        .to_string();
-
     // TODO: Implement deletion hooks
     let function_name = format!(
-        "{path_value}::delete_{}_hook_for_{table_value}_{column_value}",
+        "{path_value}::on_{}_delete_hook_for_{table_value}",
         spacetimedb_table.singular_name
     )
     .into();
