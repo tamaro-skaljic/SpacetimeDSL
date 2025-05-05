@@ -13,10 +13,9 @@ use crate::{
     },
 };
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::{TokenStreamExt, format_ident, quote};
 use syn::{Type, parse_str};
 
-// TODO: Create a UniqueConstraintViolation error if a unique multi-column index is violated. (return a Result)
 pub(in crate::internal) fn build(
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
@@ -137,8 +136,32 @@ pub(in crate::internal) fn build(
         };
     }
 
-    let multi_column_index_checks =
+    let mut multi_column_index_checks =
         get_unique_multi_column_index_checks(rust_struct, spacetimedb_table);
+
+    for multi_column_index_check in &mut multi_column_index_checks {
+        let field_name_for_found_value = format_ident!("the_same_or_another_{table_name}");
+        let index_name = &multi_column_index_check.index_name;
+
+        let mut another_one_panic_msg = format!(
+            "There must be no {struct_name} row inside the {table_name} table when filtering on the unique multi-column index {index_name} with value "
+        );
+        another_one_panic_msg.push_str(
+                "{:?}. Found another one with a different value in the primary key column: {:?}. There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the unique multi-column index SpacetimeDSL feature is broken.",
+            );
+
+        multi_column_index_check.check.append_all(quote! {
+            match &#field_name_for_found_value {
+                Some(#field_name_for_found_value) => {
+                    use spacetimedb::table::MaybeError;
+                    return Err(spacetimedb::UniqueConstraintViolation::get()
+                        .map(spacetimedb::TryInsertError::UniqueConstraintViolation)
+                        .unwrap());
+                },
+                _ => {},
+            };
+        });
+    }
 
     let multi_column_index_checks: Vec<TokenStream> = multi_column_index_checks
         .into_iter()
