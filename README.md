@@ -162,6 +162,22 @@ More of, they can just provide a reference to a `Entity` object instead of calli
 If you need to reference the same Wrapper Type twice in the same table, you'll need to provide the name of the already generated Wrapper type and prefix it with `self::`.
 For example, if we would want Entities to have a parent, you would add `#[wrap(self::EntityId)] parent: u128,` to your table-struct. First of all the name is needed because it would create a new Wrapper Type called `EntityParent` instead if it's not named, second it needs to be prefixed with `self::` because SpacetimeDSL doesn't check whether it has already created a Wrapper Type with the same name, instead it looks whether the name is set and contains a `::` and if so it generates no new one Wrapper Type and instead assumes it's generated while parsing another table field.
 
+#### Understanding the implications of Wrapper Types
+
+If you encounter an compilation error like:
+
+The trait bound `WrapperType: From<NumericType>` is not satisifed.\
+The trait `From<NumericType>` is not implemented for `WrapperType`.\
+But trait `From<&TableType>` is implemented fort it.\
+For that trait implementation, expected `&TableType`, found `NumericType`.\
+Required for `NumericType` to implement `Into<WrapperType>`
+
+this means that you've provided a `NumericType` (like `u128`) as argument where a `WrapperType` is required. The caller should instead provide a `WrapperType` and incorporate it into it's API (e. g. reducer arguments).
+
+It's a common limitation of the SpacetimeDB CLI and the [Admin Panel](https://github.com/JulienLavocat/SpacetimeDB-Admin/) that they don't support custom, non-primitive types - they are affected by primitive obsession. Therefore they have no feature-parity with SpacetimeDB server modules. SpacetimeDSL tries to increase the developer experience and uses the full capacities of SpacetimeDB for it, which are supported by SpacetimeDB clients. That said: If you're creating a Wrapper Type object yourself (`WrapperType::new(wrapped_type)`) you're doing something what you shouldn't do, because the whole ecosystem around your server module should incorporate them and not be obsessed my primitives.
+
+#### Output
+
 The input code produces the following output (and many side effects in other features generated code, see the feature's respective section in the docs):
 
 ```rust

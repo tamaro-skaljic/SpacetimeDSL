@@ -51,10 +51,7 @@ pub mod component {
             modified_at: Timestamp,
         }
 
-        pub(crate) fn perform_identifier_actions_after_entity_deletion(
-            id: u128,
-        ) {
-        }
+        pub(crate) fn perform_identifier_actions_after_entity_deletion(id: u128) {}
 
         pub(crate) fn update_modified_at(identifier: &mut Identifier, new_value: Timestamp) {
             identifier.modified_at = new_value;
@@ -121,7 +118,7 @@ pub mod component {
     }
 
     pub mod test {
-        use spacetimedb::{Timestamp, table};
+        use spacetimedb::{table, ScheduleAt, Timestamp};
         use spacetimedsl::dsl;
 
         /// A Position in the World.
@@ -183,6 +180,8 @@ pub mod component {
 
             modified_at: Timestamp,
             // TODO: Vec<T> columns with index, unique and solo, with wrap and without
+
+            scheduled_at: ScheduleAt,
         }
     }
 }
@@ -510,6 +509,7 @@ pub mod test {
             "unique_on_wrapped_string1",
             Some("wrapped_string_option".to_string()),
             0,
+            spacetimedb::ScheduleAt::Time(ctx.timestamp),
         ))?;
 
         let mut world2 = handle_test_result(dsl.create_test(
@@ -525,21 +525,25 @@ pub mod test {
             "unique_on_wrapped_string2",
             Some("wrapped_string_option".to_string()),
             1,
+            spacetimedb::ScheduleAt::Time(ctx.timestamp),
         ))?;
         let _: Option<EntityId> = world1.get_wrapped_option();
         world2.set_wrapped_option(None);
         world2.set_wrapped_option(&player);
         world2.set_wrapped_option(player.get_id());
+        world2.set_wrapped_option(&player.get_id());
 
         // TODO: Add commented lines if https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21 is added
         let _ = dsl.get_tests_by_wrapped_index(&player);
         let _ = dsl.get_tests_by_wrapped_index(player.get_id());
+        let _ = dsl.get_tests_by_wrapped_index(&player.get_id());
         let _ = dsl.get_tests_by_wrapped_index(world2.get_wrapped_index());
         //let _ = dsl.get_tests_by_wrapped_index(&player..);
         //let _ = dsl.get_tests_by_wrapped_index(world2.get_wrapped_index()..);
         let _ = dsl.delete_tests_by_wrapped_index(&player);
         let _ = dsl.delete_tests_by_wrapped_index(player.get_id());
-        let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index());
+        let _ = dsl.delete_tests_by_wrapped_index(&player.get_id());
+        let _ = dsl.delete_tests_by_wrapped_index(&world2.get_wrapped_index());
         //let _ = dsl.delete_tests_by_wrapped_index(&player..);
         //let _ = dsl.delete_tests_by_wrapped_index(&player..&player);
         //let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index()..);

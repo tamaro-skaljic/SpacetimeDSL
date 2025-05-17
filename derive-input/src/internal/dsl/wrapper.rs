@@ -143,6 +143,20 @@ fn get_wrapper_impl(
             }
         }
 
+        impl From<&#wrapper_struct_name> for Option<#wrapper_struct_name> {
+            fn from(value: &#wrapper_struct_name) -> Option<#wrapper_struct_name> {
+                use spacetimedsl::Wrapper;
+                Some(#wrapper_struct_name::new(value.value()))
+            }
+        }
+
+        impl From<&#wrapper_struct_name> for #wrapper_struct_name {
+            fn from(value: &#wrapper_struct_name) -> Self {
+                use spacetimedsl::Wrapper;
+                #wrapper_struct_name::new(value.value())
+            }
+        }
+
         impl spacetimedsl::Wrapper<#wrapped_type, #wrapper_struct_name> for #wrapper_struct_name {
             fn new(value: #wrapped_type) -> Self {
                 Self { value }
