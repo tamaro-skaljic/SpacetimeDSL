@@ -1,5 +1,6 @@
 use super::get_unique_multi_column_index_check;
 use crate::api::db::IndexType;
+use crate::internal::dsl::quote::get_column_value_from_wrapper_clone;
 use crate::internal::utils::wrapper_type_into_option;
 use crate::{
     api::{
@@ -176,20 +177,14 @@ pub(in crate::internal) fn for_multi_column_index(
                         wrapper_type_name_or_path,
                     ));
 
-                    let column_value = &get_column_value(&column_name);
-                    column_values.push(quote! {
-                        #column_name: #column_value
-                    });
+                    column_values.push(get_column_value(&column_name));
                 } else {
                     let ma = get_method_arg_into_wrapper_type(wrapper_type_name_or_path);
                     method_args.push(quote! {
-                        #column_name: #ma
+                        #column_name: #ma + Clone
                     });
 
-                    let column_value = &get_column_value_from_wrapper(&column_name);
-                    column_values.push(quote! {
-                        #column_name: #column_value
-                    });
+                    column_values.push(get_column_value_from_wrapper_clone(&column_name));
                 }
             }
             None => {

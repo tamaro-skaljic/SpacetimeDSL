@@ -118,7 +118,7 @@ pub mod component {
     }
 
     pub mod test {
-        use spacetimedb::{table, ScheduleAt, Timestamp};
+        use spacetimedb::{ScheduleAt, Timestamp, table};
         use spacetimedsl::dsl;
 
         /// A Position in the World.
@@ -180,8 +180,20 @@ pub mod component {
 
             modified_at: Timestamp,
             // TODO: Vec<T> columns with index, unique and solo, with wrap and without
-
             scheduled_at: ScheduleAt,
+        }
+
+        #[dsl(plural_name = ship_objects, unique_index(name = ship_and_sobj))]
+        #[table(name = ship_object, public, index(name = ship_and_sobj, btree(columns = [ship_id, sobj_id])))]
+        // This table duplicates PlayerControlledStellarObject, but because RLS doesn't allow NULLs we kind-of have to.
+        pub struct ShipObject {
+            #[primary_key]
+            #[wrap]
+            pub ship_id: u64, // FK: Ship
+
+            #[unique]
+            #[wrap]
+            pub sobj_id: u64, // FK: StellarObject
         }
     }
 }
@@ -393,7 +405,7 @@ pub mod test {
         player_position.set_y(0);
         player_position.set_z(0);
 
-        _ = match dsl.update_position_by_id(player_position) {
+        let _ = match dsl.update_position_by_id(player_position) {
             Ok(p) => p,
             Err(_) => {
                 return Err(format!(
