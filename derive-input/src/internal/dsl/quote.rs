@@ -106,4 +106,10 @@ pub(in crate::internal::dsl) fn get_column_value_from_wrapper(column_name: &Iden
     }
 }
 
+pub(in crate::internal::dsl) fn get_column_value_from_wrapper_clone(column_name: &Ident) -> TokenStream {
+    quote! {
+        #column_name.clone().into().value()
+    }
+}
+
 //endregion Column Values
