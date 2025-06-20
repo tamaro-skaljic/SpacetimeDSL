@@ -51,8 +51,6 @@ pub mod component {
             modified_at: Timestamp,
         }
 
-        pub(crate) fn perform_identifier_actions_after_entity_deletion(id: u128) {}
-
         pub(crate) fn update_modified_at(identifier: &mut Identifier, new_value: Timestamp) {
             identifier.modified_at = new_value;
         }

@@ -1,8 +1,3 @@
-use super::quote::{
-    get_method_arg_column_type, get_method_arg_into_wrapper_type,
-    get_method_arg_into_wrapper_type_option, get_return_column_type, get_return_wrapper_type,
-    get_return_wrapper_type_option,
-};
 use crate::{
     api::{
         dsl::{setter::Setter, wrapper::WrapperType},
@@ -54,9 +49,8 @@ impl Setter {
                         };
                     } else {
                         let wrapped_type_name_or_path = &WrapperType::map_to_wrapped_type(wrap);
-                        let ma = get_method_arg_column_type(wrapped_type_name_or_path);
                         method_arg = quote! {
-                            #column_name: #ma
+                            #column_name: #wrapped_type_name_or_path
                         };
 
                         return_expr = quote! {
@@ -68,16 +62,20 @@ impl Setter {
                         };
                     }
 
-                    return_type = get_return_wrapper_type(wrapper_type_name_or_path);
+                    return_type = quote! {
+                        #wrapper_type_name_or_path
+                    };
                 }
                 WrapperType::Wrapped(_) => {
                     let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
 
                     if is_option {
-                        let ma = get_method_arg_into_wrapper_type_option(wrapper_type_name_or_path);
-                        method_arg = quote! { #column_name: #ma };
+                        method_arg =
+                            quote! { #column_name: impl Into<Option<#wrapper_type_name_or_path>> };
 
-                        return_type = get_return_wrapper_type_option(wrapper_type_name_or_path);
+                        return_type = quote! {
+                            Option<#wrapper_type_name_or_path>
+                        };
                         return_expr = quote! {
                             match old_value {
                                 Some(old_value) => {
@@ -96,10 +94,11 @@ impl Setter {
                             self.#column_name = #column_name;
                         };
                     } else {
-                        let ma = get_method_arg_into_wrapper_type(wrapper_type_name_or_path);
-                        method_arg = quote! { #column_name: #ma };
+                        method_arg = quote! { #column_name: impl Into<#wrapper_type_name_or_path> };
 
-                        return_type = get_return_wrapper_type(wrapper_type_name_or_path);
+                        return_type = quote! {
+                            #wrapper_type_name_or_path
+                        };
                         return_expr = quote! {
                             #wrapper_type_name_or_path::new(old_value)
                         };
@@ -117,7 +116,9 @@ impl Setter {
                     };
 
                     let rt: Type = parse_str(&rust_field.type_name_or_path).expect("setter");
-                    return_type = get_return_column_type(&rt);
+                    return_type = quote! {
+                        #rt
+                    };
                     return_expr = quote! {
                         old_value.clone()
                     };
@@ -127,10 +128,11 @@ impl Setter {
                     };
                 } else {
                     let rt: Type = parse_str(&rust_field.type_name_or_path).expect("setter");
-                    let ma = get_method_arg_column_type(&rt);
-                    method_arg = quote! { #column_name: #ma };
+                    method_arg = quote! { #column_name: #rt };
 
-                    return_type = get_return_column_type(&rt);
+                    return_type = quote! {
+                        #rt
+                    };
                     return_expr = quote! {
                         old_value
                     };
@@ -154,7 +156,7 @@ impl Setter {
             method_visibility,
             method_name,
             method_arg,
-            return_type,
+            return_type: return_type.to_string().into(),
             method_impl,
         })
     }

@@ -1,6 +1,3 @@
-use super::quote::{
-    get_return_column_type_reference, get_return_wrapper_type, get_return_wrapper_type_option,
-};
 use crate::api::{
     dsl::{getter::Getter, wrapper::WrapperType},
     rust::RustField,
@@ -25,7 +22,9 @@ impl Getter {
                 let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
 
                 if is_option {
-                    return_type = get_return_wrapper_type_option(wrapper_type_name_or_path);
+                    return_type = quote! {
+                        Option<#wrapper_type_name_or_path>
+                    };
 
                     match wrapper_type {
                         WrapperType::Wrap(_) => {
@@ -48,7 +47,9 @@ impl Getter {
                         }
                     }
                 } else {
-                    return_type = get_return_wrapper_type(wrapper_type_name_or_path);
+                    return_type = quote! {
+                        #wrapper_type_name_or_path
+                    };
 
                     method_impl = quote! {
                         #wrapper_type_name_or_path::new(self.#column_name.clone())
@@ -57,7 +58,9 @@ impl Getter {
             }
             None => {
                 let rt: Type = parse_str(&rust_field.type_name_or_path).expect("getter");
-                return_type = get_return_column_type_reference(&rt);
+                return_type = quote! {
+                    &#rt
+                };
 
                 method_impl = quote! {
                     &self.#column_name
@@ -69,7 +72,7 @@ impl Getter {
 
         Getter {
             method_name,
-            return_type,
+            return_type: return_type.to_string().into(),
             method_impl,
         }
     }
