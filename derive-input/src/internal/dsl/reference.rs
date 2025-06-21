@@ -1,5 +1,5 @@
 use super::referenced_by;
-use crate::api::dsl::reference::Reference;
+use crate::api::dsl::reference::ReferencingTable;
 use crate::internal::dsl::{path, table};
 use quote::ToTokens;
 use spacetime_bindings_macro_input::match_meta;
@@ -56,6 +56,12 @@ impl Reference {
     // TODO: Check that the referenced field has a valid type (This field: T | Option<T> | Vec<T>, the other field: T). But this probably won't work from inside rust macros, more likely in a build.rs
     pub(in crate::internal) fn try_parse(field: &SatsField<'_>) -> syn::Result<Vec<Reference>> {
         let mut references: Vec<Reference> = vec![];
+impl ReferencingTable {
+    // TODO: There should be a proper error message if the column which references the primary_key column has not a valid type (This column: T | Option<T>, the other column: T). But this probably won't work from inside rust macros, more likely in a build.rs. Currently it's a compilation error.
+    pub(in crate::internal) fn try_parse(
+        field: &SatsField<'_>,
+    ) -> syn::Result<Vec<ReferencingTable>> {
+        let mut referencing_tables: Vec<ReferencingTable> = vec![];
 
         let mut is_primary_key = false;
         for attr in field.original_attrs {
@@ -98,7 +104,7 @@ impl Reference {
             let path_value = Some(path_value.as_ref()
             .ok_or_else(|| syn::Error::new_spanned(
                 &attr.meta,
-                "PathToTable must be set in `#[dsl(on_delete(path = PathToTable))]`, e.g. `path = path::to::my::table`.",
+                "PathToTable must be set in `#[referenced_by(path = PathToTable)]`, e.g. `path = crate::path::to::my::table`.",
             ))?
             .to_token_stream()
             .to_string().into());
@@ -106,18 +112,17 @@ impl Reference {
             let table_value = Some(table_value.as_ref()
             .ok_or_else(|| syn::Error::new_spanned(
                 &attr.meta,
-                "TableName must be set in `#[dsl(on_delete(table = TableName))]`, e.g. `table = my_table`.",
+                "TableName must be set in `#[referenced_by(table = TableName)]`, e.g. `table = my_table`.",
             ))?
             .to_token_stream()
             .to_string().into());
 
-            references.push(Reference {
+            referencing_tables.push(ReferencingTable {
                 path: path_value.unwrap(),
                 table_name: table_value.unwrap(),
-                referenced_column: field.name.as_ref().unwrap().clone().into(),
             });
         }
 
-        Ok(references)
+        Ok(referencing_tables)
     }
 }

@@ -1,5 +1,5 @@
 use crate::api::db::{IndexType, SpacetimeDBTable};
-use crate::api::dsl::reference::Reference;
+use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::SpacetimeDSLTable;
 use crate::internal::dsl::{plural_name, unique_index};
 use proc_macro2::Span;
@@ -57,16 +57,11 @@ impl SpacetimeDSLTable {
         let mut is_mutable = false;
         let mut has_created_at_column = false;
         let mut has_modified_at_column = false;
-        let mut references = vec![];
+        let mut referencing_tables = vec![];
         for field in &column_args.fields {
-            if column_args
-                .primary_key_column
-                .expect("The table should have a column with `#[primary_key]`!")
-                .ident
-                .to_string()
-                .eq(field.name.as_ref().unwrap())
-            {
-                references = Reference::try_parse(field)?;
+            let refs = ReferencingTable::try_parse(field)?;
+            if referencing_tables.is_empty() {
+                referencing_tables = refs;
             }
 
             if !is_mutable {
@@ -147,7 +142,7 @@ impl SpacetimeDSLTable {
                 is_mutable,
                 has_created_at_column,
                 has_modified_at_column,
-                references,
+                referencing_tables,
             },
         ))
     }
