@@ -8,50 +8,6 @@ use spacetime_bindings_macro_input::sym::primary_key;
 use spacetime_bindings_macro_input::util::check_duplicate;
 use syn::{Ident, Path};
 
-/**
- * TODO: Reference
- * - If the table has at least one Reference
- *   - (the dsl reference is passed as argument to any function as well, though it isn't written below)
- *   - Generate a function (for delete_one) in the same module.
- *     - Name: perform_actions_after_{table_name}_deletion
- *     - Arg: #table_name: &#column_type
- *     - Return Type: Result<(), UniqueConstraintViolationError>
- *     - Impl:
- *       - For each referenced table:
- *         - #referenced_path.perform_{referenced_table_name}_actions_after_{table_name}_deletion(#table_name)?;
- *       - Ok(())
- *   - Generate another function (delete_many) in the same module.
- *     - Name: perform_actions_after_{table_name}_deletions
- *     - Arg: #plural_table_name: Vec<&#column_type>
- *     - Return Type: Result<(), UniqueConstraintViolationError>
- *     - Impl:
- *       - For each referenced table:
- *         - #referenced_path.perform_{referenced_table_name}_actions_after_{table_name}_deletions(#plural_table_name)?;
- *       - Ok(())
- *   - Use the function
- *     - in delete_one:
- *       - for_single_column_index:
- *         - Change `return [...].delete()` to `[...].delete()?;`
- *         - perform_actions_after_{table_name}_deletion(#column_value)?;
- *         - true
- *       - for_multi_column_index:
- *         - Change `return [...].delete()` to `[...].delete()?;`
- *         - perform_actions_after_{table_name}_deletion(#field_name_for_found_value.unwrap().#primary_key_column_name)?;
- *         - true
- *     - in delete_many:
- *       - for_single_column_index:
- *         - After `#into_option`
- *           - let #plural_table_name = self.ctx().db().#table_name().#column_name().filter(#column_value).map(|#table_name| => #table_name.#primary_key_column_name).collect();
- *         - Change `return [...].delete()` to `let count = [...].delete()?;`
- *         - perform_actions_after_{table_name}_deletions(#plural_table_name)?;
- *         - count
- *       - for_multi_column_index:
- *         - After `#into_option`
- *           - let #plural_table_name = self.ctx().db().#table_name().#index_name().filter((#(#column_values),*)).map(|#table_name| => #table_name.#primary_key_column_name).collect();
- *         - Change `return [...].delete()` to `let count = [...].delete()?;`
- *         - perform_actions_after_{table_name}_deletions(#plural_table_name)?;
- *         - count
- */
 impl ReferencingTable {
     // TODO: There should be a proper error message if the column which references the primary_key column has not a valid type (This column: T | Option<T>, the other column: T). But this probably won't work from inside rust macros, more likely in a build.rs. Currently it's a compilation error.
     pub(in crate::internal) fn try_parse(

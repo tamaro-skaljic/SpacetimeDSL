@@ -9,50 +9,6 @@ use spacetime_bindings_macro_input::util::check_duplicate;
 use syn::meta::ParseNestedMeta;
 use syn::{Error, Ident, Meta};
 
-/**
- * TODO: MUST USE THE DSL METHODS FOR ON DELETION ACTIONS BECAUSE THE DELETION OF A ROW CAN TRIGGER ACTIONS IN OTHER CLASSES
- *
- * - in column.try_parse all #[foreign_key]'s must be parsed before the SpacetimeDSLColumnMethods are created (currently they are parsed one column by one before in SpacetimeDSLColumn, meaning that a column only knows all foreign keys of itself and the columns parsed before)
- * - If there are any foreign keys
- *   - There must be a data structure like HashMap<TableName, HashMap<OnDeleteStrategy, Vec<ColumnName>>>
- * - For each table
- *   - (the dsl reference is passed as argument to any function as well, though it isn't written below)
- *   - Generate a function (for delete_one) in the same module.
- *     - Name: perform_{table_name}_actions_after_{foreign_table_name}_deletion
- *     - Arg: #foreign_table_name: &#column_type
- *     - Return Type: Result<(), UniqueConstraintViolationError>
- *     - Impl:
- *       - For each OnDeleteStrategy (Sort Order: Error, Cascade, SetNone, SetZero):
- *         - For Unique Indices
-```
-match dsl.ctx().db().#table_name().#column_name().find(#foreign_table_name){
-    Some(#table_name) => {
-        #on_delete_action
-    },
-    None => {
-    }
-};
-```
-*          - For Indices
-```
-match dsl.ctx().db().#table_name().#column_name().filter(#foreign_table_name){
-    Some(#plural_table_name) => {
-        #on_delete_action
-    },
-    None => {
-    }
-};
-```
- *       - Ok(())
- *   - Generate another function (delete_many) in the same module.
- *     - Name: perform_{table_name}_actions_after_{foreign_table_name}_deletions
- *     - Arg: #plural_table_name: Vec<&#column_type>
- *     - Return Type: Result<(), UniqueConstraintViolationError>
- *     - Impl:
- *       - For each OnDeleteStrategy (Sort Order: Error, Cascade, SetNone, SetZero):
- *         - TODO
- *       - Ok(())
- */
 impl ForeignKey {
     // TODO: There should be a proper error message if the primary_key column which is referenced by this column has not a valid type (This column: T, the other column: T | Option<T>). But this probably won't work from inside rust macros, more likely in a build.rs. Currently it's a compilation error.
     pub(in crate::internal) fn try_parse(field: &SatsField<'_>) -> syn::Result<Option<ForeignKey>> {
