@@ -503,6 +503,7 @@ pub(in crate::internal) fn for_single_column_index(
     let plural_table_name = &spacetimedsl_table.plural_name;
     let column_name = format_ident!("{}", *rust_field.name);
     let column_name_pascal_case = RenameRule::PascalCase.apply_to_field(column_name.to_string());
+    let primary_key_column_name = format_ident!("{primary_key_column_name}");
 
     let doc_comment = match dsl_method {
         DSLColumnMethod::GetMany => format!("Get all {struct_name} rows inside the {singular_table_name} table filtered by the single-column index on the {column_name} column."),
@@ -555,7 +556,6 @@ pub(in crate::internal) fn for_single_column_index(
         DSLColumnMethod::Update => {
             method_args.push(quote! { mut #singular_table_name: #struct_name });
 
-            let primary_key_column_name = format_ident!("{primary_key_column_name}");
             let multi_column_index_checks = multi_column_index_checks(
                 &struct_name,
                 &singular_table_name,
