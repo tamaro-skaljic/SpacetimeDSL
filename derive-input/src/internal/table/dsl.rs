@@ -54,6 +54,26 @@ impl SpacetimeDSLTable {
             }
         }
 
+        match column_args
+            .primary_key_column
+            .expect("The table should have a `#[primary_key]` column!")
+            .vis
+        {
+            syn::Visibility::Public(_) => {
+                return Err(syn::Error::new(
+                    Span::call_site(),
+                    "A `#[primary_key]` column should have `Visibility::Inherited`! Found: Visibility::Public",
+                ));
+            }
+            syn::Visibility::Restricted(_) => {
+                return Err(syn::Error::new(
+                    Span::call_site(),
+                    "A `#[primary_key]` column should have `Visibility::Inherited`! Found: Visibility::Restricted",
+                ));
+            }
+            syn::Visibility::Inherited => {}
+        }
+
         let mut is_mutable = false;
         let mut has_created_at_column = false;
         let mut has_modified_at_column = false;

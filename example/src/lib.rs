@@ -193,7 +193,7 @@ pub mod component {
             #[primary_key]
             #[auto_inc]
             #[wrap]
-            pub ship_id: u64,
+            ship_id: u64,
 
             #[unique]
             #[auto_inc]
