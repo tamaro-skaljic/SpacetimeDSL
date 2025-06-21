@@ -27,9 +27,8 @@ syn = { version = "2.0" }
 # https://crates.io/crates/quote Quasi-quoting macro quote!(...)
 quote = "1.0"
 
-# TODO: Use
-# https://crates.io/crates/prettyplease A minimal `syn` syntax tree pretty-printer
-prettyplease = "0.2.32"
+# https://crates.io/crates/rust-format A Rust source code formatting crate with a unified interface for string, file, and TokenStream input
+rust-format = { version = "0.3.4", features = [ "pretty_please", "token_stream" ]}
 
 # https://crates.io/crates/spacetimedsl_derive-input Contains structs which represent the output of SpacetimeDSL. Can be used by other proc-macro crates to build Macros which utilize SpacetimeDSL under the hood.
 spacetimedsl_derive-input = { version = "0.6.0", path = "../derive-input" }

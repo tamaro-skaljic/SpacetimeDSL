@@ -21,6 +21,8 @@ pub struct SpacetimeDSLTableMethods {
     pub create: SpacetimeDSLMethod,
     pub get_all: SpacetimeDSLMethod,
     pub get_count: SpacetimeDSLMethod,
+    pub actions_after_delete_one: Option<SpacetimeDSLMethod>,
+    pub actions_after_delete_many: Option<SpacetimeDSLMethod>,
     pub multi_column_indices: Vec<SpacetimeDSLColumnMethods>,
 }
 

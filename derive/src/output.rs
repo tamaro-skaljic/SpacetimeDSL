@@ -1,5 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
+use rust_format::{Formatter, PrettyPlease};
 use spacetimedsl_derive_input::api::{
     Table,
     dsl::{
@@ -32,6 +33,12 @@ pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     dsl_methods.push(build_without_lifetime(&input.spacetimedsl_methods.create)?);
     dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_all)?);
     dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_count)?);
+    dsl_methods.push(build_internal(
+        &input.spacetimedsl_methods.actions_after_delete_one,
+    )?);
+    dsl_methods.push(build_internal(
+        &input.spacetimedsl_methods.actions_after_delete_many,
+    )?);
 
     for multi_column_index in &input.spacetimedsl_methods.multi_column_indices {
         dsl_methods.push(get_column_dsl_methods(multi_column_index)?);
@@ -86,9 +93,12 @@ fn get_column_dsl_methods(index: &SpacetimeDSLColumnMethods) -> syn::Result<Toke
 
 // get_all, get_count, get_many, delete_many
 fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
-    let doc_comment = &method.doc_comment;
+    let mut doc_comment = String::new();
+    doc_comment.push_str(&method.doc_comment);
+
     let trait_name = format_ident!("{}", *method.trait_name);
     let method_name = format_ident!("{}", *method.method_name);
+
     let mut method_args: Vec<TokenStream> = vec![];
     for method_arg in &method.method_args {
         method_args.push(parse_str(&method_arg)?);
@@ -97,7 +107,27 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
     let return_type: Type = parse_str(&method.return_type)?;
     let method_impl: TokenStream = parse_str(&method.method_impl)?;
 
-    Ok(quote! {
+    let pretty_please = PrettyPlease::default();
+    let implementation_docs = quote! {
+        pub trait #trait_name: spacetimedsl::DSLContext {
+            fn #method_name<'a>(
+                &'a self,
+                #(#method_args),*
+            ) -> #return_type {
+                use spacetimedsl::Wrapper;
+                use spacetimedb::{DbContext,Table};
+                #method_impl
+            }
+        }
+
+        impl #trait_name for spacetimedsl::DSL<'_> {}
+    };
+    let implementation_docs = pretty_please.format_tokens(implementation_docs).unwrap();
+    doc_comment.push_str(&format!(
+        "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
+    ));
+
+    let method = quote! {
         #[doc=#doc_comment]
         pub trait #trait_name: spacetimedsl::DSLContext {
             #[doc=#doc_comment]
@@ -112,22 +142,48 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
         }
 
         impl #trait_name for spacetimedsl::DSL<'_> {}
-    })
+    };
+
+    Ok(method)
 }
 
 // create, get_one_option, update, delete_one
 pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
-    let doc_comment = &method.doc_comment;
+    let mut doc_comment = String::new();
+    doc_comment.push_str(&method.doc_comment);
+
     let trait_name = format_ident!("{}", *method.trait_name);
     let method_name = format_ident!("{}", *method.method_name);
+
     let mut method_args: Vec<TokenStream> = vec![];
     for method_arg in &method.method_args {
         method_args.push(parse_str(&method_arg)?);
     }
+
     let return_type: Type = parse_str(&method.return_type)?;
     let method_impl: TokenStream = parse_str(&method.method_impl)?;
 
-    Ok(quote! {
+    let pretty_please = PrettyPlease::default();
+    let implementation_docs = quote! {
+        pub trait #trait_name: spacetimedsl::DSLContext {
+            fn #method_name(
+                &self,
+                #(#method_args),*
+            ) -> #return_type {
+                use spacetimedsl::Wrapper;
+                use spacetimedb::{DbContext,Table};
+                #method_impl
+            }
+        }
+
+        impl #trait_name for spacetimedsl::DSL<'_> {}
+    };
+    let implementation_docs = pretty_please.format_tokens(implementation_docs).unwrap();
+    doc_comment.push_str(&format!(
+        "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
+    ));
+
+    let method = quote! {
         #[doc=#doc_comment]
         pub trait #trait_name: spacetimedsl::DSLContext {
             #[doc=#doc_comment]
@@ -142,7 +198,69 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
         }
 
         impl #trait_name for spacetimedsl::DSL<'_> {}
-    })
+    };
+
+    Ok(method)
+}
+
+// actions_after_delete_one, actions_after_delete_many
+pub fn build_internal(method: &Option<SpacetimeDSLMethod>) -> syn::Result<TokenStream> {
+    //TODO: if method.is_none() {
+    return Ok(TokenStream::default());
+    //}
+
+    let method = method.as_ref().unwrap();
+
+    let mut doc_comment = String::new();
+    doc_comment.push_str(&method.doc_comment);
+
+    let trait_name = format_ident!("{}", *method.trait_name);
+    let method_name = format_ident!("{}", *method.method_name);
+
+    let mut method_args: Vec<TokenStream> = vec![];
+    for method_arg in &method.method_args {
+        method_args.push(parse_str(&method_arg)?);
+    }
+
+    let return_type: Type = parse_str(&method.return_type)?;
+    let method_impl: TokenStream = parse_str(&method.method_impl)?;
+
+    let pretty_please = PrettyPlease::default();
+    let implementation_docs = quote! {
+        pub trait #trait_name {
+            fn #method_name(
+                #(#method_args),*
+            ) -> #return_type {
+                use spacetimedsl::Wrapper;
+                use spacetimedb::{DbContext,Table};
+                #method_impl
+            }
+        }
+
+        impl #trait_name for spacetimedsl::internal::DSLInternals {}
+    };
+    let implementation_docs = pretty_please.format_tokens(implementation_docs).unwrap();
+    doc_comment.push_str(&format!(
+        "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
+    ));
+
+    let method = quote! {
+        #[doc=#doc_comment]
+        pub trait #trait_name {
+            #[doc=#doc_comment]
+            fn #method_name(
+                #(#method_args),*
+            ) -> #return_type {
+                use spacetimedsl::Wrapper;
+                use spacetimedb::{DbContext,Table};
+                #method_impl
+            }
+        }
+
+        impl #trait_name for spacetimedsl::internal::DSLInternals {}
+    };
+
+    Ok(method)
 }
 
 fn getter(getter: &Getter) -> syn::Result<TokenStream> {
