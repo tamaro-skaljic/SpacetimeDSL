@@ -15,6 +15,7 @@ pub mod entity {
         #[referenced_by(path = crate::component::position,   table = position)]
         #[referenced_by(path = crate::component::position,   table = unique_position)]
         #[referenced_by(path = crate::component::test,       table = test)]
+        #[referenced_by(path = crate::component::test,       table = ship_object)]
         id: u128,
 
         created_at: Timestamp,
@@ -73,7 +74,7 @@ pub mod component {
             /// The unique ID of the Entity the Position belongs to.
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
-            #[foreign_key(table = entity, on_delete = Cascade)]
+            #[foreign_key(table = entity, on_delete = SetZero)]
             entity_id: u128,
 
             pub x: i128,
@@ -188,15 +189,21 @@ pub mod component {
 
         #[dsl(plural_name = ship_objects, unique_index(name = ship_and_sobj))]
         #[table(name = ship_object, public, index(name = ship_and_sobj, btree(columns = [ship_id, sobj_id])))]
-        // This table duplicates PlayerControlledStellarObject, but because RLS doesn't allow NULLs we kind-of have to.
         pub struct ShipObject {
             #[primary_key]
+            #[auto_inc]
             #[wrap]
-            pub ship_id: u64, // FK: Ship
+            pub ship_id: u64,
 
             #[unique]
+            #[auto_inc]
             #[wrap]
-            pub sobj_id: u64, // FK: StellarObject
+            pub sobj_id: u64,
+
+            #[unique]
+            #[wrapped(path = crate::entity::EntityId)]
+            #[foreign_key(table = entity, on_delete = Error)]
+            pub entity_id: u128,
         }
     }
 }
@@ -205,17 +212,19 @@ pub mod test {
     use crate::{
         component::{
             identifier::{
-                CreateIdentifierRow, GetIdentifierRowOptionByEntityId,
+                CreateIdentifierRow, GetCountOfIdentifierRows, GetIdentifierRowOptionByEntityId,
                 GetIdentifierRowOptionByValue, UpdateIdentifierRowById, update_modified_at,
             },
             position::{
                 CreatePositionRow, CreateUniquePositionRow, GetAllPositionRows,
                 GetAllUniquePositionRows, GetCountOfPositionRows, GetCountOfUniquePositionRows,
-                PositionId, UniquePositionId, UpdatePositionRowById, UpdateUniquePositionRowById,
+                GetPositionRowOptionById, PositionId, UniquePositionId, UpdatePositionRowById,
+                UpdateUniquePositionRowById,
             },
             test::{
-                CreateTestRow, DeleteTestRowsByBtreeIndex, DeleteTestRowsByWrappedIndex,
-                GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex, Test,
+                CreateShipObjectRow, CreateTestRow, DeleteTestRowsByBtreeIndex,
+                DeleteTestRowsByWrappedIndex, GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex,
+                Test,
             },
         },
         entity::{CreateEntityRow, DeleteEntityRowById, EntityId, GetEntityRowOptionById},
@@ -399,7 +408,7 @@ pub mod test {
         };
 
         let mut player_position =
-            match dsl.create_position(&player, 1, 1, -1, player_reflection_position_id) {
+            match dsl.create_position(&player, 1, 1, -1, player_reflection_position_id.clone()) {
                 Ok(p) => p,
                 Err(_) => {
                     return Err(format!(
@@ -571,6 +580,31 @@ pub mod test {
         //let _ = dsl.get_tests_by_btree_index(world2.get_btree_index()..);
         let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index());
         //let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index()..);
+
+        dsl.delete_entity_by_id(&player_reflection);
+        if dsl.get_count_of_identifiers().ne(&0) {
+            return Err("The count of Identifiers should be 0 because the player_reflection Entity was deleted and the foreign key has a Cascade strategy.".to_string());
+        }
+        if dsl
+            .get_position_by_id(&player_reflection_position_id)
+            .unwrap()
+            .get_entity_id()
+            .value()
+            .ne(&0)
+        {
+            return Err("The entity_id of the position which was previously for the player_reflection entity should be 0 because the entity was deleted and the foreign key has a SetZero strategy.".to_string());
+        }
+
+        let _ = dsl.create_ship_object(&player);
+
+        // TODO: TryDeleteError
+        match dsl.delete_entity_by_id(&player) {
+            true => {
+                return Err("The deletion of the entity player shouldn't have worked because ship_object.entity_id has a foreign key on the entity id with Error strategy".to_string());
+            }
+            false => {}
+        };
+
         info!("Test executed successfully!");
 
         Ok(())

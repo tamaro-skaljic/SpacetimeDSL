@@ -21,6 +21,7 @@ pub enum OnDeleteStrategy {
     /// Available independent from the column type.
     Cascade,
     /// Available only for columns with type `Option<T>`.
+    // TODO: Because Option is currently not allowed on unique/btree indices this strategy isn't used and implemented yet.
     SetNone,
     /// Available only for columns with a numeric type.
     SetZero,
