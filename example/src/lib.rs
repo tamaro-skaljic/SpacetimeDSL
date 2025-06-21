@@ -605,6 +605,8 @@ pub mod test {
             false => {}
         };
 
+        // TODO: Add test for SetNone strategy if it's implemented
+
         info!("Test executed successfully!");
 
         Ok(())

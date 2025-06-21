@@ -52,10 +52,6 @@ use syn::{Ident, Path};
  *         - perform_actions_after_{table_name}_deletions(#plural_table_name)?;
  *         - count
  */
-impl Reference {
-    // TODO: Check that the referenced field has a valid type (This field: T | Option<T> | Vec<T>, the other field: T). But this probably won't work from inside rust macros, more likely in a build.rs
-    pub(in crate::internal) fn try_parse(field: &SatsField<'_>) -> syn::Result<Vec<Reference>> {
-        let mut references: Vec<Reference> = vec![];
 impl ReferencingTable {
     // TODO: There should be a proper error message if the column which references the primary_key column has not a valid type (This column: T | Option<T>, the other column: T). But this probably won't work from inside rust macros, more likely in a build.rs. Currently it's a compilation error.
     pub(in crate::internal) fn try_parse(

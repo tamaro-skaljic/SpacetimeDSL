@@ -1,14 +1,13 @@
 use super::foreign_key;
 use crate::api::dsl::foreign_key::{ForeignKey, OnDeleteStrategy};
 use crate::internal::dsl::{column, on_delete, table};
-use proc_macro2::Span;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::match_meta;
 use spacetime_bindings_macro_input::sats::SatsField;
 use spacetime_bindings_macro_input::sym::{index, primary_key, unique};
 use spacetime_bindings_macro_input::util::check_duplicate;
 use syn::meta::ParseNestedMeta;
-use syn::{Error, Ident};
+use syn::{Error, Ident, Meta};
 
 /**
  * TODO: MUST USE THE DSL METHODS FOR ON DELETION ACTIONS BECAUSE THE DELETION OF A ROW CAN TRIGGER ACTIONS IN OTHER CLASSES
@@ -55,7 +54,7 @@ match dsl.ctx().db().#table_name().#column_name().filter(#foreign_table_name){
  *       - Ok(())
  */
 impl ForeignKey {
-    // TODO: Check that the referenced field has a valid type (This field: T | Option<T> | Vec<T>, the other field: T). But this probably won't work from inside rust macros, more likely in a build.rs
+    // TODO: There should be a proper error message if the primary_key column which is referenced by this column has not a valid type (This column: T, the other column: T | Option<T>). But this probably won't work from inside rust macros, more likely in a build.rs. Currently it's a compilation error.
     pub(in crate::internal) fn try_parse(field: &SatsField<'_>) -> syn::Result<Option<ForeignKey>> {
         let mut foreign_key_value = None;
 
@@ -105,7 +104,7 @@ impl ForeignKey {
                     }
                     on_delete => {
                         check_duplicate(&on_delete_strategy, &meta)?;
-                        on_delete_strategy = Some(OnDeleteStrategy::try_parse(&meta)?);
+                        on_delete_strategy = Some(OnDeleteStrategy::try_parse(&meta, &attr.meta)?);
                     }
                 });
                 Ok(())
@@ -124,6 +123,7 @@ impl ForeignKey {
 
             let column_name = match column_name {
                 Some(column_name) => column_name.to_token_stream().to_string().into(),
+                // TODO: Document this default!!
                 None => "id".into(),
             };
 
@@ -146,18 +146,21 @@ impl ForeignKey {
 }
 
 impl OnDeleteStrategy {
-    fn try_parse(meta: &ParseNestedMeta<'_>) -> syn::Result<OnDeleteStrategy> {
+    fn try_parse(meta: &ParseNestedMeta<'_>, tokens: &Meta) -> syn::Result<OnDeleteStrategy> {
         let action_variant: Ident = meta.value()?.parse()?;
         let action_variant: &str = &action_variant.to_string();
 
-        // TODO: Add Checks (Option, Numeric, ...)
+        // TODO: Add Checks (Option for SetNone, Numeric for SetZero (SpacetimeDB has a is_numeric function), ...)
         match action_variant {
             "Error" => Ok(OnDeleteStrategy::Error),
             "Cascade" => Ok(OnDeleteStrategy::Cascade),
-            "SetNone" => Ok(OnDeleteStrategy::SetNone),
+            "SetNone" => Err(syn::Error::new_spanned(
+                &tokens,
+                "Because Option is currently not allowed on primary_key and unique/btree indices, `OnDeleteStrategy::SetNone` isn't implemented yet. `OnDeleteStrategy` must be one of `Error`, `Cascade` or `SetZero` in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Cascade`.".to_string(),
+            )),
             "SetZero" => Ok(OnDeleteStrategy::SetZero),
-            _ => Err(Error::new(
-                Span::call_site(),
+            _ => Err(syn::Error::new_spanned(
+                &tokens,
                 "`OnDeleteStrategy` must be one of `Error`, `Cascade`, `SetNone` or `SetZero` in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Cascade`.".to_string(),
             )),
         }

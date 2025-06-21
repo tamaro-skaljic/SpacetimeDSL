@@ -6,7 +6,6 @@
 pub struct ForeignKey {
     pub table_name: Box<str>,
     pub column_name: Box<str>,
-    // TODO: Implement On Delete Strategies
     pub on_delete_strategy: OnDeleteStrategy,
 }
 
@@ -18,11 +17,14 @@ pub struct ForeignKey {
 pub enum OnDeleteStrategy {
     /// Available independent from the column type.
     Error,
+
     /// Available independent from the column type.
     Cascade,
+
+    // TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
     /// Available only for columns with type `Option<T>`.
-    // TODO: Because Option is currently not allowed on unique/btree indices this strategy isn't used and implemented yet.
     SetNone,
+
     /// Available only for columns with a numeric type.
     SetZero,
 }

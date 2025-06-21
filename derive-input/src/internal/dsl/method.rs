@@ -19,14 +19,16 @@ use crate::{
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::{TokenStreamExt, format_ident, quote};
-use syn::{Ident, Type, parse_str};
+use syn::{Ident, Path, Type, parse_str};
 
+#[derive(Debug)]
 pub(in crate::internal) enum DSLTableMethod {
     Create,
     GetAll,
     GetCount,
 }
 
+#[derive(Debug)]
 pub(in crate::internal) enum DSLColumnMethod {
     GetMany,
     DeleteMany,
@@ -49,6 +51,7 @@ impl SpacetimeDSLTableMethods {
             spacetimedb_table,
             spacetimedsl_table,
             columns,
+            primary_key_column_name,
         );
 
         let get_all = for_table(
@@ -57,6 +60,7 @@ impl SpacetimeDSLTableMethods {
             spacetimedb_table,
             spacetimedsl_table,
             columns,
+            primary_key_column_name,
         );
 
         let get_count = for_table(
@@ -65,6 +69,7 @@ impl SpacetimeDSLTableMethods {
             spacetimedb_table,
             spacetimedsl_table,
             columns,
+            primary_key_column_name,
         );
         let mut multi_column_indices = vec![];
 
@@ -249,21 +254,22 @@ pub(in crate::internal) fn for_table(
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
     columns: &Vec<Column>,
+    primary_key_column_name: &Box<str>,
 ) -> SpacetimeDSLMethod {
     let struct_name = format_ident!("{}", *rust_struct.name);
     let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
+    let singular_table_name_pascal_case =
+        RenameRule::PascalCase.apply_to_field(spacetimedb_table.singular_name.to_string());
     let plural_table_name = &spacetimedsl_table.plural_name;
 
     let doc_comment = match dsl_table_method {
-        DSLTableMethod::Create => format!("Create a {} row.", struct_name),
-        DSLTableMethod::GetAll => format!(
-            "Get all {} rows inside the {} table.",
-            struct_name, singular_table_name
-        ),
-        DSLTableMethod::GetCount => format!(
-            "Get the count of all {} rows inside the {} table.",
-            struct_name, singular_table_name
-        ),
+        DSLTableMethod::Create => format!("Create a row in the `{singular_table_name}` table."),
+        DSLTableMethod::GetAll => {
+            format!("Get all rows inside the `{singular_table_name}` table.")
+        }
+        DSLTableMethod::GetCount => {
+            format!("Get the count of all rows inside the `{singular_table_name}` table.")
+        }
     }
     .into();
 
@@ -284,11 +290,17 @@ pub(in crate::internal) fn for_table(
     let return_type = match dsl_table_method {
         DSLTableMethod::Create => {
             let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
-            quote! {Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>}
+            quote! {
+                Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>
+            }
+        }
+        DSLTableMethod::GetAll => quote! {
+            impl Iterator<Item = #struct_name>
         },
-        DSLTableMethod::GetAll => quote! {impl Iterator<Item = #struct_name>},
-        DSLTableMethod::GetCount => quote! {u64},
-}
+        DSLTableMethod::GetCount => quote! {
+            u64
+        },
+    }
     .to_string()
     .into();
 
@@ -303,7 +315,7 @@ pub(in crate::internal) fn for_table(
             for column in columns {
                 let column_name = format_ident!("{}", *column.rust_field.name);
                 let column_type: Type =
-                    parse_str(&column.rust_field.type_name_or_path).expect("create.build");
+                    parse_str(&column.rust_field.type_name_or_path).expect("create");
 
                 if column.spacetimedb_column.is_auto_inc
                     || column.rust_field.name.eq(&"created_at".to_string().into())
@@ -511,8 +523,7 @@ pub(in crate::internal) fn for_single_column_index(
         DSLColumnMethod::GetOneOption => format!("Get an Option<{struct_name}> row inside the {singular_table_name} table filtered by the unique single-column index on the {column_name} column."),
         DSLColumnMethod::Update => format!("Update a {struct_name} row inside the {singular_table_name} table by the unique single-column index on the {column_name} column."),
         DSLColumnMethod::DeleteOne => format!("Delete a {struct_name} row inside the {singular_table_name} table filtered by the unique single-column index on the {column_name} column."),
-    }
-    .into();
+    }.into();
 
     let trait_name = match dsl_method {
         DSLColumnMethod::GetMany => format!("Get{struct_name}RowsBy{column_name_pascal_case}"),
