@@ -141,6 +141,9 @@ Which can for example be used like so:
 
 ![Example usage of the generated dsl methods](example_dsl_usage.png)
 
+### 🔥🥵 Unique multi-column indices
+
+[SpacetimeDSL](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/25) has implemented unique multi-column indices before [SpacetimeDB](https://github.com/clockworklabs/SpacetimeDB/issues/976).
 
 
 ### 🔥🥵 Wrapper Types

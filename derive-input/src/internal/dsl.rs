@@ -12,8 +12,6 @@ pub mod setter;
 
 pub mod method;
 
-pub mod quote;
-
 symbol!(table);
 symbol!(plural_name);
 symbol!(unique_index);

@@ -15,7 +15,7 @@ pub(in crate::internal) fn spacetime_bindings_macro_input(
     Ok((table_args, column_args))
 }
 
-pub(in crate::internal) fn get_table_attribute_macro(
+fn get_table_attribute_macro(
     input: &DeriveInput,
 ) -> syn::Result<TokenStream> {
     let mut table = None;

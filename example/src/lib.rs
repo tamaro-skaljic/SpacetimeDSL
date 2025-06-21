@@ -51,8 +51,6 @@ pub mod component {
             modified_at: Timestamp,
         }
 
-        pub(crate) fn perform_identifier_actions_after_entity_deletion(id: u128) {}
-
         pub(crate) fn update_modified_at(identifier: &mut Identifier, new_value: Timestamp) {
             identifier.modified_at = new_value;
         }
@@ -83,6 +81,9 @@ pub mod component {
             pub y: i128,
 
             pub z: i128,
+
+            #[wrapped(path = crate::component::position::PositionId)]
+            mirrored_position_id: Option<u128>,
 
             created_at: Timestamp,
 
@@ -135,11 +136,13 @@ pub mod component {
             pub wrapped_option: Option<u128>,
 
             // TODO: Add #[unique] if it's allowed by SpacetimeDB
-            pub unique_option: Option<u128>,
+            // #[unique]
+            // pub unique_option: Option<u128>,
 
-            // TODO: Add #[unique] if it's allowed by SpacetimeDB
-            //#[wrapped(path = crate::entity::EntityId)]
-            //pub unique_wrapped_option: Option<u128>,
+            // TODO: Add unique_wrapped_option if it's allowed by SpacetimeDB
+            // #[unique]
+            // #[wrapped(path = crate::entity::EntityId)]
+            // pub unique_wrapped_option: Option<u128>,
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
             pub wrapped_unique: u128,
@@ -315,6 +318,7 @@ pub mod test {
             Err(_) => {}
         };
          */
+
         match dsl.get_identifier_by_value("PLAYER") {
             Some(identifier) => {
                 player_identifier = identifier;
@@ -324,7 +328,7 @@ pub mod test {
             }
         }
 
-        player_identifier.set_value("ENEMY");
+        player_identifier.set_value("PLAYER_REFLECTION");
         update_modified_at(
             &mut player_identifier,
             ctx.timestamp
@@ -332,7 +336,7 @@ pub mod test {
                 .unwrap(),
         );
 
-        let enemy_identifier = match dsl.update_identifier_by_id(player_identifier) {
+        let player_reflection_identifier = match dsl.update_identifier_by_id(player_identifier) {
             Ok(i) => i,
             Err(e) => {
                 return Err(format!(
@@ -343,7 +347,7 @@ pub mod test {
             }
         };
 
-        if enemy_identifier
+        if player_reflection_identifier
             .get_modified_at()
             .to_system_time()
             .ne(&time)
@@ -354,14 +358,17 @@ pub mod test {
             );
         }
 
-        let enemy = player;
+        let player_reflection = player;
 
-        match dsl.get_identifier_by_entity_id(&enemy) {
+        match dsl.get_identifier_by_entity_id(&player_reflection) {
             Some(identifier) => {
-                if identifier.get_value().ne(enemy_identifier.get_value()) {
+                if identifier
+                    .get_value()
+                    .ne(player_reflection_identifier.get_value())
+                {
                     return Err(format!(
                         "The Identifier values should equal. Expected: {}, Actual: {}.",
-                        enemy_identifier.get_value(),
+                        player_reflection_identifier.get_value(),
                         identifier.get_value()
                     ));
                 }
@@ -370,13 +377,13 @@ pub mod test {
                 return Err("Should be able to get an Identifier by it's Entity!".to_string());
             }
         }
-
-        match dsl.create_position(&enemy, 0, 0, 0) {
-            Ok(_) => {}
+        let player_reflection_position_id;
+        match dsl.create_position(&player_reflection, 1, 1, 1, None) {
+            Ok(position) => player_reflection_position_id = position.get_id(),
             Err(_) => {
                 return Err(format!(
                     "{:?}: Should be able to add an newly created Position.",
-                    enemy
+                    player_reflection
                 ));
             }
         }
@@ -391,15 +398,16 @@ pub mod test {
             }
         };
 
-        let mut player_position = match dsl.create_position(&player, 1, 1, 1) {
-            Ok(p) => p,
-            Err(_) => {
-                return Err(format!(
-                    "{:?}: Should be able to add an newly created Position.",
-                    player
-                ));
-            }
-        };
+        let mut player_position =
+            match dsl.create_position(&player, 1, 1, -1, player_reflection_position_id) {
+                Ok(p) => p,
+                Err(_) => {
+                    return Err(format!(
+                        "{:?}: Should be able to add an newly created Position.",
+                        player
+                    ));
+                }
+            };
 
         player_position.set_x(0);
         player_position.set_y(0);
@@ -439,12 +447,12 @@ pub mod test {
             return Err("The count of Positions should equal.".to_string());
         }
 
-        let _ = match dsl.create_unique_position(&enemy, 0, 0, 0) {
+        let _ = match dsl.create_unique_position(&player_reflection, 0, 0, 0) {
             Ok(p) => p,
             Err(_) => {
                 return Err(format!(
                     "{:?}: Should be able to add an newly created unique Position.",
-                    enemy
+                    player_reflection
                 ));
             }
         };
@@ -453,7 +461,7 @@ pub mod test {
             Ok(_) => {
                 return Err(format!(
                     "{:?}: Shouldn't be able to add an newly created unique Position which does already exist.",
-                    enemy
+                    player_reflection
                 ));
             }
             Err(_) => {}
@@ -464,7 +472,7 @@ pub mod test {
             Err(_) => {
                 return Err(format!(
                     "{:?}: Should be able to add an newly created unique Position.",
-                    enemy
+                    player_reflection
                 ));
             }
         };
@@ -477,7 +485,7 @@ pub mod test {
             Ok(_) => {
                 return Err(format!(
                     "{:?}: Shouldn't be able to update an unique Position to a value in x_y_z which does already exist.",
-                    enemy
+                    player_reflection
                 ));
             }
             Err(_) => {}
@@ -510,7 +518,6 @@ pub mod test {
 
         let world1 = handle_test_result(dsl.create_test(
             None,
-            Some(player.get_id().value()),
             &player,
             &player,
             player.get_id().value(),
@@ -526,8 +533,7 @@ pub mod test {
 
         let mut world2 = handle_test_result(dsl.create_test(
             &player,
-            None,
-            enemy.get_id(),
+            player_reflection.get_id(),
             player.get_id(),
             player.get_id().value(),
             1,
