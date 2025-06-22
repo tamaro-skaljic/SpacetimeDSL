@@ -1,4 +1,3 @@
-pub use internal::DSLContext;
 pub use itertools;
 use spacetimedb::ReducerContext;
 pub use spacetimedsl_derive::{SpacetimeDSL, dsl};
@@ -12,10 +11,36 @@ pub fn dsl<'a>(ctx: &'a ReducerContext) -> DSL<'a> {
     DSL { ctx }
 }
 
+pub trait DSLContext {
+    fn ctx<'a>(&'a self) -> &'a ReducerContext;
+}
+
+impl DSLContext for DSL<'_> {
+    fn ctx<'a>(&'a self) -> &'a ReducerContext {
+        self.ctx
+    }
+}
+
 pub trait Wrapper<WrappedType: Clone + Default, WrapperType> {
     fn new(value: WrappedType) -> WrapperType;
     fn default() -> WrapperType;
     fn value(&self) -> WrappedType;
+}
+
+// Don't forget to copy + paste this enum into `derive_input::api::dsl::foreign_key` if you change it
+pub enum OnDeleteStrategy {
+    /// Available independent from the column type.
+    Error,
+
+    /// Available independent from the column type.
+    Cascade,
+
+    // TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
+    /// Available only for columns with type `Option<T>`.
+    //SetNone,
+
+    /// Available only for columns with a numeric type.
+    SetZero,
 }
 
 pub struct ReferenceIntegrityViolationError {
@@ -28,26 +53,14 @@ pub struct ReferenceIntegrityViolationError {
 type ForeignTableName = Box<str>;
 type ForeignColumnName = Box<str>;
 type ForeignRowPrimaryKeyValue = Box<str>;
-type ReferenceIntegrityViolations =
-    HashMap<ForeignTableName, HashMap<ForeignColumnName, Vec<ForeignRowPrimaryKeyValue>>>;
+type ReferenceIntegrityViolations = HashMap<ForeignTableName, HashMap<ForeignColumnName, Vec<ForeignRowPrimaryKeyValue>>>;
 
 #[doc(hidden)]
 pub mod internal {
     use crate::ReferenceIntegrityViolationError;
     use core::fmt;
-    use spacetimedb::ReducerContext;
 
     pub struct DSLInternals;
-
-    pub trait DSLContext {
-        fn ctx<'a>(&'a self) -> &'a ReducerContext;
-    }
-
-    impl DSLContext for crate::DSL<'_> {
-        fn ctx<'a>(&'a self) -> &'a ReducerContext {
-            self.ctx
-        }
-    }
 
     impl fmt::Display for ReferenceIntegrityViolationError {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

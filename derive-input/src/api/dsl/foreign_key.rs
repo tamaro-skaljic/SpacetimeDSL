@@ -9,6 +9,8 @@ pub struct ForeignKey {
     pub on_delete_strategy: OnDeleteStrategy,
 }
 
+// This enum is copy+paste of the enum in the SpacetimeDSL crate (which is the public API of the DSL).
+
 #[cfg_attr(feature = "clone", derive(Clone))]
 #[cfg_attr(feature = "debug", derive(Debug))]
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
@@ -23,7 +25,7 @@ pub enum OnDeleteStrategy {
 
     // TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
     /// Available only for columns with type `Option<T>`.
-    SetNone,
+    //SetNone,
 
     /// Available only for columns with a numeric type.
     SetZero,

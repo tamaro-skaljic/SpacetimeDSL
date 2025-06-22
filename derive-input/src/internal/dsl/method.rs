@@ -302,10 +302,10 @@ pub(in crate::internal) fn for_table(
             format!("Get the count of all rows inside the `{singular_table_name}` table.")
         }
         DSLTableMethod::ActionsAfterDeleteOne => {
-            format!("Performs actions after deleting a row in the `{singular_table_name}` table.")
+            format!("Execute OnDeleteStrategies of referencing tables after deleting 1 row in the `{singular_table_name}` table.")
         }
         DSLTableMethod::ActionsAfterDeleteMany => {
-            format!("Performs actions after deleting rows in the `{singular_table_name}` table.")
+            format!("Execute OnDeleteStrategies of referencing tables after deleting multiple rows in the `{singular_table_name}` table.")
         }
     }
     .into();
@@ -315,10 +315,10 @@ pub(in crate::internal) fn for_table(
         DSLTableMethod::GetAll => format!("GetAll{}Rows", struct_name),
         DSLTableMethod::GetCount => format!("GetCountOf{}Rows", struct_name),
         DSLTableMethod::ActionsAfterDeleteOne => {
-            format!("PerformActionsAfter{singular_table_name_pascal_case}RowWasDeleted")
+            format!("ExecuteOnDeleteStrategiesAfterOne{singular_table_name_pascal_case}RowWasDeleted")
         }
         DSLTableMethod::ActionsAfterDeleteMany => {
-            format!("PerformActionsAfter{singular_table_name_pascal_case}RowsWereDeleted")
+            format!("ExecuteOnDeleteStrategiesAfterMultiple{singular_table_name_pascal_case}RowsWereDeleted")
         }
     }
     .into();
@@ -328,10 +328,10 @@ pub(in crate::internal) fn for_table(
         DSLTableMethod::GetAll => format!("get_all_{}", plural_table_name),
         DSLTableMethod::GetCount => format!("get_count_of_{}", plural_table_name),
         DSLTableMethod::ActionsAfterDeleteOne => {
-            format!("perform_actions_after_{singular_table_name}_row_was_deleted")
+            format!("execute_on_delete_strategies_after_one_{singular_table_name}_row_was_deleted")
         }
         DSLTableMethod::ActionsAfterDeleteMany => {
-            format!("perform_actions_after_{singular_table_name}_rows_were_deleted")
+            format!("execute_on_delete_strategies_after_multiple_{singular_table_name}_rows_were_deleted")
         }
     }
     .into();
@@ -554,9 +554,8 @@ pub(in crate::internal) fn for_table(
                 DSLTableMethod::ActionsAfterDeleteOne => quote! {
                     #primary_key_column_name: &#primary_key_column_type
                 },
-                // TODO: Vec<&#primary_key_column_type>
                 DSLTableMethod::ActionsAfterDeleteMany => quote! {
-                    #primary_key_column_name: Vec<#primary_key_column_type>
+                    #primary_key_column_name: Vec<&#primary_key_column_type>
                 },
                 dsl_table_method => {
                     panic!("DSLTableMethod {dsl_table_method:?} should already be processed.")
@@ -582,18 +581,18 @@ pub(in crate::internal) fn for_table(
                 match dsl_table_method {
                     DSLTableMethod::ActionsAfterDeleteOne => {
                         foreign_trait_name = format_ident!(
-                            "PerformActionsFor{referencing_table_name_pascal_case}After{singular_table_name_pascal_case}RowWasDeleted"
+                            "ExecuteOnDeleteStrategiesOf{referencing_table_name_pascal_case}AfterOne{singular_table_name_pascal_case}RowWasDeleted"
                         );
                         function_name = format_ident!(
-                            "perform_actions_for_{referencing_table_name}_after_{singular_table_name}_row_was_deleted",
+                            "execute_on_delete_strategies_of_{referencing_table_name}_after_one_{singular_table_name}_row_was_deleted",
                         );
                     }
                     DSLTableMethod::ActionsAfterDeleteMany => {
                         foreign_trait_name = format_ident!(
-                            "PerformActionsFor{referencing_table_name_pascal_case}After{singular_table_name_pascal_case}RowsWereDeleted"
+                            "ExecuteOnDeleteStrategiesOf{referencing_table_name_pascal_case}AfterMultiple{singular_table_name_pascal_case}RowsWereDeleted"
                         );
                         function_name = format_ident!(
-                            "perform_actions_for_{referencing_table_name}_after_{singular_table_name}_rows_were_deleted",
+                            "execute_on_delete_strategies_of_{referencing_table_name}_after_multiple_{singular_table_name}_rows_were_deleted",
                         );
                     }
                     dsl_table_method => {
@@ -606,17 +605,18 @@ pub(in crate::internal) fn for_table(
                 });
 
                 on_error_strategy_calls.push(quote! {
-                    spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl_derive_input::api::dsl::foreign_key::OnDeleteStrategy::Error, #primary_key_column_name)?;
+                    spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl::OnDeleteStrategy::Error, #primary_key_column_name)?;
                 });
                 cascade_strategy_calls.push(quote! {
-                    spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl_derive_input::api::dsl::foreign_key::OnDeleteStrategy::Cascade, #primary_key_column_name)?;
+                    spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl::OnDeleteStrategy::Cascade, #primary_key_column_name)?;
                 });
-                // TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
-                //set_none_strategy_calls.push(quote! {
-                //    spacetimedsl::internal::DSLInternals::#method_name(dsl, spacetimedsl_derive_input::api::dsl::foreign_key::OnDeleteStrategy::SetNone, #primary_key_column_name)?;
-                //});
+                /* TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
+                set_none_strategy_calls.push(quote! {
+                    spacetimedsl::internal::DSLInternals::#method_name(dsl, spacetimedsl::OnDeleteStrategy::SetNone, #primary_key_column_name)?;
+                });
+                */
                 set_zero_strategy_calls.push(quote! {
-                    spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl_derive_input::api::dsl::foreign_key::OnDeleteStrategy::SetZero, #primary_key_column_name)?;
+                    spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl::OnDeleteStrategy::SetZero, #primary_key_column_name)?;
                 });
             }
 
