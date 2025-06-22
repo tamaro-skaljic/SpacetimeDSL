@@ -14,7 +14,7 @@ readme = "README.md"
 
 [dependencies]
 # https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
-spacetimedb = "^1"
+spacetimedb = "1.2.0"
 
 # https://crates.io/crates/spacetimedsl_derive Macros to extend SpacetimeDSL
 spacetimedsl_derive = { version = "0.6.0", path = "derive" }
