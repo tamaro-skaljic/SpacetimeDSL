@@ -7,7 +7,7 @@ use spacetime_bindings_macro_input::sats::SatsField;
 use spacetime_bindings_macro_input::sym::{index, primary_key, unique};
 use spacetime_bindings_macro_input::util::check_duplicate;
 use syn::meta::ParseNestedMeta;
-use syn::{Error, Ident, Meta};
+use syn::{Ident, Meta};
 
 impl ForeignKey {
     // TODO: There should be a proper error message if the primary_key column which is referenced by this column has not a valid type (This column: T, the other column: T | Option<T>). But this probably won't work from inside rust macros, more likely in a build.rs. Currently it's a compilation error.

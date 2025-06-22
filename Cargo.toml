@@ -16,7 +16,7 @@ readme = "README.md"
 # https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
 spacetimedb = "^1"
 
-# https://crates.io/crates/spacetimedb Macros to extend SpacetimeDSL
+# https://crates.io/crates/spacetimedsl_derive Macros to extend SpacetimeDSL
 spacetimedsl_derive = { version = "0.6.0", path = "derive" }
 
 # https://crates.io/crates/itertools Extra iterator adaptors, iterator methods, free functions, and macros.
