@@ -5,10 +5,8 @@ use crate::api::rust::visibility::RustVisibility;
 #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
-pub struct Setter {
-    pub method_visibility: RustVisibility,
-    pub method_name: Box<str>,
-    pub method_arg: Box<str>,
-    pub return_type: Box<str>,
-    pub method_impl: Box<str>,
+pub struct RustField {
+    pub visibility: RustVisibility,
+    pub name: Box<str>,
+    pub type_name_or_path: Box<str>,
 }

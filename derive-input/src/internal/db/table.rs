@@ -1,5 +1,8 @@
-use crate::api::db::SpacetimeDBTable;
-use crate::api::db::{Index, IndexType, ScheduledReducer, SpacetimeDBTableVisibility};
+use crate::api::db::{
+    index::{Index, IndexType},
+    reducer::ScheduledReducer,
+    table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
+};
 use quote::ToTokens;
 use spacetime_bindings_macro_input::table::{
     IndexArg, IndexType as SpacetimeIndexType, ScheduledArg, TableAccess, TableArgs,

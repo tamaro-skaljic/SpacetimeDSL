@@ -1,4 +1,4 @@
-use crate::api::rust::RustVisibility;
+use crate::api::rust::visibility::RustVisibility;
 use quote::ToTokens;
 use std::fmt;
 

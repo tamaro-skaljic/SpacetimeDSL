@@ -1,18 +1,22 @@
 use crate::{
     api::{
         Column,
-        db::{Index, IndexType, SpacetimeDBColumn, SpacetimeDBTable},
+        db::{
+            column::SpacetimeDBColumn,
+            index::{Index, IndexType},
+            table::SpacetimeDBTable,
+        },
         dsl::{
-            column::SpacetimeDSLColumn,
-            method::{
-                SpacetimeDSLColumnMethods, SpacetimeDSLColumnMethodsForIndex,
-                SpacetimeDSLColumnMethodsForUniqueIndex, SpacetimeDSLMethod,
-                SpacetimeDSLTableMethods,
+            column::{
+                SpacetimeDSLColumn, SpacetimeDSLColumnMethods, SpacetimeDSLColumnMethodsForIndex,
+                SpacetimeDSLColumnMethodsForUniqueIndex,
             },
+            method::SpacetimeDSLMethod,
             table::SpacetimeDSLTable,
+            table::SpacetimeDSLTableMethods,
             wrapper::WrapperType,
         },
-        rust::{RustField, RustStruct},
+        rust::{column::RustField, table::RustStruct},
     },
     internal::dsl::wrapper::wrapper_type_into_option,
 };
@@ -678,7 +682,10 @@ pub(in crate::internal) fn for_referenced_by(
         }
     };
 
-    let function_args = function_args.iter().map(|ts| ts.to_string().into()).collect();
+    let function_args = function_args
+        .iter()
+        .map(|ts| ts.to_string().into())
+        .collect();
     let function_impl = function_impl.to_string().into();
 
     SpacetimeDSLMethod {

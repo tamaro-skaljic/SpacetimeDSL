@@ -1,6 +1,6 @@
 use super::{path, wrap, wrapped};
 use crate::api::dsl::wrapper::{Wrap, Wrapped, WrapperType};
-use crate::api::rust::{RustField, RustStruct};
+use crate::api::rust::{column::RustField, table::RustStruct};
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::quote;

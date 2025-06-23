@@ -4,10 +4,8 @@ use rust_format::{Formatter, PrettyPlease};
 use spacetimedsl_derive_input::api::{
     Table,
     dsl::{
-        getter::Getter,
-        method::{SpacetimeDSLColumnMethods, SpacetimeDSLMethod},
-        setter::Setter,
-        wrapper::WrapperType,
+        column::SpacetimeDSLColumnMethods, getter::Getter, method::SpacetimeDSLMethod,
+        setter::Setter, wrapper::WrapperType,
     },
 };
 use syn::{Type, Visibility, parse_str};

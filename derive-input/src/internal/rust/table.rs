@@ -1,4 +1,4 @@
-use crate::api::rust::{RustStruct, RustVisibility};
+use crate::api::rust::{table::RustStruct, visibility::RustVisibility};
 use syn::DeriveInput;
 
 pub(in crate::internal) fn map_struct(input: &DeriveInput) -> RustStruct {

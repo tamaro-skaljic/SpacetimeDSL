@@ -1,4 +1,4 @@
-use crate::api::rust::{RustField, RustVisibility};
+use crate::api::rust::{column::RustField, visibility::RustVisibility};
 use quote::ToTokens;
 use spacetime_bindings_macro_input::sats::SatsField;
 

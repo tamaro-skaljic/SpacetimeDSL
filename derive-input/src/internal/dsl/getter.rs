@@ -1,6 +1,6 @@
 use crate::api::{
     dsl::{getter::Getter, wrapper::WrapperType},
-    rust::RustField,
+    rust::column::RustField,
 };
 use quote::{format_ident, quote};
 use syn::{Ident, Type, parse_str};

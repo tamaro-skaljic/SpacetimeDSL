@@ -1,7 +1,7 @@
 use crate::api::{
     Table,
-    db::SpacetimeDBTable,
-    dsl::{method::SpacetimeDSLTableMethods, table::SpacetimeDSLTable},
+    db::table::SpacetimeDBTable,
+    dsl::table::{SpacetimeDSLTable, SpacetimeDSLTableMethods},
 };
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::DeriveInput;

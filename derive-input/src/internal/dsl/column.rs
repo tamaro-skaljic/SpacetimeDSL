@@ -2,7 +2,7 @@ use crate::api::{
     dsl::{
         column::SpacetimeDSLColumn, foreign_key::ForeignKey, getter::Getter, setter::Setter, wrapper::WrapperType
     },
-    rust::{RustField, RustStruct},
+    rust::{column::RustField, table::RustStruct},
 };
 use quote::ToTokens;
 use spacetime_bindings_macro_input::sats::SatsField;

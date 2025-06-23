@@ -1,4 +1,4 @@
-use crate::api::db::{IndexType, SpacetimeDBTable};
+use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::SpacetimeDSLTable;
 use crate::internal::dsl::{plural_name, unique_index};

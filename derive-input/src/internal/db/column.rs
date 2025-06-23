@@ -1,6 +1,6 @@
 use crate::api::{
-    db::{IndexType, SpacetimeDBColumn, SpacetimeDBTable},
-    rust::RustField,
+    db::{column::SpacetimeDBColumn, index::IndexType, table::SpacetimeDBTable},
+    rust::column::RustField,
 };
 
 impl SpacetimeDBColumn {

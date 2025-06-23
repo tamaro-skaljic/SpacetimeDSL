@@ -1,10 +1,11 @@
 use crate::api::{
     Column,
-    db::{SpacetimeDBColumn, SpacetimeDBTable},
+    db::{column::SpacetimeDBColumn, table::SpacetimeDBTable},
     dsl::{
-        column::SpacetimeDSLColumn, method::SpacetimeDSLColumnMethods, table::SpacetimeDSLTable,
+        column::{SpacetimeDSLColumn, SpacetimeDSLColumnMethods},
+        table::SpacetimeDSLTable,
     },
-    rust::{RustField, RustStruct},
+    rust::{column::RustField, table::RustStruct},
 };
 use spacetime_bindings_macro_input::table::ColumnArgs;
 
