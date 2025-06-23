@@ -18,9 +18,9 @@ pub(in crate::internal) fn try_parse(
     table_args: &TableArgs,
     column_args: &ColumnArgs<'_>,
 ) -> syn::Result<Table> {
-    let rust_struct = rust::map(&input);
+    let rust_struct = rust::map_struct(&input);
 
-    let spacetimedb_table = SpacetimeDBTable::map(&table_args);
+    let spacetimedb_table = SpacetimeDBTable::map(table_args);
 
     let (spacetimedb_table, spacetimedsl_table) =
         SpacetimeDSLTable::try_parse(args, column_args, spacetimedb_table)?;
