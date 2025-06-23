@@ -14,7 +14,7 @@ use crate::{
         },
         rust::{RustField, RustStruct},
     },
-    internal::utils::wrapper_type_into_option,
+    internal::dsl::wrapper::wrapper_type_into_option,
 };
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;

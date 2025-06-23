@@ -8,12 +8,6 @@ use crate::api::{
 };
 use spacetime_bindings_macro_input::table::ColumnArgs;
 
-mod rust;
-
-mod db;
-
-mod dsl;
-
 pub(in crate::internal) fn try_parse(
     column_args: &ColumnArgs,
     rust_struct: &RustStruct,

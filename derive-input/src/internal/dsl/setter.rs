@@ -3,7 +3,7 @@ use crate::{
         dsl::{setter::Setter, wrapper::WrapperType},
         rust::{RustField, RustVisibility},
     },
-    internal::utils::wrapper_type_into_option,
+    internal::dsl::wrapper::wrapper_type_into_option,
 };
 use quote::{format_ident, quote};
 use syn::{Type, parse_str};

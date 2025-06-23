@@ -1,5 +1,9 @@
 use spacetime_bindings_macro_input::{sym::Symbol, symbol};
 
+pub mod table;
+
+pub mod column;
+
 pub mod wrapper;
 
 pub mod foreign_key;

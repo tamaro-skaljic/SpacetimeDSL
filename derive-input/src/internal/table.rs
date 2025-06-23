@@ -6,19 +6,13 @@ use crate::api::{
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::DeriveInput;
 
-mod rust;
-
-mod db;
-
-mod dsl;
-
 pub(in crate::internal) fn try_parse(
     args: proc_macro2::TokenStream,
     input: &DeriveInput,
     table_args: &TableArgs,
     column_args: &ColumnArgs<'_>,
 ) -> syn::Result<Table> {
-    let rust_struct = rust::map_struct(&input);
+    let rust_struct = crate::internal::rust::table::map_struct(&input);
 
     let spacetimedb_table = SpacetimeDBTable::map(table_args);
 
