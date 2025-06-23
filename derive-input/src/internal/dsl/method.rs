@@ -26,8 +26,6 @@ pub(in crate::internal) enum DSLTableMethod {
     Create,
     GetAll,
     GetCount,
-    ActionsAfterDeleteOne,
-    ActionsAfterDeleteMany,
 }
 
 #[derive(Debug)]
@@ -37,6 +35,18 @@ pub(in crate::internal) enum DSLColumnMethod {
     GetOneOption,
     Update,
     DeleteOne,
+}
+
+#[derive(Debug)]
+pub(in crate::internal) enum DSLInternalReferencedByFunction {
+    ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted,
+    ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted,
+}
+
+#[derive(Debug)]
+pub(in crate::internal) enum DSLInternalForeignKeyFunction {
+    ExecuteOnDeleteStrategiesOfOneTableAfterOneRowWasDeleted,
+    ExecuteOnDeleteStrategiesOfOneTableAfterMultipleRowsWereDeleted,
 }
 
 impl SpacetimeDSLTableMethods {
@@ -53,7 +63,6 @@ impl SpacetimeDSLTableMethods {
             spacetimedb_table,
             spacetimedsl_table,
             columns,
-            primary_key_column_name,
         );
 
         let get_all = for_table(
@@ -62,7 +71,6 @@ impl SpacetimeDSLTableMethods {
             spacetimedb_table,
             spacetimedsl_table,
             columns,
-            primary_key_column_name,
         );
 
         let get_count = for_table(
@@ -71,7 +79,6 @@ impl SpacetimeDSLTableMethods {
             spacetimedb_table,
             spacetimedsl_table,
             columns,
-            primary_key_column_name,
         );
 
         let actions_after_delete_one;
@@ -81,18 +88,16 @@ impl SpacetimeDSLTableMethods {
             actions_after_delete_one = None;
             actions_after_delete_many = None;
         } else {
-            actions_after_delete_one = Some(for_table(
-                DSLTableMethod::ActionsAfterDeleteOne,
-                rust_struct,
+            actions_after_delete_one = Some(for_referenced_by(
+                DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted,
                 spacetimedb_table,
                 spacetimedsl_table,
                 columns,
                 primary_key_column_name,
             ));
 
-            actions_after_delete_many = Some(for_table(
-                DSLTableMethod::ActionsAfterDeleteMany,
-                rust_struct,
+            actions_after_delete_many = Some(for_referenced_by(
+                DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted,
                 spacetimedb_table,
                 spacetimedsl_table,
                 columns,
@@ -285,12 +290,9 @@ pub(in crate::internal) fn for_table(
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
     columns: &Vec<Column>,
-    primary_key_column_name: &Box<str>,
 ) -> SpacetimeDSLMethod {
     let struct_name = format_ident!("{}", *rust_struct.name);
     let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
-    let singular_table_name_pascal_case =
-        RenameRule::PascalCase.apply_to_field(spacetimedb_table.singular_name.to_string());
     let plural_table_name = &spacetimedsl_table.plural_name;
 
     let doc_comment = match dsl_table_method {
@@ -301,12 +303,6 @@ pub(in crate::internal) fn for_table(
         DSLTableMethod::GetCount => {
             format!("Get the count of all rows inside the `{singular_table_name}` table.")
         }
-        DSLTableMethod::ActionsAfterDeleteOne => {
-            format!("Execute OnDeleteStrategies of referencing tables after deleting 1 row in the `{singular_table_name}` table.")
-        }
-        DSLTableMethod::ActionsAfterDeleteMany => {
-            format!("Execute OnDeleteStrategies of referencing tables after deleting multiple rows in the `{singular_table_name}` table.")
-        }
     }
     .into();
 
@@ -314,12 +310,6 @@ pub(in crate::internal) fn for_table(
         DSLTableMethod::Create => format!("Create{}Row", struct_name),
         DSLTableMethod::GetAll => format!("GetAll{}Rows", struct_name),
         DSLTableMethod::GetCount => format!("GetCountOf{}Rows", struct_name),
-        DSLTableMethod::ActionsAfterDeleteOne => {
-            format!("ExecuteOnDeleteStrategiesAfterOne{singular_table_name_pascal_case}RowWasDeleted")
-        }
-        DSLTableMethod::ActionsAfterDeleteMany => {
-            format!("ExecuteOnDeleteStrategiesAfterMultiple{singular_table_name_pascal_case}RowsWereDeleted")
-        }
     }
     .into();
 
@@ -327,12 +317,6 @@ pub(in crate::internal) fn for_table(
         DSLTableMethod::Create => format!("create_{}", singular_table_name),
         DSLTableMethod::GetAll => format!("get_all_{}", plural_table_name),
         DSLTableMethod::GetCount => format!("get_count_of_{}", plural_table_name),
-        DSLTableMethod::ActionsAfterDeleteOne => {
-            format!("execute_on_delete_strategies_after_one_{singular_table_name}_row_was_deleted")
-        }
-        DSLTableMethod::ActionsAfterDeleteMany => {
-            format!("execute_on_delete_strategies_after_multiple_{singular_table_name}_rows_were_deleted")
-        }
     }
     .into();
 
@@ -348,12 +332,6 @@ pub(in crate::internal) fn for_table(
         },
         DSLTableMethod::GetCount => quote! {
             u64
-        },
-        DSLTableMethod::ActionsAfterDeleteOne => quote! {
-            Result<(), spacetimedsl::ReferenceIntegrityViolationError>
-        },
-        DSLTableMethod::ActionsAfterDeleteMany => quote! {
-            Result<(), spacetimedsl::ReferenceIntegrityViolationError>
         },
     }
     .to_string()
@@ -541,7 +519,81 @@ pub(in crate::internal) fn for_table(
                         .count();
             };
         }
-        DSLTableMethod::ActionsAfterDeleteOne | DSLTableMethod::ActionsAfterDeleteMany => {
+    };
+
+    let method_args = method_args.iter().map(|ts| ts.to_string().into()).collect();
+    let method_impl = method_impl.to_string().into();
+
+    SpacetimeDSLMethod {
+        doc_comment,
+        trait_name,
+        method_name,
+        method_args,
+        return_type,
+        method_impl,
+    }
+}
+
+pub(in crate::internal) fn for_referenced_by(
+    dsl_referenced_by_function: DSLInternalReferencedByFunction,
+    spacetimedb_table: &SpacetimeDBTable,
+    spacetimedsl_table: &SpacetimeDSLTable,
+    columns: &Vec<Column>,
+    primary_key_column_name: &Box<str>,
+) -> SpacetimeDSLMethod {
+    let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
+    let singular_table_name_pascal_case =
+        RenameRule::PascalCase.apply_to_field(spacetimedb_table.singular_name.to_string());
+
+    let doc_comment = match dsl_referenced_by_function {
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted => {
+                format!("Execute OnDeleteStrategies of all referencing tables after deleting 1 row in the `{singular_table_name}` table.")
+            }
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted => {
+                format!("Execute OnDeleteStrategies of all referencing tables after deleting multiple rows in the `{singular_table_name}` table.")
+            }
+    }
+    .into();
+
+    let trait_name = match dsl_referenced_by_function {
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted => {
+            format!("ExecuteOnDeleteStrategiesAfterOne{singular_table_name_pascal_case}RowWasDeleted")
+        }
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted => {
+            format!("ExecuteOnDeleteStrategiesAfterMultiple{singular_table_name_pascal_case}RowsWereDeleted")
+        }
+    }
+    .into();
+
+    let function_name = match dsl_referenced_by_function {
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted => {
+            format!("execute_on_delete_strategies_after_one_{singular_table_name}_row_was_deleted")
+        }
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted => {
+            format!("execute_on_delete_strategies_after_multiple_{singular_table_name}_rows_were_deleted")
+        }
+    }
+    .into();
+
+    let return_type = match dsl_referenced_by_function {
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted => quote! {
+            Result<(), spacetimedsl::ReferenceIntegrityViolationError>
+        },
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted => {
+            quote! {
+                Result<(), spacetimedsl::ReferenceIntegrityViolationError>
+            }
+        }
+    }
+    .to_string()
+    .into();
+
+    let mut function_args = vec![];
+    let function_impl;
+
+    match dsl_referenced_by_function {
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted
+        | DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted => {
             let primary_key_column = columns
                 .iter()
                 .find(|c| c.rust_field.name.eq(primary_key_column_name))
@@ -550,16 +602,13 @@ pub(in crate::internal) fn for_table(
             let primary_key_column_type: Type =
                 parse_str(&primary_key_column.rust_field.type_name_or_path).unwrap();
 
-            method_args.push(match dsl_table_method {
-                DSLTableMethod::ActionsAfterDeleteOne => quote! {
+            function_args.push(match dsl_referenced_by_function {
+                DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted => quote! {
                     #primary_key_column_name: &#primary_key_column_type
                 },
-                DSLTableMethod::ActionsAfterDeleteMany => quote! {
+                DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted => quote! {
                     #primary_key_column_name: Vec<&#primary_key_column_type>
                 },
-                dsl_table_method => {
-                    panic!("DSLTableMethod {dsl_table_method:?} should already be processed.")
-                }
             });
 
             let mut use_clauses = vec![];
@@ -578,8 +627,8 @@ pub(in crate::internal) fn for_table(
                 let foreign_trait_name;
                 let function_name;
 
-                match dsl_table_method {
-                    DSLTableMethod::ActionsAfterDeleteOne => {
+                match dsl_referenced_by_function {
+                    DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted => {
                         foreign_trait_name = format_ident!(
                             "ExecuteOnDeleteStrategiesOf{referencing_table_name_pascal_case}AfterOne{singular_table_name_pascal_case}RowWasDeleted"
                         );
@@ -587,16 +636,13 @@ pub(in crate::internal) fn for_table(
                             "execute_on_delete_strategies_of_{referencing_table_name}_after_one_{singular_table_name}_row_was_deleted",
                         );
                     }
-                    DSLTableMethod::ActionsAfterDeleteMany => {
+                    DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted => {
                         foreign_trait_name = format_ident!(
                             "ExecuteOnDeleteStrategiesOf{referencing_table_name_pascal_case}AfterMultiple{singular_table_name_pascal_case}RowsWereDeleted"
                         );
                         function_name = format_ident!(
                             "execute_on_delete_strategies_of_{referencing_table_name}_after_multiple_{singular_table_name}_rows_were_deleted",
                         );
-                    }
-                    dsl_table_method => {
-                        panic!("DSLTableMethod {dsl_table_method:?} should already be processed.")
                     }
                 };
 
@@ -621,7 +667,7 @@ pub(in crate::internal) fn for_table(
             }
 
             // TODO: Handle OnError Strategy Calls to return an ReferenceIntegrityViolationError on Failure.
-            method_impl = quote! {
+            function_impl = quote! {
                 #(#use_clauses)*
                 #(#on_error_strategy_calls)*
                 #(#cascade_strategy_calls)*
@@ -632,16 +678,16 @@ pub(in crate::internal) fn for_table(
         }
     };
 
-    let method_args = method_args.iter().map(|ts| ts.to_string().into()).collect();
-    let method_impl = method_impl.to_string().into();
+    let function_args = function_args.iter().map(|ts| ts.to_string().into()).collect();
+    let function_impl = function_impl.to_string().into();
 
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
-        method_name,
-        method_args,
+        method_name: function_name,
+        method_args: function_args,
         return_type,
-        method_impl,
+        method_impl: function_impl,
     }
 }
 
