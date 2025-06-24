@@ -620,50 +620,62 @@ pub(in crate::internal) fn for_single_column_index(
     let column_name_pascal_case = RenameRule::PascalCase.apply_to_field(column_name.to_string());
     let primary_key_column_name = format_ident!("{primary_key_column_name}");
 
-    let doc_comment = match dsl_method {
-        DSLColumnMethod::GetMany => format!("Get all {struct_name} rows inside the {singular_table_name} table filtered by the single-column index on the {column_name} column."),
-        DSLColumnMethod::DeleteMany => format!("Delete all {struct_name} rows inside the {singular_table_name} table filtered by the single-column index on the {column_name} column."),
-        DSLColumnMethod::GetOneOption => format!("Get an Option<{struct_name}> row inside the {singular_table_name} table filtered by the unique single-column index on the {column_name} column."),
-        DSLColumnMethod::Update => format!("Update a {struct_name} row inside the {singular_table_name} table by the unique single-column index on the {column_name} column."),
-        DSLColumnMethod::DeleteOne => format!("Delete a {struct_name} row inside the {singular_table_name} table filtered by the unique single-column index on the {column_name} column."),
-    }.into();
+    let doc_comment;
+    let trait_name;
+    let method_name;
+    let return_type;
 
-    let trait_name = match dsl_method {
-        DSLColumnMethod::GetMany => format!("Get{struct_name}RowsBy{column_name_pascal_case}"),
+    match dsl_method {
+        DSLColumnMethod::GetMany => {
+            doc_comment = format!(
+                "Get all {struct_name} rows inside the {singular_table_name} table filtered by the single-column index on the {column_name} column."
+            );
+            trait_name = format!("Get{struct_name}RowsBy{column_name_pascal_case}");
+            method_name = format!("get_{plural_table_name}_by_{column_name}");
+            return_type = quote! {impl Iterator<Item = #struct_name>};
+        }
         DSLColumnMethod::DeleteMany => {
-            format!("Delete{struct_name}RowsBy{column_name_pascal_case}")
+            doc_comment = format!(
+                "Delete all {struct_name} rows inside the {singular_table_name} table filtered by the single-column index on the {column_name} column."
+            );
+            trait_name = format!("Delete{struct_name}RowsBy{column_name_pascal_case}");
+            method_name = format!("delete_{plural_table_name}_by_{column_name}");
+            // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
+            return_type = quote! {u64};
         }
         DSLColumnMethod::GetOneOption => {
-            format!("Get{struct_name}RowOptionBy{column_name_pascal_case}")
+            doc_comment = format!(
+                "Get an Option<{struct_name}> row inside the {singular_table_name} table filtered by the unique single-column index on the {column_name} column."
+            );
+            trait_name = format!("Get{struct_name}RowOptionBy{column_name_pascal_case}");
+            method_name = format!("get_{singular_table_name}_by_{column_name}");
+            return_type = quote! {Option<#struct_name>};
         }
-        DSLColumnMethod::Update => format!("Update{struct_name}RowBy{column_name_pascal_case}"),
-        DSLColumnMethod::DeleteOne => format!("Delete{struct_name}RowBy{column_name_pascal_case}"),
-    }
-    .into();
-
-    let method_name = match dsl_method {
-        DSLColumnMethod::GetMany => format!("get_{plural_table_name}_by_{column_name}"),
-        DSLColumnMethod::DeleteMany => format!("delete_{plural_table_name}_by_{column_name}"),
-        DSLColumnMethod::GetOneOption => format!("get_{singular_table_name}_by_{column_name}"),
-        DSLColumnMethod::Update => format!("update_{singular_table_name}_by_{column_name}"),
-        DSLColumnMethod::DeleteOne => format!("delete_{singular_table_name}_by_{column_name}"),
-    }
-    .into();
-
-    let return_type = match dsl_method {
-        DSLColumnMethod::GetMany => quote! {impl Iterator<Item = #struct_name>},
-        // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
-        DSLColumnMethod::DeleteMany => quote! {u64},
-        DSLColumnMethod::GetOneOption => quote! {Option<#struct_name>},
         DSLColumnMethod::Update => {
+            doc_comment = format!(
+                "Update a {struct_name} row inside the {singular_table_name} table by the unique single-column index on the {column_name} column."
+            );
+            trait_name = format!("Update{struct_name}RowBy{column_name_pascal_case}");
+            method_name = format!("update_{singular_table_name}_by_{column_name}");
+
             let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
-            quote! {Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>}
-        },
-        // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
-        DSLColumnMethod::DeleteOne => quote! {bool},
+            return_type = quote! {Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>};
+        }
+        DSLColumnMethod::DeleteOne => {
+            doc_comment = format!(
+                "Delete a {struct_name} row inside the {singular_table_name} table filtered by the unique single-column index on the {column_name} column."
+            );
+            trait_name = format!("Delete{struct_name}RowBy{column_name_pascal_case}");
+            method_name = format!("delete_{singular_table_name}_by_{column_name}");
+            // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
+            return_type = quote! {bool};
+        }
     }
-    .to_string()
-    .into();
+    
+    let doc_comment = doc_comment.into();
+    let trait_name= trait_name.into();
+    let method_name= method_name.into();
+    let return_type= return_type.to_string().into();
 
     let mut method_args = vec![];
     let method_impl;
