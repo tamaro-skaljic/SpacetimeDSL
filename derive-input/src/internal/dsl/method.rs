@@ -54,6 +54,96 @@ pub(in crate::internal) enum DSLInternalForeignKeyFunction {
     ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted,
 }
 
+impl SpacetimeDSLColumnMethods {
+    pub(in crate::internal) fn map(
+        rust_struct: &RustStruct,
+        spacetimedb_table: &SpacetimeDBTable,
+        spacetimedsl_table: &SpacetimeDSLTable,
+        rust_field: &RustField,
+        spacetimedb_column: &SpacetimeDBColumn,
+        spacetimedsl_column: &SpacetimeDSLColumn,
+        primary_key_column_name: &Box<str>,
+    ) -> Option<SpacetimeDSLColumnMethods> {
+        let index = match &spacetimedb_column.single_column_index {
+            None => {
+                return None;
+            }
+            Some(index) => index,
+        };
+
+        let methods = match index.is_unique {
+            false => {
+                let get_many = for_single_column_index(
+                    DSLColumnMethod::GetMany,
+                    rust_struct,
+                    spacetimedb_table,
+                    spacetimedsl_table,
+                    rust_field,
+                    spacetimedsl_column,
+                    primary_key_column_name,
+                );
+
+                let delete_many = for_single_column_index(
+                    DSLColumnMethod::DeleteMany,
+                    rust_struct,
+                    spacetimedb_table,
+                    spacetimedsl_table,
+                    rust_field,
+                    spacetimedsl_column,
+                    primary_key_column_name,
+                );
+
+                SpacetimeDSLColumnMethods::ForIndex(SpacetimeDSLColumnMethodsForIndex {
+                    get_many,
+                    delete_many,
+                })
+            }
+            true => {
+                let get_one_option = for_single_column_index(
+                    DSLColumnMethod::GetOneOption,
+                    rust_struct,
+                    spacetimedb_table,
+                    spacetimedsl_table,
+                    rust_field,
+                    spacetimedsl_column,
+                    primary_key_column_name,
+                );
+
+                let update = match spacetimedsl_table.is_mutable {
+                    false => None,
+                    true => Some(for_single_column_index(
+                        DSLColumnMethod::Update,
+                        rust_struct,
+                        spacetimedb_table,
+                        spacetimedsl_table,
+                        rust_field,
+                        spacetimedsl_column,
+                        primary_key_column_name,
+                    )),
+                };
+
+                let delete_one = for_single_column_index(
+                    DSLColumnMethod::DeleteOne,
+                    rust_struct,
+                    spacetimedb_table,
+                    spacetimedsl_table,
+                    rust_field,
+                    spacetimedsl_column,
+                    primary_key_column_name,
+                );
+
+                SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
+                    get_one_option,
+                    update,
+                    delete_one,
+                })
+            }
+        };
+
+        Some(methods)
+    }
+}
+
 impl SpacetimeDSLTableMethods {
     pub(in crate::internal) fn try_parse(
         rust_struct: &RustStruct,
@@ -260,96 +350,6 @@ impl SpacetimeDSLTableMethods {
         };
 
         Ok(methods)
-    }
-}
-
-impl SpacetimeDSLColumnMethods {
-    pub(in crate::internal) fn map(
-        rust_struct: &RustStruct,
-        spacetimedb_table: &SpacetimeDBTable,
-        spacetimedsl_table: &SpacetimeDSLTable,
-        rust_field: &RustField,
-        spacetimedb_column: &SpacetimeDBColumn,
-        spacetimedsl_column: &SpacetimeDSLColumn,
-        primary_key_column_name: &Box<str>,
-    ) -> Option<SpacetimeDSLColumnMethods> {
-        let index = match &spacetimedb_column.single_column_index {
-            None => {
-                return None;
-            }
-            Some(index) => index,
-        };
-
-        let methods = match index.is_unique {
-            false => {
-                let get_many = for_single_column_index(
-                    DSLColumnMethod::GetMany,
-                    rust_struct,
-                    spacetimedb_table,
-                    spacetimedsl_table,
-                    rust_field,
-                    spacetimedsl_column,
-                    primary_key_column_name,
-                );
-
-                let delete_many = for_single_column_index(
-                    DSLColumnMethod::DeleteMany,
-                    rust_struct,
-                    spacetimedb_table,
-                    spacetimedsl_table,
-                    rust_field,
-                    spacetimedsl_column,
-                    primary_key_column_name,
-                );
-
-                SpacetimeDSLColumnMethods::ForIndex(SpacetimeDSLColumnMethodsForIndex {
-                    get_many,
-                    delete_many,
-                })
-            }
-            true => {
-                let get_one_option = for_single_column_index(
-                    DSLColumnMethod::GetOneOption,
-                    rust_struct,
-                    spacetimedb_table,
-                    spacetimedsl_table,
-                    rust_field,
-                    spacetimedsl_column,
-                    primary_key_column_name,
-                );
-
-                let update = match spacetimedsl_table.is_mutable {
-                    false => None,
-                    true => Some(for_single_column_index(
-                        DSLColumnMethod::Update,
-                        rust_struct,
-                        spacetimedb_table,
-                        spacetimedsl_table,
-                        rust_field,
-                        spacetimedsl_column,
-                        primary_key_column_name,
-                    )),
-                };
-
-                let delete_one = for_single_column_index(
-                    DSLColumnMethod::DeleteOne,
-                    rust_struct,
-                    spacetimedb_table,
-                    spacetimedsl_table,
-                    rust_field,
-                    spacetimedsl_column,
-                    primary_key_column_name,
-                );
-
-                SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
-                    get_one_option,
-                    update,
-                    delete_one,
-                })
-            }
-        };
-
-        Some(methods)
     }
 }
 
