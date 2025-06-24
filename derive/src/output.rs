@@ -32,10 +32,10 @@ pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_all)?);
     dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_count)?);
     dsl_methods.push(build_internal(
-        &input.spacetimedsl_methods.actions_after_delete_one,
+        &input.spacetimedsl_methods.execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted,
     )?);
     dsl_methods.push(build_internal(
-        &input.spacetimedsl_methods.actions_after_delete_many,
+        &input.spacetimedsl_methods.execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted,
     )?);
 
     for multi_column_index in &input.spacetimedsl_methods.multi_column_indices {

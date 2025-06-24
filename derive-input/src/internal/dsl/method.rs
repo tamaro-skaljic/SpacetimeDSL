@@ -23,6 +23,7 @@ use crate::{
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::{TokenStreamExt, format_ident, quote};
+use std::collections::HashMap;
 use syn::{Ident, Path, Type, parse_str};
 
 #[derive(Debug)]
@@ -43,14 +44,14 @@ pub(in crate::internal) enum DSLColumnMethod {
 
 #[derive(Debug)]
 pub(in crate::internal) enum DSLInternalReferencedByFunction {
-    ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted,
-    ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted,
+    ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted,
+    ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted,
 }
 
 #[derive(Debug)]
 pub(in crate::internal) enum DSLInternalForeignKeyFunction {
-    ExecuteOnDeleteStrategiesOfOneTableAfterOneRowWasDeleted,
-    ExecuteOnDeleteStrategiesOfOneTableAfterMultipleRowsWereDeleted,
+    ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted,
+    ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted,
 }
 
 impl SpacetimeDSLTableMethods {
@@ -85,28 +86,90 @@ impl SpacetimeDSLTableMethods {
             columns,
         );
 
-        let actions_after_delete_one;
-        let actions_after_delete_many;
+        let execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted;
+        let execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted;
 
         if spacetimedsl_table.referencing_tables.is_empty() {
-            actions_after_delete_one = None;
-            actions_after_delete_many = None;
+            execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted =
+                None;
+            execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted = None;
         } else {
-            actions_after_delete_one = Some(for_referenced_by(
-                DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted,
+            execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted = Some(for_referenced_by(
+                DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted,
                 spacetimedb_table,
                 spacetimedsl_table,
                 columns,
                 primary_key_column_name,
             ));
 
-            actions_after_delete_many = Some(for_referenced_by(
-                DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted,
+            execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted = Some(for_referenced_by(
+                DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted,
                 spacetimedb_table,
                 spacetimedsl_table,
                 columns,
                 primary_key_column_name,
             ));
+        }
+
+        let mut
+        execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted =
+            vec![];
+        let mut
+        execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted =
+            vec![];
+
+        let columns_with_foreign_keys: Vec<&Column> = columns
+            .iter()
+            .filter(|c| c.spacetimedsl_column.foreign_key.is_some())
+            .collect();
+
+        if !columns_with_foreign_keys.is_empty() {
+            let mut columns_with_foreign_keys_by_table = HashMap::new();
+
+            columns_with_foreign_keys.iter().for_each(|c| {
+                let name_of_another_table = &c
+                    .spacetimedsl_column
+                    .foreign_key
+                    .as_ref()
+                    .unwrap()
+                    .table_name;
+
+                if !columns_with_foreign_keys_by_table.contains_key(name_of_another_table) {
+                    columns_with_foreign_keys_by_table.insert(name_of_another_table, vec![]);
+                }
+
+                columns_with_foreign_keys_by_table
+                    .get_mut(name_of_another_table)
+                    .unwrap()
+                    .push(c);
+            });
+
+            columns_with_foreign_keys_by_table
+                .into_iter()
+                .for_each(|(name_of_another_table, columns_with_foreign_key)| {
+                    execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted.push(
+                        for_foreign_key(
+                            DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted,
+                            spacetimedb_table,
+                            spacetimedsl_table,
+                            columns,
+                            primary_key_column_name,
+                            name_of_another_table,
+                            &columns_with_foreign_key,
+                        )
+                    );
+                    execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted.push(
+                        for_foreign_key(
+                            DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted,
+                            spacetimedb_table,
+                            spacetimedsl_table,
+                            columns,
+                            primary_key_column_name,
+                            name_of_another_table,
+                            &columns_with_foreign_key,
+                        )
+                    );
+                });
         }
 
         let mut multi_column_indices = vec![];
@@ -189,8 +252,10 @@ impl SpacetimeDSLTableMethods {
             create,
             get_all,
             get_count,
-            actions_after_delete_one,
-            actions_after_delete_many,
+            execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted,
+            execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted,
+            execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted,
+            execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted,
             multi_column_indices,
         };
 
@@ -539,55 +604,55 @@ pub(in crate::internal) fn for_table(
 }
 
 pub(in crate::internal) fn for_referenced_by(
-    dsl_referenced_by_function: DSLInternalReferencedByFunction,
+    dsl_internal_referenced_by_function: DSLInternalReferencedByFunction,
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
     columns: &Vec<Column>,
     primary_key_column_name: &Box<str>,
 ) -> SpacetimeDSLMethod {
     let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
-    let singular_table_name_pascal_case =
-        RenameRule::PascalCase.apply_to_field(spacetimedb_table.singular_name.to_string());
+    let singular_table_name_pascal_case = format_ident!(
+        "{}",
+        RenameRule::PascalCase.apply_to_field(spacetimedb_table.singular_name.to_string())
+    );
 
-    let doc_comment = match dsl_referenced_by_function {
-        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted => {
-                format!("Execute OnDeleteStrategies of all referencing tables after deleting 1 row in the `{singular_table_name}` table.")
+    let doc_comment = match dsl_internal_referenced_by_function {
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted => {
+                format!("Execute OnDeleteStrategies of referencing tables after one row of the `{singular_table_name}` table was deleted.")
             }
-        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted => {
-                format!("Execute OnDeleteStrategies of all referencing tables after deleting multiple rows in the `{singular_table_name}` table.")
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted => {
+                format!("Execute OnDeleteStrategies of referencing tables after multiple rows of the `{singular_table_name}` table were deleted.")
             }
     }
     .into();
 
-    let trait_name = match dsl_referenced_by_function {
-        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted => {
-            format!("ExecuteOnDeleteStrategiesAfterOne{singular_table_name_pascal_case}RowWasDeleted")
+    let trait_name = match dsl_internal_referenced_by_function {
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted => {
+            format!("ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThe{singular_table_name_pascal_case}TableWasDeleted")
         }
-        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted => {
-            format!("ExecuteOnDeleteStrategiesAfterMultiple{singular_table_name_pascal_case}RowsWereDeleted")
-        }
-    }
-    .into();
-
-    let function_name = match dsl_referenced_by_function {
-        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted => {
-            format!("execute_on_delete_strategies_after_one_{singular_table_name}_row_was_deleted")
-        }
-        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted => {
-            format!("execute_on_delete_strategies_after_multiple_{singular_table_name}_rows_were_deleted")
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted => {
+            format!("ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThe{singular_table_name_pascal_case}TableWereDeleted")
         }
     }
     .into();
 
-    let return_type = match dsl_referenced_by_function {
-        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted => quote! {
-            Result<(), spacetimedsl::ReferenceIntegrityViolationError>
+    let function_name = match dsl_internal_referenced_by_function {
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted => {
+            format!("execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_{singular_table_name}_table_was_deleted")
+        }
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted => {
+            format!("execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_{singular_table_name}_table_were_deleted")
+        }
+    }
+    .into();
+
+    let return_type = match dsl_internal_referenced_by_function {
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted => quote! {
+            Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
         },
-        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted => {
-            quote! {
-                Result<(), spacetimedsl::ReferenceIntegrityViolationError>
-            }
-        }
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted => quote! {
+            Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
+        },
     }
     .to_string()
     .into();
@@ -595,91 +660,89 @@ pub(in crate::internal) fn for_referenced_by(
     let mut function_args = vec![];
     let function_impl;
 
-    match dsl_referenced_by_function {
-        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted
-        | DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted => {
-            let primary_key_column = columns
-                .iter()
-                .find(|c| c.rust_field.name.eq(primary_key_column_name))
-                .unwrap();
+    let primary_key_column = columns
+        .iter()
+        .find(|c| c.rust_field.name.eq(primary_key_column_name))
+        .unwrap();
 
-            let primary_key_column_type: Type =
-                parse_str(&primary_key_column.rust_field.type_name_or_path).unwrap();
+    let primary_key_column_type: Type =
+        parse_str(&primary_key_column.rust_field.type_name_or_path).unwrap();
 
-            function_args.push(match dsl_referenced_by_function {
-                DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted => quote! {
+    function_args.push(match dsl_internal_referenced_by_function {
+                DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted => quote! {
                     #primary_key_column_name: &#primary_key_column_type
                 },
-                DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted => quote! {
+                DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted => quote! {
                     #primary_key_column_name: Vec<&#primary_key_column_type>
                 },
             });
 
-            let mut use_clauses = vec![];
-            let mut on_error_strategy_calls = vec![];
-            let mut cascade_strategy_calls = vec![];
-            let set_none_strategy_calls: Vec<TokenStream> = vec![];
-            let mut set_zero_strategy_calls = vec![];
+    let mut use_clauses = vec![];
+    let mut on_error_strategy_calls = vec![];
+    let mut cascade_strategy_calls = vec![];
+    let set_none_strategy_calls: Vec<TokenStream> = vec![];
+    let mut set_zero_strategy_calls = vec![];
 
-            for referencing_table in spacetimedsl_table.referencing_tables.iter() {
-                let referencing_table_path: Path = parse_str(&referencing_table.path).unwrap();
-                let referencing_table_name = &referencing_table.table_name;
-                let referencing_table_name_pascal_case =
-                    RenameRule::PascalCase.apply_to_field(referencing_table_name.to_string());
+    for referencing_table in spacetimedsl_table.referencing_tables.iter() {
+        let referencing_table_path: Path = parse_str(&referencing_table.path).unwrap();
+        let referencing_table_name = format_ident!("{}", *referencing_table.table_name);
+        let referencing_table_name_pascal_case = format_ident!(
+            "{}",
+            RenameRule::PascalCase.apply_to_field(referencing_table_name.to_string())
+        );
 
-                // Use clauses
-                let foreign_trait_name;
-                let function_name;
-
-                match dsl_referenced_by_function {
-                    DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterOneRowWasDeleted => {
-                        foreign_trait_name = format_ident!(
-                            "ExecuteOnDeleteStrategiesOf{referencing_table_name_pascal_case}AfterOne{singular_table_name_pascal_case}RowWasDeleted"
-                        );
-                        function_name = format_ident!(
-                            "execute_on_delete_strategies_of_{referencing_table_name}_after_one_{singular_table_name}_row_was_deleted",
-                        );
+        let dsl_internal_foreign_key_function = match dsl_internal_referenced_by_function {
+                    DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted => {
+                        DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted
                     }
-                    DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfMultipleTablesAfterMultipleRowsWereDeleted => {
-                        foreign_trait_name = format_ident!(
-                            "ExecuteOnDeleteStrategiesOf{referencing_table_name_pascal_case}AfterMultiple{singular_table_name_pascal_case}RowsWereDeleted"
-                        );
-                        function_name = format_ident!(
-                            "execute_on_delete_strategies_of_{referencing_table_name}_after_multiple_{singular_table_name}_rows_were_deleted",
-                        );
+                    DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted => {
+                        DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted
                     }
                 };
 
-                use_clauses.push(quote! {
-                    use #referencing_table_path::#foreign_trait_name;
-                });
+        let referencing_table_trait_name = get_referencing_table_trait_name(
+            &dsl_internal_foreign_key_function,
+            &referencing_table_name_pascal_case,
+            &singular_table_name_pascal_case,
+        );
 
-                on_error_strategy_calls.push(quote! {
-                    spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl::OnDeleteStrategy::Error, #primary_key_column_name)?;
-                });
-                cascade_strategy_calls.push(quote! {
-                    spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl::OnDeleteStrategy::Cascade, #primary_key_column_name)?;
-                });
-                /* TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
-                set_none_strategy_calls.push(quote! {
-                    spacetimedsl::internal::DSLInternals::#method_name(dsl, spacetimedsl::OnDeleteStrategy::SetNone, #primary_key_column_name)?;
-                });
-                */
-                set_zero_strategy_calls.push(quote! {
-                    spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl::OnDeleteStrategy::SetZero, #primary_key_column_name)?;
-                });
-            }
+        let referencing_table_function_name = get_referencing_table_function_name(
+            &dsl_internal_foreign_key_function,
+            &referencing_table_name,
+            &singular_table_name,
+        );
 
-            // TODO: Handle OnError Strategy Calls to return an ReferenceIntegrityViolationError on Failure.
-            function_impl = quote! {
-                #(#use_clauses)*
-                #(#on_error_strategy_calls)*
-                #(#cascade_strategy_calls)*
-                #(#set_none_strategy_calls)*
-                #(#set_zero_strategy_calls)*
-                Ok(())
-            };
-        }
+        use_clauses.push(quote! {
+            use #referencing_table_path::#referencing_table_trait_name;
+        });
+
+        on_error_strategy_calls.push(quote! {
+            reference_integrity_violations = spacetimedsl::internal::DSLInternals::#referencing_table_function_name(dsl, reference_integrity_violations, spacetimedsl::OnDeleteStrategy::Error, #primary_key_column_name);
+        });
+        cascade_strategy_calls.push(quote! {
+            reference_integrity_violations = spacetimedsl::internal::DSLInternals::#referencing_table_function_name(dsl, reference_integrity_violations, spacetimedsl::OnDeleteStrategy::Cascade, #primary_key_column_name)?;
+        });
+        /* TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
+        set_none_strategy_calls.push(quote! {
+            spacetimedsl::internal::DSLInternals::#referencing_table_function_name(dsl, reference_integrity_violations, spacetimedsl::OnDeleteStrategy::SetNone, #primary_key_column_name)?;
+        });
+        */
+        set_zero_strategy_calls.push(quote! {
+            reference_integrity_violations = spacetimedsl::internal::DSLInternals::#referencing_table_function_name(dsl, reference_integrity_violations, spacetimedsl::OnDeleteStrategy::SetZero, #primary_key_column_name)?;
+        });
+    }
+
+    // TODO: Handle OnError Strategy Calls to return an ReferenceIntegrityViolationError on Failure.
+    function_impl = quote! {
+        #(#use_clauses)*
+
+        let mut reference_integrity_violations: spacetimedsl::ReferenceIntegrityViolations = std::collections::HashMap::new();
+        #(#on_error_strategy_calls)*
+
+        #(#cascade_strategy_calls)*
+        #(#set_none_strategy_calls)*
+        #(#set_zero_strategy_calls)*
+        Ok(())
     };
 
     let function_args = function_args
@@ -695,6 +758,194 @@ pub(in crate::internal) fn for_referenced_by(
         method_args: function_args,
         return_type,
         method_impl: function_impl,
+    }
+}
+
+fn for_foreign_key(
+    dsl_internal_foreign_key_function: DSLInternalForeignKeyFunction,
+    spacetimedb_table: &SpacetimeDBTable,
+    spacetimedsl_table: &SpacetimeDSLTable,
+    columns: &Vec<Column>,
+    primary_key_column_name: &Box<str>,
+    name_of_another_table: &str,
+    columns_with_foreign_key: &Vec<&&Column>,
+) -> SpacetimeDSLMethod {
+    let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
+    let singular_table_name_pascal_case = format_ident!(
+        "{}",
+        RenameRule::PascalCase.apply_to_field(spacetimedb_table.singular_name.to_string())
+    );
+    let referenced_table_name = format_ident!("{}", *name_of_another_table);
+    let referenced_table_name_pascal_case = format_ident!(
+        "{}",
+        RenameRule::PascalCase.apply_to_field(referenced_table_name.to_string())
+    );
+
+    let doc_comment = match dsl_internal_foreign_key_function {
+        DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted => {
+                format!("Execute OnDeleteStrategies of the `{singular_table_name}` table after one row of the `{referenced_table_name}` table was deleted.")
+            }
+        DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted => {
+                format!("Execute OnDeleteStrategies of the `{singular_table_name}` table after multiple rows of the `{referenced_table_name}` table were deleted.")
+            }
+    }
+    .into();
+
+    let trait_name = get_referencing_table_trait_name(
+        &dsl_internal_foreign_key_function,
+        &singular_table_name_pascal_case,
+        &referenced_table_name_pascal_case,
+    )
+    .to_string()
+    .into();
+
+    let function_name = get_referencing_table_function_name(
+        &dsl_internal_foreign_key_function,
+        &singular_table_name,
+        &referenced_table_name,
+    )
+    .to_string()
+    .into();
+
+    let return_type = match dsl_internal_foreign_key_function {
+        DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted => quote! {
+            Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
+        },
+        DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted => quote! {
+            Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
+        }
+    }
+    .to_string()
+    .into();
+
+    let mut function_args = vec![];
+    let function_impl;
+
+    let primary_key_column = columns
+        .iter()
+        .find(|c| c.rust_field.name.eq(primary_key_column_name))
+        .unwrap();
+
+    let primary_key_column_type: Type =
+        parse_str(&primary_key_column.rust_field.type_name_or_path).unwrap();
+
+    function_args.push(match dsl_internal_foreign_key_function {
+                DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted => quote! {
+                    #primary_key_column_name: &#primary_key_column_type
+                },
+                DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted => quote! {
+                    #primary_key_column_name: Vec<&#primary_key_column_type>
+                },
+            });
+
+    let mut use_clauses = vec![];
+    let mut on_error_strategy_calls = vec![];
+    let mut cascade_strategy_calls = vec![];
+    let set_none_strategy_calls: Vec<TokenStream> = vec![];
+    let mut set_zero_strategy_calls = vec![];
+
+    for referencing_table in spacetimedsl_table.referencing_tables.iter() {
+        let referencing_table_path: Path = parse_str(&referencing_table.path).unwrap();
+        let referencing_table_name = &referencing_table.table_name;
+        let referencing_table_name_pascal_case =
+            RenameRule::PascalCase.apply_to_field(referencing_table_name.to_string());
+
+        // Use clauses
+        let foreign_trait_name;
+        let function_name;
+
+        match dsl_internal_foreign_key_function {
+                    DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted => {
+                        foreign_trait_name = format_ident!(
+                            "ExecuteOnDeleteStrategiesOf{referencing_table_name_pascal_case}AfterOne{singular_table_name_pascal_case}RowWasDeleted"
+                        );
+                        function_name = format_ident!(
+                            "execute_on_delete_strategies_of_{referencing_table_name}_after_one_{singular_table_name}_row_was_deleted",
+                        );
+                    }
+                    DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted => {
+                        foreign_trait_name = format_ident!(
+                            "ExecuteOnDeleteStrategiesOf{referencing_table_name_pascal_case}AfterMultiple{singular_table_name_pascal_case}RowsWereDeleted"
+                        );
+                        function_name = format_ident!(
+                            "execute_on_delete_strategies_of_{referencing_table_name}_after_multiple_{singular_table_name}_rows_were_deleted",
+                        );
+                    }
+                };
+
+        use_clauses.push(quote! {
+            use #referencing_table_path::#foreign_trait_name;
+        });
+
+        on_error_strategy_calls.push(quote! {
+                    spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl::OnDeleteStrategy::Error, #primary_key_column_name)?;
+                });
+        cascade_strategy_calls.push(quote! {
+                    spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl::OnDeleteStrategy::Cascade, #primary_key_column_name)?;
+                });
+        /* TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
+        set_none_strategy_calls.push(quote! {
+            spacetimedsl::internal::DSLInternals::#method_name(dsl, spacetimedsl::OnDeleteStrategy::SetNone, #primary_key_column_name)?;
+        });
+        */
+        set_zero_strategy_calls.push(quote! {
+                    spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl::OnDeleteStrategy::SetZero, #primary_key_column_name)?;
+                });
+    }
+
+    // TODO: Handle OnError Strategy Calls to return an ReferenceIntegrityViolationError on Failure.
+    function_impl = quote! {
+        #(#use_clauses)*
+        #(#on_error_strategy_calls)*
+        #(#cascade_strategy_calls)*
+        #(#set_none_strategy_calls)*
+        #(#set_zero_strategy_calls)*
+        Ok(())
+    };
+
+    let function_args = function_args
+        .iter()
+        .map(|ts| ts.to_string().into())
+        .collect();
+    let function_impl = function_impl.to_string().into();
+
+    SpacetimeDSLMethod {
+        doc_comment,
+        trait_name,
+        method_name: function_name,
+        method_args: function_args,
+        return_type,
+        method_impl: function_impl,
+    }
+}
+
+fn get_referencing_table_trait_name(
+    dsl_internal_foreign_key_function: &DSLInternalForeignKeyFunction,
+    referencing_table_name_pascal_case: &Ident,
+    referenced_table_name_pascal_case: &Ident,
+) -> Ident {
+    match dsl_internal_foreign_key_function {
+        DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted => {
+            format_ident!("ExecuteOnDeleteStrategiesOf{referencing_table_name_pascal_case}AfterOneRowOfThe{referenced_table_name_pascal_case}TableWasDeleted")
+        },
+        DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted => {
+            format_ident!("ExecuteOnDeleteStrategiesOf{referencing_table_name_pascal_case}AfterMultipleRowsOfThe{referenced_table_name_pascal_case}TableWereDeleted")
+        }
+    }
+}
+
+fn get_referencing_table_function_name(
+    dsl_internal_foreign_key_function: &DSLInternalForeignKeyFunction,
+    referencing_table_name: &Ident,
+    referenced_table_name: &Ident,
+) -> Ident {
+    match dsl_internal_foreign_key_function {
+        DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted => {
+            format_ident!("execute_on_delete_strategies_of_{referencing_table_name}_after_one_row_of_the_{referenced_table_name}_table_was_deleted")
+        },
+        DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted => {
+            format_ident!("execute_on_delete_strategies_of_{referencing_table_name}_after_multiple_rows_of_the_{referenced_table_name}_table_were_deleted")
+        }
     }
 }
 
@@ -746,12 +997,14 @@ pub(in crate::internal) fn for_single_column_index(
 
     let return_type = match dsl_method {
         DSLColumnMethod::GetMany => quote! {impl Iterator<Item = #struct_name>},
+        // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
         DSLColumnMethod::DeleteMany => quote! {u64},
         DSLColumnMethod::GetOneOption => quote! {Option<#struct_name>},
         DSLColumnMethod::Update => {
             let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
             quote! {Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>}
         },
+        // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
         DSLColumnMethod::DeleteOne => quote! {bool},
     }
     .to_string()
@@ -921,6 +1174,7 @@ pub(in crate::internal) fn for_single_column_index(
                     #method_impl_prefix
                         .filter(#column_value);
                 },
+                // TODO: If !referencing_tables.is_empty() { todo!("Call delete_many hooks before the current implementation"); }
                 DSLColumnMethod::DeleteMany => quote! {
                     #method_impl_prefix
                         .delete(#column_value);
@@ -929,6 +1183,7 @@ pub(in crate::internal) fn for_single_column_index(
                     #method_impl_prefix
                         .find(#column_value);
                 },
+                // TODO: If !referencing_tables.is_empty() { todo!("Call delete_one hooks before the current implementation"); }
                 DSLColumnMethod::DeleteOne => quote! {
                     #method_impl_prefix
                         .delete(#column_value);
@@ -1011,12 +1266,14 @@ pub(in crate::internal) fn for_multi_column_index(
 
     let return_type = match dsl_method {
         DSLColumnMethod::GetMany => quote! {impl Iterator<Item = #struct_name>},
+        // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
         DSLColumnMethod::DeleteMany => quote! {u64},
         DSLColumnMethod::GetOneOption => quote! {Option<#struct_name>},
         DSLColumnMethod::Update => {
             let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
             quote! {Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>}
         },
+        // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
         DSLColumnMethod::DeleteOne => quote! {bool},
     }
     .to_string()
@@ -1162,6 +1419,8 @@ pub(in crate::internal) fn for_multi_column_index(
                             #method_impl_prefix
                                 .filter((#(#column_values),*));
                         },
+
+                        // TODO: If !referencing_tables.is_empty() { todo!("Call delete_many hooks before the current implementation"); }
                         DSLColumnMethod::DeleteMany => quote! {
                             #method_impl_prefix
                                 .delete((#(#column_values),*));
@@ -1197,6 +1456,7 @@ pub(in crate::internal) fn for_multi_column_index(
 
                                 #field_name_for_found_value
                         },
+                        // TODO: If !referencing_tables.is_empty() { todo!("Call delete_one hooks before the current implementation"); }
                         DSLColumnMethod::DeleteOne => quote! {
                             #method_impl_prefix
 

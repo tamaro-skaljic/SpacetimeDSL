@@ -23,7 +23,13 @@ pub struct SpacetimeDSLTableMethods {
     pub create: SpacetimeDSLMethod,
     pub get_all: SpacetimeDSLMethod,
     pub get_count: SpacetimeDSLMethod,
-    pub actions_after_delete_one: Option<SpacetimeDSLMethod>,
-    pub actions_after_delete_many: Option<SpacetimeDSLMethod>,
+    pub execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted:
+        Option<SpacetimeDSLMethod>,
+    pub execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted:
+        Option<SpacetimeDSLMethod>,
+    pub execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted:
+        Vec<SpacetimeDSLMethod>,
+    pub execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted:
+        Vec<SpacetimeDSLMethod>,
     pub multi_column_indices: Vec<SpacetimeDSLColumnMethods>,
 }
