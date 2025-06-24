@@ -732,11 +732,20 @@ pub(in crate::internal) fn for_referenced_by(
         });
     }
 
+    let table_name_as_string = singular_table_name.to_string();
+
     // TODO: Handle OnError Strategy Calls to return an ReferenceIntegrityViolationError on Failure.
+    // TODO: Construction of DeletionResult must occur in the delete_one / delete_many DSL methods because they must return them even if no referenced_by functions exist for the table
+
     function_impl = quote! {
         #(#use_clauses)*
 
-        let mut reference_integrity_violations: spacetimedsl::ReferenceIntegrityViolations = std::collections::HashMap::new();
+        let mut deletion_result = spacetimedsl::DeletionResult {
+            table_name: #table_name_as_string.into(),
+            primary_key_values: #primary_key_column_name,
+            on_delete_strategy_executions: None
+        }
+
         #(#on_error_strategy_calls)*
 
         #(#cascade_strategy_calls)*
