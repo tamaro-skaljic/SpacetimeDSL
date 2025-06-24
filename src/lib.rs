@@ -36,7 +36,7 @@ pub enum OnDeleteStrategy {
     Error,
 
     /// Available independent from the column type.
-    Cascade,
+    Delete,
 
     // TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
     /// Available only for columns with type `Option<T>`.

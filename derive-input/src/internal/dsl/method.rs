@@ -552,7 +552,7 @@ pub(in crate::internal) fn for_table(
             } else {
                 TokenStream::default()
             };
-            
+
             // TODO: Check foreign keys
             method_impl = quote! {
                 #use_itertools
@@ -1359,7 +1359,7 @@ pub(in crate::internal) fn for_referenced_by(
 
     let mut use_clauses = vec![];
     let mut on_error_strategy_calls = vec![];
-    let mut cascade_strategy_calls = vec![];
+    let mut delete_strategy_calls = vec![];
     let set_none_strategy_calls: Vec<TokenStream> = vec![];
     let mut set_zero_strategy_calls = vec![];
 
@@ -1399,8 +1399,8 @@ pub(in crate::internal) fn for_referenced_by(
         on_error_strategy_calls.push(quote! {
             reference_integrity_violations = spacetimedsl::internal::DSLInternals::#referencing_table_function_name(dsl, reference_integrity_violations, spacetimedsl::OnDeleteStrategy::Error, #primary_key_column_name);
         });
-        cascade_strategy_calls.push(quote! {
-            reference_integrity_violations = spacetimedsl::internal::DSLInternals::#referencing_table_function_name(dsl, reference_integrity_violations, spacetimedsl::OnDeleteStrategy::Cascade, #primary_key_column_name)?;
+        delete_strategy_calls.push(quote! {
+            reference_integrity_violations = spacetimedsl::internal::DSLInternals::#referencing_table_function_name(dsl, reference_integrity_violations, spacetimedsl::OnDeleteStrategy::Delete, #primary_key_column_name)?;
         });
         /* TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
         set_none_strategy_calls.push(quote! {
@@ -1428,7 +1428,7 @@ pub(in crate::internal) fn for_referenced_by(
 
         #(#on_error_strategy_calls)*
 
-        #(#cascade_strategy_calls)*
+        #(#delete_strategy_calls)*
         #(#set_none_strategy_calls)*
         #(#set_zero_strategy_calls)*
         Ok(())
@@ -1529,7 +1529,7 @@ fn for_foreign_key(
 
     let mut use_clauses = vec![];
     let mut on_error_strategy_calls = vec![];
-    let mut cascade_strategy_calls = vec![];
+    let mut delete_strategy_calls = vec![];
     let set_none_strategy_calls: Vec<TokenStream> = vec![];
     let mut set_zero_strategy_calls = vec![];
 
@@ -1569,8 +1569,8 @@ fn for_foreign_key(
         on_error_strategy_calls.push(quote! {
                     spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl::OnDeleteStrategy::Error, #primary_key_column_name)?;
                 });
-        cascade_strategy_calls.push(quote! {
-                    spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl::OnDeleteStrategy::Cascade, #primary_key_column_name)?;
+        delete_strategy_calls.push(quote! {
+                    spacetimedsl::internal::DSLInternals::#function_name(dsl, spacetimedsl::OnDeleteStrategy::Delete, #primary_key_column_name)?;
                 });
         /* TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
         set_none_strategy_calls.push(quote! {
@@ -1586,7 +1586,7 @@ fn for_foreign_key(
     function_impl = quote! {
         #(#use_clauses)*
         #(#on_error_strategy_calls)*
-        #(#cascade_strategy_calls)*
+        #(#delete_strategy_calls)*
         #(#set_none_strategy_calls)*
         #(#set_zero_strategy_calls)*
         Ok(())

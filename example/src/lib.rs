@@ -40,7 +40,7 @@ pub mod component {
             /// The unique ID of the Entity the Identifier belongs to.
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
-            #[foreign_key(path = crate::entity, table = entity, on_delete = Cascade)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
             entity_id: u128,
 
             // The unique value of the Identifier.
@@ -104,7 +104,7 @@ pub mod component {
             /// The unique ID of the Entity the unique Position belongs to.
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
-            #[foreign_key(path = crate::entity, table = entity, on_delete = Cascade)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
             entity_id: u128,
 
             pub x: i128,
@@ -150,7 +150,7 @@ pub mod component {
 
             #[index(btree)]
             #[wrapped(path = crate::entity::EntityId)]
-            #[foreign_key(path = crate::entity, table = entity, on_delete = Cascade)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
             pub wrapped_index: u128,
 
             #[index(btree)]
@@ -583,7 +583,7 @@ pub mod test {
 
         dsl.delete_entity_by_id(&player_reflection);
         if dsl.count_of_all_identifiers().ne(&0) {
-            return Err("The count of Identifiers should be 0 because the player_reflection Entity was deleted and the foreign key has a Cascade strategy.".to_string());
+            return Err("The count of Identifiers should be 0 because the player_reflection Entity was deleted and the foreign key has a Delete strategy.".to_string());
         }
         if dsl
             .get_position_by_id(&player_reflection_position_id)

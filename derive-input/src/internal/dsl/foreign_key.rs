@@ -97,7 +97,7 @@ impl ForeignKey {
             let on_delete_strategy = on_delete_strategy.ok_or_else(|| {
             syn::Error::new_spanned(
                 &attr.meta,
-                "OnDeleteStrategy must be set in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Cascade` (or Error, SetNone or SetZero).",
+                "OnDeleteStrategy must be set in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Delete` (or Error, SetNone or SetZero).",
             )
         })?;
 
@@ -121,15 +121,15 @@ impl OnDeleteStrategy {
         // TODO: Add Checks (Option for SetNone, Numeric for SetZero (SpacetimeDB has a is_numeric function), ...)
         match action_variant {
             "Error" => Ok(OnDeleteStrategy::Error),
-            "Cascade" => Ok(OnDeleteStrategy::Cascade),
+            "Delete" => Ok(OnDeleteStrategy::Delete),
             "SetNone" => Err(syn::Error::new_spanned(
                 &tokens,
-                "Because Option is currently not allowed on primary_key and unique/btree indices, `OnDeleteStrategy::SetNone` isn't implemented yet. `OnDeleteStrategy` must be one of `Error`, `Cascade` or `SetZero` in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Cascade`.".to_string(),
+                "Because Option is currently not allowed on primary_key and unique/btree indices, `OnDeleteStrategy::SetNone` isn't implemented yet. `OnDeleteStrategy` must be one of `Error`, `Delete` or `SetZero` in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Delete`.".to_string(),
             )),
             "SetZero" => Ok(OnDeleteStrategy::SetZero),
             _ => Err(syn::Error::new_spanned(
                 &tokens,
-                "`OnDeleteStrategy` must be one of `Error`, `Cascade`, `SetNone` or `SetZero` in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Cascade`.".to_string(),
+                "`OnDeleteStrategy` must be one of `Error`, `Delete`, `SetNone` or `SetZero` in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Delete`.".to_string(),
             )),
         }
     }

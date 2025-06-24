@@ -49,7 +49,7 @@ pub struct ReferencingTable {
  *     - Arg: #foreign_table_name: &#column_type
  *     - Return Type: Result<(), UniqueConstraintViolationError>
  *     - Impl:
- *       - For each OnDeleteStrategy (Sort Order: Error, Cascade, SetNone, SetZero):
+ *       - For each OnDeleteStrategy (Sort Order: Error, Delete, SetNone, SetZero):
  *         - For Unique Indices
 ```
 match dsl.ctx().db().#table_name().#column_name().find(#foreign_table_name){
@@ -76,7 +76,7 @@ match dsl.ctx().db().#table_name().#column_name().filter(#foreign_table_name){
  *     - Arg: #plural_table_name: Vec<&#column_type>
  *     - Return Type: Result<(), UniqueConstraintViolationError>
  *     - Impl:
- *       - For each OnDeleteStrategy (Sort Order: Error, Cascade, SetNone, SetZero):
+ *       - For each OnDeleteStrategy (Sort Order: Error, Delete, SetNone, SetZero):
  *         - TODO
  *       - Ok(())
  */
