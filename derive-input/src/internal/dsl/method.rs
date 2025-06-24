@@ -390,8 +390,7 @@ pub(in crate::internal) fn for_table(
             };
         }
         DSLTableMethod::GetCount => {
-            doc_comment =
-                format!("Get the count of all rows inside the `{singular_table_name}` table.");
+            doc_comment = format!("Count all rows inside the `{singular_table_name}` table.");
             trait_name = format!("CountOfAll{}Rows", struct_name);
             method_name = format!("count_of_all_{}", plural_table_name);
             return_type = quote! {
