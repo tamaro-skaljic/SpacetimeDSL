@@ -1,11 +1,9 @@
-use super::referenced_by;
+use super::{column, path, referenced_by, table};
 use crate::api::dsl::reference::ReferencingTable;
-use crate::internal::dsl::{path, table};
 use quote::ToTokens;
-use spacetime_bindings_macro_input::match_meta;
-use spacetime_bindings_macro_input::sats::SatsField;
-use spacetime_bindings_macro_input::sym::primary_key;
-use spacetime_bindings_macro_input::util::check_duplicate;
+use spacetime_bindings_macro_input::{
+    match_meta, sats::SatsField, sym::primary_key, util::check_duplicate,
+};
 use syn::{Ident, Path};
 
 impl ReferencingTable {
@@ -36,7 +34,8 @@ impl ReferencingTable {
             }
 
             let mut path_value: Option<Path> = None;
-            let mut table_value: Option<Ident> = None;
+            let mut table_name: Option<Ident> = None;
+            let mut column_name: Option<Ident> = None;
 
             attr.parse_nested_meta(|meta| {
                 match_meta!(match meta {
@@ -45,33 +44,49 @@ impl ReferencingTable {
                         path_value = Some(meta.value()?.parse()?);
                     }
                     table => {
-                        check_duplicate(&table_value, &meta)?;
-                        table_value = Some(meta.value()?.parse()?);
+                        check_duplicate(&table_name, &meta)?;
+                        table_name = Some(meta.value()?.parse()?);
+                    }
+                    column => {
+                        check_duplicate(&column_name, &meta)?;
+                        column_name = Some(meta.value()?.parse()?);
                     }
                 });
 
                 Ok(())
             })?;
 
-            let path_value = Some(path_value.as_ref()
+            let path_value = path_value
             .ok_or_else(|| syn::Error::new_spanned(
                 &attr.meta,
                 "PathToTable must be set in `#[referenced_by(path = PathToTable)]`, e.g. `path = crate::path::to::my::table`.",
             ))?
             .to_token_stream()
-            .to_string().into());
+            .to_string()
+            .into();
 
-            let table_value = Some(table_value.as_ref()
+            let table_name = table_name
             .ok_or_else(|| syn::Error::new_spanned(
                 &attr.meta,
                 "TableName must be set in `#[referenced_by(table = TableName)]`, e.g. `table = my_table`.",
             ))?
             .to_token_stream()
-            .to_string().into());
+            .to_string()
+            .into();
+
+            let column_name = column_name
+            .ok_or_else(|| syn::Error::new_spanned(
+                &attr.meta,
+                "ColumnName must be set in `#[referenced_by(column = ColumnName)]`, e.g. `column = id`.",
+            ))?
+            .to_token_stream()
+            .to_string()
+            .into();
 
             referencing_tables.push(ReferencingTable {
-                path: path_value.unwrap(),
-                table_name: table_value.unwrap(),
+                path: path_value,
+                table_name,
+                column_name,
             });
         }
 

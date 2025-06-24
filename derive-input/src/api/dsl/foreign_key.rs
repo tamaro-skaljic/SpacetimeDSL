@@ -4,6 +4,7 @@
 #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
 #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
 pub struct ForeignKey {
+    pub path: Box<str>,
     pub table_name: Box<str>,
     pub column_name: Box<str>,
     pub on_delete_strategy: OnDeleteStrategy,

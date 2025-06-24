@@ -11,11 +11,11 @@ pub mod entity {
         #[primary_key]
         #[auto_inc]
         #[wrap]
-        #[referenced_by(path = crate::component::identifier, table = identifier)]
-        #[referenced_by(path = crate::component::position,   table = position)]
-        #[referenced_by(path = crate::component::position,   table = unique_position)]
-        #[referenced_by(path = crate::component::test,       table = test)]
-        #[referenced_by(path = crate::component::test,       table = ship_object)]
+        #[referenced_by(path = crate::component::identifier, table = identifier,      column = entity_id)]
+        #[referenced_by(path = crate::component::position,   table = position,        column = entity_id)]
+        #[referenced_by(path = crate::component::position,   table = unique_position, column = entity_id)]
+        #[referenced_by(path = crate::component::test,       table = test,            column = entity_id)]
+        #[referenced_by(path = crate::component::test,       table = ship_object,     column = entity_id)]
         id: u128,
 
         created_at: Timestamp,
@@ -40,7 +40,7 @@ pub mod component {
             /// The unique ID of the Entity the Identifier belongs to.
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
-            #[foreign_key(table = entity, on_delete = Cascade)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Cascade)]
             entity_id: u128,
 
             // The unique value of the Identifier.
@@ -74,7 +74,7 @@ pub mod component {
             /// The unique ID of the Entity the Position belongs to.
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
-            #[foreign_key(table = entity, on_delete = SetZero)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = SetZero)]
             entity_id: u128,
 
             pub x: i128,
@@ -104,7 +104,7 @@ pub mod component {
             /// The unique ID of the Entity the unique Position belongs to.
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
-            #[foreign_key(table = entity, on_delete = Cascade)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Cascade)]
             entity_id: u128,
 
             pub x: i128,
@@ -150,14 +150,14 @@ pub mod component {
 
             #[index(btree)]
             #[wrapped(path = crate::entity::EntityId)]
-            #[foreign_key(table = entity, on_delete = Cascade)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Cascade)]
             pub wrapped_index: u128,
 
             #[index(btree)]
             pub btree_index: u128,
 
             #[unique]
-            #[foreign_key(table = entity, on_delete = SetZero)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = SetZero)]
             pub unique: u128,
 
             pub string: String,
@@ -202,7 +202,7 @@ pub mod component {
 
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
-            #[foreign_key(table = entity, on_delete = Error)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
             pub entity_id: u128,
         }
     }

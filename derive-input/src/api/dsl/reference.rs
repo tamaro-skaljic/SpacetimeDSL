@@ -6,6 +6,7 @@
 pub struct ReferencingTable {
     pub path: Box<str>,
     pub table_name: Box<str>,
+    pub column_name: Box<str>,
 }
 
 /*
