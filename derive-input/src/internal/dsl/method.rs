@@ -861,14 +861,8 @@ pub(in crate::internal) fn for_single_column_index(
                     if spacetimedsl_table.referencing_tables.is_empty() {
                         quote! {
                             #into_option
-
-                            let #column_name = #column_value;
-                            let rows_to_delete = #method_impl_prefix
-                                .filter(#column_name); // TODO: maybe some types need a .clone() after #column_name
-
-                            let count_of_deleted_rows = #method_impl_prefix
-                                .delete(#column_name);
-                            count_of_deleted_rows
+                            #method_impl_prefix
+                                .delete(#column_value)
                         }
                     } else {
                         quote! {
