@@ -365,6 +365,7 @@ pub(in crate::internal) fn for_table(
     let plural_table_name = &spacetimedsl_table.plural_name;
 
     let doc_comment = match dsl_table_method {
+        // TODO: Let foreign_key's influence the doc comment
         DSLTableMethod::Create => format!("Create a row in the `{singular_table_name}` table."),
         DSLTableMethod::GetAll => {
             format!("Get all rows inside the `{singular_table_name}` table.")
@@ -632,9 +633,12 @@ pub(in crate::internal) fn for_single_column_index(
             );
             trait_name = format!("Get{struct_name}RowsBy{column_name_pascal_case}");
             method_name = format!("get_{plural_table_name}_by_{column_name}");
-            return_type = quote! {impl Iterator<Item = #struct_name>};
+            return_type = quote! {
+                impl Iterator<Item = #struct_name>
+            };
         }
         DSLColumnMethod::DeleteMany => {
+            // TODO: Let referenced_by's influence the doc comment
             doc_comment = format!(
                 "Delete all {struct_name} rows inside the {singular_table_name} table filtered by the single-column index on the {column_name} column."
             );
@@ -649,9 +653,12 @@ pub(in crate::internal) fn for_single_column_index(
             );
             trait_name = format!("Get{struct_name}RowOptionBy{column_name_pascal_case}");
             method_name = format!("get_{singular_table_name}_by_{column_name}");
-            return_type = quote! {Option<#struct_name>};
+            return_type = quote! {
+                Option<#struct_name>
+            };
         }
         DSLColumnMethod::Update => {
+            // TODO: Let foreign_key's influence the doc comment
             doc_comment = format!(
                 "Update a {struct_name} row inside the {singular_table_name} table by the unique single-column index on the {column_name} column."
             );
@@ -659,9 +666,12 @@ pub(in crate::internal) fn for_single_column_index(
             method_name = format!("update_{singular_table_name}_by_{column_name}");
 
             let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
-            return_type = quote! {Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>};
+            return_type = quote! {
+                Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>
+            };
         }
         DSLColumnMethod::DeleteOne => {
+            // TODO: Let referenced_by's influence the doc comment
             doc_comment = format!(
                 "Delete a {struct_name} row inside the {singular_table_name} table filtered by the unique single-column index on the {column_name} column."
             );
@@ -671,11 +681,11 @@ pub(in crate::internal) fn for_single_column_index(
             return_type = quote! {bool};
         }
     }
-    
+
     let doc_comment = doc_comment.into();
-    let trait_name= trait_name.into();
-    let method_name= method_name.into();
-    let return_type= return_type.to_string().into();
+    let trait_name = trait_name.into();
+    let method_name = method_name.into();
+    let return_type = return_type.to_string().into();
 
     let mut method_args = vec![];
     let method_impl;
