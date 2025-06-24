@@ -552,6 +552,8 @@ pub(in crate::internal) fn for_table(
             } else {
                 TokenStream::default()
             };
+            
+            // TODO: Check foreign keys
             method_impl = quote! {
                 #use_itertools
 
@@ -716,6 +718,7 @@ pub(in crate::internal) fn for_single_column_index(
                 TokenStream::default()
             };
 
+            // TODO: Check foreign keys
             method_impl = quote! {
                 #use_itertools
 
@@ -986,6 +989,7 @@ pub(in crate::internal) fn for_multi_column_index(
                 TokenStream::default()
             };
 
+            // TODO: Check foreign keys
             method_impl = quote! {
                 #use_itertools
 
