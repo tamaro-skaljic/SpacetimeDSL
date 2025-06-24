@@ -858,11 +858,13 @@ pub(in crate::internal) fn for_single_column_index(
                     if spacetimedsl_table.referencing_tables.is_empty() {
                         quote! {
                             #into_option
+
+                            let #column_name = #column_value;
                             let rows_to_delete = #method_impl_prefix
-                                .filter(#column_value);
+                                .filter(#column_name); // TODO: maybe some types need a .clone() after #column_name in the .filter() method.
 
                             let count_of_deleted_rows = #method_impl_prefix
-                                .delete(#column_value);
+                                .delete(#column_name);
                             count_of_deleted_rows
                         }
                     } else {
@@ -1348,11 +1350,13 @@ pub(in crate::internal) fn for_referenced_by(
     .into();
 
     let return_type = match dsl_internal_referenced_by_function {
+            // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
         DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted => quote! {
-            Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
+            bool
         },
+            // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
         DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted => quote! {
-            Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
+            u64
         },
     }
     .to_string()
@@ -1441,12 +1445,6 @@ pub(in crate::internal) fn for_referenced_by(
     function_impl = quote! {
         #(#use_clauses)*
 
-        let mut deletion_result = spacetimedsl::DeletionResult {
-            table_name: #table_name_as_string.into(),
-            primary_key_values: #primary_key_column_name,
-            on_delete_strategy_executions: None
-        }
-
         #(#on_error_strategy_calls)*
 
         #(#delete_strategy_calls)*
@@ -1518,11 +1516,13 @@ fn for_foreign_key(
     .into();
 
     let return_type = match dsl_internal_foreign_key_function {
+            // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
         DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted => quote! {
-            Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
+            bool
         },
+            // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
         DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted => quote! {
-            Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
+            u64
         }
     }
     .to_string()
