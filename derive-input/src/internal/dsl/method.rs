@@ -840,7 +840,6 @@ pub(in crate::internal) fn for_single_column_index(
             method_args.push(method_arg);
 
             let method_impl_prefix = quote! {
-                #into_option
                     self
                         .ctx()
                         .db()
@@ -850,23 +849,45 @@ pub(in crate::internal) fn for_single_column_index(
 
             method_impl = match dsl_method {
                 DSLColumnMethod::GetMany => quote! {
+                    #into_option
                     #method_impl_prefix
                         .filter(#column_value)
                 },
                 // TODO: If !referencing_tables.is_empty() { todo!("Call delete_many hooks before the current implementation"); }
-                DSLColumnMethod::DeleteMany => quote! {
-                    #method_impl_prefix
-                        .delete(#column_value)
-                },
+                DSLColumnMethod::DeleteMany => {
+                    if spacetimedsl_table.referencing_tables.is_empty() {
+                        quote! {
+                            #into_option
+                            let rows_to_delete = #method_impl_prefix
+                                .filter(#column_value);
+
+                            let count_of_deleted_rows = #method_impl_prefix
+                                .delete(#column_value);
+                            count_of_deleted_rows
+                        }
+                    } else {
+                        quote! {
+                            #into_option
+                            let count_of_deleted_rows = #method_impl_prefix
+                                .delete(#column_value);
+                            count_of_deleted_rows
+                        }
+                    }
+                }
                 DSLColumnMethod::GetOneOption => quote! {
+                    #into_option
                     #method_impl_prefix
                         .find(#column_value)
                 },
                 // TODO: If !referencing_tables.is_empty() { todo!("Call delete_one hooks before the current implementation"); }
-                DSLColumnMethod::DeleteOne => quote! {
-                    #method_impl_prefix
-                        .delete(#column_value)
-                },
+                DSLColumnMethod::DeleteOne => {
+                    quote! {
+                        #into_option
+                        let row_deleted = #method_impl_prefix
+                            .delete(#column_value);
+                        row_deleted
+                    }
+                }
                 DSLColumnMethod::Update => {
                     panic!("Update DSLColumnMethod should already be processed.")
                 }
