@@ -419,6 +419,7 @@ pub(in crate::internal) fn for_table(
                 let column_type: Type =
                     parse_str(&column.rust_field.type_name_or_path).expect("create");
 
+                // TODO: Allow Option<Timestamp> as modified_at column type
                 if column.spacetimedb_column.is_auto_inc
                     || column.rust_field.name.eq(&"created_at".to_string().into())
                     || column.rust_field.name.eq(&"modified_at".to_string().into())
@@ -678,6 +679,7 @@ pub(in crate::internal) fn for_single_column_index(
                 &primary_key_column_name,
             );
 
+            // TODO: Allow Option<Timestamp> as modified_at column type
             let modified_at = match spacetimedsl_table.has_modified_at_column {
                 false => TokenStream::default(),
                 true => {

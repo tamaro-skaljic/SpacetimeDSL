@@ -125,6 +125,7 @@ impl SpacetimeDSLTable {
             if !has_modified_at_column {
                 if field.name.as_ref().unwrap().eq("modified_at") {
                     let field_type = field.ty.to_token_stream().to_string();
+                    // TODO: Allow Option<Timestamp> as modified_at column type
                     if !field_type.eq("Timestamp") {
                         return Err(syn::Error::new(
                             Span::call_site(),
