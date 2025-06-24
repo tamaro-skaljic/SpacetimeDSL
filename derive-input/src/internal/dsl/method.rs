@@ -364,48 +364,46 @@ pub(in crate::internal) fn for_table(
     let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
     let plural_table_name = &spacetimedsl_table.plural_name;
 
-    let doc_comment = match dsl_table_method {
+    let doc_comment;
+    let trait_name;
+    let method_name;
+    let return_type;
+
+    match dsl_table_method {
         // TODO: Let foreign_key's influence the doc comment
-        DSLTableMethod::Create => format!("Create a row in the `{singular_table_name}` table."),
+        DSLTableMethod::Create => {
+            doc_comment = format!("Create a row in the `{singular_table_name}` table.");
+            trait_name = format!("Create{}Row", struct_name);
+            method_name = format!("create_{}", singular_table_name);
+
+            let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
+            return_type = quote! {
+                Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>
+            };
+        }
         DSLTableMethod::GetAll => {
-            format!("Get all rows inside the `{singular_table_name}` table.")
+            doc_comment = format!("Get all rows inside the `{singular_table_name}` table.");
+            trait_name = format!("GetAll{}Rows", struct_name);
+            method_name = format!("get_all_{}", plural_table_name);
+            return_type = quote! {
+                impl Iterator<Item = #struct_name>
+            };
         }
         DSLTableMethod::GetCount => {
-            format!("Get the count of all rows inside the `{singular_table_name}` table.")
+            doc_comment =
+                format!("Get the count of all rows inside the `{singular_table_name}` table.");
+            trait_name = format!("CountOfAll{}Rows", struct_name);
+            method_name = format!("count_of_all_{}", plural_table_name);
+            return_type = quote! {
+                u64
+            };
         }
     }
-    .into();
 
-    let trait_name = match dsl_table_method {
-        DSLTableMethod::Create => format!("Create{}Row", struct_name),
-        DSLTableMethod::GetAll => format!("GetAll{}Rows", struct_name),
-        DSLTableMethod::GetCount => format!("CountOfAll{}Rows", struct_name),
-    }
-    .into();
-
-    let method_name = match dsl_table_method {
-        DSLTableMethod::Create => format!("create_{}", singular_table_name),
-        DSLTableMethod::GetAll => format!("get_all_{}", plural_table_name),
-        DSLTableMethod::GetCount => format!("count_of_all_{}", plural_table_name),
-    }
-    .into();
-
-    let return_type = match dsl_table_method {
-        DSLTableMethod::Create => {
-            let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
-            quote! {
-                Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>
-            }
-        }
-        DSLTableMethod::GetAll => quote! {
-            impl Iterator<Item = #struct_name>
-        },
-        DSLTableMethod::GetCount => quote! {
-            u64
-        },
-    }
-    .to_string()
-    .into();
+    let doc_comment = doc_comment.into();
+    let trait_name = trait_name.into();
+    let method_name = method_name.into();
+    let return_type = return_type.to_string().into();
 
     let mut method_args = vec![];
     let method_impl;
