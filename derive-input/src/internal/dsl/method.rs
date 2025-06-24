@@ -378,14 +378,14 @@ pub(in crate::internal) fn for_table(
     let trait_name = match dsl_table_method {
         DSLTableMethod::Create => format!("Create{}Row", struct_name),
         DSLTableMethod::GetAll => format!("GetAll{}Rows", struct_name),
-        DSLTableMethod::GetCount => format!("GetCountOf{}Rows", struct_name),
+        DSLTableMethod::GetCount => format!("CountOfAll{}Rows", struct_name),
     }
     .into();
 
     let method_name = match dsl_table_method {
         DSLTableMethod::Create => format!("create_{}", singular_table_name),
         DSLTableMethod::GetAll => format!("get_all_{}", plural_table_name),
-        DSLTableMethod::GetCount => format!("get_count_of_{}", plural_table_name),
+        DSLTableMethod::GetCount => format!("count_of_all_{}", plural_table_name),
     }
     .into();
 

@@ -212,12 +212,12 @@ pub mod test {
     use crate::{
         component::{
             identifier::{
-                CreateIdentifierRow, GetCountOfIdentifierRows, GetIdentifierRowOptionByEntityId,
+                CountOfAllIdentifierRows, CreateIdentifierRow, GetIdentifierRowOptionByEntityId,
                 GetIdentifierRowOptionByValue, UpdateIdentifierRowById, update_modified_at,
             },
             position::{
-                CreatePositionRow, CreateUniquePositionRow, GetAllPositionRows,
-                GetAllUniquePositionRows, GetCountOfPositionRows, GetCountOfUniquePositionRows,
+                CountOfAllPositionRows, CountOfAllUniquePositionRows, CreatePositionRow,
+                CreateUniquePositionRow, GetAllPositionRows, GetAllUniquePositionRows,
                 GetPositionRowOptionById, PositionId, UniquePositionId, UpdatePositionRowById,
                 UpdateUniquePositionRowById,
             },
@@ -433,7 +433,7 @@ pub mod test {
         };
 
         let positions_iter = dsl.get_all_positions();
-        let position_count_two: usize = dsl.get_count_of_positions().try_into().unwrap();
+        let position_count_two: usize = dsl.count_of_all_positions().try_into().unwrap();
 
         let mut position_count_one = 0;
         let mut position_ids = vec![];
@@ -502,7 +502,7 @@ pub mod test {
 
         let unique_positions_iter = dsl.get_all_unique_positions();
         let unique_position_count_two: usize =
-            dsl.get_count_of_unique_positions().try_into().unwrap();
+            dsl.count_of_all_unique_positions().try_into().unwrap();
 
         let mut unique_position_count_one = 0;
         let mut unique_position_ids = vec![];
@@ -582,7 +582,7 @@ pub mod test {
         //let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index()..);
 
         dsl.delete_entity_by_id(&player_reflection);
-        if dsl.get_count_of_identifiers().ne(&0) {
+        if dsl.count_of_all_identifiers().ne(&0) {
             return Err("The count of Identifiers should be 0 because the player_reflection Entity was deleted and the foreign key has a Cascade strategy.".to_string());
         }
         if dsl
