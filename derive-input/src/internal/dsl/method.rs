@@ -568,7 +568,7 @@ pub(in crate::internal) fn for_table(
                     .ctx()
                     .db()
                     .#singular_table_name()
-                    .try_insert(#singular_table_name);
+                    .try_insert(#singular_table_name)
             }
         }
         DSLTableMethod::GetAll => {
