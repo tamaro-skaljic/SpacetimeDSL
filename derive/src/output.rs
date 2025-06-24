@@ -125,6 +125,7 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
         "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
     ));
 
+    // TODO: The trait doc comment should link to the method doc comment
     let method = quote! {
         #[doc=#doc_comment]
         pub trait #trait_name: spacetimedsl::DSLContext {
@@ -181,6 +182,7 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
         "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
     ));
 
+    // TODO: The trait doc comment should link to the method doc comment
     let method = quote! {
         #[doc=#doc_comment]
         pub trait #trait_name: spacetimedsl::DSLContext {
@@ -242,6 +244,7 @@ pub fn build_internal(method: &Option<SpacetimeDSLMethod>) -> syn::Result<TokenS
         "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
     ));
 
+    // TODO: The trait doc comment should link to the method doc comment
     let method = quote! {
         #[doc=#doc_comment]
         pub trait #trait_name {
