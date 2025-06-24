@@ -36,6 +36,7 @@ pub struct SpacetimeDSLColumnMethodsForUniqueIndex {
     pub get_one_option: SpacetimeDSLMethod,
     pub update: Option<SpacetimeDSLMethod>,
     pub delete_one: SpacetimeDSLMethod,
+    pub delete_one_result_type: SpacetimeDSLDeletionResult,
 }
 
 #[cfg_attr(feature = "clone", derive(Clone))]
@@ -46,4 +47,12 @@ pub struct SpacetimeDSLColumnMethodsForUniqueIndex {
 pub struct SpacetimeDSLColumnMethodsForIndex {
     pub get_many: SpacetimeDSLMethod,
     pub delete_many: SpacetimeDSLMethod,
+    pub delete_many_result_type: SpacetimeDSLDeletionResult,
 }
+
+#[cfg_attr(feature = "clone", derive(Clone))]
+#[cfg_attr(feature = "debug", derive(Debug))]
+#[cfg_attr(feature = "partial-eq", derive(PartialEq))]
+#[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
+#[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
+pub struct SpacetimeDSLDeletionResult {}

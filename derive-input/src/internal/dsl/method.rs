@@ -9,11 +9,10 @@ use crate::{
         dsl::{
             column::{
                 SpacetimeDSLColumn, SpacetimeDSLColumnMethods, SpacetimeDSLColumnMethodsForIndex,
-                SpacetimeDSLColumnMethodsForUniqueIndex,
+                SpacetimeDSLColumnMethodsForUniqueIndex, SpacetimeDSLDeletionResult,
             },
             method::SpacetimeDSLMethod,
-            table::SpacetimeDSLTable,
-            table::SpacetimeDSLTableMethods,
+            table::{SpacetimeDSLTable, SpacetimeDSLTableMethods},
             wrapper::WrapperType,
         },
         rust::{column::RustField, table::RustStruct},
@@ -96,6 +95,7 @@ impl SpacetimeDSLColumnMethods {
                 SpacetimeDSLColumnMethods::ForIndex(SpacetimeDSLColumnMethodsForIndex {
                     get_many,
                     delete_many,
+                    delete_many_result_type: SpacetimeDSLDeletionResult {}, // TODO
                 })
             }
             true => {
@@ -136,6 +136,7 @@ impl SpacetimeDSLColumnMethods {
                     get_one_option,
                     update,
                     delete_one,
+                    delete_one_result_type: SpacetimeDSLDeletionResult {}, // TODO
                 })
             }
         };
@@ -290,6 +291,7 @@ impl SpacetimeDSLTableMethods {
                         SpacetimeDSLColumnMethodsForIndex {
                             get_many,
                             delete_many,
+                            delete_many_result_type: SpacetimeDSLDeletionResult {}, // TODO
                         },
                     ));
                 }
@@ -332,6 +334,7 @@ impl SpacetimeDSLTableMethods {
                             get_one_option,
                             update,
                             delete_one,
+                            delete_one_result_type: SpacetimeDSLDeletionResult {}, // TODO
                         },
                     ));
                 }
@@ -861,7 +864,7 @@ pub(in crate::internal) fn for_single_column_index(
 
                             let #column_name = #column_value;
                             let rows_to_delete = #method_impl_prefix
-                                .filter(#column_name); // TODO: maybe some types need a .clone() after #column_name in the .filter() method.
+                                .filter(#column_name); // TODO: maybe some types need a .clone() after #column_name
 
                             let count_of_deleted_rows = #method_impl_prefix
                                 .delete(#column_name);
