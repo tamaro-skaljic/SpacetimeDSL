@@ -555,38 +555,38 @@ pub(in crate::internal) fn for_table(
                 TokenStream::default()
             };
             method_impl = quote! {
-            #use_itertools
+                #use_itertools
 
-            #(#into_options)*
-            let #singular_table_name = #struct_name {
-                #(#constructor_args),*
-            };
+                #(#into_options)*
+                let #singular_table_name = #struct_name {
+                    #(#constructor_args),*
+                };
 
-            #(#multi_column_index_checks)*
+                #(#multi_column_index_checks)*
 
-            return self
+                self
                     .ctx()
                     .db()
                     .#singular_table_name()
                     .try_insert(#singular_table_name);
-                };
+            }
         }
         DSLTableMethod::GetAll => {
             method_impl = quote! {
-                return self
-                        .ctx()
-                        .db()
-                        .#singular_table_name()
-                        .iter();
+                self
+                    .ctx()
+                    .db()
+                    .#singular_table_name()
+                    .iter()
             };
         }
         DSLTableMethod::GetCount => {
             method_impl = quote! {
-                return self
-                        .ctx()
-                        .db()
-                        .#singular_table_name()
-                        .count();
+                self
+                    .ctx()
+                    .db()
+                    .#singular_table_name()
+                    .count()
             };
         }
     };
@@ -703,12 +703,13 @@ pub(in crate::internal) fn for_single_column_index(
                 #(#multi_column_index_checks)*
 
                 #modified_at
-                return Ok(self
-                        .ctx()
-                        .db()
-                        .#singular_table_name()
-                        .#column_name()
-                        .update(#singular_table_name));
+                Ok(self
+                    .ctx()
+                    .db()
+                    .#singular_table_name()
+                    .#column_name()
+                    .update(#singular_table_name)
+                )
             };
         }
         dsl_method => {
@@ -818,7 +819,7 @@ pub(in crate::internal) fn for_single_column_index(
 
             let method_impl_prefix = quote! {
                 #into_option
-                    return self
+                    self
                         .ctx()
                         .db()
                         .#singular_table_name()
@@ -828,21 +829,21 @@ pub(in crate::internal) fn for_single_column_index(
             method_impl = match dsl_method {
                 DSLColumnMethod::GetMany => quote! {
                     #method_impl_prefix
-                        .filter(#column_value);
+                        .filter(#column_value)
                 },
                 // TODO: If !referencing_tables.is_empty() { todo!("Call delete_many hooks before the current implementation"); }
                 DSLColumnMethod::DeleteMany => quote! {
                     #method_impl_prefix
-                        .delete(#column_value);
+                        .delete(#column_value)
                 },
                 DSLColumnMethod::GetOneOption => quote! {
                     #method_impl_prefix
-                        .find(#column_value);
+                        .find(#column_value)
                 },
                 // TODO: If !referencing_tables.is_empty() { todo!("Call delete_one hooks before the current implementation"); }
                 DSLColumnMethod::DeleteOne => quote! {
                     #method_impl_prefix
-                        .delete(#column_value);
+                        .delete(#column_value)
                 },
                 DSLColumnMethod::Update => {
                     panic!("Update DSLColumnMethod should already be processed.")
@@ -972,12 +973,14 @@ pub(in crate::internal) fn for_multi_column_index(
                 #(#multi_column_index_checks)*
 
                 #modified_at
-                return Ok(self
-                        .ctx()
-                        .db()
-                        .#singular_table_name()
-                        .#primary_key_column_name()
-                        .update(#singular_table_name));
+
+                Ok(self
+                    .ctx()
+                    .db()
+                    .#singular_table_name()
+                    .#primary_key_column_name()
+                    .update(#singular_table_name)
+                )
             };
         }
         dsl_method => {
@@ -1062,24 +1065,24 @@ pub(in crate::internal) fn for_multi_column_index(
             match dsl_method {
                 DSLColumnMethod::GetMany | DSLColumnMethod::DeleteMany => {
                     let method_impl_prefix = quote! {
-                            #(#into_options)*
-                            return self
-                                .ctx()
-                                .db()
-                                .#singular_table_name()
-                                .#index_name()
+                        #(#into_options)*
+                        self
+                            .ctx()
+                            .db()
+                            .#singular_table_name()
+                            .#index_name()
                     };
 
                     method_impl = match dsl_method {
                         DSLColumnMethod::GetMany => quote! {
                             #method_impl_prefix
-                                .filter((#(#column_values),*));
+                                .filter((#(#column_values),*))
                         },
 
                         // TODO: If !referencing_tables.is_empty() { todo!("Call delete_many hooks before the current implementation"); }
                         DSLColumnMethod::DeleteMany => quote! {
                             #method_impl_prefix
-                                .delete((#(#column_values),*));
+                                .delete((#(#column_values),*))
                         },
                         _ => {
                             panic!("Should be processed elsewhere.")
@@ -1116,12 +1119,12 @@ pub(in crate::internal) fn for_multi_column_index(
                         DSLColumnMethod::DeleteOne => quote! {
                             #method_impl_prefix
 
-                            return self
+                            self
                                 .ctx()
                                 .db()
                                 .#singular_table_name()
                                 .#primary_key_column_name()
-                                .delete(#field_name_for_found_value.unwrap().#primary_key_column_name);
+                                .delete(#field_name_for_found_value.unwrap().#primary_key_column_name)
                         },
                         _ => {
                             panic!("Should be processed elsewhere.")
