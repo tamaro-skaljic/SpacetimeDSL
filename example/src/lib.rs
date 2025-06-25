@@ -342,7 +342,7 @@ pub mod test {
             &mut player_identifier,
             ctx.timestamp
                 .checked_add(TimeDuration::from_micros(99999999999))
-                .unwrap(),
+                .expect("should have worked"),
         );
 
         let player_reflection_identifier = match dsl.update_identifier_by_id(player_identifier) {
@@ -433,7 +433,7 @@ pub mod test {
         };
 
         let positions_iter = dsl.get_all_positions();
-        let position_count_two: usize = dsl.count_of_all_positions().try_into().unwrap();
+        let position_count_two: usize = dsl.count_of_all_positions().try_into().expect("should have worked");
 
         let mut position_count_one = 0;
         let mut position_ids = vec![];
@@ -502,7 +502,7 @@ pub mod test {
 
         let unique_positions_iter = dsl.get_all_unique_positions();
         let unique_position_count_two: usize =
-            dsl.count_of_all_unique_positions().try_into().unwrap();
+            dsl.count_of_all_unique_positions().try_into().expect("should have worked");
 
         let mut unique_position_count_one = 0;
         let mut unique_position_ids = vec![];
@@ -587,7 +587,7 @@ pub mod test {
         }
         if dsl
             .get_position_by_id(&player_reflection_position_id)
-            .unwrap()
+            .expect("should exist")
             .get_entity_id()
             .value()
             .ne(&0)

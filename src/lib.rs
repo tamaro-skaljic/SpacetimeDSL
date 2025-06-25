@@ -88,17 +88,18 @@ pub mod internal {
             }
 
             message.push_str(&format!(
-                "in the `{}` table. The following reference integrity violations occurred:\n\n",
+                "in the `{}` table, the following reference integrity violations occurred:\n\n",
                 &self.table_name
             ));
 
+            // TODO: Create a data structure like this and use this as the DeletionResult instead of the current one
             message.push_str("error_id,table,pk_value,parent_error_id,reason,trace\n");
 
             let mut error_id: u128 = 1;
             let mut parent_error_id: Box<str> = "".into();
 
             for (primary_key_value, results_by_strategy) in
-                self.on_delete_strategy_executions.as_ref().unwrap()
+                self.on_delete_strategy_executions.as_ref().expect("should exist")
             {
                 message.push_str(&format!(
                     "{},{},{},{},,\n",
@@ -109,7 +110,7 @@ pub mod internal {
                 let trace = format!("{error_id}").into();
 
                 for (foreign_key_column_name, result) in
-                    results_by_strategy.get(&OnDeleteStrategy::Error).unwrap()
+                    results_by_strategy.get(&OnDeleteStrategy::Error).expect("should exist")
                 {
                     (message, error_id) = process_each_reference_integrity_violation(
                         message,
@@ -156,11 +157,11 @@ pub mod internal {
                 for (foreign_key_column_name, result) in result
                     .on_delete_strategy_executions
                     .as_ref()
-                    .unwrap()
-                    .get(primary_key_value)
-                    .unwrap()
+                    .expect("should exist")
+                    .get(*primary_key_value)
+                    .expect("should exist")
                     .get(&OnDeleteStrategy::Error)
-                    .unwrap()
+                    .expect("should exist")
                 {
                     (message, error_id) = process_each_reference_integrity_violation(
                         message,

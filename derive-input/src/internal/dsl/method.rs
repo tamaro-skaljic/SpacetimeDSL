@@ -222,7 +222,7 @@ impl SpacetimeDSLTableMethods {
                     .spacetimedsl_column
                     .foreign_key
                     .as_ref()
-                    .unwrap()
+                    .expect("foreign key should exist")
                     .table_name;
 
                 if !columns_with_foreign_keys_by_table.contains_key(name_of_another_table) {
@@ -231,7 +231,7 @@ impl SpacetimeDSLTableMethods {
 
                 columns_with_foreign_keys_by_table
                     .get_mut(name_of_another_table)
-                    .unwrap()
+                    .expect("key should exist in HashMap")
                     .push(c);
             });
 
@@ -536,7 +536,7 @@ pub(in crate::internal) fn for_table(
                             use spacetimedb::table::MaybeError;
                             return Err(spacetimedb::UniqueConstraintViolation::get()
                                 .map(spacetimedb::TryInsertError::UniqueConstraintViolation)
-                                .unwrap());
+                                .expect("Mapping should have worked"));
                         },
                         _ => {},
                     };
@@ -779,7 +779,7 @@ pub(in crate::internal) fn for_single_column_index(
                     DSLColumnMethod::GetMany => {
                         let column_type: Type;
                         if rust_field.type_name_or_path.eq(&"String".into()) {
-                            column_type = parse_str("str").unwrap();
+                            column_type = parse_str("str").expect("parsing should have worked");
                         } else {
                             column_type = parse_str(&rust_field.type_name_or_path)
                                 .expect("get_many.for_single_column_index");
@@ -798,7 +798,7 @@ pub(in crate::internal) fn for_single_column_index(
                     DSLColumnMethod::DeleteMany => {
                         let column_type: Type;
                         if rust_field.type_name_or_path.eq(&"String".into()) {
-                            column_type = parse_str("str").unwrap();
+                            column_type = parse_str("str").expect("parsing should have worked");
                         } else {
                             column_type = parse_str(&rust_field.type_name_or_path)
                                 .expect("delete_many.for_single_column_index");
@@ -1167,7 +1167,7 @@ pub(in crate::internal) fn for_multi_column_index(
                                 .db()
                                 .#singular_table_name()
                                 .#primary_key_column_name()
-                                .delete(#field_name_for_found_value.unwrap().#primary_key_column_name)
+                                .delete(#field_name_for_found_value.expect("value should be found").#primary_key_column_name)
                         },
                         _ => {
                             panic!("Should be processed elsewhere.")
@@ -1218,7 +1218,7 @@ fn multi_column_index_checks(
                         use spacetimedb::table::MaybeError;
                         return Err(spacetimedb::UniqueConstraintViolation::get()
                             .map(spacetimedb::TryInsertError::UniqueConstraintViolation)
-                            .unwrap());
+                            .expect("Mapping should have worked"));
                     }
                 },
                 _ => {},
@@ -1365,10 +1365,10 @@ pub(in crate::internal) fn for_referenced_by(
     let primary_key_column = columns
         .iter()
         .find(|c| c.rust_field.name.eq(primary_key_column_name))
-        .unwrap();
+        .expect("should have a primary key");
 
-    let primary_key_column_type: Type =
-        parse_str(&primary_key_column.rust_field.type_name_or_path).unwrap();
+    let primary_key_column_type: Type = parse_str(&primary_key_column.rust_field.type_name_or_path)
+        .expect("parsing should have worked");
 
     function_args.push(match dsl_internal_referenced_by_function {
                 DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted => quote! {
@@ -1386,7 +1386,8 @@ pub(in crate::internal) fn for_referenced_by(
     let mut set_zero_strategy_calls = vec![];
 
     for referencing_table in spacetimedsl_table.referencing_tables.iter() {
-        let referencing_table_path: Path = parse_str(&referencing_table.path).unwrap();
+        let referencing_table_path: Path =
+            parse_str(&referencing_table.path).expect("parsing should have worked");
         let referencing_table_name = format_ident!("{}", *referencing_table.table_name);
         let referencing_table_name_pascal_case = format_ident!(
             "{}",
@@ -1531,10 +1532,10 @@ fn for_foreign_key(
     let primary_key_column = columns
         .iter()
         .find(|c| c.rust_field.name.eq(primary_key_column_name))
-        .unwrap();
+        .expect("should have a primary key");
 
-    let primary_key_column_type: Type =
-        parse_str(&primary_key_column.rust_field.type_name_or_path).unwrap();
+    let primary_key_column_type: Type = parse_str(&primary_key_column.rust_field.type_name_or_path)
+        .expect("parsing should have worked");
 
     function_args.push(match dsl_internal_foreign_key_function {
                 DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted => quote! {
@@ -1552,7 +1553,8 @@ fn for_foreign_key(
     let mut set_zero_strategy_calls = vec![];
 
     for referencing_table in spacetimedsl_table.referencing_tables.iter() {
-        let referencing_table_path: Path = parse_str(&referencing_table.path).unwrap();
+        let referencing_table_path: Path =
+            parse_str(&referencing_table.path).expect("parsing should have worked");
         let referencing_table_name = &referencing_table.table_name;
         let referencing_table_name_pascal_case =
             RenameRule::PascalCase.apply_to_field(referencing_table_name.to_string());

@@ -51,7 +51,7 @@ impl Index {
 
                 match columns.len() {
                     1 => IndexType::BTreeSingleColumn {
-                        column: columns.get(0).unwrap().clone(),
+                        column: columns.get(0).expect("column 0 should exist").clone(),
                     },
                     _ => IndexType::BTreeMultiColumn { columns },
                 }

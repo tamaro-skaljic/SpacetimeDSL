@@ -29,19 +29,17 @@ impl Getter {
                     match wrapper_type {
                         WrapperType::Wrap(_) => {
                             method_impl = quote! {
-                                if self.#column_name.is_none() {
-                                    None
-                                } else {
-                                    Some(#wrapper_type_name_or_path::new(self.#column_name.clone()))
+                                match &self.#column_name {
+                                    None => None,
+                                    Some(value) => Some(#wrapper_type_name_or_path::new(self.#column_name.clone())),
                                 }
                             };
                         }
                         WrapperType::Wrapped(_) => {
                             method_impl = quote! {
-                                if self.#column_name.is_none() {
-                                    None
-                                } else {
-                                    Some(#wrapper_type_name_or_path::new(self.#column_name.unwrap()))
+                                match &self.#column_name {
+                                    None => None,
+                                    Some(value) => Some(#wrapper_type_name_or_path::new(self.#column_name.unwrap())),
                                 }
                             };
                         }

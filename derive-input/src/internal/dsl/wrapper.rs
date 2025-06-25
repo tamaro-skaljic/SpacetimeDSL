@@ -39,7 +39,7 @@ impl WrapperType {
                             format!(
                                 "{}{}",
                                 RenameRule::PascalCase.apply_to_field(&rust_struct.name),
-                                RenameRule::PascalCase.apply_to_field(field.name.as_ref().unwrap()),
+                                RenameRule::PascalCase.apply_to_field(field.name.as_ref().expect("should have a name")),
                             )
                             .into(),
                         );
@@ -72,7 +72,7 @@ impl WrapperType {
                 }
             }
 
-            let wrapper_struct_name_or_path = wrapper_struct_name_or_path.unwrap();
+            let wrapper_struct_name_or_path = wrapper_struct_name_or_path.expect("should have a name or path");
             let wrapped_type_name_or_path = field.ty.to_token_stream().to_string().into();
 
             if attr.meta.path().eq(&wrap) {
@@ -123,7 +123,7 @@ fn get_wrapper_impl(
                 .replace("Option <", "")
                 .replace(">", ""),
         )
-        .unwrap();
+        .expect("parsing should have worked");
 
         default_impl = quote! {
             Some(#wrapped_type_name_or_path::default())
@@ -214,7 +214,7 @@ pub(in crate::internal) fn wrapper_type_into_option(
         let #column_name = #column_name.into();
         let mut #column_option_name = None;
         if #column_name.is_some() {
-            #column_option_name = Some(Into::<#wrapper_type_name_or_path>::into(#column_name.unwrap()).value());
+            #column_option_name = Some(Into::<#wrapper_type_name_or_path>::into(#column_name.expect("value should exist")).value());
         }
         let #column_name = #column_option_name;
     }

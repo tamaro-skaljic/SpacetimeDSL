@@ -15,14 +15,15 @@ pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     let mut wrapper_types = vec![];
 
     for column in &input.columns {
-        if column.spacetimedsl_column.wrapper_type.is_some() {
-            match column.spacetimedsl_column.wrapper_type.as_ref().unwrap() {
+        match &column.spacetimedsl_column.wrapper_type {
+            Some(wrapper_type) => match wrapper_type {
                 WrapperType::Wrap(wrapper_type) => {
                     let wrapper_type_impl: TokenStream = parse_str(&wrapper_type.wrapper_impl)?;
                     wrapper_types.push(wrapper_type_impl);
                 }
                 _ => {}
-            }
+            },
+            None => {}
         }
     }
     let mut table_methods = vec![];
@@ -44,14 +45,15 @@ pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
 
     for column in &input.columns {
         table_methods.push(getter(&column.spacetimedsl_column.getter)?);
-        if column.spacetimedsl_column.setter.is_some() {
-            table_methods.push(setter(column.spacetimedsl_column.setter.as_ref().unwrap())?);
+
+        match &column.spacetimedsl_column.setter {
+            Some(data) => table_methods.push(setter(data)?),
+            None => {}
         }
 
-        if column.spacetimedsl_methods.is_some() {
-            dsl_methods.push(get_column_dsl_methods(
-                column.spacetimedsl_methods.as_ref().unwrap(),
-            )?);
+        match &column.spacetimedsl_methods {
+            Some(methods) => dsl_methods.push(get_column_dsl_methods(methods)?),
+            None => {}
         }
     }
 
@@ -66,21 +68,24 @@ pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     })
 }
 
-fn get_column_dsl_methods(index: &SpacetimeDSLColumnMethods) -> syn::Result<TokenStream> {
+fn get_column_dsl_methods(methods: &SpacetimeDSLColumnMethods) -> syn::Result<TokenStream> {
     let mut token_streams = vec![];
 
-    match index {
-        SpacetimeDSLColumnMethods::ForUniqueIndex(index) => {
-            token_streams.push(build_without_lifetime(&index.get_one_option)?);
-            if index.update.is_some() {
-                token_streams.push(build_without_lifetime(index.update.as_ref().unwrap())?);
-            }
-            token_streams.push(build_without_lifetime(&index.delete_one)?);
-        }
-        SpacetimeDSLColumnMethods::ForIndex(index) => {
-            token_streams.push(build_with_lifetime(&index.get_many)?);
+    match methods {
+        SpacetimeDSLColumnMethods::ForUniqueIndex(methods) => {
+            token_streams.push(build_without_lifetime(&methods.get_one_option)?);
 
-            token_streams.push(build_with_lifetime(&index.delete_many)?);
+            match &methods.update {
+                Some(method) => token_streams.push(build_without_lifetime(method)?),
+                None => {}
+            };
+
+            token_streams.push(build_without_lifetime(&methods.delete_one)?);
+        }
+        SpacetimeDSLColumnMethods::ForIndex(methods) => {
+            token_streams.push(build_with_lifetime(&methods.get_many)?);
+
+            token_streams.push(build_with_lifetime(&methods.delete_many)?);
         }
     };
 
@@ -177,7 +182,7 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
 
         impl #trait_name for spacetimedsl::DSL<'_> {}
     };
-    let implementation_docs = pretty_please.format_tokens(implementation_docs).unwrap();
+    let implementation_docs = pretty_please.format_tokens(implementation_docs).expect("implementation doc formatting should work");
     doc_comment.push_str(&format!(
         "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
     ));
@@ -239,7 +244,7 @@ pub fn build_internal(method: &Option<SpacetimeDSLMethod>) -> syn::Result<TokenS
 
         impl #trait_name for spacetimedsl::internal::DSLInternals {}
     };
-    let implementation_docs = pretty_please.format_tokens(implementation_docs).unwrap();
+    let implementation_docs = pretty_please.format_tokens(implementation_docs).expect("implementation doc formatting should work");
     doc_comment.push_str(&format!(
         "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
     ));

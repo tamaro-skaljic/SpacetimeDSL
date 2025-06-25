@@ -92,7 +92,7 @@ impl SpacetimeDSLTable {
                 };
             }
             if !has_created_at_column {
-                if field.name.as_ref().unwrap().eq("created_at") {
+                if field.name.as_ref().expect("should have a name").eq("created_at") {
                     let field_type = field.ty.to_token_stream().to_string();
                     if !field_type.eq("Timestamp") {
                         return Err(syn::Error::new(
@@ -123,7 +123,7 @@ impl SpacetimeDSLTable {
                 }
             }
             if !has_modified_at_column {
-                if field.name.as_ref().unwrap().eq("modified_at") {
+                if field.name.as_ref().expect("should have a name").eq("modified_at") {
                     let field_type = field.ty.to_token_stream().to_string();
                     // TODO: Allow Option<Timestamp> as modified_at column type
                     if !field_type.eq("Timestamp") {
