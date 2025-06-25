@@ -1700,10 +1700,10 @@ fn get_referencing_table_trait_name(
 ) -> Ident {
     match dsl_internal_foreign_key_function {
         DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted => {
-            format_ident!("ExecuteOnDeleteStrategiesOf{referencing_table_name_pascal_case}AfterOneRowOfThe{referenced_table_name_pascal_case}TableWasDeleted")
+            format_ident!("ExecuteOnDeleteStrategiesOfThe{referencing_table_name_pascal_case}TableAfterOneRowOfThe{referenced_table_name_pascal_case}TableWasDeleted")
         },
         DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted => {
-            format_ident!("ExecuteOnDeleteStrategiesOf{referencing_table_name_pascal_case}AfterMultipleRowsOfThe{referenced_table_name_pascal_case}TableWereDeleted")
+            format_ident!("ExecuteOnDeleteStrategiesOfThe{referencing_table_name_pascal_case}TableAfterMultipleRowsOfThe{referenced_table_name_pascal_case}TableWereDeleted")
         }
     }
 }
@@ -1715,10 +1715,10 @@ fn get_referencing_table_function_name(
 ) -> Ident {
     match dsl_internal_foreign_key_function {
         DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted => {
-            format_ident!("execute_on_delete_strategies_of_{referencing_table_name}_after_one_row_of_the_{referenced_table_name}_table_was_deleted")
+            format_ident!("execute_on_delete_strategies_of_the_{referencing_table_name}_table_after_one_row_of_the_{referenced_table_name}_table_was_deleted")
         },
         DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted => {
-            format_ident!("execute_on_delete_strategies_of_{referencing_table_name}_after_multiple_rows_of_the_{referenced_table_name}_table_were_deleted")
+            format_ident!("execute_on_delete_strategies_of_the_{referencing_table_name}_table_after_multiple_rows_of_the_{referenced_table_name}_table_were_deleted")
         }
     }
 }
