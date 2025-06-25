@@ -1,4 +1,4 @@
-use super::{column, path, referenced_by, table};
+use super::{path, referenced_by, table};
 use crate::api::dsl::reference::ReferencingTable;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::{
@@ -35,7 +35,6 @@ impl ReferencingTable {
 
             let mut path_value: Option<Path> = None;
             let mut table_name: Option<Ident> = None;
-            let mut column_name: Option<Ident> = None;
 
             attr.parse_nested_meta(|meta| {
                 match_meta!(match meta {
@@ -46,10 +45,6 @@ impl ReferencingTable {
                     table => {
                         check_duplicate(&table_name, &meta)?;
                         table_name = Some(meta.value()?.parse()?);
-                    }
-                    column => {
-                        check_duplicate(&column_name, &meta)?;
-                        column_name = Some(meta.value()?.parse()?);
                     }
                 });
 
@@ -74,19 +69,9 @@ impl ReferencingTable {
             .to_string()
             .into();
 
-            let column_name = column_name
-            .ok_or_else(|| syn::Error::new_spanned(
-                &attr.meta,
-                "ColumnName must be set in `#[referenced_by(column = ColumnName)]`, e.g. `column = id`.",
-            ))?
-            .to_token_stream()
-            .to_string()
-            .into();
-
             referencing_tables.push(ReferencingTable {
                 path: path_value,
                 table_name,
-                column_name,
             });
         }
 

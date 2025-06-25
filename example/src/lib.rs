@@ -11,13 +11,12 @@ pub mod entity {
         #[primary_key]
         #[auto_inc]
         #[wrap]
-        #[referenced_by(path = crate::entity,                table = entity_relationship, column = parent_entity_id)]
-        #[referenced_by(path = crate::entity,                table = entity_relationship, column = child_entity_id)]
-        #[referenced_by(path = crate::component::identifier, table = identifier,          column = entity_id)]
-        #[referenced_by(path = crate::component::position,   table = position,            column = entity_id)]
-        #[referenced_by(path = crate::component::position,   table = unique_position,     column = entity_id)]
-        #[referenced_by(path = crate::component::test,       table = test,                column = entity_id)]
-        #[referenced_by(path = crate::component::test,       table = ship_object,         column = entity_id)]
+        #[referenced_by(path = crate::entity,                table = entity_relationship)]
+        #[referenced_by(path = crate::component::identifier, table = identifier)]
+        #[referenced_by(path = crate::component::position,   table = position)]
+        #[referenced_by(path = crate::component::position,   table = unique_position)]
+        #[referenced_by(path = crate::component::test,       table = test)]
+        #[referenced_by(path = crate::component::test,       table = ship_object)]
         id: u128,
 
         created_at: Timestamp,

@@ -182,7 +182,9 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
 
         impl #trait_name for spacetimedsl::DSL<'_> {}
     };
-    let implementation_docs = pretty_please.format_tokens(implementation_docs).expect("implementation doc formatting should work");
+    let implementation_docs = pretty_please
+        .format_tokens(implementation_docs)
+        .expect("implementation doc formatting should work");
     doc_comment.push_str(&format!(
         "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
     ));
@@ -208,7 +210,7 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
     Ok(method)
 }
 
-// actions_after_delete_one, actions_after_delete_many
+// Execute On Delete Strategies Of [ Referencing Tables | This Table ] After [ One Row | Multiple Rows ] Of [ This | The Referenced ] Table [ Was | Were ] Deleted
 pub fn build_internal(method: &Option<SpacetimeDSLMethod>) -> syn::Result<TokenStream> {
     if method.is_none() {
         return Ok(TokenStream::default());
@@ -244,7 +246,9 @@ pub fn build_internal(method: &Option<SpacetimeDSLMethod>) -> syn::Result<TokenS
 
         impl #trait_name for spacetimedsl::internal::DSLInternals {}
     };
-    let implementation_docs = pretty_please.format_tokens(implementation_docs).expect("implementation doc formatting should work");
+    let implementation_docs = pretty_please
+        .format_tokens(implementation_docs)
+        .expect("implementation doc formatting should work");
     doc_comment.push_str(&format!(
         "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
     ));
