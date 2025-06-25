@@ -1126,8 +1126,7 @@ pub(in crate::internal) fn for_multi_column_index(
                             match &dsl_method {
                                 DSLColumnMethod::GetMany | DSLColumnMethod::DeleteMany => {
                                     method_arg = quote! { #column_name: impl Into<#wrapper_type_name_or_path> };
-                                    column_value =
-                                        quote! { #column_name.into().value() };
+                                    column_value = quote! { #column_name.into().value() };
                                 }
                                 DSLColumnMethod::GetOneOption | DSLColumnMethod::DeleteOne => {
                                     method_arg = quote! { #column_name: impl Into<#wrapper_type_name_or_path> + Clone };
@@ -1629,31 +1628,22 @@ fn for_foreign_key(
     if columns_with_on_delete_error_strategy.is_empty() {
         on_delete_error_strategy = TokenStream::default();
     } else {
-        let row_finders = get_row_finders(
+        on_delete_error_strategy = get_on_delete_strategy_implementation(
             &dsl_internal_foreign_key_function,
             columns_with_on_delete_error_strategy,
             &singular_table_name,
         );
-        on_delete_error_strategy = quote! {
-            #row_finders
-        };
     }
 
     let on_delete_cascade_strategy;
     if columns_with_on_delete_cascade_strategy.is_empty() {
         on_delete_cascade_strategy = TokenStream::default();
     } else {
-        let row_finders = get_row_finders(
+        on_delete_cascade_strategy = get_on_delete_strategy_implementation(
             &dsl_internal_foreign_key_function,
             columns_with_on_delete_cascade_strategy,
             &singular_table_name,
         );
-        on_delete_cascade_strategy = quote! {
-            #row_finders
-            if !rows_to_process.is_empty() {
-                // TODO: Call Deletion hooks and delete
-            }
-        };
     }
 
     /* TODO
@@ -1661,17 +1651,11 @@ fn for_foreign_key(
        if columns_with_on_delete_set_none_strategy.is_empty() {
            on_delete_set_none_strategy = TokenStream::default();
        } else {
-           let row_finders = get_row_finders(
+           on_delete_set_none_strategy = get_row_finders(
                 &dsl_internal_foreign_key_function,
                 columns_with_on_delete_set_none_strategy,
                 &singular_table_name,
             );
-            on_delete_set_none_strategy = quote! {
-                #row_finders
-                if !rows_to_process.is_empty() {
-                    // TODO: set_none
-                }
-            };
        }
     */
 
@@ -1679,17 +1663,11 @@ fn for_foreign_key(
     if columns_with_on_delete_set_zero_strategy.is_empty() {
         on_delete_set_zero_strategy = TokenStream::default();
     } else {
-        let row_finders = get_row_finders(
+        on_delete_set_zero_strategy = get_on_delete_strategy_implementation(
             &dsl_internal_foreign_key_function,
             columns_with_on_delete_set_zero_strategy,
             &singular_table_name,
         );
-        on_delete_set_zero_strategy = quote! {
-            #row_finders
-            if !rows_to_process.is_empty() {
-                // TODO: set_zero
-            }
-        };
     }
 
     let struct_name = format_ident!("{}", *rust_struct.name);
@@ -1728,7 +1706,7 @@ fn for_foreign_key(
     }
 }
 
-fn get_row_finders(
+fn get_on_delete_strategy_implementation(
     dsl_internal_foreign_key_function: &DSLInternalForeignKeyFunction,
     columns_with_same_strategy: Vec<&&&Column>,
     singular_table_name: &Ident,
@@ -1761,6 +1739,27 @@ fn get_row_finders(
             .unwrap()
             .is_unique;
 
+        /*
+        let strategy_impl = match &strategy {
+            OnDeleteStrategy::Error => {
+                quote! {
+
+                }
+            }
+            OnDeleteStrategy::Delete => {
+                quote! {
+
+                }
+            }
+            //OnDeleteStrategy::SetNone => { quote! {} },
+            OnDeleteStrategy::SetZero => {
+                quote! {
+                    row_to_process.#column_name = 0;
+                }
+            }
+        };
+         */
+
         match is_unique_index {
             false => {
                 if strategy.eq(&OnDeleteStrategy::Error) {
@@ -1774,6 +1773,7 @@ fn get_row_finders(
                     row_finders.push(quote! {
                         #method_impl_prefix
                             .filter(primary_key_value_of_row_to_delete).for_each(|row| {
+                                // FIXME: Instead of pushing to a vec, implement the on delete strategy directly here
                                 rows_to_process.push(row);
                         });
                     });
@@ -1801,10 +1801,22 @@ fn get_row_finders(
     match dsl_internal_foreign_key_function {
         DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted => quote! {
             #(#row_finders)*
+
+            if !rows_to_process.is_empty() {
+                for row_to_process in rows_to_process {
+                    //TODO#strategy_impl
+                }
+            }
         },
         DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted => quote! {
             for primary_key_value_of_row_to_delete in primary_key_values_of_rows_to_delete {
                 #(#row_finders)*
+            }
+
+            if !rows_to_process.is_empty() {
+                for row_to_process in rows_to_process {
+                    //TODO#strategy_impl
+                }
             }
         },
     }
