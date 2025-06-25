@@ -647,7 +647,7 @@ pub(in crate::internal) fn for_single_column_index(
             trait_name = format!("Delete{struct_name}RowsBy{column_name_pascal_case}");
             method_name = format!("delete_{plural_table_name}_by_{column_name}");
             // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
-            return_type = quote! {u64};
+            return_type = quote! {Result<u64,()>};
         }
         DSLColumnMethod::GetOneOption => {
             doc_comment = format!(
@@ -680,7 +680,7 @@ pub(in crate::internal) fn for_single_column_index(
             trait_name = format!("Delete{struct_name}RowBy{column_name_pascal_case}");
             method_name = format!("delete_{singular_table_name}_by_{column_name}");
             // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
-            return_type = quote! {bool};
+            return_type = quote! {Result<bool,()>};
         }
     }
 
@@ -860,8 +860,10 @@ pub(in crate::internal) fn for_single_column_index(
                     if spacetimedsl_table.referencing_tables.is_empty() {
                         quote! {
                             #into_option
-                            #method_impl_prefix
-                                .delete(#column_value)
+                            Ok(
+                                #method_impl_prefix
+                                    .delete(#column_value)
+                            )
                         }
                     } else {
                         let referenced_table_function_name = get_referenced_table_function_name(
@@ -873,18 +875,22 @@ pub(in crate::internal) fn for_single_column_index(
                             #into_option
 
                             let #column_name = #column_value;
+
                             let primary_key_values_of_rows_to_delete = #method_impl_prefix
                                 .filter(#column_name)
                                 .map(|row| row.#primary_key_column_name)
                                 .collect(); // TODO: maybe some types need a .clone() after #column_name
 
-                            spacetimedsl::internal::DSLInternals::#referenced_table_function_name(dsl, spacetimedsl::OnDeleteStrategy::Error, &primary_key_values_of_rows_to_delete)?;
-                            spacetimedsl::internal::DSLInternals::#referenced_table_function_name(dsl, spacetimedsl::OnDeleteStrategy::Delete, &primary_key_values_of_rows_to_delete)?;
-                            //TODO: spacetimedsl::internal::DSLInternals::#referenced_table_function_name(dsl, spacetimedsl::OnDeleteStrategy::SetNone, &primary_key_values_of_rows_to_delete)?;
-                            spacetimedsl::internal::DSLInternals::#referenced_table_function_name(dsl, spacetimedsl::OnDeleteStrategy::SetZero, &primary_key_values_of_rows_to_delete)?;
+                            if primary_key_values_of_rows_to_delete.is_empty() {
+                                return Ok(0);
+                            }
 
-                            #method_impl_prefix
-                                .delete(#column_name)
+                            spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), &primary_key_values_of_rows_to_delete)?;
+
+                            Ok(
+                                #method_impl_prefix
+                                    .delete(#column_name)
+                            )
                         }
                     }
                 }
@@ -898,8 +904,10 @@ pub(in crate::internal) fn for_single_column_index(
                     if spacetimedsl_table.referencing_tables.is_empty() {
                         quote! {
                             #into_option
-                            #method_impl_prefix
-                                .delete(#column_value)
+                            Ok(
+                                #method_impl_prefix
+                                    .delete(#column_value)
+                            )
                         }
                     } else {
                         let referenced_table_function_name = get_referenced_table_function_name(
@@ -911,22 +919,23 @@ pub(in crate::internal) fn for_single_column_index(
                             #into_option
 
                             let #column_name = #column_value;
+
                             let row_to_delete = #method_impl_prefix
                                 .find(#column_name); // TODO: maybe some types need a .clone() after #column_name
 
                             let primary_key_value_of_row_to_delete;
+
                             match row_to_delete {
-                                None => { return false; },
+                                None => { return Ok(false); },
                                 Some(row) => { primary_key_value_of_row_to_delete = row.#primary_key_column_name; },
                             };
 
-                            spacetimedsl::internal::DSLInternals::#referenced_table_function_name(dsl, spacetimedsl::OnDeleteStrategy::Error, &primary_key_value_of_row_to_delete)?;
-                            spacetimedsl::internal::DSLInternals::#referenced_table_function_name(dsl, spacetimedsl::OnDeleteStrategy::Delete, &primary_key_value_of_row_to_delete)?;
-                            //TODO: spacetimedsl::internal::DSLInternals::#referenced_table_function_name(dsl, spacetimedsl::OnDeleteStrategy::SetNone, &primary_key_value_of_row_to_delete)?;
-                            spacetimedsl::internal::DSLInternals::#referenced_table_function_name(dsl, spacetimedsl::OnDeleteStrategy::SetZero, &primary_key_value_of_row_to_delete)?;
+                            spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), &primary_key_value_of_row_to_delete)?;
 
-                            #method_impl_prefix
-                                .delete(#column_name)
+                            Ok(
+                                #method_impl_prefix
+                                    .delete(#column_name)
+                            )
                         }
                     }
                 }
@@ -1009,14 +1018,14 @@ pub(in crate::internal) fn for_multi_column_index(
     let return_type = match dsl_method {
         DSLColumnMethod::GetMany => quote! {impl Iterator<Item = #struct_name>},
         // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
-        DSLColumnMethod::DeleteMany => quote! {u64},
+        DSLColumnMethod::DeleteMany => quote! {Result<u64,()>},
         DSLColumnMethod::GetOneOption => quote! {Option<#struct_name>},
         DSLColumnMethod::Update => {
             let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
             quote! {Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>}
         },
         // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
-        DSLColumnMethod::DeleteOne => quote! {bool},
+        DSLColumnMethod::DeleteOne => quote! {Result<bool,()>},
     }
     .to_string()
     .into();
@@ -1151,7 +1160,6 @@ pub(in crate::internal) fn for_multi_column_index(
             match dsl_method {
                 DSLColumnMethod::GetMany | DSLColumnMethod::DeleteMany => {
                     let method_impl_prefix = quote! {
-                        #(#into_options)*
                         self
                             .ctx()
                             .db()
@@ -1161,14 +1169,16 @@ pub(in crate::internal) fn for_multi_column_index(
 
                     method_impl = match dsl_method {
                         DSLColumnMethod::GetMany => quote! {
+                            #(#into_options)*
                             #method_impl_prefix
                                 .filter((#(#column_values),*))
                         },
 
                         // TODO: If !referencing_tables.is_empty() { todo!("Call delete_many hooks before the current implementation"); }
                         DSLColumnMethod::DeleteMany => quote! {
-                            #method_impl_prefix
-                                .delete((#(#column_values),*))
+                            #(#into_options)*
+                            Ok(#method_impl_prefix
+                                .delete((#(#column_values),*)))
                         },
                         _ => {
                             panic!("Should be processed elsewhere.")
@@ -1205,12 +1215,14 @@ pub(in crate::internal) fn for_multi_column_index(
                         DSLColumnMethod::DeleteOne => quote! {
                             #method_impl_prefix
 
-                            self
-                                .ctx()
-                                .db()
-                                .#singular_table_name()
-                                .#primary_key_column_name()
-                                .delete(#field_name_for_found_value.expect("value should be found").#primary_key_column_name)
+                            Ok(
+                                self
+                                    .ctx()
+                                    .db()
+                                    .#singular_table_name()
+                                    .#primary_key_column_name()
+                                    .delete(#field_name_for_found_value.expect("value should be found").#primary_key_column_name)
+                            )
                         },
                         _ => {
                             panic!("Should be processed elsewhere.")
@@ -1373,11 +1385,13 @@ pub(in crate::internal) fn for_referenced_by(
     match dsl_internal_referenced_by_function {
         DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted => {
             doc_comment = format!("Execute OnDeleteStrategies of referencing tables after one row of the `{singular_table_name}` table was deleted.");
-            return_type = quote! { bool };
+            // TODO: Result Type
+            return_type = quote! { Result<(), ()> };
         }
         DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted => {
             doc_comment = format!("Execute OnDeleteStrategies of referencing tables after multiple rows of the `{singular_table_name}` table were deleted.");
-            return_type = quote! { u64 };
+            // TODO: Result Type
+            return_type = quote! { Result<(), ()> };
         }
     }
 
@@ -1398,13 +1412,15 @@ pub(in crate::internal) fn for_referenced_by(
         .expect("parsing should have worked");
 
     function_args.push(match dsl_internal_referenced_by_function {
-                DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted => quote! {
-                    #primary_key_column_name: &#primary_key_column_type
-                },
-                DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted => quote! {
-                    #primary_key_column_name: Vec<&#primary_key_column_type>
-                },
-            });
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted => quote! {
+            ctx: &spacetimedb::ReducerContext,
+            primary_key_value_of_row_to_delete: &#primary_key_column_type
+        },
+        DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted => quote! {
+            ctx: &spacetimedb::ReducerContext,
+            primary_key_values_of_rows_to_delete: &Vec<#primary_key_column_type>
+        },
+    });
 
     let mut use_clauses = vec![];
     let mut on_error_strategy_calls = vec![];

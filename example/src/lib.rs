@@ -286,7 +286,7 @@ pub mod test {
                 return Err("Should be able to get an Entity by it's ID!".to_string());
             }
         };
-        if !dsl.delete_entity_by_id(&player) {
+        if dsl.delete_entity_by_id(&player).is_err() {
             return Err("Should be able to delete an Entity by it's ID!".to_string());
         }
         if dsl.get_entity_by_id(&player).is_some() {
@@ -609,7 +609,9 @@ pub mod test {
         let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index());
         //let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index()..);
 
-        dsl.delete_entity_by_id(&player_reflection);
+        if dsl.delete_entity_by_id(&player_reflection).is_err() {
+            return Err("Should be able to delete the player_reflection Entity.".to_string());
+        }
         if dsl.count_of_all_identifiers().ne(&0) {
             return Err("The count of Identifiers should be 0 because the player_reflection Entity was deleted and the foreign key has a Delete strategy.".to_string());
         }
@@ -627,10 +629,10 @@ pub mod test {
 
         // TODO: TryDeleteError
         match dsl.delete_entity_by_id(&player) {
-            true => {
+            Ok(_) => {
                 return Err("The deletion of the entity player shouldn't have worked because ship_object.entity_id has a foreign key on the entity id with Error strategy".to_string());
             }
-            false => {}
+            Err(_) => {}
         };
 
         // TODO: Add test for SetNone strategy if it's implemented

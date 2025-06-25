@@ -210,9 +210,9 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
 
 // actions_after_delete_one, actions_after_delete_many
 pub fn build_internal(method: &Option<SpacetimeDSLMethod>) -> syn::Result<TokenStream> {
-    //TODO: if method.is_none() {
+    if method.is_none() {
         return Ok(TokenStream::default());
-    //}
+    }
 
     let method = method.as_ref().unwrap();
 
