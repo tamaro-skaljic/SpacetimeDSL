@@ -11,14 +11,37 @@ pub mod entity {
         #[primary_key]
         #[auto_inc]
         #[wrap]
-        #[referenced_by(path = crate::component::identifier, table = identifier,      column = entity_id)]
-        #[referenced_by(path = crate::component::position,   table = position,        column = entity_id)]
-        #[referenced_by(path = crate::component::position,   table = unique_position, column = entity_id)]
-        #[referenced_by(path = crate::component::test,       table = test,            column = entity_id)]
-        #[referenced_by(path = crate::component::test,       table = ship_object,     column = entity_id)]
+        #[referenced_by(path = crate::entity,                table = entity_relationship, column = parent_entity_id)]
+        #[referenced_by(path = crate::entity,                table = entity_relationship, column = child_entity_id)]
+        #[referenced_by(path = crate::component::identifier, table = identifier,          column = entity_id)]
+        #[referenced_by(path = crate::component::position,   table = position,            column = entity_id)]
+        #[referenced_by(path = crate::component::position,   table = unique_position,     column = entity_id)]
+        #[referenced_by(path = crate::component::test,       table = test,                column = entity_id)]
+        #[referenced_by(path = crate::component::test,       table = ship_object,         column = entity_id)]
         id: u128,
 
         created_at: Timestamp,
+    }
+
+    // TODO: Add a test where child entities can be deleted but when a parent entity is deleted it fails because of existing children. After deleting all children, the parent entity is also deletable
+    #[dsl(plural_name = entity_relationships)]
+    #[table(name = entity_relationship, public)]
+    pub struct EntityRelationship {
+        /// The unique ID of the Entity Relationship.
+        #[primary_key]
+        #[auto_inc]
+        #[wrap]
+        id: u128,
+
+        #[index(btree)]
+        #[wrapped(name = EntityId)]
+        #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
+        parent_entity_id: u128,
+
+        #[index(btree)]
+        #[wrapped(name = EntityId)]
+        #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
+        child_entity_id: u128,
     }
 }
 
