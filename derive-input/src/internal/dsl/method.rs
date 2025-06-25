@@ -1113,7 +1113,7 @@ pub(in crate::internal) fn for_multi_column_index(
 
                             match &dsl_method {
                                 DSLColumnMethod::GetMany | DSLColumnMethod::DeleteMany => {
-                                    column_value = quote! { #column_name: #column_name };
+                                    column_value = quote! { #column_name };
                                 }
                                 DSLColumnMethod::GetOneOption | DSLColumnMethod::DeleteOne => {
                                     column_value = quote! { #column_name };
@@ -1127,7 +1127,7 @@ pub(in crate::internal) fn for_multi_column_index(
                                 DSLColumnMethod::GetMany | DSLColumnMethod::DeleteMany => {
                                     method_arg = quote! { #column_name: impl Into<#wrapper_type_name_or_path> };
                                     column_value =
-                                        quote! { #column_name: #column_name.into().value() };
+                                        quote! { #column_name.into().value() };
                                 }
                                 DSLColumnMethod::GetOneOption | DSLColumnMethod::DeleteOne => {
                                     method_arg = quote! { #column_name: impl Into<#wrapper_type_name_or_path> + Clone };
