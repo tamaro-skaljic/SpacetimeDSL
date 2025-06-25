@@ -242,6 +242,7 @@ impl SpacetimeDSLTableMethods {
                     execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted.push(
                         for_foreign_key(
                             DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted,
+                            rust_struct,
                             spacetimedb_table,
                             spacetimedsl_table,
                             columns,
@@ -254,6 +255,7 @@ impl SpacetimeDSLTableMethods {
                     execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted.push(
                         for_foreign_key(
                             DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted,
+                            rust_struct,
                             spacetimedb_table,
                             spacetimedsl_table,
                             columns,
@@ -1483,6 +1485,7 @@ fn for_referenced_by(
 
 fn for_foreign_key(
     dsl_internal_foreign_key_function: DSLInternalForeignKeyFunction,
+    rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
     columns: &Vec<Column>,
@@ -1500,6 +1503,7 @@ fn for_foreign_key(
         })
         .expect("should have a primary key");
 
+    // TODO: Needed?
     let referencing_table_primary_key_column_type: Type = parse_str(
         &referencing_table_primary_key_column
             .rust_field
@@ -1520,7 +1524,7 @@ fn for_foreign_key(
     let mut columns_with_on_delete_set_zero_strategy = vec![];
 
     for column_with_foreign_key in columns_with_foreign_key {
-        match first_foreign_key_column
+        match column_with_foreign_key
             .spacetimedsl_column
             .foreign_key
             .as_ref()
@@ -1625,24 +1629,31 @@ fn for_foreign_key(
     if columns_with_on_delete_error_strategy.is_empty() {
         on_delete_error_strategy = TokenStream::default();
     } else {
-        on_delete_error_strategy = get_row_finders(
+        let row_finders = get_row_finders(
             &dsl_internal_foreign_key_function,
-            primary_key_column_name,
             columns_with_on_delete_error_strategy,
             &singular_table_name,
         );
+        on_delete_error_strategy = quote! {
+            #row_finders
+        };
     }
 
     let on_delete_cascade_strategy;
     if columns_with_on_delete_cascade_strategy.is_empty() {
         on_delete_cascade_strategy = TokenStream::default();
     } else {
-        on_delete_cascade_strategy = get_row_finders(
+        let row_finders = get_row_finders(
             &dsl_internal_foreign_key_function,
-            primary_key_column_name,
             columns_with_on_delete_cascade_strategy,
             &singular_table_name,
         );
+        on_delete_cascade_strategy = quote! {
+            #row_finders
+            if !rows_to_process.is_empty() {
+                // TODO: Call Deletion hooks and delete
+            }
+        };
     }
 
     /* TODO
@@ -1650,12 +1661,17 @@ fn for_foreign_key(
        if columns_with_on_delete_set_none_strategy.is_empty() {
            on_delete_set_none_strategy = TokenStream::default();
        } else {
-           on_delete_set_none_strategy = get_row_finders(
-            &dsl_internal_foreign_key_function,
-            primary_key_column_name,
-            columns_with_on_delete_set_none_strategy,
-            &singular_table_name,
-        );
+           let row_finders = get_row_finders(
+                &dsl_internal_foreign_key_function,
+                columns_with_on_delete_set_none_strategy,
+                &singular_table_name,
+            );
+            on_delete_set_none_strategy = quote! {
+                #row_finders
+                if !rows_to_process.is_empty() {
+                    // TODO: set_none
+                }
+            };
        }
     */
 
@@ -1663,16 +1679,22 @@ fn for_foreign_key(
     if columns_with_on_delete_set_zero_strategy.is_empty() {
         on_delete_set_zero_strategy = TokenStream::default();
     } else {
-        on_delete_set_zero_strategy = get_row_finders(
+        let row_finders = get_row_finders(
             &dsl_internal_foreign_key_function,
-            primary_key_column_name,
             columns_with_on_delete_set_zero_strategy,
             &singular_table_name,
         );
+        on_delete_set_zero_strategy = quote! {
+            #row_finders
+            if !rows_to_process.is_empty() {
+                // TODO: set_zero
+            }
+        };
     }
 
+    let struct_name = format_ident!("{}", *rust_struct.name);
     function_impl = quote! {
-        let mut primary_key_values_of_rows_to_process = vec![];
+        let mut rows_to_process: Vec<#struct_name> = vec![];
 
         match &strategy {
             spacetimedsl::OnDeleteStrategy::Error => {
@@ -1694,8 +1716,7 @@ fn for_foreign_key(
         .iter()
         .map(|ts| ts.to_string().into())
         .collect();
-    //FIXME: let function_impl = function_impl.to_string().into();
-    let function_impl = "Ok(())".into();
+    let function_impl = function_impl.to_string().into();
 
     SpacetimeDSLMethod {
         doc_comment,
@@ -1709,17 +1730,25 @@ fn for_foreign_key(
 
 fn get_row_finders(
     dsl_internal_foreign_key_function: &DSLInternalForeignKeyFunction,
-    primary_key_column_name: &Box<str>,
     columns_with_same_strategy: Vec<&&&Column>,
     singular_table_name: &Ident,
 ) -> TokenStream {
+    let strategy = &columns_with_same_strategy
+        .first()
+        .as_ref()
+        .expect("there should be a column")
+        .spacetimedsl_column
+        .foreign_key
+        .as_ref()
+        .expect("there should be a foreign key")
+        .on_delete_strategy;
+
     let mut row_finders = vec![];
 
-    for column in columns_with_same_strategy {
-        let column_name = &column.rust_field.name;
+    for column in &columns_with_same_strategy {
+        let column_name = format_ident!("{}", *column.rust_field.name);
         let method_impl_prefix = quote! {
-            self
-                .ctx()
+            ctx
                 .db()
                 .#singular_table_name()
                 .#column_name()
@@ -1734,24 +1763,37 @@ fn get_row_finders(
 
         match is_unique_index {
             false => {
-                row_finders.push(
-                    quote! {
+                if strategy.eq(&OnDeleteStrategy::Error) {
+                    row_finders.push(quote! {
+                        if #method_impl_prefix
+                            .filter(primary_key_value_of_row_to_delete).next().is_some() {
+                                return Err(());
+                            }
+                    });
+                } else {
+                    row_finders.push(quote! {
                         #method_impl_prefix
                             .filter(primary_key_value_of_row_to_delete).for_each(|row| {
-                                primary_key_values_of_rows_to_process.push(row.#primary_key_column_name);
+                                rows_to_process.push(row);
                         });
-                    }
-                );
+                    });
+                }
             }
             true => {
-                row_finders.push(
-                    quote! {
+                if strategy.eq(&OnDeleteStrategy::Error) {
+                    row_finders.push(quote! {
+                        if #method_impl_prefix.find(primary_key_value_of_row_to_delete).is_some() {
+                            return Err(());
+                        };
+                    });
+                } else {
+                    row_finders.push(quote! {
                         match #method_impl_prefix.find(primary_key_value_of_row_to_delete) {
                             None => {}
-                            Some(row) => { primary_key_values_of_rows_to_process.push(row.#primary_key_column_name); }
+                            Some(row) => { rows_to_process.push(row); }
                         };
-                    }
-                );
+                    });
+                }
             }
         }
     }

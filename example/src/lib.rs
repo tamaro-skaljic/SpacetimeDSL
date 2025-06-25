@@ -227,6 +227,25 @@ pub mod component {
             #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
             pub entity_id: u128,
         }
+
+        #[dsl(plural_name = space_ship_objects)]
+        #[table(name = space_ship_object, public, index(name = ship_and_sobj, btree(columns = [space_ship_id, sobj_id])))]
+        pub struct SpaceShipObject {
+            #[primary_key]
+            #[auto_inc]
+            #[wrap]
+            space_ship_id: u64,
+
+            #[unique]
+            #[auto_inc]
+            #[wrap]
+            pub sobj_id: u64,
+
+            #[unique]
+            #[wrapped(path = crate::entity::EntityId)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
+            pub entity_id: u128,
+        }
     }
 }
 
