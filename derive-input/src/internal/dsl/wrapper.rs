@@ -39,7 +39,9 @@ impl WrapperType {
                             format!(
                                 "{}{}",
                                 RenameRule::PascalCase.apply_to_field(&rust_struct.name),
-                                RenameRule::PascalCase.apply_to_field(field.name.as_ref().expect("should have a name")),
+                                RenameRule::PascalCase.apply_to_field(
+                                    field.name.as_ref().expect("should have a name")
+                                ),
                             )
                             .into(),
                         );
@@ -72,7 +74,8 @@ impl WrapperType {
                 }
             }
 
-            let wrapper_struct_name_or_path = wrapper_struct_name_or_path.expect("should have a name or path");
+            let wrapper_struct_name_or_path =
+                wrapper_struct_name_or_path.expect("should have a name or path");
             let wrapped_type_name_or_path = field.ty.to_token_stream().to_string().into();
 
             if attr.meta.path().eq(&wrap) {
