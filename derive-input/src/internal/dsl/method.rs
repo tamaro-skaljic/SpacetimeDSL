@@ -902,7 +902,6 @@ pub(in crate::internal) fn for_single_column_index(
                     #method_impl_prefix
                         .find(#column_value)
                 },
-                // TODO: If !referencing_tables.is_empty() { todo!("Call delete_one hooks before the current implementation"); }
                 DSLColumnMethod::DeleteOne => {
                     if spacetimedsl_table.referencing_tables.is_empty() {
                         quote! {
@@ -1588,10 +1587,6 @@ fn for_foreign_key(
     .into();
 
     let primary_key_value_arg_name;
-
-    // TODO: VS Code says "expected 4 arguments, found 3"...
-    // see execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_entity_table_was_deleted
-    // and execute_on_delete_strategies_of_the_entity_relationship_table_after_one_row_of_the_entity_table_was_deleted
 
     let mut function_args = vec![];
 
