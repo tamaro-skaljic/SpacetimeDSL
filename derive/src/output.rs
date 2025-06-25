@@ -8,7 +8,7 @@ use spacetimedsl_derive_input::api::{
         setter::Setter, wrapper::WrapperType,
     },
 };
-use syn::{Type, Visibility, parse_str};
+use syn::{Ident, Type, Visibility, parse_str};
 
 pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     let struct_name = format_ident!("{}", &input.rust_struct.name.to_string());
@@ -32,12 +32,38 @@ pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     dsl_methods.push(build_without_lifetime(&input.spacetimedsl_methods.create)?);
     dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_all)?);
     dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_count)?);
-    dsl_methods.push(build_internal(
-        &input.spacetimedsl_methods.execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted,
-    )?);
-    dsl_methods.push(build_internal(
-        &input.spacetimedsl_methods.execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted,
-    )?);
+
+    match &input
+        .spacetimedsl_methods
+        .execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted
+    {
+        Some(method) => {
+            dsl_methods.push(build_internal(method)?);
+        }
+        None => {}
+    }
+
+    match &input
+        .spacetimedsl_methods
+        .execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted
+    {
+        Some(method) => {
+            dsl_methods.push(build_internal(method)?);
+        }
+        None => {}
+    }
+
+    for execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted in &input.spacetimedsl_methods.execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted {
+        dsl_methods.push(build_internal(
+            execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted
+        )?);
+    }
+
+    for execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted in &input.spacetimedsl_methods.execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted {
+        dsl_methods.push(build_internal(
+            execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted
+        )?);
+    }
 
     for multi_column_index in &input.spacetimedsl_methods.multi_column_indices {
         dsl_methods.push(get_column_dsl_methods(multi_column_index)?);
@@ -110,25 +136,14 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
     let return_type: Type = parse_str(&method.return_type)?;
     let method_impl: TokenStream = parse_str(&method.method_impl)?;
 
-    let pretty_please = PrettyPlease::default();
-    let implementation_docs = quote! {
-        pub trait #trait_name: spacetimedsl::DSLContext {
-            fn #method_name<'a>(
-                &'a self,
-                #(#method_args),*
-            ) -> #return_type {
-                use spacetimedsl::Wrapper;
-                use spacetimedb::{DbContext,Table};
-                #method_impl
-            }
-        }
-
-        impl #trait_name for spacetimedsl::DSL<'_> {}
-    };
-    let implementation_docs = pretty_please.format_tokens(implementation_docs).unwrap();
-    doc_comment.push_str(&format!(
-        "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
-    ));
+    doc_comment = add_impl_doc(
+        &trait_name,
+        &method_name,
+        &method_args,
+        &return_type,
+        &method_impl,
+        doc_comment,
+    );
 
     // TODO: The trait doc comment should link to the method doc comment
     let method = quote! {
@@ -167,27 +182,14 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
     let return_type: Type = parse_str(&method.return_type)?;
     let method_impl: TokenStream = parse_str(&method.method_impl)?;
 
-    let pretty_please = PrettyPlease::default();
-    let implementation_docs = quote! {
-        pub trait #trait_name: spacetimedsl::DSLContext {
-            fn #method_name(
-                &self,
-                #(#method_args),*
-            ) -> #return_type {
-                use spacetimedsl::Wrapper;
-                use spacetimedb::{DbContext,Table};
-                #method_impl
-            }
-        }
-
-        impl #trait_name for spacetimedsl::DSL<'_> {}
-    };
-    let implementation_docs = pretty_please
-        .format_tokens(implementation_docs)
-        .expect("implementation doc formatting should work");
-    doc_comment.push_str(&format!(
-        "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
-    ));
+    doc_comment = add_impl_doc(
+        &trait_name,
+        &method_name,
+        &method_args,
+        &return_type,
+        &method_impl,
+        doc_comment,
+    );
 
     // TODO: The trait doc comment should link to the method doc comment
     let method = quote! {
@@ -211,13 +213,7 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
 }
 
 // Execute On Delete Strategies Of [ Referencing Tables | This Table ] After [ One Row | Multiple Rows ] Of [ This | The Referenced ] Table [ Was | Were ] Deleted
-pub fn build_internal(method: &Option<SpacetimeDSLMethod>) -> syn::Result<TokenStream> {
-    if method.is_none() {
-        return Ok(TokenStream::default());
-    }
-
-    let method = method.as_ref().unwrap();
-
+pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     let mut doc_comment = String::new();
     doc_comment.push_str(&method.doc_comment);
 
@@ -232,26 +228,14 @@ pub fn build_internal(method: &Option<SpacetimeDSLMethod>) -> syn::Result<TokenS
     let return_type: Type = parse_str(&method.return_type)?;
     let method_impl: TokenStream = parse_str(&method.method_impl)?;
 
-    let pretty_please = PrettyPlease::default();
-    let implementation_docs = quote! {
-        pub trait #trait_name {
-            fn #method_name(
-                #(#method_args),*
-            ) -> #return_type {
-                use spacetimedsl::Wrapper;
-                use spacetimedb::{DbContext,Table};
-                #method_impl
-            }
-        }
-
-        impl #trait_name for spacetimedsl::internal::DSLInternals {}
-    };
-    let implementation_docs = pretty_please
-        .format_tokens(implementation_docs)
-        .expect("implementation doc formatting should work");
-    doc_comment.push_str(&format!(
-        "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
-    ));
+    doc_comment = add_impl_doc(
+        &trait_name,
+        &method_name,
+        &method_args,
+        &return_type,
+        &method_impl,
+        doc_comment,
+    );
 
     // TODO: The trait doc comment should link to the method doc comment
     let method = quote! {
@@ -271,6 +255,39 @@ pub fn build_internal(method: &Option<SpacetimeDSLMethod>) -> syn::Result<TokenS
     };
 
     Ok(method)
+}
+
+fn add_impl_doc(
+    trait_name: &Ident,
+    method_name: &Ident,
+    method_args: &Vec<TokenStream>,
+    return_type: &Type,
+    method_impl: &TokenStream,
+    mut doc_comment: String,
+) -> String {
+    let pretty_please = PrettyPlease::default();
+    let implementation_docs = quote! {
+        pub trait #trait_name {
+            fn #method_name<'a>(
+                &'a self,
+                #(#method_args),*
+            ) -> #return_type {
+                use spacetimedsl::Wrapper;
+                use spacetimedb::{DbContext,Table};
+                #method_impl
+            }
+        }
+    };
+
+    let implementation_docs = pretty_please
+        .format_tokens(implementation_docs)
+        .expect("implementation doc formatting should work");
+
+    doc_comment.push_str(&format!(
+        "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
+    ));
+
+    doc_comment
 }
 
 fn getter(getter: &Getter) -> syn::Result<TokenStream> {
