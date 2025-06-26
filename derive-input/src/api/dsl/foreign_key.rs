@@ -1,8 +1,4 @@
-#[cfg_attr(feature = "clone", derive(Clone))]
-#[cfg_attr(feature = "debug", derive(Debug))]
-#[cfg_attr(feature = "partial-eq", derive(PartialEq))]
-#[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
-#[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
 pub struct ForeignKey {
     pub path: Box<str>,
     pub table_name: Box<str>,
@@ -12,11 +8,7 @@ pub struct ForeignKey {
 
 // This enum is copy+paste of the enum in the SpacetimeDSL crate (which is the public API of the DSL).
 
-#[cfg_attr(feature = "clone", derive(Clone))]
-#[cfg_attr(feature = "debug", derive(Debug))]
-#[cfg_attr(feature = "partial-eq", derive(PartialEq))]
-#[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
-#[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
 pub enum OnDeleteStrategy {
     /// Available independent from the column type.
     Error,
@@ -30,4 +22,26 @@ pub enum OnDeleteStrategy {
 
     /// Available only for columns with a numeric type.
     SetZero,
+}
+
+impl quote::ToTokens for OnDeleteStrategy {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        use proc_macro2::{Punct, Spacing};
+        use quote::{TokenStreamExt, format_ident};
+
+        tokens.append(format_ident!("spacetimedsl"));
+        tokens.append(Punct::new(':', Spacing::Joint));
+        tokens.append(Punct::new(':', Spacing::Alone));
+        tokens.append(format_ident!("OnDeleteStrategy"));
+        tokens.append(Punct::new(':', Spacing::Joint));
+        tokens.append(Punct::new(':', Spacing::Alone));
+        tokens.append(format_ident!(
+            "{}",
+            match self {
+                OnDeleteStrategy::Error => "Error",
+                OnDeleteStrategy::Delete => "Delete",
+                OnDeleteStrategy::SetZero => "SetZero",
+            },
+        ));
+    }
 }

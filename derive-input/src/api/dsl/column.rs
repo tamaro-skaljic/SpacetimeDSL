@@ -1,11 +1,7 @@
 use super::{foreign_key::ForeignKey, getter::Getter, setter::Setter, wrapper::WrapperType};
 use crate::api::dsl::method::SpacetimeDSLMethod;
 
-#[cfg_attr(feature = "clone", derive(Clone))]
-#[cfg_attr(feature = "debug", derive(Debug))]
-#[cfg_attr(feature = "partial-eq", derive(PartialEq))]
-#[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
-#[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
 pub struct SpacetimeDSLColumn {
     pub is_option: bool,
     // Only `Some(T)` if it has `#[wrap(name = MyTableId)]` or `#[wrapped(path = path::to::MyTableId)]`.
@@ -17,21 +13,13 @@ pub struct SpacetimeDSLColumn {
     pub setter: Option<Setter>,
 }
 
-#[cfg_attr(feature = "clone", derive(Clone))]
-#[cfg_attr(feature = "debug", derive(Debug))]
-#[cfg_attr(feature = "partial-eq", derive(PartialEq))]
-#[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
-#[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
 pub enum SpacetimeDSLColumnMethods {
     ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex),
     ForIndex(SpacetimeDSLColumnMethodsForIndex),
 }
 
-#[cfg_attr(feature = "clone", derive(Clone))]
-#[cfg_attr(feature = "debug", derive(Debug))]
-#[cfg_attr(feature = "partial-eq", derive(PartialEq))]
-#[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
-#[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
 pub struct SpacetimeDSLColumnMethodsForUniqueIndex {
     pub get_one_option: SpacetimeDSLMethod,
     pub update: Option<SpacetimeDSLMethod>,
@@ -39,20 +27,12 @@ pub struct SpacetimeDSLColumnMethodsForUniqueIndex {
     pub delete_one_result_type: SpacetimeDSLDeletionResult,
 }
 
-#[cfg_attr(feature = "clone", derive(Clone))]
-#[cfg_attr(feature = "debug", derive(Debug))]
-#[cfg_attr(feature = "partial-eq", derive(PartialEq))]
-#[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
-#[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
 pub struct SpacetimeDSLColumnMethodsForIndex {
     pub get_many: SpacetimeDSLMethod,
     pub delete_many: SpacetimeDSLMethod,
     pub delete_many_result_type: SpacetimeDSLDeletionResult,
 }
 
-#[cfg_attr(feature = "clone", derive(Clone))]
-#[cfg_attr(feature = "debug", derive(Debug))]
-#[cfg_attr(feature = "partial-eq", derive(PartialEq))]
-#[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
-#[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
 pub struct SpacetimeDSLDeletionResult {}

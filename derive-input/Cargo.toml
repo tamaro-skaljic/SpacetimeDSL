@@ -11,15 +11,6 @@ publish = true
 include = ["/src/**"]
 keywords = ["dsl", "spacetime", "macro", "codegen", "boilerplate"]
 
-[features]
-default = ["clone", "debug", "partial-eq", "partial-ord", "spacetime-type"]
-clone = []
-debug = []
-partial-eq = []
-partial-ord = []
-# Use this feature if you want to use the provided structs and enums as field types inside SpacetimeDB tables
-spacetime-type = []
-
 [dependencies]
 # https://crates.io/crates/ident_case Utility for applying case rules to Rust identifiers.
 ident_case = "1.0.1"
