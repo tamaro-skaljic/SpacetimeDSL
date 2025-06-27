@@ -4,9 +4,11 @@ mod table;
 
 mod column;
 
-mod dsl;
+mod rust;
 
-mod utils;
+mod db;
+
+mod dsl;
 
 pub(crate) fn try_parse(
     args: proc_macro2::TokenStream,

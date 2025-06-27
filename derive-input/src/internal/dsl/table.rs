@@ -1,5 +1,5 @@
-use crate::api::db::{IndexType, SpacetimeDBTable};
-use crate::api::dsl::reference::Reference;
+use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
+use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::SpacetimeDSLTable;
 use crate::internal::dsl::{plural_name, unique_index};
 use proc_macro2::Span;
@@ -54,19 +54,34 @@ impl SpacetimeDSLTable {
             }
         }
 
+        match column_args
+            .primary_key_column
+            .expect("The table should have a `#[primary_key]` column!")
+            .vis
+        {
+            syn::Visibility::Public(_) => {
+                return Err(syn::Error::new(
+                    Span::call_site(),
+                    "A `#[primary_key]` column should have `Visibility::Inherited`! Found: Visibility::Public",
+                ));
+            }
+            syn::Visibility::Restricted(_) => {
+                return Err(syn::Error::new(
+                    Span::call_site(),
+                    "A `#[primary_key]` column should have `Visibility::Inherited`! Found: Visibility::Restricted",
+                ));
+            }
+            syn::Visibility::Inherited => {}
+        }
+
         let mut is_mutable = false;
         let mut has_created_at_column = false;
         let mut has_modified_at_column = false;
-        let mut references = vec![];
+        let mut referencing_tables = vec![];
         for field in &column_args.fields {
-            if column_args
-                .primary_key_column
-                .expect("The table should have a column with `#[primary_key]`!")
-                .ident
-                .to_string()
-                .eq(field.name.as_ref().unwrap())
-            {
-                references = Reference::try_parse(field)?;
+            let refs = ReferencingTable::try_parse(field)?;
+            if referencing_tables.is_empty() {
+                referencing_tables = refs;
             }
 
             if !is_mutable {
@@ -77,7 +92,7 @@ impl SpacetimeDSLTable {
                 };
             }
             if !has_created_at_column {
-                if field.name.as_ref().unwrap().eq("created_at") {
+                if field.name.as_ref().expect("should have a name").eq("created_at") {
                     let field_type = field.ty.to_token_stream().to_string();
                     if !field_type.eq("Timestamp") {
                         return Err(syn::Error::new(
@@ -108,8 +123,9 @@ impl SpacetimeDSLTable {
                 }
             }
             if !has_modified_at_column {
-                if field.name.as_ref().unwrap().eq("modified_at") {
+                if field.name.as_ref().expect("should have a name").eq("modified_at") {
                     let field_type = field.ty.to_token_stream().to_string();
+                    // TODO: Allow Option<Timestamp> as modified_at column type
                     if !field_type.eq("Timestamp") {
                         return Err(syn::Error::new(
                             Span::call_site(),
@@ -147,7 +163,7 @@ impl SpacetimeDSLTable {
                 is_mutable,
                 has_created_at_column,
                 has_modified_at_column,
-                references,
+                referencing_tables,
             },
         ))
     }

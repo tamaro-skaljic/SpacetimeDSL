@@ -16,6 +16,8 @@ The following SpacetimeDB features can't be used:
 
 ## Features
 
+> The documentation is currently outdated due to major refactorings, e. g. it doesn't contain the actual generated code, except for the [Unique Multi Column Index](#-unique-multi-column-indices) and [Foreign Key Referential Integrity](#-foreign-keys--referential-integrity) which are the newest and biggest features of SpacetimeDSL.
+
 If features contain snippets of generated code, they relate to the following input code:
 
 ```rust
@@ -145,6 +147,325 @@ Which can for example be used like so:
 
 [SpacetimeDSL](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/25) has implemented unique multi-column indices before [SpacetimeDB](https://github.com/clockworklabs/SpacetimeDB/issues/976).
 
+Here is an example:
+
+```rust
+#[dsl(plural_name = entity_relationships, unique_index(name = parent_child_entity_id))]
+#[table(name = entity_relationship, public, index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])))]
+pub struct EntityRelationship {
+    #[primary_key]
+    #[auto_inc]
+    id: u128,
+
+    parent_entity_id: u128,
+
+    child_entity_id: u128,
+}
+```
+
+As you can see, you just need to add `, unique_index(name = parent_child_entity_id)` to your `#[spacetimedsl::dsl(plural_name = entity_relationships)]` attribute macro (and have a multi-column index on your `#[spacetimedb::table]` with the same name) and you'll get DSL methods which return an `Option<EntityRelationship>` instead of an `Vec<EntityRelationship>` (Get / Update / Delete One Row instead of Get / Update / Delete Multiple Rows)
+
+Keep in mind that the referential integrity which SpacetimeDSL provides is only enforced if you never call db state mutating methods on the `&spacetimedb::ReducerContext` yourself (insert, update, delete) - so only use the DSL methods.
+
+This feature is unstable and will be removed if SpacetimeDB has implemented it's own unique multi column index feature.
+
+### 🔥🥵 Foreign Keys / Referential Integrity
+
+You can add `#[foreign_key]` and `#[referenced_by]` to your table columns to enforce referential integrity and apply on delete strategies.
+
+Here is a example which is using both:
+
+```rust
+pub mod entity {
+    #[dsl(plural_name = entities)]
+    #[table(name = entity, public)]
+    pub struct Entity {
+        /// The unique ID of the Entity.
+        #[primary_key]
+        #[auto_inc]
+        #[wrap]
+        #[referenced_by(path = crate::entity::relationship, table = entity_relationship)]
+        #[referenced_by(path = crate::identifier, table = identifier)]
+        id: u128,
+
+        created_at: Timestamp,
+    }
+
+    pub mod relationship {
+        #[dsl(plural_name = entity_relationships, unique_index(name = parent_child_entity_id))]
+        #[table(name = entity_relationship, public, index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])))]
+        pub struct EntityRelationship {
+            #[primary_key]
+            #[auto_inc]
+            #[wrap]
+            id: u128,
+
+            #[index(btree)]
+            #[wrapped(name = crate::entity::EntityId)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
+            parent_entity_id: u128,
+
+            #[index(btree)]
+            #[wrapped(name = crate::entity::EntityId)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
+            child_entity_id: u128,
+
+            created_at: Timestamp,
+        }
+    }
+}
+
+pub mod identifier {
+    #[dsl(plural_name = identifiers)]
+    #[table(name = identifier, public)]
+    pub struct Identifier {
+        #[primary_key]
+        #[auto_inc]
+        #[wrap]
+        id: u128
+
+        #[unique]
+        #[wrapped(path = crate::entity::EntityId)]
+        #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
+        entity_id: u128
+
+        #[unique]
+        pub value: String
+
+        created_at: Timestamp
+
+        modified_at: Timestamp,
+    }
+}
+```
+
+The `#[referenced_by]` attribute needs values for the `path` and the `table` field and is only allowed on `#[primary_key]` columns (which require `#[wrap]`/`#[wrapped]`).
+
+You can add multiple `#[referenced_by]`'s to the same primary key column.
+
+You need one for each table which has a `#[foreign_key]` which is referencing the table (see the pk column of the entity table).
+
+`#[referenced_by]`'s are responsible for calling the `OnDeleteStrategy`'s of tables which reference them though a `#[foreign_key]`, that means it's influencing the DeleteOne / DeleteMany DSL methods. Here is the changed DeleteOne DSL method of the Entity table:
+
+```rust
+pub trait DeleteEntityRowById: spacetimedsl::DSLContext {
+        fn delete_entity_by_id(&self, id: impl Into<EntityId>) -> Result<bool, ()> {
+            use spacetimedsl::Wrapper;
+            use spacetimedb::{DbContext, Table};
+            let id = id.into().value();
+            let row_to_delete = self.ctx().db().entity().id().find(id);
+            let primary_key_value_of_row_to_delete;
+            match row_to_delete {
+                None => {
+                    return Ok(false);
+                }
+                Some(row) => {
+                    primary_key_value_of_row_to_delete = row.id;
+                }
+            };
+            spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_entity_table_was_deleted(
+                self.ctx(),
+                spacetimedsl::OnDeleteStrategy::Error,
+                &primary_key_value_of_row_to_delete,
+            )?;
+            spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_entity_table_was_deleted(
+                self.ctx(),
+                spacetimedsl::OnDeleteStrategy::Delete,
+                &primary_key_value_of_row_to_delete,
+            )?;
+            spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_entity_table_was_deleted(
+                self.ctx(),
+                spacetimedsl::OnDeleteStrategy::SetZero,
+                &primary_key_value_of_row_to_delete,
+            )?;
+            Ok(self.ctx().db().entity().id().delete(id))
+        }
+    }
+    impl DeleteEntityRowById for spacetimedsl::DSL<'_> {}
+```
+
+The delete DSL methods call internal functions now, which are generated by tables with `#[referenced_by]`'s.
+
+They are called more than one time to ensure that `OnDeleteStrategy::Error` is always processed first.
+
+There is one implementation which is called if
+
+- one row of the referenced table should be deleted and
+
+one which is called if
+
+- multiple rows of the referenced table should be deleted.
+
+Let's have a look at the functions:
+
+```rust
+    pub trait ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfTheEntityTableWasDeleted {
+    fn execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_entity_table_was_deleted(
+        ctx: &spacetimedb::ReducerContext,
+        strategy: spacetimedsl::OnDeleteStrategy,
+        primary_key_value_of_row_to_delete: &u128,
+    ) -> Result<(), ()> {
+        use spacetimedsl::Wrapper;
+        use spacetimedb::{DbContext, Table};
+
+        use crate::entity::relationship::ExecuteOnDeleteStrategiesOfTheEntityRelationshipTableAfterOneRowOfTheEntityTableWasDeleted;
+        spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_the_entity_relationship_table_after_one_row_of_the_entity_table_was_deleted(
+            ctx,
+            &strategy,
+            primary_key_value_of_row_to_delete,
+        )?;
+        
+        use crate::identifier::ExecuteOnDeleteStrategiesOfTheIdentifierTableAfterOneRowOfTheEntityTableWasDeleted;
+        spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_the_identifier_table_after_one_row_of_the_entity_table_was_deleted(
+            ctx,
+            &strategy,
+            primary_key_value_of_row_to_delete,
+        )?;
+
+        Ok(())
+    }
+}
+impl ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfTheEntityTableWasDeleted for spacetimedsl::internal::DSLInternals {}
+
+pub trait ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfTheEntityTableWereDeleted {
+    fn execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_entity_table_were_deleted(
+        ctx: &spacetimedb::ReducerContext,
+        strategy: spacetimedsl::OnDeleteStrategy,
+        primary_key_values_of_rows_to_delete: &Vec<u128>,
+    ) -> Result<(), ()> {
+        use spacetimedsl::Wrapper;
+        use spacetimedb::{DbContext, Table};
+
+        use crate::entity::relationship::ExecuteOnDeleteStrategiesOfTheEntityRelationshipTableAfterMultipleRowsOfTheEntityTableWereDeleted;
+        spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_the_entity_relationship_table_after_multiple_rows_of_the_entity_table_were_deleted(
+            ctx,
+            &strategy,
+            primary_key_values_of_rows_to_delete,
+        )?;
+
+        use crate::identifier::ExecuteOnDeleteStrategiesOfTheIdentifierTableAfterMultipleRowsOfTheEntityTableWereDeleted;
+        spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_the_identifier_table_after_multiple_rows_of_the_entity_table_were_deleted(
+            ctx,
+            &strategy,
+            primary_key_values_of_rows_to_delete,
+        )?;
+
+        Ok(())
+    }
+}
+impl ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfTheEntityTableWereDeleted
+for spacetimedsl::internal::DSLInternals {}
+```
+
+(They're the same except that the below has a `&Vec<PrimaryKeyType>` instead of a `&PrimaryKeyType` parameter).
+
+As you can see they are calling other internal functions, which are generated by tables with `#[foreign_key]` attributes.
+
+`#[foreign_key]`'s are only allowed on columns with `#[primary_key]`, `#[index]` or `#[unique]`.
+
+They also require the `#[wrapped]` attribute as the `#[primary_key]` columns does.
+
+They need a value for the `path`, `table` and `on_delete` fields. I think the first two are self-explanatory, the latter not:
+
+`on_delete` requires you to supply a `OnDeleteStrategy` - at the moment there are three of them: `Error`, `Delete` and `SetZero` (`SetNone` will be implemented if SpacetimeDB allows indices on columns with `Option<T: SpacetimeType>` type.)
+
+- The on delete `Error` strategy does what it says - if a row should be deleted which is referenced in a `#[foreign_key]` of another table the delete DSL method will return an error - no row is deleted, even if you're ignoring the error (which in SpacetimeDB you shouldn't do, because any other state changes in a reducer would be persisted if you don't return the Error).
+
+- Having an on delete `SetZero` strategy on your `#[foreign_key]` will set the value of the column to `0` for any row, which references the primary key of the other table.
+
+- If the on delete `SetNone` strategy is implemented, it will do the same as the `SetZero` strategy except it will set `None` instead of `0`.
+
+- The on delete `Delete` strategy (Cascade) is the most advanced strategy of them. Before a row of `table_a` is deleted, `table_b` will check if it's `#[primary_key]` column has also `#[referenced_by]`'s as `table_a` has. If that's true, it will ask any referenced table (e. g. `table_c` and `table_d`) whether they would have something against the deletion. If `table_c` has a `delete` strategy but `table_d` has a `error` strategy, the whole deletion request won't happen if any row inside table `table_d` is referencing a row of `table_d` - the deletion request won't delete any row, even not in `table_a`.
+
+To ensure referential integrity, `#[foreign_key]`'s and `#[referenced_by]`'s also influence the create / update DSL methods:
+
+```rust
+pub trait CreateIdentifierRow: spacetimedsl::DSLContext + crate::entity::GetEntityRowOptionById {
+    fn create_identifier(
+        &self,
+        entity_id: impl Into<crate::entity::EntityId>,
+        value: &str,
+    ) -> Result<
+        Identifier,
+        spacetimedb::TryInsertError<identifier__TableHandle>,
+    > {
+        use spacetimedsl::Wrapper;
+        use spacetimedb::{DbContext, Table};
+
+        let id = u128::default();
+        let entity_id = entity_id.into().value();
+        let value = value.to_string();
+        let created_at = self.ctx().timestamp;
+        let modified_at = self.ctx().timestamp;
+
+        let identifier = Identifier {
+            id,
+            entity_id,
+            value,
+            created_at,
+            modified_at,
+        };
+
+        if entity_id.ne(&0) {
+            match self.get_entity_by_id(identifier.get_entity_id()) {
+                Some(_) => {}
+                None => {
+                    {
+                        panic!(
+                                "There must be a row inside the `entity` table when trying to find one with primary key column `id` value `{0:?}`. Found none. There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the Foreign Key / Referenced By SpacetimeDSL feature is broken.",
+                                identifier.get_entity_id(),
+                        );
+                    };
+                }
+            };
+        }
+        self.ctx().db().identifier().try_insert(identifier)
+    }
+}
+impl CreateIdentifierRow for spacetimedsl::DSL<'_> {}
+
+pub trait UpdateEntityRelationshipRowById: spacetimedsl::DSLContext + crate::entity::GetEntityRowOptionById {
+    fn update_entity_relationship_by_id(
+        &self,
+        mut entity_relationship: EntityRelationship,
+    ) -> Result<
+        EntityRelationship,
+        spacetimedb::TryInsertError<entity_relationship__TableHandle>,
+    > {
+        use spacetimedsl::Wrapper;
+        use spacetimedb::{DbContext, Table};
+
+        let parent_entity_id = entity_relationship.get_parent_entity_id().value();
+        let child_entity_id = entity_relationship.get_child_entity_id().value();
+
+        if child_entity_id.ne(&0) {
+            match self.get_entity_by_id(entity_relationship.get_child_entity_id()) {
+                Some(_) => {}
+                None => {
+                    {
+                        ::core::panicking::panic_fmt(
+                            format_args!(
+                                "There must be a row inside the `entity` table when trying to find one with primary key column `id` value `{0:?}`. Found none. There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the Foreign Key / Referenced By SpacetimeDSL feature is broken.",
+                                entity_relationship.get_child_entity_id(),
+                            ),
+                        );
+                    };
+                }
+            };
+        }
+        Ok(self.ctx().db().entity_relationship().id().update(entity_relationship))
+    }
+}
+impl UpdateEntityRelationshipRowById for spacetimedsl::DSL<'_> {}
+```
+
+If the value in the `#[foreign_key]` column isn't `0`/`None`, it will try to find a row with the referenced primary key value of the referenced table when creating or updating.
+
+Keep in mind that the referential integrity which SpacetimeDSL provides is only enforced if you never call db state mutating methods on the `&spacetimedb::ReducerContext` yourself (insert, update, delete) - so only use the DSL methods.
+
+Also: This feature is unstable. First it will be removed if SpacetimeDB has implemented it's own referential integrity / foreign key features, second I have implemented tests to ensure referential integrity - but there may be edge cases. Make backups of your data before testing the feature and PLEASE, if you find any bug, create a GitHub issue!
+
+Also in one of the next 0.x.0 versions of SpacetimeDSL I'll probably add proper error types, which should contain data about the rows which were deleted (of any table which is affected by a delete method call, not only of the initial deletions!) which will result in breaking changes on your own error handling code. (SpacetimeDB has `TryInsertError`/`UniqueConstraintViolationError`, but SpacetimeDSL needs a `TryUpdateError` and a `TryDeleteError` as well as a `ReferentialIntegrityViolationError` to increase it's maturity.)
 
 ### 🔥🥵 Wrapper Types
 

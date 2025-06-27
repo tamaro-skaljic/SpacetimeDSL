@@ -8,17 +8,13 @@ pub mod api {
     /**
      * The representation of a Rust struct with `#[table]` and `#[dsl]` attribute macros and its columns.
      */
-    #[cfg_attr(feature = "clone", derive(Clone))]
-    #[cfg_attr(feature = "debug", derive(Debug))]
-    #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
-    #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
-    #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
+    #[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
     pub struct Table {
-        pub rust_struct: rust::RustStruct,
-        pub spacetimedb_table: db::SpacetimeDBTable,
+        pub rust_struct: rust::table::RustStruct,
+        pub spacetimedb_table: db::table::SpacetimeDBTable,
         pub spacetimedsl_table: dsl::table::SpacetimeDSLTable,
         pub columns: Vec<Column>,
-        pub spacetimedsl_methods: dsl::method::SpacetimeDSLTableMethods,
+        pub spacetimedsl_methods: dsl::table::SpacetimeDSLTableMethods,
     }
 
     impl Table {
@@ -37,16 +33,12 @@ pub mod api {
     /**
      * The representation of a field of a Rust struct with `#[table]` and `#[dsl]` attribute macros.
      */
-    #[cfg_attr(feature = "clone", derive(Clone))]
-    #[cfg_attr(feature = "debug", derive(Debug))]
-    #[cfg_attr(feature = "partial-eq", derive(PartialEq))]
-    #[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
-    #[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
+    #[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
     pub struct Column {
-        pub rust_field: rust::RustField,
-        pub spacetimedb_column: db::SpacetimeDBColumn,
+        pub rust_field: rust::column::RustField,
+        pub spacetimedb_column: db::column::SpacetimeDBColumn,
         pub spacetimedsl_column: dsl::column::SpacetimeDSLColumn,
-        pub spacetimedsl_methods: Option<dsl::method::SpacetimeDSLColumnMethods>,
+        pub spacetimedsl_methods: Option<dsl::column::SpacetimeDSLColumnMethods>,
     }
 }
 

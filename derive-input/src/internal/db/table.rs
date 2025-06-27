@@ -1,5 +1,8 @@
-use crate::api::db::SpacetimeDBTable;
-use crate::api::db::{Index, IndexType, ScheduledReducer, SpacetimeDBTableVisibility};
+use crate::api::db::{
+    index::{Index, IndexType},
+    reducer::ScheduledReducer,
+    table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
+};
 use quote::ToTokens;
 use spacetime_bindings_macro_input::table::{
     IndexArg, IndexType as SpacetimeIndexType, ScheduledArg, TableAccess, TableArgs,
@@ -48,7 +51,7 @@ impl Index {
 
                 match columns.len() {
                     1 => IndexType::BTreeSingleColumn {
-                        column: columns.get(0).unwrap().clone(),
+                        column: columns.get(0).expect("column 0 should exist").clone(),
                     },
                     _ => IndexType::BTreeMultiColumn { columns },
                 }

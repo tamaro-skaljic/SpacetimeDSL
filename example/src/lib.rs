@@ -11,13 +11,72 @@ pub mod entity {
         #[primary_key]
         #[auto_inc]
         #[wrap]
+        #[referenced_by(path = crate::entity,                table = entity_relationship)]
+        #[referenced_by(path = crate::entity,                table = entity_relationship2)]
         #[referenced_by(path = crate::component::identifier, table = identifier)]
         #[referenced_by(path = crate::component::position,   table = position)]
         #[referenced_by(path = crate::component::position,   table = unique_position)]
         #[referenced_by(path = crate::component::test,       table = test)]
+        #[referenced_by(path = crate::component::test,       table = ship_object)]
         id: u128,
 
         created_at: Timestamp,
+    }
+
+    #[dsl(plural_name = entity_relationships, unique_index(name = parent_child_entity_id))]
+    #[table(name = entity_relationship, public, index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])))]
+    pub struct EntityRelationship {
+        /// The unique ID of the Entity Relationship.
+        #[primary_key]
+        #[auto_inc]
+        #[wrap]
+        id: u128,
+
+        #[index(btree)]
+        #[wrapped(name = EntityId)]
+        #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
+        parent_entity_id: u128,
+
+        #[index(btree)]
+        #[wrapped(name = EntityId)]
+        #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
+        child_entity_id: u128,
+    }
+
+    #[dsl(plural_name = entity_relationships2)]
+    #[table(name = entity_relationship2, public, index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])))]
+    pub struct EntityRelationship2 {
+        /// The unique ID of the Entity Relationship2.
+        #[primary_key]
+        #[auto_inc]
+        #[wrap]
+        id: u128,
+
+        #[index(btree)]
+        #[wrapped(name = EntityId)]
+        #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
+        parent_entity_id: u128,
+
+        #[index(btree)]
+        #[wrapped(name = EntityId)]
+        #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
+        pub child_entity_id: u128,
+    }
+
+    #[dsl(plural_name = entity_relationships3)]
+    #[table(name = entity_relationship3, public)]
+    pub struct EntityRelationship3 {
+        /// The unique ID of the Entity Relationship3.
+        #[primary_key]
+        #[auto_inc]
+        #[wrap]
+        #[referenced_by(path = crate::entity, table = entity_relationship3)]
+        id: u128,
+
+        #[index(btree)]
+        #[wrapped(name = EntityRelationship3Id)]
+        #[foreign_key(path = crate::entity, table = entity_relationship3, on_delete = SetZero)]
+        parent_entity_id: u128,
     }
 }
 
@@ -39,7 +98,7 @@ pub mod component {
             /// The unique ID of the Entity the Identifier belongs to.
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
-            #[foreign_key(table = entity, on_delete = Cascade)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
             entity_id: u128,
 
             // The unique value of the Identifier.
@@ -73,7 +132,7 @@ pub mod component {
             /// The unique ID of the Entity the Position belongs to.
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
-            #[foreign_key(table = entity, on_delete = Cascade)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = SetZero)]
             entity_id: u128,
 
             pub x: i128,
@@ -103,7 +162,7 @@ pub mod component {
             /// The unique ID of the Entity the unique Position belongs to.
             #[unique]
             #[wrapped(path = crate::entity::EntityId)]
-            #[foreign_key(table = entity, on_delete = Cascade)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
             entity_id: u128,
 
             pub x: i128,
@@ -149,14 +208,15 @@ pub mod component {
 
             #[index(btree)]
             #[wrapped(path = crate::entity::EntityId)]
-            #[foreign_key(table = entity, on_delete = Cascade)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
             pub wrapped_index: u128,
 
             #[index(btree)]
             pub btree_index: u128,
 
             #[unique]
-            #[foreign_key(table = entity, on_delete = SetZero)]
+            #[wrapped(path = crate::entity::EntityId)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = SetZero)]
             pub unique: u128,
 
             pub string: String,
@@ -186,17 +246,42 @@ pub mod component {
             scheduled_at: ScheduleAt,
         }
 
-        #[dsl(plural_name = ship_objects, unique_index(name = ship_and_sobj))]
-        #[table(name = ship_object, public, index(name = ship_and_sobj, btree(columns = [ship_id, sobj_id])))]
-        // This table duplicates PlayerControlledStellarObject, but because RLS doesn't allow NULLs we kind-of have to.
+        #[dsl(plural_name = ship_objects, unique_index(name = id_and_sobj))]
+        #[table(name = ship_object, public, index(name = id_and_sobj, btree(columns = [id, sobj_id])))]
         pub struct ShipObject {
             #[primary_key]
+            #[auto_inc]
             #[wrap]
-            pub ship_id: u64, // FK: Ship
+            id: u64,
 
             #[unique]
+            #[auto_inc]
             #[wrap]
-            pub sobj_id: u64, // FK: StellarObject
+            pub sobj_id: u64,
+
+            #[unique]
+            #[wrapped(path = crate::entity::EntityId)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
+            pub entity_id: u128,
+        }
+
+        #[dsl(plural_name = space_ship_objects)]
+        #[table(name = space_ship_object, public, index(name = id_and_sobj, btree(columns = [id, sobj_id])))]
+        pub struct SpaceShipObject {
+            #[primary_key]
+            #[auto_inc]
+            #[wrap]
+            id: u64,
+
+            #[unique]
+            #[auto_inc]
+            #[wrap]
+            pub sobj_id: u64,
+
+            #[unique]
+            #[wrapped(path = crate::entity::EntityId)]
+            #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
+            pub entity_id: u128,
         }
     }
 }
@@ -205,20 +290,26 @@ pub mod test {
     use crate::{
         component::{
             identifier::{
-                CreateIdentifierRow, GetIdentifierRowOptionByEntityId,
+                CountOfAllIdentifierRows, CreateIdentifierRow, GetIdentifierRowOptionByEntityId,
                 GetIdentifierRowOptionByValue, UpdateIdentifierRowById, update_modified_at,
             },
             position::{
-                CreatePositionRow, CreateUniquePositionRow, GetAllPositionRows,
-                GetAllUniquePositionRows, GetCountOfPositionRows, GetCountOfUniquePositionRows,
-                PositionId, UniquePositionId, UpdatePositionRowById, UpdateUniquePositionRowById,
+                CountOfAllPositionRows, CountOfAllUniquePositionRows, CreatePositionRow,
+                CreateUniquePositionRow, GetAllPositionRows, GetAllUniquePositionRows,
+                GetPositionRowOptionById, PositionId, UniquePositionId, UpdatePositionRowById,
+                UpdateUniquePositionRowById,
             },
             test::{
-                CreateTestRow, DeleteTestRowsByBtreeIndex, DeleteTestRowsByWrappedIndex,
-                GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex, Test,
+                CreateShipObjectRow, CreateTestRow, DeleteTestRowsByBtreeIndex,
+                DeleteTestRowsByWrappedIndex, GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex,
+                Test,
             },
         },
-        entity::{CreateEntityRow, DeleteEntityRowById, EntityId, GetEntityRowOptionById},
+        entity::{
+            CountOfAllEntityRelationship2Rows, CountOfAllEntityRelationshipRows,
+            CreateEntityRelationship2Row, CreateEntityRelationshipRow, CreateEntityRow,
+            DeleteEntityRowById, EntityId, GetEntityRowOptionById,
+        },
     };
     use log::info;
     use spacetimedb::{ReducerContext, TimeDuration, reducer};
@@ -241,7 +332,7 @@ pub mod test {
         let time = ctx.timestamp.to_system_time();
         if player.get_created_at().to_system_time().ne(&time) {
             return Err(
-                "The create method should have set the created_at column of the entity."
+                "The create method should have set the created_at column of the entity!"
                     .to_string(),
             );
         }
@@ -254,14 +345,80 @@ pub mod test {
                 return Err("Should be able to get an Entity by it's ID!".to_string());
             }
         };
-        if !dsl.delete_entity_by_id(&player) {
-            return Err("Should be able to delete an Entity by it's ID!".to_string());
+
+        let player2;
+        match dsl.create_entity() {
+            Ok(entity) => {
+                player2 = entity;
+            }
+            Err(_) => {
+                return Err("Should be able to create an Entity!".to_string());
+            }
+        };
+
+        if dsl.create_identifier(&player, "cool").is_err() {
+            return Err(format!(
+                "{:?}: Should be able to add an newly created Identifier!",
+                player
+            ));
         }
+
+        if dsl.count_of_all_identifiers().ne(&1) {
+            return Err("Count of identifiers should be 1!".to_string());
+        }
+
+        dsl.create_entity_relationship(&player, &player2)?;
+        if dsl.create_entity_relationship(&player, &player2).is_ok() {
+            return Err("Shouldn't be able to create the same entity relationship because of the unique multi column index `parent_child_entity_id`".to_string());
+        }
+        let player3 = dsl.create_entity()?;
+        dsl.create_entity_relationship(&player, &player3)?;
+        dsl.create_entity_relationship(&player2, &player3)?;
+
+        if dsl.count_of_all_entity_relationships().ne(&3) {
+            return Err("Count of entity relationships should be 3!".to_string());
+        }
+
+        if dsl.delete_entity_by_id(&player).is_ok() {
+            return Err("Shouldn't be able to delete 'player' because it's a parent in a entity relationship!".to_string());
+        }
+
+        if dsl.count_of_all_entity_relationships().ne(&3) {
+            return Err("Count of entity relationships should be 3!".to_string());
+        }
+
+        if dsl.delete_entity_by_id(&player3).is_err() {
+            return Err("Should be able to delete 'player3' because it's only a child in entity relationships!".to_string());
+        }
+
+        if dsl.count_of_all_entity_relationships().ne(&1) {
+            return Err("Count of entity relationships should be 1 because 2 should be deleted through the foreign key / referenced by feature!".to_string());
+        }
+
+        if dsl.delete_entity_by_id(&player2).is_err() {
+            return Err("Should be able to delete 'player2' because it's only a child in entity relationships!".to_string());
+        }
+
+        if dsl.count_of_all_entity_relationships().ne(&0) {
+            return Err(
+                "Count of entity relationships should be 0 because the last one should be deleted through the foreign key / referenced by feature!".to_string(),
+            );
+        }
+
+        if dsl.delete_entity_by_id(&player).is_err() {
+            return Err("Should be able to delete 'player' because it's not a parent anymore in a entity relationship!".to_string());
+        }
+
         if dsl.get_entity_by_id(&player).is_some() {
             return Err(
                 "Shouldn't be able to get an Entity by an ID which doesn't exist!".to_string(),
             );
         }
+
+        if dsl.count_of_all_identifiers().ne(&0) {
+            return Err("Count of identifiers should be 0 because the last one should be deleted through the foreign key / referenced by feature!".to_string());
+        }
+
         match dsl.create_entity() {
             Ok(entity) => {
                 player = entity;
@@ -271,6 +428,25 @@ pub mod test {
             }
         };
 
+        let player2 = dsl.create_entity()?;
+        let player3 = dsl.create_entity()?;
+
+        dsl.create_entity_relationship2(&player, &player2)?;
+        dsl.create_entity_relationship2(&player2, &player3)?;
+        dsl.create_entity_relationship2(&player3, &player)?;
+
+        if dsl.count_of_all_entity_relationships2().ne(&3) {
+            return Err("Count of entity relationships 2 should be 3!".to_string());
+        }
+
+        if dsl.delete_entity_by_id(&player2).is_err() {
+            return Err("Should be able to delete 'player'".to_string());
+        }
+
+        if dsl.count_of_all_entity_relationships2().ne(&1) {
+            return Err("Count of entity relationships should be 1 because 2 should be deleted through the foreign key / referenced by feature!".to_string());
+        }
+
         let mut player_identifier;
         match dsl.create_identifier(&player, "PLAYER") {
             Ok(identifier) => {
@@ -278,7 +454,7 @@ pub mod test {
             }
             Err(_) => {
                 return Err(format!(
-                    "{:?}: Should be able to add an newly created Identifier.",
+                    "{:?}: Should be able to add an newly created Identifier!",
                     player
                 ));
             }
@@ -290,7 +466,7 @@ pub mod test {
             .ne(&time)
         {
             return Err(
-                "The create method should have set the created_at column of the identifier."
+                "The create method should have set the created_at column of the identifier!"
                     .to_string(),
             );
         }
@@ -301,23 +477,21 @@ pub mod test {
             .ne(&time)
         {
             return Err(
-                "The create method should have set the modified_at column of the identifier."
+                "The create method should have set the modified_at column of the identifier!"
                     .to_string(),
             );
         }
 
-        /* TODO: Uncomment if https://github.com/clockworklabs/SpacetimeDB/pull/2610 is fixed
-            match dsl.create_identifier(&player, "PLAYER") {
+        match dsl.create_identifier(&player, "PLAYER") {
             Ok(identifier) => {
                 return Err(format!(
-                    "Entity {} ({}): Shouldn't be able to add an Identifier because it has already one.",
+                    "Entity {} ({}): Shouldn't be able to add an Identifier because it has already one!",
                     player.get_id().value(),
                     identifier.get_value()
                 ));
             }
             Err(_) => {}
         };
-         */
 
         match dsl.get_identifier_by_value("PLAYER") {
             Some(identifier) => {
@@ -333,7 +507,7 @@ pub mod test {
             &mut player_identifier,
             ctx.timestamp
                 .checked_add(TimeDuration::from_micros(99999999999))
-                .unwrap(),
+                .expect("should have worked"),
         );
 
         let player_reflection_identifier = match dsl.update_identifier_by_id(player_identifier) {
@@ -353,7 +527,7 @@ pub mod test {
             .ne(&time)
         {
             return Err(
-                "The update method should have set the modified_at column of the identifier."
+                "The update method should have set the modified_at column of the identifier!"
                     .to_string(),
             );
         }
@@ -367,7 +541,7 @@ pub mod test {
                     .ne(player_reflection_identifier.get_value())
                 {
                     return Err(format!(
-                        "The Identifier values should equal. Expected: {}, Actual: {}.",
+                        "The Identifier values should equal. Expected: {}, Actual: {}!",
                         player_reflection_identifier.get_value(),
                         identifier.get_value()
                     ));
@@ -382,7 +556,7 @@ pub mod test {
             Ok(position) => player_reflection_position_id = position.get_id(),
             Err(_) => {
                 return Err(format!(
-                    "{:?}: Should be able to add an newly created Position.",
+                    "{:?}: Should be able to add an newly created Position!",
                     player_reflection
                 ));
             }
@@ -399,11 +573,11 @@ pub mod test {
         };
 
         let mut player_position =
-            match dsl.create_position(&player, 1, 1, -1, player_reflection_position_id) {
+            match dsl.create_position(&player, 1, 1, -1, player_reflection_position_id.clone()) {
                 Ok(p) => p,
                 Err(_) => {
                     return Err(format!(
-                        "{:?}: Should be able to add an newly created Position.",
+                        "{:?}: Should be able to add an newly created Position!",
                         player
                     ));
                 }
@@ -417,14 +591,17 @@ pub mod test {
             Ok(p) => p,
             Err(_) => {
                 return Err(format!(
-                    "{:?}: Should be able to update an Position.",
+                    "{:?}: Should be able to update an Position!",
                     player
                 ));
             }
         };
 
         let positions_iter = dsl.get_all_positions();
-        let position_count_two: usize = dsl.get_count_of_positions().try_into().unwrap();
+        let position_count_two: usize = dsl
+            .count_of_all_positions()
+            .try_into()
+            .expect("should have worked");
 
         let mut position_count_one = 0;
         let mut position_ids = vec![];
@@ -444,14 +621,14 @@ pub mod test {
         positions.push(None);
 
         if position_count_one != position_count_two {
-            return Err("The count of Positions should equal.".to_string());
+            return Err("The count of Positions should equal!".to_string());
         }
 
         let _ = match dsl.create_unique_position(&player_reflection, 0, 0, 0) {
             Ok(p) => p,
             Err(_) => {
                 return Err(format!(
-                    "{:?}: Should be able to add an newly created unique Position.",
+                    "{:?}: Should be able to add an newly created unique Position!",
                     player_reflection
                 ));
             }
@@ -460,7 +637,7 @@ pub mod test {
         match dsl.create_unique_position(&player, 0, 0, 0) {
             Ok(_) => {
                 return Err(format!(
-                    "{:?}: Shouldn't be able to add an newly created unique Position which does already exist.",
+                    "{:?}: Shouldn't be able to add an newly created unique Position which does already exist!",
                     player_reflection
                 ));
             }
@@ -471,7 +648,7 @@ pub mod test {
             Ok(p) => p,
             Err(_) => {
                 return Err(format!(
-                    "{:?}: Should be able to add an newly created unique Position.",
+                    "{:?}: Should be able to add an newly created unique Position!",
                     player_reflection
                 ));
             }
@@ -484,7 +661,7 @@ pub mod test {
         match dsl.update_unique_position_by_id(unique_player_position) {
             Ok(_) => {
                 return Err(format!(
-                    "{:?}: Shouldn't be able to update an unique Position to a value in x_y_z which does already exist.",
+                    "{:?}: Shouldn't be able to update an unique Position to a value in x_y_z which does already exist!",
                     player_reflection
                 ));
             }
@@ -492,8 +669,10 @@ pub mod test {
         }
 
         let unique_positions_iter = dsl.get_all_unique_positions();
-        let unique_position_count_two: usize =
-            dsl.get_count_of_unique_positions().try_into().unwrap();
+        let unique_position_count_two: usize = dsl
+            .count_of_all_unique_positions()
+            .try_into()
+            .expect("should have worked");
 
         let mut unique_position_count_one = 0;
         let mut unique_position_ids = vec![];
@@ -513,7 +692,7 @@ pub mod test {
         unique_positions.push(None);
 
         if unique_position_count_one != unique_position_count_two {
-            return Err("The count of unique Positions should equal.".to_string());
+            return Err("The count of unique Positions should equal!".to_string());
         }
 
         let world1 = handle_test_result(dsl.create_test(
@@ -521,7 +700,7 @@ pub mod test {
             &player,
             &player,
             player.get_id().value(),
-            0,
+            &player,
             "string",
             "index_on_string",
             "index_on_wrapped_string",
@@ -536,7 +715,7 @@ pub mod test {
             player_reflection.get_id(),
             player.get_id(),
             player.get_id().value(),
-            1,
+            &player_reflection,
             "string",
             "index_on_string",
             "index_on_wrapped_string",
@@ -571,6 +750,35 @@ pub mod test {
         //let _ = dsl.get_tests_by_btree_index(world2.get_btree_index()..);
         let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index());
         //let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index()..);
+
+        if dsl.delete_entity_by_id(&player_reflection).is_err() {
+            return Err("Should be able to delete the player_reflection Entity!".to_string());
+        }
+        if dsl.count_of_all_identifiers().ne(&0) {
+            return Err("The count of Identifiers should be 0 because the player_reflection Entity was deleted and the foreign key has a Delete strategy!".to_string());
+        }
+        if dsl
+            .get_position_by_id(&player_reflection_position_id)
+            .expect("should exist")
+            .get_entity_id()
+            .value()
+            .ne(&0)
+        {
+            return Err("The entity_id of the position which was previously for the player_reflection entity should be 0 because the entity was deleted and the foreign key has a SetZero strategy!".to_string());
+        }
+
+        let _ = dsl.create_ship_object(&player);
+
+        // TODO: TryDeleteError
+        match dsl.delete_entity_by_id(&player) {
+            Ok(_) => {
+                return Err("The deletion of the entity player shouldn't have worked because ship_object.entity_id has a foreign key on the entity id with Error strategy".to_string());
+            }
+            Err(_) => {}
+        };
+
+        // TODO: Add test for SetNone strategy if it's implemented
+
         info!("Test executed successfully!");
 
         Ok(())

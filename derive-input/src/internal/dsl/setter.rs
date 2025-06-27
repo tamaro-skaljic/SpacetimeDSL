@@ -1,9 +1,9 @@
 use crate::{
     api::{
         dsl::{setter::Setter, wrapper::WrapperType},
-        rust::{RustField, RustVisibility},
+        rust::{column::RustField, visibility::RustVisibility},
     },
-    internal::utils::wrapper_type_into_option,
+    internal::dsl::wrapper::wrapper_type_into_option,
 };
 use quote::{format_ident, quote};
 use syn::{Type, parse_str};

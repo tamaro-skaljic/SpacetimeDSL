@@ -1,13 +1,14 @@
 use super::{path, wrap, wrapped};
 use crate::api::dsl::wrapper::{Wrap, Wrapped, WrapperType};
-use crate::api::rust::{RustField, RustStruct};
+use crate::api::rust::{column::RustField, table::RustStruct};
 use ident_case::RenameRule;
+use proc_macro2::TokenStream;
 use quote::quote;
 use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::{
     match_meta, sats::SatsField, sym::name, util::check_duplicate,
 };
-use syn::{parse_str, Error, Ident, Path, Type};
+use syn::{Error, Ident, Path, Type, parse_str};
 
 impl WrapperType {
     pub(in crate::internal) fn try_parse(
@@ -38,7 +39,9 @@ impl WrapperType {
                             format!(
                                 "{}{}",
                                 RenameRule::PascalCase.apply_to_field(&rust_struct.name),
-                                RenameRule::PascalCase.apply_to_field(field.name.as_ref().unwrap()),
+                                RenameRule::PascalCase.apply_to_field(
+                                    field.name.as_ref().expect("should have a name")
+                                ),
                             )
                             .into(),
                         );
@@ -71,7 +74,8 @@ impl WrapperType {
                 }
             }
 
-            let wrapper_struct_name_or_path = wrapper_struct_name_or_path.unwrap();
+            let wrapper_struct_name_or_path =
+                wrapper_struct_name_or_path.expect("should have a name or path");
             let wrapped_type_name_or_path = field.ty.to_token_stream().to_string().into();
 
             if attr.meta.path().eq(&wrap) {
@@ -109,13 +113,20 @@ fn get_wrapper_impl(
 ) -> Box<str> {
     let struct_name = format_ident!("{struct_name}");
     let wrapper_struct_name = format_ident!("{wrapper_struct_name}");
-    let wrapped_type: Type = parse_str(wrapped_type_name_or_path).expect(&format!("Expected to parse {wrapped_type_name_or_path} as Type in get_wrapper_impl!"));
+    let wrapped_type: Type = parse_str(wrapped_type_name_or_path).expect(&format!(
+        "Expected to parse {wrapped_type_name_or_path} as Type in get_wrapper_impl!"
+    ));
     let field_name = format_ident!("{field_name}");
 
     let default_impl;
 
     if wrapped_type_name_or_path.starts_with("Option <") {
-        let wrapped_type_name_or_path: Type= parse_str(&wrapped_type_name_or_path.replace("Option <", "").replace(">", "")).unwrap();
+        let wrapped_type_name_or_path: Type = parse_str(
+            &wrapped_type_name_or_path
+                .replace("Option <", "")
+                .replace(">", ""),
+        )
+        .expect("parsing should have worked");
 
         default_impl = quote! {
             Some(#wrapped_type_name_or_path::default())
@@ -170,5 +181,44 @@ fn get_wrapper_impl(
                 self.value.clone()
             }
         }
-    }.to_string().into()
+    }
+    .to_string()
+    .into()
+}
+
+impl WrapperType {
+    pub(in crate::internal) fn map_to_wrapped_type(value: &Wrap) -> Type {
+        parse_str(&value.wrapped_type_name_or_path).expect(&format!(
+            "Failed to parse {} as Ident in WrapperType::map_to_wrapped_type.",
+            &value.wrapped_type_name_or_path
+        ))
+    }
+
+    pub(in crate::internal) fn map(value: &WrapperType) -> Type {
+        match value {
+            WrapperType::Wrap(w) => parse_str(&w.wrapper_struct_name).expect(&format!(
+                "Failed to parse {} as Ident in WrapperType::map_to_wrapper_type for WrapperType::Wrap.",
+                &w.wrapper_struct_name
+            )),
+            WrapperType::Wrapped(w) => parse_str(&w.wrapper_struct_name_or_path).expect(&format!(
+                "Failed to parse {} as Path in WrapperType::map_to_wrapper_type for WrapperType::Wrapped.",
+                &w.wrapper_struct_name_or_path
+            )),
+        }
+    }
+}
+
+pub(in crate::internal) fn wrapper_type_into_option(
+    column_name: &Ident,
+    wrapper_type_name_or_path: &Type,
+) -> TokenStream {
+    let column_option_name = &format_ident!("{column_name}_option");
+    quote! {
+        let #column_name = #column_name.into();
+        let mut #column_option_name = None;
+        if #column_name.is_some() {
+            #column_option_name = Some(Into::<#wrapper_type_name_or_path>::into(#column_name.expect("value should exist")).value());
+        }
+        let #column_name = #column_option_name;
+    }
 }

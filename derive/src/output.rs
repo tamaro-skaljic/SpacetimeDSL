@@ -1,29 +1,29 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
+use rust_format::{Formatter, PrettyPlease};
 use spacetimedsl_derive_input::api::{
     Table,
     dsl::{
-        getter::Getter,
-        method::{SpacetimeDSLColumnMethods, SpacetimeDSLMethod},
-        setter::Setter,
-        wrapper::WrapperType,
+        column::SpacetimeDSLColumnMethods, getter::Getter, method::SpacetimeDSLMethod,
+        setter::Setter, wrapper::WrapperType,
     },
 };
-use syn::{Type, Visibility, parse_str};
+use syn::{Ident, Path, Type, Visibility, parse_str};
 
 pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     let struct_name = format_ident!("{}", &input.rust_struct.name.to_string());
     let mut wrapper_types = vec![];
 
     for column in &input.columns {
-        if column.spacetimedsl_column.wrapper_type.is_some() {
-            match column.spacetimedsl_column.wrapper_type.as_ref().unwrap() {
+        match &column.spacetimedsl_column.wrapper_type {
+            Some(wrapper_type) => match wrapper_type {
                 WrapperType::Wrap(wrapper_type) => {
                     let wrapper_type_impl: TokenStream = parse_str(&wrapper_type.wrapper_impl)?;
                     wrapper_types.push(wrapper_type_impl);
                 }
                 _ => {}
-            }
+            },
+            None => {}
         }
     }
     let mut table_methods = vec![];
@@ -33,20 +33,53 @@ pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_all)?);
     dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_count)?);
 
+    match &input
+        .spacetimedsl_methods
+        .execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted
+    {
+        Some(method) => {
+            dsl_methods.push(build_internal(method)?);
+        }
+        None => {}
+    }
+
+    match &input
+        .spacetimedsl_methods
+        .execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted
+    {
+        Some(method) => {
+            dsl_methods.push(build_internal(method)?);
+        }
+        None => {}
+    }
+
+    for execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted in &input.spacetimedsl_methods.execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted {
+        dsl_methods.push(build_internal(
+            execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted
+        )?);
+    }
+
+    for execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted in &input.spacetimedsl_methods.execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted {
+        dsl_methods.push(build_internal(
+            execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted
+        )?);
+    }
+
     for multi_column_index in &input.spacetimedsl_methods.multi_column_indices {
         dsl_methods.push(get_column_dsl_methods(multi_column_index)?);
     }
 
     for column in &input.columns {
         table_methods.push(getter(&column.spacetimedsl_column.getter)?);
-        if column.spacetimedsl_column.setter.is_some() {
-            table_methods.push(setter(column.spacetimedsl_column.setter.as_ref().unwrap())?);
+
+        match &column.spacetimedsl_column.setter {
+            Some(data) => table_methods.push(setter(data)?),
+            None => {}
         }
 
-        if column.spacetimedsl_methods.is_some() {
-            dsl_methods.push(get_column_dsl_methods(
-                column.spacetimedsl_methods.as_ref().unwrap(),
-            )?);
+        match &column.spacetimedsl_methods {
+            Some(methods) => dsl_methods.push(get_column_dsl_methods(methods)?),
+            None => {}
         }
     }
 
@@ -61,21 +94,24 @@ pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     })
 }
 
-fn get_column_dsl_methods(index: &SpacetimeDSLColumnMethods) -> syn::Result<TokenStream> {
+fn get_column_dsl_methods(methods: &SpacetimeDSLColumnMethods) -> syn::Result<TokenStream> {
     let mut token_streams = vec![];
 
-    match index {
-        SpacetimeDSLColumnMethods::ForUniqueIndex(index) => {
-            token_streams.push(build_without_lifetime(&index.get_one_option)?);
-            if index.update.is_some() {
-                token_streams.push(build_without_lifetime(index.update.as_ref().unwrap())?);
-            }
-            token_streams.push(build_without_lifetime(&index.delete_one)?);
-        }
-        SpacetimeDSLColumnMethods::ForIndex(index) => {
-            token_streams.push(build_with_lifetime(&index.get_many)?);
+    match methods {
+        SpacetimeDSLColumnMethods::ForUniqueIndex(methods) => {
+            token_streams.push(build_without_lifetime(&methods.get_one_option)?);
 
-            token_streams.push(build_with_lifetime(&index.delete_many)?);
+            match &methods.update {
+                Some(method) => token_streams.push(build_without_lifetime(method)?),
+                None => {}
+            };
+
+            token_streams.push(build_without_lifetime(&methods.delete_one)?);
+        }
+        SpacetimeDSLColumnMethods::ForIndex(methods) => {
+            token_streams.push(build_with_lifetime(&methods.get_many)?);
+
+            token_streams.push(build_with_lifetime(&methods.delete_many)?);
         }
     };
 
@@ -86,9 +122,17 @@ fn get_column_dsl_methods(index: &SpacetimeDSLColumnMethods) -> syn::Result<Toke
 
 // get_all, get_count, get_many, delete_many
 fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
-    let doc_comment = &method.doc_comment;
+    let mut doc_comment = String::new();
+    doc_comment.push_str(&method.doc_comment);
+
     let trait_name = format_ident!("{}", *method.trait_name);
+    let paths_of_traits_to_extend: Vec<Path> = method
+        .paths_of_traits_to_extend
+        .iter()
+        .map(|p| parse_str(p).expect("parsing should have worked"))
+        .collect();
     let method_name = format_ident!("{}", *method.method_name);
+
     let mut method_args: Vec<TokenStream> = vec![];
     for method_arg in &method.method_args {
         method_args.push(parse_str(&method_arg)?);
@@ -97,9 +141,19 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
     let return_type: Type = parse_str(&method.return_type)?;
     let method_impl: TokenStream = parse_str(&method.method_impl)?;
 
-    Ok(quote! {
+    doc_comment = add_impl_doc(
+        &trait_name,
+        &method_name,
+        &method_args,
+        &return_type,
+        &method_impl,
+        doc_comment,
+    );
+
+    // TODO: The trait doc comment should link to the method doc comment
+    let method = quote! {
         #[doc=#doc_comment]
-        pub trait #trait_name: spacetimedsl::DSLContext {
+        pub trait #trait_name: #(#paths_of_traits_to_extend)+* {
             #[doc=#doc_comment]
             fn #method_name<'a>(
                 &'a self,
@@ -112,24 +166,46 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
         }
 
         impl #trait_name for spacetimedsl::DSL<'_> {}
-    })
+    };
+
+    Ok(method)
 }
 
 // create, get_one_option, update, delete_one
 pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
-    let doc_comment = &method.doc_comment;
+    let mut doc_comment = String::new();
+    doc_comment.push_str(&method.doc_comment);
+
     let trait_name = format_ident!("{}", *method.trait_name);
+    
+    let paths_of_traits_to_extend: Vec<Path> = method
+        .paths_of_traits_to_extend
+        .iter()
+        .map(|p| parse_str(p).expect("parsing should have worked"))
+        .collect();
     let method_name = format_ident!("{}", *method.method_name);
+
     let mut method_args: Vec<TokenStream> = vec![];
     for method_arg in &method.method_args {
         method_args.push(parse_str(&method_arg)?);
     }
+
     let return_type: Type = parse_str(&method.return_type)?;
     let method_impl: TokenStream = parse_str(&method.method_impl)?;
 
-    Ok(quote! {
+    doc_comment = add_impl_doc(
+        &trait_name,
+        &method_name,
+        &method_args,
+        &return_type,
+        &method_impl,
+        doc_comment,
+    );
+
+    // TODO: The trait doc comment should link to the method doc comment
+    let method = quote! {
         #[doc=#doc_comment]
-        pub trait #trait_name: spacetimedsl::DSLContext {
+        pub trait #trait_name: #(#paths_of_traits_to_extend)+* {
             #[doc=#doc_comment]
             fn #method_name(
                 &self,
@@ -142,7 +218,87 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
         }
 
         impl #trait_name for spacetimedsl::DSL<'_> {}
-    })
+    };
+
+    Ok(method)
+}
+
+// Execute On Delete Strategies Of [ Referencing Tables | This Table ] After [ One Row | Multiple Rows ] Of [ This | The Referenced ] Table [ Was | Were ] Deleted
+pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
+    let mut doc_comment = String::new();
+    doc_comment.push_str(&method.doc_comment);
+
+    let trait_name = format_ident!("{}", *method.trait_name);
+    let method_name = format_ident!("{}", *method.method_name);
+
+    let mut method_args: Vec<TokenStream> = vec![];
+    for method_arg in &method.method_args {
+        method_args.push(parse_str(&method_arg)?);
+    }
+
+    let return_type: Type = parse_str(&method.return_type)?;
+    let method_impl: TokenStream = parse_str(&method.method_impl)?;
+
+    doc_comment = add_impl_doc(
+        &trait_name,
+        &method_name,
+        &method_args,
+        &return_type,
+        &method_impl,
+        doc_comment,
+    );
+
+    // TODO: The trait doc comment should link to the method doc comment
+    let method = quote! {
+        #[doc=#doc_comment]
+        pub trait #trait_name {
+            #[doc=#doc_comment]
+            fn #method_name(
+                #(#method_args),*
+            ) -> #return_type {
+                use spacetimedsl::Wrapper;
+                use spacetimedb::{DbContext,Table};
+                #method_impl
+            }
+        }
+
+        impl #trait_name for spacetimedsl::internal::DSLInternals {}
+    };
+
+    Ok(method)
+}
+
+fn add_impl_doc(
+    trait_name: &Ident,
+    method_name: &Ident,
+    method_args: &Vec<TokenStream>,
+    return_type: &Type,
+    method_impl: &TokenStream,
+    mut doc_comment: String,
+) -> String {
+    let pretty_please = PrettyPlease::default();
+    let implementation_docs = quote! {
+        pub trait #trait_name {
+            fn #method_name<'a>(
+                &'a self,
+                #(#method_args),*
+            ) -> #return_type {
+                use spacetimedsl::Wrapper;
+                use spacetimedb::{DbContext,Table};
+                #method_impl
+            }
+        }
+    };
+
+    let implementation_docs = pretty_please
+        .format_tokens(implementation_docs)
+        .expect("implementation doc formatting should work");
+
+    doc_comment.push_str(&format!(
+        "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
+    ));
+
+    doc_comment
 }
 
 fn getter(getter: &Getter) -> syn::Result<TokenStream> {

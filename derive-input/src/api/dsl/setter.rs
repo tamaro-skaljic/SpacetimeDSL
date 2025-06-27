@@ -1,10 +1,6 @@
-use crate::api::rust::RustVisibility;
+use crate::api::rust::visibility::RustVisibility;
 
-#[cfg_attr(feature = "clone", derive(Clone))]
-#[cfg_attr(feature = "debug", derive(Debug))]
-#[cfg_attr(feature = "partial-eq", derive(PartialEq))]
-#[cfg_attr(feature = "partial-ord", derive(PartialOrd))]
-#[cfg_attr(feature = "spacetime-type", derive(spacetimedb::SpacetimeType))]
+#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
 pub struct Setter {
     pub method_visibility: RustVisibility,
     pub method_name: Box<str>,
