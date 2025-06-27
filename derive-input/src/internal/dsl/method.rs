@@ -1,12 +1,10 @@
 use crate::{
     api::{
-        Column,
         db::{
             column::SpacetimeDBColumn,
             index::{Index, IndexType},
             table::SpacetimeDBTable,
-        },
-        dsl::{
+        }, dsl::{
             column::{
                 SpacetimeDSLColumn, SpacetimeDSLColumnMethods, SpacetimeDSLColumnMethodsForIndex,
                 SpacetimeDSLColumnMethodsForUniqueIndex, SpacetimeDSLDeletionResult,
@@ -15,10 +13,9 @@ use crate::{
             method::SpacetimeDSLMethod,
             table::{SpacetimeDSLTable, SpacetimeDSLTableMethods},
             wrapper::WrapperType,
-        },
-        rust::{column::RustField, table::RustStruct},
+        }, rust::{column::RustField, table::RustStruct}, Column
     },
-    internal::dsl::wrapper::wrapper_type_into_option,
+    internal::{column::InternalColumn, dsl::wrapper::wrapper_type_into_option},
 };
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
@@ -70,6 +67,7 @@ impl SpacetimeDSLColumnMethods {
         spacetimedb_column: &SpacetimeDBColumn,
         spacetimedsl_column: &SpacetimeDSLColumn,
         primary_key_column_name: &Box<str>,
+        internal_columns: &Vec<InternalColumn>,
     ) -> Option<SpacetimeDSLColumnMethods> {
         let index = match &spacetimedb_column.single_column_index {
             None => {
@@ -88,6 +86,7 @@ impl SpacetimeDSLColumnMethods {
                     rust_field,
                     spacetimedsl_column,
                     primary_key_column_name,
+                    internal_columns,
                 );
 
                 let delete_many = for_single_column_index(
@@ -98,6 +97,7 @@ impl SpacetimeDSLColumnMethods {
                     rust_field,
                     spacetimedsl_column,
                     primary_key_column_name,
+                    internal_columns,
                 );
 
                 SpacetimeDSLColumnMethods::ForIndex(SpacetimeDSLColumnMethodsForIndex {
@@ -115,6 +115,7 @@ impl SpacetimeDSLColumnMethods {
                     rust_field,
                     spacetimedsl_column,
                     primary_key_column_name,
+                    internal_columns,
                 );
 
                 let update = match spacetimedsl_table.is_mutable {
@@ -127,6 +128,7 @@ impl SpacetimeDSLColumnMethods {
                         rust_field,
                         spacetimedsl_column,
                         primary_key_column_name,
+                        internal_columns,
                     )),
                 };
 
@@ -138,6 +140,7 @@ impl SpacetimeDSLColumnMethods {
                     rust_field,
                     spacetimedsl_column,
                     primary_key_column_name,
+                    internal_columns,
                 );
 
                 SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
@@ -160,13 +163,14 @@ impl SpacetimeDSLTableMethods {
         spacetimedsl_table: &SpacetimeDSLTable,
         columns: &Vec<Column>,
         primary_key_column_name: &Box<str>,
+        internal_columns: &Vec<InternalColumn>,
     ) -> syn::Result<SpacetimeDSLTableMethods> {
         let create = for_table(
             DSLTableMethod::Create,
             rust_struct,
             spacetimedb_table,
             spacetimedsl_table,
-            columns,
+            internal_columns,
         );
 
         let get_all = for_table(
@@ -174,7 +178,7 @@ impl SpacetimeDSLTableMethods {
             rust_struct,
             spacetimedb_table,
             spacetimedsl_table,
-            columns,
+            internal_columns,
         );
 
         let get_count = for_table(
@@ -182,7 +186,7 @@ impl SpacetimeDSLTableMethods {
             rust_struct,
             spacetimedb_table,
             spacetimedsl_table,
-            columns,
+            internal_columns,
         );
 
         let execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted;
@@ -286,6 +290,7 @@ impl SpacetimeDSLTableMethods {
                         multi_column_index,
                         columns,
                         primary_key_column_name,
+                        internal_columns,
                     );
                     let delete_many = for_multi_column_index(
                         DSLColumnMethod::DeleteMany,
@@ -295,6 +300,7 @@ impl SpacetimeDSLTableMethods {
                         multi_column_index,
                         columns,
                         primary_key_column_name,
+                        internal_columns,
                     );
 
                     multi_column_indices.push(SpacetimeDSLColumnMethods::ForIndex(
@@ -314,6 +320,7 @@ impl SpacetimeDSLTableMethods {
                         multi_column_index,
                         columns,
                         primary_key_column_name,
+                        internal_columns,
                     );
 
                     let update = match spacetimedsl_table.is_mutable {
@@ -326,6 +333,7 @@ impl SpacetimeDSLTableMethods {
                             multi_column_index,
                             columns,
                             primary_key_column_name,
+                            internal_columns,
                         )),
                     };
 
@@ -337,6 +345,7 @@ impl SpacetimeDSLTableMethods {
                         multi_column_index,
                         columns,
                         primary_key_column_name,
+                        internal_columns,
                     );
 
                     multi_column_indices.push(SpacetimeDSLColumnMethods::ForUniqueIndex(
@@ -366,12 +375,140 @@ impl SpacetimeDSLTableMethods {
     }
 }
 
+fn process_columns_for_create_and_update_method(create_or_update: CreateOrUpdateDSLMethod, internal_column: &InternalColumn) -> (Option<TokenStream>, Option<TokenStream>, Option<TokenStream>, TokenStream) {
+    let mut method_arg = None;
+    let mut into_option = None;
+    let mut constructor_arg = None;
+    let constructor_arg_name;
+
+    let singular_table_name = format_ident!("{}", *internal_column.spacetimedb_table_singular_name);
+    let column_name = format_ident!("{}", *internal_column.rust_field_name);
+    let getter_name = format_ident!("get_{column_name}");
+    constructor_arg_name = quote! { #column_name };
+
+    let column_type: Type =
+        parse_str(&internal_column.rust_field_type_name_or_path).expect("create");
+
+    match create_or_update {
+        CreateOrUpdateDSLMethod::Create => {
+            // TODO: Allow Option<Timestamp> as modified_at column type
+            if internal_column.spacetimedb_is_auto_inc
+                || internal_column.rust_field_name.eq(&"created_at".to_string().into())
+                || internal_column.rust_field_name.eq(&"modified_at".to_string().into())
+            {
+                if internal_column.spacetimedb_is_auto_inc {
+                    constructor_arg = Some(quote! {
+                        let #column_name = #column_type::default();
+                    });
+                } else if internal_column.rust_field_name.eq(&"created_at".to_string().into()) {
+                    constructor_arg = Some(quote! {
+                        let created_at = self.ctx().timestamp;
+                    });
+                } else if internal_column.rust_field_name.eq(&"modified_at".to_string().into()) {
+                    constructor_arg = Some(quote! {
+                        let modified_at = self.ctx().timestamp;
+                    });
+                }
+                return (method_arg, into_option, constructor_arg, constructor_arg_name);
+            }
+        },
+        CreateOrUpdateDSLMethod::Update => {
+
+        },
+    };
+
+    match &internal_column.spacetimedsl_wrapper_type {
+        Some(wrapper_type) => match wrapper_type {
+            WrapperType::Wrap(wrapper_type) => {
+                if internal_column.rust_field_type_name_or_path.eq(&"String".into()) {
+                    method_arg = Some(quote! {
+                        #column_name: &str
+                    });
+                    match create_or_update {
+                        CreateOrUpdateDSLMethod::Create => {
+                            constructor_arg = Some(quote! {
+                                let #column_name = #column_name.to_string();
+                            });
+                        },
+                        CreateOrUpdateDSLMethod::Update => {
+                            constructor_arg = Some(quote! {
+                                let #column_name = #singular_table_name.#getter_name();
+                            });
+                        },
+                    };
+                } else {
+                    let wrapped_type_name_or_path =
+                        WrapperType::map_to_wrapped_type(wrapper_type);
+                    method_arg = Some(quote! {
+                        #column_name: #wrapped_type_name_or_path
+                    });
+                }
+            }
+            WrapperType::Wrapped(_) => {
+                let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
+
+                if internal_column.spacetimedsl_is_option {
+                    method_arg = Some(quote! {
+                        #column_name: impl Into<Option<#wrapper_type_name_or_path>>
+                    });
+                    into_option = Some(wrapper_type_into_option(
+                        &column_name,
+                        wrapper_type_name_or_path,
+                    ));
+                } else {
+                    method_arg = Some(quote! {
+                        #column_name: impl Into<#wrapper_type_name_or_path>
+                    });
+                    match create_or_update {
+                        CreateOrUpdateDSLMethod::Create => {
+                            constructor_arg = Some(quote! {
+                                let #column_name = #column_name.into().value();
+                            });
+                        },
+                        CreateOrUpdateDSLMethod::Update => {
+                            constructor_arg = Some(quote! {
+                                let #column_name = #singular_table_name.#getter_name().value();
+                            });
+                        },
+                    };
+                }
+            }
+        },
+        None => {
+            if internal_column.rust_field_type_name_or_path.eq(&"String".into()) {
+                method_arg = Some(quote! {
+                    #column_name: &str
+                });
+
+                match create_or_update {
+                    CreateOrUpdateDSLMethod::Create => {
+                        constructor_arg = Some(quote! {
+                            let #column_name = #column_name.to_string();
+                        });
+                    },
+                    CreateOrUpdateDSLMethod::Update => {
+                        constructor_arg = Some(quote! {
+                            let #column_name = #singular_table_name.#getter_name();
+                        });
+                    },
+                };
+            } else {
+                method_arg = Some(quote! {
+                    #column_name: #column_type
+                });
+            }
+        }
+    };
+
+    (method_arg, into_option, constructor_arg, constructor_arg_name)
+}
+
 pub(in crate::internal) fn for_table(
     dsl_table_method: DSLTableMethod,
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
-    columns: &Vec<Column>,
+    internal_columns: &Vec<InternalColumn>,
 ) -> SpacetimeDSLMethod {
     let struct_name = format_ident!("{}", *rust_struct.name);
     let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
@@ -427,92 +564,24 @@ pub(in crate::internal) fn for_table(
             let mut constructor_args = vec![];
             let mut constructor_arg_names = vec![];
 
-            for column in columns {
-                let column_name = format_ident!("{}", *column.rust_field.name);
-                constructor_arg_names.push(quote! { #column_name });
-
-                let column_type: Type =
-                    parse_str(&column.rust_field.type_name_or_path).expect("create");
-
-                // TODO: Allow Option<Timestamp> as modified_at column type
-                if column.spacetimedb_column.is_auto_inc
-                    || column.rust_field.name.eq(&"created_at".to_string().into())
-                    || column.rust_field.name.eq(&"modified_at".to_string().into())
-                {
-                    if column.spacetimedb_column.is_auto_inc {
-                        constructor_args.push(quote! {
-                            let #column_name = #column_type::default();
-                        });
-                    } else if column.rust_field.name.eq(&"created_at".to_string().into()) {
-                        constructor_args.push(quote! {
-                            let created_at = self.ctx().timestamp;
-                        });
-                    } else if column.rust_field.name.eq(&"modified_at".to_string().into()) {
-                        constructor_args.push(quote! {
-                            let modified_at = self.ctx().timestamp;
-                        });
-                    }
-                    continue;
+            for internal_column in internal_columns {
+                let (method_arg, into_option, constructor_arg, constructor_arg_name) = process_columns_for_create_and_update_method(CreateOrUpdateDSLMethod::Create, &internal_column);
+                match method_arg {
+                    Some(method_arg) => method_args.push(method_arg),
+                    None => {},
                 }
 
-                match &column.spacetimedsl_column.wrapper_type {
-                    Some(wrapper_type) => match wrapper_type {
-                        WrapperType::Wrap(wrapper_type) => {
-                            if column.rust_field.type_name_or_path.eq(&"String".into()) {
-                                method_args.push(quote! {
-                                    #column_name: &str
-                                });
+                match into_option {
+                    Some(into_option) => into_options.push(into_option),
+                    None => {},
+                }
 
-                                constructor_args.push(quote! {
-                                    let #column_name = #column_name.to_string();
-                                });
-                            } else {
-                                let wrapped_type_name_or_path =
-                                    WrapperType::map_to_wrapped_type(wrapper_type);
+                match constructor_arg {
+                    Some(constructor_arg) => constructor_args.push(constructor_arg),
+                    None => {},
+                }
 
-                                method_args.push(quote! {
-                                    #column_name: #wrapped_type_name_or_path
-                                });
-                            }
-                        }
-                        WrapperType::Wrapped(_) => {
-                            let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
-
-                            if column.spacetimedsl_column.is_option {
-                                method_args.push(quote! {
-                                    #column_name: impl Into<Option<#wrapper_type_name_or_path>>
-                                });
-
-                                into_options.push(wrapper_type_into_option(
-                                    &column_name,
-                                    wrapper_type_name_or_path,
-                                ));
-                            } else {
-                                method_args.push(quote! {
-                                    #column_name: impl Into<#wrapper_type_name_or_path>
-                                });
-
-                                constructor_args.push(quote! {
-                                    let #column_name = #column_name.into().value();
-                                });
-                            }
-                        }
-                    },
-                    None => {
-                        if column.rust_field.type_name_or_path.eq(&"String".into()) {
-                            method_args.push(quote! {
-                                #column_name: &str
-                            });
-                            constructor_args.push(quote! {
-                                let #column_name = #column_name.to_string();
-                            });
-                        } else {
-                            method_args.push(quote! {
-                                #column_name: #column_type
-                            });
-                        }
-                    }
-                };
+                constructor_arg_names.push(constructor_arg_name)
             }
 
             let mut multi_column_index_checks = get_unique_multi_column_index_checks(
@@ -562,7 +631,7 @@ pub(in crate::internal) fn for_table(
             let res = reference_integrity_checks(
                 CreateOrUpdateDSLMethod::Create,
                 spacetimedb_table,
-                columns,
+                &internal_columns,
                 paths_of_traits_to_extend
             );
             paths_of_traits_to_extend = res.0;
@@ -630,6 +699,7 @@ pub(in crate::internal) fn for_single_column_index(
     rust_field: &RustField,
     spacetimedsl_column: &SpacetimeDSLColumn,
     primary_key_column_name: &Box<str>,
+    internal_columns: &Vec<InternalColumn>,
 ) -> SpacetimeDSLMethod {
     let struct_name = format_ident!("{}", *rust_struct.name);
     let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
@@ -705,7 +775,7 @@ pub(in crate::internal) fn for_single_column_index(
     let method_name = method_name.into();
     let return_type = return_type.to_string().into();
 
-    let paths_of_traits_to_extend = vec![ "spacetimedsl::DSLContext".into()];
+    let mut paths_of_traits_to_extend = vec![ "spacetimedsl::DSLContext".into()];
     let mut method_args = vec![];
     let method_impl;
 
@@ -719,7 +789,18 @@ pub(in crate::internal) fn for_single_column_index(
                 &spacetimedb_table,
                 &primary_key_column_name,
             );
+            
+            let mut column_getters = vec![];
 
+            internal_columns.iter().filter(|internal_column| internal_column.spacetimedsl_column_foreign_key.is_some()).for_each(|internal_column| {
+                let (_, _, column_getter, _) = process_columns_for_create_and_update_method(CreateOrUpdateDSLMethod::Update, &internal_column);
+
+                match column_getter {
+                    Some(column_getter) => column_getters.push(column_getter),
+                    None => {},
+                };
+            });
+            
             // TODO: Allow Option<Timestamp> as modified_at column type
             let modified_at = match spacetimedsl_table.has_modified_at_column {
                 false => TokenStream::default(),
@@ -738,13 +819,25 @@ pub(in crate::internal) fn for_single_column_index(
                 TokenStream::default()
             };
 
-            // TODO: Check foreign keys
+            let res = reference_integrity_checks(
+                CreateOrUpdateDSLMethod::Update,
+                spacetimedb_table,
+                internal_columns,
+                paths_of_traits_to_extend
+            );
+            paths_of_traits_to_extend = res.0;
+            let reference_integrity_checks = res.1;
+
             method_impl = quote! {
                 #use_itertools
 
                 #(#multi_column_index_checks)*
+                
+                #(#column_getters)*
+                #(#reference_integrity_checks)*
 
                 #modified_at
+
                 Ok(self
                     .ctx()
                     .db()
@@ -902,7 +995,10 @@ pub(in crate::internal) fn for_single_column_index(
                                 return Ok(0);
                             }
 
-                            spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), &primary_key_values_of_rows_to_delete)?;
+                            spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::Error, &primary_key_values_of_rows_to_delete)?;
+                            spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::Delete, &primary_key_values_of_rows_to_delete)?;
+                            //TODO: spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::SetNone, &primary_key_values_of_rows_to_delete)?;
+                            spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::SetZero, &primary_key_values_of_rows_to_delete)?;
 
                             Ok(
                                 #method_impl_prefix
@@ -987,6 +1083,7 @@ pub(in crate::internal) fn for_multi_column_index(
     multi_column_index: &Index,
     columns: &[Column],
     primary_key_column_name: &Box<str>,
+    internal_columns: &Vec<InternalColumn>,
 ) -> SpacetimeDSLMethod {
     let index_columns = match &multi_column_index.index_type {
         IndexType::BTreeMultiColumn { columns } => columns,
@@ -1050,7 +1147,7 @@ pub(in crate::internal) fn for_multi_column_index(
     .to_string()
     .into();
 
-    let paths_of_traits_to_extend = vec![ "spacetimedsl::DSLContext".into()];
+    let mut paths_of_traits_to_extend = vec![ "spacetimedsl::DSLContext".into()];
     let mut method_args = vec![];
     let method_impl;
 
@@ -1064,6 +1161,17 @@ pub(in crate::internal) fn for_multi_column_index(
                 &spacetimedb_table,
                 &primary_key_column_name,
             );
+
+            let mut column_getters = vec![];
+
+            internal_columns.iter().filter(|internal_column| internal_column.spacetimedsl_column_foreign_key.is_some()).for_each(|internal_column| {
+                let (_, _, column_getter, _) = process_columns_for_create_and_update_method(CreateOrUpdateDSLMethod::Update, &internal_column);
+
+                match column_getter {
+                    Some(column_getter) => column_getters.push(column_getter),
+                    None => {},
+                };
+            });
 
             let modified_at = match spacetimedsl_table.has_modified_at_column {
                 false => TokenStream::default(),
@@ -1082,11 +1190,22 @@ pub(in crate::internal) fn for_multi_column_index(
                 TokenStream::default()
             };
 
-            // TODO: Check foreign keys
+            let res = reference_integrity_checks(
+                CreateOrUpdateDSLMethod::Update,
+                spacetimedb_table,
+                internal_columns,
+                paths_of_traits_to_extend
+            );
+            paths_of_traits_to_extend = res.0;
+            let reference_integrity_checks = res.1;
+
             method_impl = quote! {
                 #use_itertools
 
                 #(#multi_column_index_checks)*
+                
+                #(#column_getters)*
+                #(#reference_integrity_checks)*
 
                 #modified_at
 
@@ -1194,11 +1313,44 @@ pub(in crate::internal) fn for_multi_column_index(
                                 .filter((#(#column_values),*))
                         },
 
-                        // TODO: If !referencing_tables.is_empty() { todo!("Call delete_many hooks before the current implementation"); }
-                        DSLColumnMethod::DeleteMany => quote! {
-                            #(#into_options)*
-                            Ok(#method_impl_prefix
-                                .delete((#(#column_values),*)))
+                        DSLColumnMethod::DeleteMany => {
+                            if spacetimedsl_table.referencing_tables.is_empty() {
+                                quote! {
+                                    #(#into_options)*
+                                    Ok(#method_impl_prefix
+                                        .delete((#(#column_values),*)))
+                                }
+                            } else {
+                                let referenced_table_function_name = get_referenced_table_function_name(
+                                    &DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted,
+                                    &singular_table_name
+                                );
+                                
+                                quote! {
+                                    #(#into_options)*
+
+                                    let #index_name = (#(#column_values),*);
+
+                                    let primary_key_values_of_rows_to_delete = #method_impl_prefix
+                                        .filter(#index_name)
+                                        .map(|row| row.#primary_key_column_name)
+                                        .collect();
+
+                                    if primary_key_values_of_rows_to_delete.is_empty() {
+                                        return Ok(0);
+                                    }
+
+                                    spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::Error, &primary_key_values_of_rows_to_delete)?;
+                                    spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::Delete, &primary_key_values_of_rows_to_delete)?;
+                                    //TODO: spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::SetNone, &primary_key_values_of_rows_to_delete)?;
+                                    spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::SetZero, &primary_key_values_of_rows_to_delete)?;
+
+                                    Ok(
+                                        #method_impl_prefix
+                                            .delete(#index_name)
+                                    )
+                                }
+                            }
                         },
                         _ => {
                             panic!("Should be processed elsewhere.")
@@ -1210,7 +1362,7 @@ pub(in crate::internal) fn for_multi_column_index(
                         &struct_name,
                         &singular_table_name,
                         &index_name,
-                        column_values,
+                        &column_values,
                     )
                     .check;
 
@@ -1231,18 +1383,52 @@ pub(in crate::internal) fn for_multi_column_index(
 
                                 #field_name_for_found_value
                         },
-                        // TODO: If !referencing_tables.is_empty() { todo!("Call delete_one hooks before the current implementation"); }
-                        DSLColumnMethod::DeleteOne => quote! {
-                            #method_impl_prefix
+                        DSLColumnMethod::DeleteOne => {
+                            if spacetimedsl_table.referencing_tables.is_empty() {
+                                quote! {
+                                    #method_impl_prefix
 
-                            Ok(
-                                self
-                                    .ctx()
-                                    .db()
-                                    .#singular_table_name()
-                                    .#primary_key_column_name()
-                                    .delete(#field_name_for_found_value.expect("value should be found").#primary_key_column_name)
-                            )
+                                    Ok(
+                                        self
+                                            .ctx()
+                                            .db()
+                                            .#singular_table_name()
+                                            .#primary_key_column_name()
+                                            .delete(#field_name_for_found_value.expect("value should be found").#primary_key_column_name)
+                                    )
+                                }
+                            } else {
+                                let referenced_table_function_name = get_referenced_table_function_name(
+                                    &DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted,
+                                    &singular_table_name
+                                );
+
+                                quote! {
+                                    #(#into_options)*
+
+                                    let #index_name = (#(#column_values),*);
+
+                                    let row_to_delete = #method_impl_prefix
+                                        .find(#index_name);
+
+                                    let primary_key_value_of_row_to_delete;
+
+                                    match row_to_delete {
+                                        None => { return Ok(false); },
+                                        Some(row) => { primary_key_value_of_row_to_delete = row.#primary_key_column_name; },
+                                    };
+
+                                    spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::Error, &primary_key_value_of_row_to_delete)?;
+                                    spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::Delete, &primary_key_value_of_row_to_delete)?;
+                                    //TODO: spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::SetNone, &primary_key_value_of_row_to_delete)?;
+                                    spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::SetZero, &primary_key_value_of_row_to_delete)?;
+
+                                    Ok(
+                                        #method_impl_prefix
+                                            .delete(#index_name)
+                                    )
+                                }
+                            }
                         },
                         _ => {
                             panic!("Should be processed elsewhere.")
@@ -1273,7 +1459,7 @@ pub(in crate::internal) fn for_multi_column_index(
 fn reference_integrity_checks(
     create_or_update_dsl_method: CreateOrUpdateDSLMethod,
     spacetimedb_table: &SpacetimeDBTable,
-    columns: &Vec<Column>,
+    columns: &Vec<InternalColumn>,
     mut paths_of_traits_to_extend: Vec<Box<str>>,
 ) -> (Vec<Box<str>>, Vec<TokenStream>) {
     let mut reference_integrity_checks = vec![];
@@ -1282,13 +1468,13 @@ fn reference_integrity_checks(
 
     for column in columns {
         // Checks of private columns only need to happen in checks for create methods, because they can't be changed, they don't need to be checked during updates
-        if create_or_update_dsl_method.eq(&CreateOrUpdateDSLMethod::Update) && column.rust_field.visibility.eq(&crate::api::rust::visibility::RustVisibility::Private) {
+        if create_or_update_dsl_method.eq(&CreateOrUpdateDSLMethod::Update) && column.rust_field_visibility.eq(&crate::api::rust::visibility::RustVisibility::Private) {
             continue;
         }
 
         let foreign_key;
 
-        match &column.spacetimedsl_column.foreign_key {
+        match &column.spacetimedsl_column_foreign_key {
             Some(fk) => foreign_key = fk,
             None => continue,
         };
@@ -1300,7 +1486,7 @@ fn reference_integrity_checks(
         let get_row_of_referenced_table_by_primary_key_method_name = format_ident!("get_{referenced_table_name}_by_id");
 
         let referencing_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
-        let referencing_table_column_name = format_ident!("{}", *column.rust_field.name);
+        let referencing_table_column_name = format_ident!("{}", *column.rust_field_name);
         let referencing_table_column_getter_name = format_ident!("get_{referencing_table_column_name}");
 
         let mut reference_integrity_violation_error_panic_message = format!(
@@ -1309,8 +1495,7 @@ fn reference_integrity_checks(
         reference_integrity_violation_error_panic_message.push_str("`{:?}`. Found none. ");
         reference_integrity_violation_error_panic_message.push_str(reasons);
 
-        // TODO: Primary key columns should have #[wrap]
-        let referencing_table_column_type = column.rust_field.type_name_or_path.trim();
+        let referencing_table_column_type = column.rust_field_type_name_or_path.trim();
 
         paths_of_traits_to_extend.push(format!("{}::{get_row_of_referenced_table_by_primary_key_trait_name}", &foreign_key.path).into());
 
@@ -1417,7 +1602,7 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_checks(
             struct_name,
             &singular_table_name,
             &format_ident!("{}", *multi_column_index.name),
-            column_values,
+            &column_values,
         ));
     }
 
@@ -1428,7 +1613,7 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_check(
     struct_name: &Ident,
     singular_table_name: &Ident,
     index_name: &Ident,
-    column_values: Vec<TokenStream>,
+    column_values: &Vec<TokenStream>,
 ) -> MultiColumnIndexCheck {
     let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
 
@@ -1586,7 +1771,6 @@ fn for_foreign_key(
     columns_with_foreign_key: &Vec<&&Column>,
     primary_key_column_name: &Box<str>,
 ) -> SpacetimeDSLMethod {
-    // TODO: Needed?
     let primary_key_column_type: Type = parse_str(
         &columns
         .iter()

@@ -24,6 +24,9 @@ syn = { version = "2.0" }
 # https://crates.io/crates/quote Quasi-quoting macro quote!(...)
 quote = "1.0"
 
+# https://crates.io/crates/itertools Extra iterator adaptors, iterator methods, free functions, and macros.
+itertools = "^0.14"
+
 # https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
 spacetimedb = "1.2.0"
 

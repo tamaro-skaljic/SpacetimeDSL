@@ -3,10 +3,13 @@ use crate::api::{
     db::{column::SpacetimeDBColumn, table::SpacetimeDBTable},
     dsl::{
         column::{SpacetimeDSLColumn, SpacetimeDSLColumnMethods},
+        foreign_key::ForeignKey,
         table::SpacetimeDSLTable,
+        wrapper::WrapperType,
     },
-    rust::{column::RustField, table::RustStruct},
+    rust::{column::RustField, table::RustStruct, visibility::RustVisibility},
 };
+use itertools::izip;
 use spacetime_bindings_macro_input::table::ColumnArgs;
 
 pub(in crate::internal) fn try_parse(
@@ -14,7 +17,7 @@ pub(in crate::internal) fn try_parse(
     rust_struct: &RustStruct,
     mut spacetimedb_table: SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
-) -> syn::Result<(SpacetimeDBTable, Vec<Column>, Box<str>)> {
+) -> syn::Result<(SpacetimeDBTable, Vec<Column>, Vec<InternalColumn>, Box<str>)> {
     let primary_key_column_name = match get_primary_key_column_name(column_args) {
         Some(pk) => pk,
         None => {
@@ -24,7 +27,11 @@ pub(in crate::internal) fn try_parse(
 
     let auto_inc_column_names = get_auto_inc_column_names(column_args);
 
+    let mut rust_fields = vec![];
+    let mut spacetimedb_columns = vec![];
+    let mut spacetimedsl_columns = vec![];
     let mut columns = vec![];
+    let mut internal_columns = vec![];
 
     for field in &column_args.fields {
         let rust_field = RustField::map(field);
@@ -38,8 +45,29 @@ pub(in crate::internal) fn try_parse(
         spacetimedb_table = res.0;
         let spacetimedb_column = res.1;
 
-        let spacetimedsl_column = SpacetimeDSLColumn::try_parse(field, &rust_struct, &rust_field, &spacetimedb_column)?;
+        let spacetimedsl_column =
+            SpacetimeDSLColumn::try_parse(field, &rust_struct, &rust_field, &spacetimedb_column)?;
 
+        let internal_column = InternalColumn {
+            spacetimedb_table_singular_name: spacetimedb_table.singular_name.clone(),
+            rust_field_visibility: rust_field.visibility.clone(),
+            rust_field_name: rust_field.name.clone(),
+            rust_field_type_name_or_path: rust_field.type_name_or_path.clone(),
+            spacetimedsl_column_foreign_key: spacetimedsl_column.foreign_key.clone(),
+            spacetimedb_is_auto_inc: spacetimedb_column.is_auto_inc,
+            spacetimedsl_is_option: spacetimedsl_column.is_option,
+            spacetimedsl_wrapper_type: spacetimedsl_column.wrapper_type.clone(),
+        };
+
+        rust_fields.push(rust_field);
+        spacetimedb_columns.push(spacetimedb_column);
+        spacetimedsl_columns.push(spacetimedsl_column);
+        internal_columns.push(internal_column);
+    }
+
+    for (rust_field, spacetimedb_column, spacetimedsl_column) in
+        izip!(rust_fields, spacetimedb_columns, spacetimedsl_columns)
+    {
         let spacetimedsl_methods = SpacetimeDSLColumnMethods::map(
             &rust_struct,
             &spacetimedb_table,
@@ -48,6 +76,7 @@ pub(in crate::internal) fn try_parse(
             &spacetimedb_column,
             &spacetimedsl_column,
             &primary_key_column_name,
+            &internal_columns,
         );
 
         columns.push(Column {
@@ -58,7 +87,23 @@ pub(in crate::internal) fn try_parse(
         });
     }
 
-    Ok((spacetimedb_table, columns, primary_key_column_name))
+    Ok((
+        spacetimedb_table,
+        columns,
+        internal_columns,
+        primary_key_column_name,
+    ))
+}
+
+pub(in crate::internal) struct InternalColumn {
+    pub spacetimedb_table_singular_name: Box<str>,
+    pub rust_field_visibility: RustVisibility,
+    pub rust_field_name: Box<str>,
+    pub rust_field_type_name_or_path: Box<str>,
+    pub spacetimedb_is_auto_inc: bool,
+    pub spacetimedsl_is_option: bool,
+    pub spacetimedsl_column_foreign_key: Option<ForeignKey>,
+    pub spacetimedsl_wrapper_type: Option<WrapperType>,
 }
 
 fn get_auto_inc_column_names(column_args: &ColumnArgs<'_>) -> Vec<Box<str>> {

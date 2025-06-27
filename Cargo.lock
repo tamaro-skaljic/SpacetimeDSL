@@ -644,6 +644,7 @@ name = "spacetimedsl_derive-input"
 version = "0.6.0"
 dependencies = [
  "ident_case",
+ "itertools 0.14.0",
  "proc-macro2",
  "quote",
  "spacetime-bindings-macro-input",
