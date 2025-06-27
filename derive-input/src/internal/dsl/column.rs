@@ -29,7 +29,7 @@ impl SpacetimeDSLColumn {
         if spacetimedb_column.is_primary_key && wrapper_type.is_none() {
             return Err(Error::new(
                 Span::call_site(),
-                "A #[primary_key] column must have `#[wrap]`!",
+                "A #[primary_key] column must have `#[wrap]` or `#[wrapped]`!",
             ));
         }
 
