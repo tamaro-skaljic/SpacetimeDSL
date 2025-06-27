@@ -655,6 +655,7 @@ pub(in crate::internal) fn for_single_column_index(
             doc_comment = format!(
                 "Get all {struct_name} rows inside the {singular_table_name} table filtered by the single-column index on the {column_name} column."
             );
+            // FIXME: Don't use struct_name in any ident generation because it would increase the parameters of #[referenced_by]'s and #[foreign_key]'s by one. Use singular_table_name_pascal_case instead
             trait_name = format!("Get{struct_name}RowsBy{column_name_pascal_case}");
             method_name = format!("get_{plural_table_name}_by_{column_name}");
             return_type = quote! {
