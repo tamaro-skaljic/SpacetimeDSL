@@ -238,7 +238,7 @@ impl SpacetimeDSLTableMethods {
 
             columns_with_foreign_keys_by_table
                 .into_iter()
-                .for_each(|(name_of_another_table, columns_with_foreign_key)| {
+                .for_each(|(referenced_table_name, columns_with_foreign_key)| {
                     execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted.push(
                         for_foreign_key(
                             DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted,
@@ -246,8 +246,7 @@ impl SpacetimeDSLTableMethods {
                             spacetimedb_table,
                             spacetimedsl_table,
                             columns,
-                            primary_key_column_name,
-                            name_of_another_table,
+                            referenced_table_name,
                             &columns_with_foreign_key,
                             primary_key_column_name,
                         )
@@ -259,8 +258,7 @@ impl SpacetimeDSLTableMethods {
                             spacetimedb_table,
                             spacetimedsl_table,
                             columns,
-                            primary_key_column_name,
-                            name_of_another_table,
+                            referenced_table_name,
                             &columns_with_foreign_key,
                             primary_key_column_name,
                         )
@@ -1488,23 +1486,20 @@ fn for_foreign_key(
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
     columns: &Vec<Column>,
-    referencing_table_primary_key_column_name: &Box<str>,
     referenced_table_name: &str,
     columns_with_foreign_key: &Vec<&&Column>,
     primary_key_column_name: &Box<str>,
 ) -> SpacetimeDSLMethod {
-    let referencing_table_primary_key_column = columns
+    // TODO: Needed?
+    let primary_key_column_type: Type = parse_str(
+        &columns
         .iter()
         .find(|c| {
             c.rust_field
                 .name
-                .eq(referencing_table_primary_key_column_name)
+                .eq(primary_key_column_name)
         })
-        .expect("should have a primary key");
-
-    // TODO: Needed?
-    let referencing_table_primary_key_column_type: Type = parse_str(
-        &referencing_table_primary_key_column
+        .expect("should have a primary key")
             .rust_field
             .type_name_or_path,
     )
@@ -1514,37 +1509,13 @@ fn for_foreign_key(
         .first()
         .expect("there should be a column with foreign key");
 
+    let primary_key_column_name = format_ident!("{primary_key_column_name}");
     let referenced_table_primary_key_column_type =
         &first_foreign_key_column.rust_field.type_name_or_path;
 
-    let mut columns_with_on_delete_error_strategy = vec![];
-    let mut columns_with_on_delete_cascade_strategy = vec![];
-    //TODO let mut columns_with_on_delete_set_none_strategy = vec![];
-    let mut columns_with_on_delete_set_zero_strategy = vec![];
+    let mut columns_by_on_delete_strategies = HashMap::new();
 
     for column_with_foreign_key in columns_with_foreign_key {
-        match column_with_foreign_key
-            .spacetimedsl_column
-            .foreign_key
-            .as_ref()
-            .expect(&format!(
-                "the column {} should have a foreign key",
-                column_with_foreign_key.rust_field.name
-            ))
-            .on_delete_strategy
-        {
-            OnDeleteStrategy::Error => {
-                columns_with_on_delete_error_strategy.push(column_with_foreign_key);
-            }
-            OnDeleteStrategy::Delete => {
-                columns_with_on_delete_cascade_strategy.push(column_with_foreign_key);
-            }
-            //TODO: OnDeleteStrategy::SetNone => {columns_with_on_delete_set_none_strategy.push(column_with_foreign_key);}
-            OnDeleteStrategy::SetZero => {
-                columns_with_on_delete_set_zero_strategy.push(column_with_foreign_key);
-            }
-        };
-
         if column_with_foreign_key
             .rust_field
             .type_name_or_path
@@ -1555,8 +1526,28 @@ fn for_foreign_key(
                 "All foreign key columns which reference the same primary key of another table should have the same type"
             );
         }
+
+        let on_delete_strategy = &column_with_foreign_key
+            .spacetimedsl_column
+            .foreign_key
+            .as_ref()
+            .expect(&format!(
+                "the column {} should have a foreign key",
+                column_with_foreign_key.rust_field.name
+            ))
+            .on_delete_strategy;
+
+        if !columns_by_on_delete_strategies.contains_key(&on_delete_strategy) {
+            columns_by_on_delete_strategies.insert(on_delete_strategy, vec![]);
+        }
+
+        columns_by_on_delete_strategies
+            .get_mut(&on_delete_strategy)
+            .expect("The key OnDeleteStrategy should exist!")
+            .push(column_with_foreign_key);
     }
 
+    let struct_name = format_ident!("{}", *rust_struct.name);
     let referenced_table_primary_key_column_type: Type =
         parse_str(&referenced_table_primary_key_column_type).expect("parsing should have worked");
 
@@ -1591,7 +1582,14 @@ fn for_foreign_key(
 
     let primary_key_value_arg_name;
 
-    let mut function_args = vec![];
+    let mut function_args = vec![
+        quote! {
+            ctx: &spacetimedb::ReducerContext
+        },
+        quote! {
+            strategy: &spacetimedsl::OnDeleteStrategy
+        },
+    ];
 
     // TODO: Result Type
     let return_type = quote! {
@@ -1605,18 +1603,14 @@ fn for_foreign_key(
             doc_comment = format!("Execute OnDeleteStrategies of the `{singular_table_name}` table after one row of the `{referenced_table_name}` table was deleted.");
             primary_key_value_arg_name = format_ident!("primary_key_value_of_row_to_delete");
             function_args.push(quote! {
-                ctx: &spacetimedb::ReducerContext,
-                strategy: &spacetimedsl::OnDeleteStrategy,
-                #primary_key_value_arg_name: &#referenced_table_primary_key_column_type,
+                #primary_key_value_arg_name: &#referenced_table_primary_key_column_type
             });
         }
         DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted => {
             doc_comment = format!("Execute OnDeleteStrategies of the `{singular_table_name}` table after multiple rows of the `{referenced_table_name}` table were deleted.");
             primary_key_value_arg_name = format_ident!("primary_key_values_of_rows_to_delete");
             function_args.push(quote! {
-                ctx: &spacetimedb::ReducerContext,
-                strategy: &spacetimedsl::OnDeleteStrategy,
-                #primary_key_value_arg_name: &Vec<#referenced_table_primary_key_column_type>,
+                #primary_key_value_arg_name: &Vec<#referenced_table_primary_key_column_type>
             });
         }
     };
@@ -1624,69 +1618,27 @@ fn for_foreign_key(
     let doc_comment = doc_comment.into();
     let function_impl;
 
-    let on_delete_error_strategy;
-    if columns_with_on_delete_error_strategy.is_empty() {
-        on_delete_error_strategy = TokenStream::default();
-    } else {
-        on_delete_error_strategy = get_on_delete_strategy_implementation(
-            &dsl_internal_foreign_key_function,
-            columns_with_on_delete_error_strategy,
+    let mut on_delete_strategy_match_arms = vec![];
+
+    for (on_delete_strategy, columns_by_on_delete_strategy) in columns_by_on_delete_strategies {
+        on_delete_strategy_match_arms.push(get_on_delete_strategy_implementation(
+            &struct_name,
             &singular_table_name,
-        );
+            &primary_key_column_name,
+            &primary_key_column_type,
+            &spacetimedsl_table,
+            &dsl_internal_foreign_key_function,
+            on_delete_strategy,
+            columns_by_on_delete_strategy,
+        ));
     }
 
-    let on_delete_cascade_strategy;
-    if columns_with_on_delete_cascade_strategy.is_empty() {
-        on_delete_cascade_strategy = TokenStream::default();
-    } else {
-        on_delete_cascade_strategy = get_on_delete_strategy_implementation(
-            &dsl_internal_foreign_key_function,
-            columns_with_on_delete_cascade_strategy,
-            &singular_table_name,
-        );
-    }
-
-    /* TODO
-       let on_delete_set_none_strategy;
-       if columns_with_on_delete_set_none_strategy.is_empty() {
-           on_delete_set_none_strategy = TokenStream::default();
-       } else {
-           on_delete_set_none_strategy = get_row_finders(
-                &dsl_internal_foreign_key_function,
-                columns_with_on_delete_set_none_strategy,
-                &singular_table_name,
-            );
-       }
-    */
-
-    let on_delete_set_zero_strategy;
-    if columns_with_on_delete_set_zero_strategy.is_empty() {
-        on_delete_set_zero_strategy = TokenStream::default();
-    } else {
-        on_delete_set_zero_strategy = get_on_delete_strategy_implementation(
-            &dsl_internal_foreign_key_function,
-            columns_with_on_delete_set_zero_strategy,
-            &singular_table_name,
-        );
-    }
-
-    let struct_name = format_ident!("{}", *rust_struct.name);
     function_impl = quote! {
-        let mut rows_to_process: Vec<#struct_name> = vec![];
-
         match &strategy {
-            spacetimedsl::OnDeleteStrategy::Error => {
-                #on_delete_error_strategy
-            }
-            spacetimedsl::OnDeleteStrategy::Delete => {
-                #on_delete_cascade_strategy
-            }
-            //TODO: spacetimedsl::OnDeleteStrategy::SetNone => {#on_delete_set_none_strategy}
-            spacetimedsl::OnDeleteStrategy::SetZero => {
-                #on_delete_set_zero_strategy
-            }
+            #(#on_delete_strategy_match_arms)*
             _ => {}
         };
+
         Ok(())
     };
 
@@ -1707,30 +1659,21 @@ fn for_foreign_key(
 }
 
 fn get_on_delete_strategy_implementation(
-    dsl_internal_foreign_key_function: &DSLInternalForeignKeyFunction,
-    columns_with_same_strategy: Vec<&&&Column>,
+    struct_name: &Ident,
     singular_table_name: &Ident,
+    primary_key_column_name: &Ident,
+    primary_key_column_type: &Type,
+    spacetimedsl_table: &SpacetimeDSLTable,
+    dsl_internal_foreign_key_function: &DSLInternalForeignKeyFunction,
+    on_delete_strategy: &OnDeleteStrategy,
+    columns_by_on_delete_strategy: Vec<&&&Column>,
 ) -> TokenStream {
-    let strategy = &columns_with_same_strategy
-        .first()
-        .as_ref()
-        .expect("there should be a column")
-        .spacetimedsl_column
-        .foreign_key
-        .as_ref()
-        .expect("there should be a foreign key")
-        .on_delete_strategy;
+    let mut strategy_before_all_columns = TokenStream::default();
+    let mut strategy_by_column = vec![];
+    let mut strategy_after_all_columns = TokenStream::default();
 
-    let mut row_finders = vec![];
-
-    for column in &columns_with_same_strategy {
+    for column in &columns_by_on_delete_strategy {
         let column_name = format_ident!("{}", *column.rust_field.name);
-        let method_impl_prefix = quote! {
-            ctx
-                .db()
-                .#singular_table_name()
-                .#column_name()
-        };
 
         let is_unique_index = column
             .spacetimedb_column
@@ -1739,83 +1682,194 @@ fn get_on_delete_strategy_implementation(
             .unwrap()
             .is_unique;
 
-        /*
-        let strategy_impl = match &strategy {
-            OnDeleteStrategy::Error => {
-                quote! {
+        let spacetimedb_call_prefix = quote! {
+            ctx
+                .db()
+                .#singular_table_name()
+        };
 
+        let row_finder = match is_unique_index {
+            true => {
+                quote! {
+                    #spacetimedb_call_prefix.#column_name().find(primary_key_value_of_row_to_delete)
                 }
             }
-            OnDeleteStrategy::Delete => {
+            false => {
                 quote! {
-
-                }
-            }
-            //OnDeleteStrategy::SetNone => { quote! {} },
-            OnDeleteStrategy::SetZero => {
-                quote! {
-                    row_to_process.#column_name = 0;
+                    #spacetimedb_call_prefix.#column_name().filter(primary_key_value_of_row_to_delete)
                 }
             }
         };
-         */
 
-        match is_unique_index {
-            false => {
-                if strategy.eq(&OnDeleteStrategy::Error) {
-                    row_finders.push(quote! {
-                        if #method_impl_prefix
-                            .filter(primary_key_value_of_row_to_delete).next().is_some() {
-                                return Err(());
+        strategy_by_column.push(match on_delete_strategy {
+            OnDeleteStrategy::Error => {
+                let strategy_per_row = quote! {
+                    return Err(());
+                };
+
+                match is_unique_index {
+                    true => {
+                        quote! {
+                            if #row_finder.is_some() {
+                                #strategy_per_row
+                            };
+                        }
+                    }
+                    false => {
+                        quote! {
+                            if #row_finder.next().is_some() {
+                                #strategy_per_row
                             }
-                    });
-                } else {
-                    row_finders.push(quote! {
-                        #method_impl_prefix
-                            .filter(primary_key_value_of_row_to_delete).for_each(|row| {
-                                // FIXME: Instead of pushing to a vec, implement the on delete strategy directly here
-                                rows_to_process.push(row);
-                        });
-                    });
+                        }
+                    }
                 }
             }
-            true => {
-                if strategy.eq(&OnDeleteStrategy::Error) {
-                    row_finders.push(quote! {
-                        if #method_impl_prefix.find(primary_key_value_of_row_to_delete).is_some() {
-                            return Err(());
-                        };
-                    });
+            OnDeleteStrategy::Delete => {
+                let optional_primary_key_value_setter;
+
+                // FIXME: no foreign key reference check if it's a int and its 0 or its a option and its none
+                if spacetimedsl_table.referencing_tables.is_empty() {
+                    optional_primary_key_value_setter = TokenStream::default();
+
+                    strategy_before_all_columns = quote! {
+                        let mut rows_to_delete: Vec<#struct_name> = vec![];
+                    };
+
+                    strategy_after_all_columns = quote! {
+                        for row_to_delete in rows_to_delete {
+                            #spacetimedb_call_prefix
+                                .#primary_key_column_name()
+                                .delete(row_to_delete.#primary_key_column_name);
+                        }
+                    };
                 } else {
-                    row_finders.push(quote! {
-                        match #method_impl_prefix.find(primary_key_value_of_row_to_delete) {
-                            None => {}
-                            Some(row) => { rows_to_process.push(row); }
+                    match is_unique_index {
+                        true => {
+                            optional_primary_key_value_setter = quote! {
+                                primary_key_values_of_rows_to_delete.push(row.#primary_key_column_name);
+                            };
+                        }
+                        false => {
+                            optional_primary_key_value_setter = quote! {
+                                let mut primary_keys = rows.iter().map(|row| row.#primary_key_column_name).collect();
+                                primary_key_values_of_rows_to_delete.append(&mut primary_keys);
+                            }
+                        }
+                    };
+
+                    strategy_before_all_columns = quote! {
+                        let mut primary_key_values_of_rows_to_delete: Vec<#primary_key_column_type> = vec![];
+                        let mut rows_to_delete: Vec<#struct_name> = vec![];
+                    };
+                    
+                    let delete_one_hooks = get_referenced_table_function_name(
+                        &DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted,
+                        &singular_table_name
+                    );
+
+                    let delete_many_hooks = get_referenced_table_function_name(
+                        &DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted,
+                        &singular_table_name
+                    );
+
+                    strategy_after_all_columns = quote! {
+                        if primary_key_values_of_rows_to_delete.len().eq(&1) {
+                            let primary_key_value_of_row_to_delete = primary_key_values_of_rows_to_delete[0];
+
+                            spacetimedsl::internal::DSLInternals::#delete_one_hooks(ctx, spacetimedsl::OnDeleteStrategy::Error, &primary_key_value_of_row_to_delete)?;
+                            spacetimedsl::internal::DSLInternals::#delete_one_hooks(ctx, spacetimedsl::OnDeleteStrategy::Delete, &primary_key_value_of_row_to_delete)?;
+                            //TODO: spacetimedsl::internal::DSLInternals::#delete_one_hooks(ctx, spacetimedsl::OnDeleteStrategy::SetNone, &primary_key_value_of_row_to_delete)?;
+                            spacetimedsl::internal::DSLInternals::#delete_one_hooks(ctx, spacetimedsl::OnDeleteStrategy::SetZero, &primary_key_value_of_row_to_delete)?;
+
+                            let row_to_delete = &rows_to_delete[0];
+
+                            #spacetimedb_call_prefix
+                                .#primary_key_column_name()
+                                .delete(row_to_delete.#primary_key_column_name);
+                        } else {
+                            spacetimedsl::internal::DSLInternals::#delete_many_hooks(ctx, spacetimedsl::OnDeleteStrategy::Error, &primary_key_values_of_rows_to_delete)?;
+                            spacetimedsl::internal::DSLInternals::#delete_many_hooks(ctx, spacetimedsl::OnDeleteStrategy::Delete, &primary_key_values_of_rows_to_delete)?;
+                            //TODO: spacetimedsl::internal::DSLInternals::#delete_many_hooks(ctx, spacetimedsl::OnDeleteStrategy::SetNone, &primary_key_values_of_rows_to_delete)?;
+                            spacetimedsl::internal::DSLInternals::#delete_many_hooks(ctx, spacetimedsl::OnDeleteStrategy::SetZero, &primary_key_values_of_rows_to_delete)?;
+                            for row_to_delete in rows_to_delete {
+                                #spacetimedb_call_prefix
+                                    .#primary_key_column_name()
+                                    .delete(row_to_delete.#primary_key_column_name);
+                            }
                         };
-                    });
+                    };
+                }
+
+                match is_unique_index {
+                    true => {
+                        quote! {
+                            match #row_finder {
+                                None => {}
+                                Some(row) => { 
+                                    #optional_primary_key_value_setter
+                                    rows_to_delete.push(row);
+                                }
+                            };
+                        }
+                    }
+                    false => {
+                        quote! {
+                            let mut rows: Vec<#struct_name> = #row_finder.collect();
+                            #optional_primary_key_value_setter
+                            rows_to_delete.append(&mut rows);
+                        }
+                    }
                 }
             }
-        }
+            OnDeleteStrategy::SetZero => {
+                let strategy_per_row = quote! {
+                    row.#column_name = 0;
+                    #spacetimedb_call_prefix.#primary_key_column_name().update(row);
+                };
+
+                match is_unique_index {
+                    true => {
+                        quote! {
+                            match #row_finder {
+                                None => {}
+                                Some(mut row) => { #strategy_per_row }
+                            };
+                        }
+                    }
+                    false => {
+                        quote! {
+                            #row_finder.for_each(|mut row| {
+                                #strategy_per_row
+                            });
+                        }
+                    }
+                }
+            }
+        })
     }
 
     match dsl_internal_foreign_key_function {
-        DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted => quote! {
-            #(#row_finders)*
+        DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted => {
+            quote! {
+                #on_delete_strategy => {
+                    #strategy_before_all_columns
 
-            if !rows_to_process.is_empty() {
-                for row_to_process in rows_to_process {
-                    //TODO#strategy_impl
+                    #(#strategy_by_column)*
+
+                    #strategy_after_all_columns
                 }
             }
         },
-        DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted => quote! {
-            for primary_key_value_of_row_to_delete in primary_key_values_of_rows_to_delete {
-                #(#row_finders)*
-            }
+        DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted => {
+            quote! {
+                #on_delete_strategy => {
+                    #strategy_before_all_columns
 
-            if !rows_to_process.is_empty() {
-                for row_to_process in rows_to_process {
-                    //TODO#strategy_impl
+                    for primary_key_value_of_row_to_delete in primary_key_values_of_rows_to_delete {
+                        #(#strategy_by_column)*
+                    }
+
+                    #strategy_after_all_columns
                 }
             }
         },
