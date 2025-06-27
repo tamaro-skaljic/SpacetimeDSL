@@ -425,9 +425,12 @@ pub(in crate::internal) fn for_table(
         DSLTableMethod::Create => {
             let mut into_options = vec![];
             let mut constructor_args = vec![];
+            let mut constructor_arg_names = vec![];
 
             for column in columns {
                 let column_name = format_ident!("{}", *column.rust_field.name);
+                constructor_arg_names.push(quote! { #column_name });
+
                 let column_type: Type =
                     parse_str(&column.rust_field.type_name_or_path).expect("create");
 
@@ -438,15 +441,15 @@ pub(in crate::internal) fn for_table(
                 {
                     if column.spacetimedb_column.is_auto_inc {
                         constructor_args.push(quote! {
-                            #column_name: #column_type::default()
+                            let #column_name = #column_type::default();
                         });
                     } else if column.rust_field.name.eq(&"created_at".to_string().into()) {
                         constructor_args.push(quote! {
-                            created_at: self.ctx().timestamp
+                            let created_at = self.ctx().timestamp;
                         });
                     } else if column.rust_field.name.eq(&"modified_at".to_string().into()) {
                         constructor_args.push(quote! {
-                            modified_at: self.ctx().timestamp
+                            let modified_at = self.ctx().timestamp;
                         });
                     }
                     continue;
@@ -461,7 +464,7 @@ pub(in crate::internal) fn for_table(
                                 });
 
                                 constructor_args.push(quote! {
-                                    #column_name: #column_name.to_string()
+                                    let #column_name = #column_name.to_string();
                                 });
                             } else {
                                 let wrapped_type_name_or_path =
@@ -469,10 +472,6 @@ pub(in crate::internal) fn for_table(
 
                                 method_args.push(quote! {
                                     #column_name: #wrapped_type_name_or_path
-                                });
-
-                                constructor_args.push(quote! {
-                                    #column_name
                                 });
                             }
                         }
@@ -488,17 +487,13 @@ pub(in crate::internal) fn for_table(
                                     &column_name,
                                     wrapper_type_name_or_path,
                                 ));
-
-                                constructor_args.push(quote! {
-                                    #column_name
-                                });
                             } else {
                                 method_args.push(quote! {
                                     #column_name: impl Into<#wrapper_type_name_or_path>
                                 });
 
                                 constructor_args.push(quote! {
-                                    #column_name: #column_name.into().value()
+                                    let #column_name = #column_name.into().value();
                                 });
                             }
                         }
@@ -509,14 +504,11 @@ pub(in crate::internal) fn for_table(
                                 #column_name: &str
                             });
                             constructor_args.push(quote! {
-                                #column_name: #column_name.to_string()
+                                let #column_name = #column_name.to_string();
                             });
                         } else {
                             method_args.push(quote! {
                                 #column_name: #column_type
-                            });
-                            constructor_args.push(quote! {
-                                #column_name
                             });
                         }
                     }
@@ -579,9 +571,10 @@ pub(in crate::internal) fn for_table(
             method_impl = quote! {
                 #use_itertools
 
+                #(#constructor_args)*
                 #(#into_options)*
                 let #singular_table_name = #struct_name {
-                    #(#constructor_args),*
+                    #(#constructor_arg_names),*
                 };
 
                 #(#multi_column_index_checks)*
