@@ -512,6 +512,7 @@ pub(in crate::internal) fn for_table(
 ) -> SpacetimeDSLMethod {
     let struct_name = format_ident!("{}", *rust_struct.name);
     let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
+    let singular_table_name_pascal_case = RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
     let plural_table_name = &spacetimedsl_table.plural_name;
 
     let doc_comment;
@@ -523,7 +524,7 @@ pub(in crate::internal) fn for_table(
         // TODO: Let foreign_key's influence the doc comment
         DSLTableMethod::Create => {
             doc_comment = format!("Create a row in the `{singular_table_name}` table.");
-            trait_name = format!("Create{}Row", struct_name);
+            trait_name = format!("Create{singular_table_name_pascal_case}Row");
             method_name = format!("create_{}", singular_table_name);
 
             let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
@@ -533,7 +534,7 @@ pub(in crate::internal) fn for_table(
         }
         DSLTableMethod::GetAll => {
             doc_comment = format!("Get all rows inside the `{singular_table_name}` table.");
-            trait_name = format!("GetAll{}Rows", struct_name);
+            trait_name = format!("GetAll{singular_table_name_pascal_case}Rows");
             method_name = format!("get_all_{}", plural_table_name);
             return_type = quote! {
                 impl Iterator<Item = #struct_name>
@@ -541,7 +542,7 @@ pub(in crate::internal) fn for_table(
         }
         DSLTableMethod::GetCount => {
             doc_comment = format!("Count all rows inside the `{singular_table_name}` table.");
-            trait_name = format!("CountOfAll{}Rows", struct_name);
+            trait_name = format!("CountOfAll{singular_table_name_pascal_case}Rows");
             method_name = format!("count_of_all_{}", plural_table_name);
             return_type = quote! {
                 u64
@@ -703,6 +704,7 @@ pub(in crate::internal) fn for_single_column_index(
 ) -> SpacetimeDSLMethod {
     let struct_name = format_ident!("{}", *rust_struct.name);
     let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
+    let singular_table_name_pascal_case = RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
     let plural_table_name = &spacetimedsl_table.plural_name;
     let column_name = format_ident!("{}", *rust_field.name);
     let column_name_pascal_case = RenameRule::PascalCase.apply_to_field(column_name.to_string());
@@ -718,8 +720,7 @@ pub(in crate::internal) fn for_single_column_index(
             doc_comment = format!(
                 "Get all {struct_name} rows inside the {singular_table_name} table filtered by the single-column index on the {column_name} column."
             );
-            // FIXME: Don't use struct_name in any ident generation because it would increase the parameters of #[referenced_by]'s and #[foreign_key]'s by one. Use singular_table_name_pascal_case instead
-            trait_name = format!("Get{struct_name}RowsBy{column_name_pascal_case}");
+            trait_name = format!("Get{singular_table_name_pascal_case}RowsBy{column_name_pascal_case}");
             method_name = format!("get_{plural_table_name}_by_{column_name}");
             return_type = quote! {
                 impl Iterator<Item = #struct_name>
@@ -730,7 +731,7 @@ pub(in crate::internal) fn for_single_column_index(
             doc_comment = format!(
                 "Delete all {struct_name} rows inside the {singular_table_name} table filtered by the single-column index on the {column_name} column."
             );
-            trait_name = format!("Delete{struct_name}RowsBy{column_name_pascal_case}");
+            trait_name = format!("Delete{singular_table_name_pascal_case}RowsBy{column_name_pascal_case}");
             method_name = format!("delete_{plural_table_name}_by_{column_name}");
             // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
             return_type = quote! {Result<u64,()>};
@@ -739,7 +740,7 @@ pub(in crate::internal) fn for_single_column_index(
             doc_comment = format!(
                 "Get an Option<{struct_name}> row inside the {singular_table_name} table filtered by the unique single-column index on the {column_name} column."
             );
-            trait_name = format!("Get{struct_name}RowOptionBy{column_name_pascal_case}");
+            trait_name = format!("Get{singular_table_name_pascal_case}RowOptionBy{column_name_pascal_case}");
             method_name = format!("get_{singular_table_name}_by_{column_name}");
             return_type = quote! {
                 Option<#struct_name>
@@ -750,7 +751,7 @@ pub(in crate::internal) fn for_single_column_index(
             doc_comment = format!(
                 "Update a {struct_name} row inside the {singular_table_name} table by the unique single-column index on the {column_name} column."
             );
-            trait_name = format!("Update{struct_name}RowBy{column_name_pascal_case}");
+            trait_name = format!("Update{singular_table_name_pascal_case}RowBy{column_name_pascal_case}");
             method_name = format!("update_{singular_table_name}_by_{column_name}");
 
             let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
@@ -763,7 +764,7 @@ pub(in crate::internal) fn for_single_column_index(
             doc_comment = format!(
                 "Delete a {struct_name} row inside the {singular_table_name} table filtered by the unique single-column index on the {column_name} column."
             );
-            trait_name = format!("Delete{struct_name}RowBy{column_name_pascal_case}");
+            trait_name = format!("Delete{singular_table_name_pascal_case}RowBy{column_name_pascal_case}");
             method_name = format!("delete_{singular_table_name}_by_{column_name}");
             // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
             return_type = quote! {Result<bool,()>};
@@ -1105,6 +1106,7 @@ pub(in crate::internal) fn for_multi_column_index(
 
     let struct_name = format_ident!("{}", *rust_struct.name);
     let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
+    let singular_table_name_pascal_case = RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
     let plural_table_name = format_ident!("{}", *spacetimedsl_table.plural_name);
     let index_name = format_ident!("{}", *multi_column_index.name);
     let index_name_pascal_case = RenameRule::PascalCase.apply_to_field(index_name.to_string());
@@ -1121,13 +1123,13 @@ pub(in crate::internal) fn for_multi_column_index(
     .into();
 
     let trait_name = match dsl_method {
-        DSLColumnMethod::GetMany => format!("Get{struct_name}RowsBy{index_name_pascal_case}"),
-        DSLColumnMethod::DeleteMany => format!("Delete{struct_name}RowsBy{index_name_pascal_case}"),
+        DSLColumnMethod::GetMany => format!("Get{singular_table_name_pascal_case}RowsBy{index_name_pascal_case}"),
+        DSLColumnMethod::DeleteMany => format!("Delete{singular_table_name_pascal_case}RowsBy{index_name_pascal_case}"),
         DSLColumnMethod::GetOneOption => {
-            format!("Get{struct_name}RowOptionBy{index_name_pascal_case}")
+            format!("Get{singular_table_name_pascal_case}RowOptionBy{index_name_pascal_case}")
         }
-        DSLColumnMethod::Update => format!("Update{struct_name}RowBy{index_name_pascal_case}"),
-        DSLColumnMethod::DeleteOne => format!("Delete{struct_name}RowBy{index_name_pascal_case}"),
+        DSLColumnMethod::Update => format!("Update{singular_table_name_pascal_case}RowBy{index_name_pascal_case}"),
+        DSLColumnMethod::DeleteOne => format!("Delete{singular_table_name_pascal_case}RowBy{index_name_pascal_case}"),
     }
     .into();
 
