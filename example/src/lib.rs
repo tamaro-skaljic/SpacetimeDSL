@@ -23,7 +23,6 @@ pub mod entity {
         created_at: Timestamp,
     }
 
-    // TODO: Add a test where child entities can be deleted but when a parent entity is deleted it fails because of existing children. After deleting all children, the parent entity is also deletable
     #[dsl(plural_name = entity_relationships, unique_index(name = parent_child_entity_id))]
     #[table(name = entity_relationship, public, index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])))]
     pub struct EntityRelationship {
