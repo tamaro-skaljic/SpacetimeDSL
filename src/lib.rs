@@ -158,7 +158,7 @@ pub mod internal {
                     .on_delete_strategy_executions
                     .as_ref()
                     .expect("should exist")
-                    .get(*primary_key_value)
+                    .get(primary_key_value)
                     .expect("should exist")
                     .get(&OnDeleteStrategy::Error)
                     .expect("should exist")
