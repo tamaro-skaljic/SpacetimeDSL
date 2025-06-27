@@ -981,12 +981,20 @@ pub(in crate::internal) fn for_single_column_index(
                             &singular_table_name
                         );
 
+                        let primary_key_column = internal_columns
+                                .iter()
+                                .find(|c| c.rust_field_name.eq(&primary_key_column_name.to_string().into()))
+                                .expect("should have a primary key");
+
+                        let primary_key_column_type: Type = parse_str(&primary_key_column.rust_field_type_name_or_path)
+                                .expect("parsing should have worked");
+
                         quote! {
                             #into_option
 
                             let #column_name = #column_value;
 
-                            let primary_key_values_of_rows_to_delete = #method_impl_prefix
+                            let primary_key_values_of_rows_to_delete: Vec<#primary_key_column_type> = #method_impl_prefix
                                 .filter(#column_name)
                                 .map(|row| row.#primary_key_column_name)
                                 .collect(); // TODO: maybe some types need a .clone() after #column_name
@@ -1325,13 +1333,20 @@ pub(in crate::internal) fn for_multi_column_index(
                                     &DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted,
                                     &singular_table_name
                                 );
-                                
+
+                                let primary_key_column = internal_columns
+                                    .iter()
+                                    .find(|c| c.rust_field_name.eq(&primary_key_column_name.to_string().into()))
+                                    .expect("should have a primary key");
+
+                                let primary_key_column_type: Type = parse_str(&primary_key_column.rust_field_type_name_or_path)
+                                    .expect("parsing should have worked");
                                 quote! {
                                     #(#into_options)*
 
                                     let #index_name = (#(#column_values),*);
 
-                                    let primary_key_values_of_rows_to_delete = #method_impl_prefix
+                                    let primary_key_values_of_rows_to_delete: Vec<#primary_key_column_type> = #method_impl_prefix
                                         .filter(#index_name)
                                         .map(|row| row.#primary_key_column_name)
                                         .collect();
