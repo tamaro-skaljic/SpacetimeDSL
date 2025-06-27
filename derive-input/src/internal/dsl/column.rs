@@ -35,11 +35,23 @@ impl SpacetimeDSLColumn {
 
         let foreign_key = ForeignKey::try_parse(field)?;
 
-        if foreign_key.is_some() && wrapper_type.is_none() {
-            return Err(Error::new(
-                Span::call_site(),
-                "A #[foreign_key] column must have `#[wrapped]`!",
-            ));
+        if foreign_key.is_some() {
+            if wrapper_type.is_none() {
+                return Err(Error::new(
+                    Span::call_site(),
+                    "A #[foreign_key] column must have `#[wrapped]`!",
+                ));
+            } else {
+                match wrapper_type.as_ref().unwrap() {
+                    WrapperType::Wrap(_) => {
+                        return Err(Error::new(
+                            Span::call_site(),
+                            "A #[foreign_key] column must have `#[wrapped]`, not `#[wrap]`!",
+                        ));
+                    }
+                    WrapperType::Wrapped(_) => {}
+                }
+            }
         }
 
         let getter = Getter::map(rust_field, is_option, &wrapper_type);
