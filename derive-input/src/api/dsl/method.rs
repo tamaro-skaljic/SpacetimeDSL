@@ -2,6 +2,7 @@
 pub struct SpacetimeDSLMethod {
     pub doc_comment: Box<str>,
     pub trait_name: Box<str>,
+    pub paths_of_traits_to_extend: Vec<Box<str>>,
     pub method_name: Box<str>,
     pub method_args: Vec<Box<str>>,
     pub return_type: Box<str>,

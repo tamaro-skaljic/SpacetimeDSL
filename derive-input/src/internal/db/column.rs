@@ -2,6 +2,8 @@ use crate::api::{
     db::{column::SpacetimeDBColumn, index::IndexType, table::SpacetimeDBTable},
     rust::column::RustField,
 };
+use proc_macro2::Span;
+use syn::Error;
 
 impl SpacetimeDBColumn {
     pub(in crate::internal) fn map(
@@ -9,10 +11,17 @@ impl SpacetimeDBColumn {
         mut spacetimedb_table: SpacetimeDBTable,
         auto_inc_column_names: &Vec<Box<str>>,
         primary_key_column_name: &Box<str>,
-    ) -> (SpacetimeDBTable, SpacetimeDBColumn) {
+    ) -> Result<(SpacetimeDBTable, SpacetimeDBColumn), Error> {
         let column_name = &rust_field.name;
 
         let is_primary_key = column_name.eq(primary_key_column_name);
+
+        if is_primary_key && rust_field.name.ne(&"id".into()) {
+            return Err(Error::new(
+                Span::call_site(),
+                "A #[primary_key] column must be named `id`!",
+            ));
+        }
 
         let mut i: usize = 0;
         let mut single_column_index = None;
@@ -45,13 +54,13 @@ impl SpacetimeDBColumn {
             .find(|c| c.eq(&column_name))
             .is_some();
 
-        (
+        Ok((
             spacetimedb_table,
             SpacetimeDBColumn {
                 is_primary_key,
                 single_column_index,
                 is_auto_inc,
             },
-        )
+        ))
     }
 }

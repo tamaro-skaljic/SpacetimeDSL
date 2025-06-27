@@ -2,7 +2,6 @@
 pub struct ForeignKey {
     pub path: Box<str>,
     pub table_name: Box<str>,
-    pub column_name: Box<str>,
     pub on_delete_strategy: OnDeleteStrategy,
 }
 

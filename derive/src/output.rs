@@ -8,7 +8,7 @@ use spacetimedsl_derive_input::api::{
         setter::Setter, wrapper::WrapperType,
     },
 };
-use syn::{Ident, Type, Visibility, parse_str};
+use syn::{Ident, Path, Type, Visibility, parse_str};
 
 pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     let struct_name = format_ident!("{}", &input.rust_struct.name.to_string());
@@ -126,6 +126,11 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
     doc_comment.push_str(&method.doc_comment);
 
     let trait_name = format_ident!("{}", *method.trait_name);
+    let paths_of_traits_to_extend: Vec<Path> = method
+        .paths_of_traits_to_extend
+        .iter()
+        .map(|p| parse_str(p).expect("parsing should have worked"))
+        .collect();
     let method_name = format_ident!("{}", *method.method_name);
 
     let mut method_args: Vec<TokenStream> = vec![];
@@ -148,7 +153,7 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
     // TODO: The trait doc comment should link to the method doc comment
     let method = quote! {
         #[doc=#doc_comment]
-        pub trait #trait_name: spacetimedsl::DSLContext {
+        pub trait #trait_name: #(#paths_of_traits_to_extend)+* {
             #[doc=#doc_comment]
             fn #method_name<'a>(
                 &'a self,
@@ -172,6 +177,12 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
     doc_comment.push_str(&method.doc_comment);
 
     let trait_name = format_ident!("{}", *method.trait_name);
+    
+    let paths_of_traits_to_extend: Vec<Path> = method
+        .paths_of_traits_to_extend
+        .iter()
+        .map(|p| parse_str(p).expect("parsing should have worked"))
+        .collect();
     let method_name = format_ident!("{}", *method.method_name);
 
     let mut method_args: Vec<TokenStream> = vec![];
@@ -194,7 +205,7 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
     // TODO: The trait doc comment should link to the method doc comment
     let method = quote! {
         #[doc=#doc_comment]
-        pub trait #trait_name: spacetimedsl::DSLContext {
+        pub trait #trait_name: #(#paths_of_traits_to_extend)+* {
             #[doc=#doc_comment]
             fn #method_name(
                 &self,

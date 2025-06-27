@@ -34,11 +34,11 @@ pub(in crate::internal) fn try_parse(
             spacetimedb_table,
             &auto_inc_column_names,
             &primary_key_column_name,
-        );
+        )?;
         spacetimedb_table = res.0;
         let spacetimedb_column = res.1;
 
-        let spacetimedsl_column = SpacetimeDSLColumn::try_parse(field, &rust_struct, &rust_field)?;
+        let spacetimedsl_column = SpacetimeDSLColumn::try_parse(field, &rust_struct, &rust_field, &spacetimedb_column)?;
 
         let spacetimedsl_methods = SpacetimeDSLColumnMethods::map(
             &rust_struct,

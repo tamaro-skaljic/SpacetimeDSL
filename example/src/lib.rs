@@ -179,6 +179,7 @@ pub mod component {
             pub btree_index: u128,
 
             #[unique]
+            #[wrapped(path = crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, on_delete = SetZero)]
             pub unique: u128,
 
@@ -209,13 +210,13 @@ pub mod component {
             scheduled_at: ScheduleAt,
         }
 
-        #[dsl(plural_name = ship_objects, unique_index(name = ship_and_sobj))]
-        #[table(name = ship_object, public, index(name = ship_and_sobj, btree(columns = [ship_id, sobj_id])))]
+        #[dsl(plural_name = ship_objects, unique_index(name = id_and_sobj))]
+        #[table(name = ship_object, public, index(name = id_and_sobj, btree(columns = [id, sobj_id])))]
         pub struct ShipObject {
             #[primary_key]
             #[auto_inc]
             #[wrap]
-            ship_id: u64,
+            id: u64,
 
             #[unique]
             #[auto_inc]
@@ -229,12 +230,12 @@ pub mod component {
         }
 
         #[dsl(plural_name = space_ship_objects)]
-        #[table(name = space_ship_object, public, index(name = ship_and_sobj, btree(columns = [space_ship_id, sobj_id])))]
+        #[table(name = space_ship_object, public, index(name = id_and_sobj, btree(columns = [id, sobj_id])))]
         pub struct SpaceShipObject {
             #[primary_key]
             #[auto_inc]
             #[wrap]
-            space_ship_id: u64,
+            id: u64,
 
             #[unique]
             #[auto_inc]
@@ -576,7 +577,7 @@ pub mod test {
             &player,
             &player,
             player.get_id().value(),
-            0,
+            &player,
             "string",
             "index_on_string",
             "index_on_wrapped_string",
@@ -591,7 +592,7 @@ pub mod test {
             player_reflection.get_id(),
             player.get_id(),
             player.get_id().value(),
-            1,
+            &player_reflection,
             "string",
             "index_on_string",
             "index_on_wrapped_string",

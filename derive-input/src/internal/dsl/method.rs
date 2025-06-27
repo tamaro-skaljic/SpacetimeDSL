@@ -24,7 +24,7 @@ use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::{TokenStreamExt, format_ident, quote};
 use std::collections::HashMap;
-use syn::{Ident, Path, Type, parse_str};
+use syn::{parse_str, Ident, Path, Type};
 
 #[derive(Debug)]
 pub(in crate::internal) enum DSLTableMethod {
@@ -40,6 +40,13 @@ pub(in crate::internal) enum DSLColumnMethod {
     GetOneOption,
     Update,
     DeleteOne,
+}
+
+//TODO: Remove if all methods are in one enum
+#[derive(PartialEq)]
+enum CreateOrUpdateDSLMethod {
+    Create,
+    Update
 }
 
 #[derive(Debug)]
@@ -410,6 +417,7 @@ pub(in crate::internal) fn for_table(
     let method_name = method_name.into();
     let return_type = return_type.to_string().into();
 
+    let mut paths_of_traits_to_extend = vec![ "spacetimedsl::DSLContext".into()];
     let mut method_args = vec![];
     let method_impl;
 
@@ -559,7 +567,15 @@ pub(in crate::internal) fn for_table(
                 TokenStream::default()
             };
 
-            // TODO: Check foreign keys
+            let res = reference_integrity_checks(
+                CreateOrUpdateDSLMethod::Create,
+                spacetimedb_table,
+                columns,
+                paths_of_traits_to_extend
+            );
+            paths_of_traits_to_extend = res.0;
+            let reference_integrity_checks = res.1;
+
             method_impl = quote! {
                 #use_itertools
 
@@ -569,6 +585,8 @@ pub(in crate::internal) fn for_table(
                 };
 
                 #(#multi_column_index_checks)*
+
+                #(#reference_integrity_checks)*
 
                 self
                     .ctx()
@@ -603,6 +621,7 @@ pub(in crate::internal) fn for_table(
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
+        paths_of_traits_to_extend,
         method_name,
         method_args,
         return_type,
@@ -692,6 +711,7 @@ pub(in crate::internal) fn for_single_column_index(
     let method_name = method_name.into();
     let return_type = return_type.to_string().into();
 
+    let paths_of_traits_to_extend = vec![ "spacetimedsl::DSLContext".into()];
     let mut method_args = vec![];
     let method_impl;
 
@@ -957,6 +977,7 @@ pub(in crate::internal) fn for_single_column_index(
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
+        paths_of_traits_to_extend,
         method_name,
         method_args,
         return_type,
@@ -1035,6 +1056,7 @@ pub(in crate::internal) fn for_multi_column_index(
     .to_string()
     .into();
 
+    let paths_of_traits_to_extend = vec![ "spacetimedsl::DSLContext".into()];
     let mut method_args = vec![];
     let method_impl;
 
@@ -1246,11 +1268,89 @@ pub(in crate::internal) fn for_multi_column_index(
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
+        paths_of_traits_to_extend,
         method_name,
         method_args,
         return_type,
         method_impl,
     }
+}
+
+fn reference_integrity_checks(
+    create_or_update_dsl_method: CreateOrUpdateDSLMethod,
+    spacetimedb_table: &SpacetimeDBTable,
+    columns: &Vec<Column>,
+    mut paths_of_traits_to_extend: Vec<Box<str>>,
+) -> (Vec<Box<str>>, Vec<TokenStream>) {
+    let mut reference_integrity_checks = vec![];
+
+    let reasons = "There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the Foreign Key / Referenced By SpacetimeDSL feature is broken.";
+
+    for column in columns {
+        // Checks of private columns only need to happen in checks for create methods, because they can't be changed, they don't need to be checked during updates
+        if create_or_update_dsl_method.eq(&CreateOrUpdateDSLMethod::Update) && column.rust_field.visibility.eq(&crate::api::rust::visibility::RustVisibility::Private) {
+            continue;
+        }
+
+        let foreign_key;
+
+        match &column.spacetimedsl_column.foreign_key {
+            Some(fk) => foreign_key = fk,
+            None => continue,
+        };
+
+        let referenced_table_name = format_ident!("{}", *foreign_key.table_name);
+        let referenced_table_name_pascal_case = format_ident!("{}", RenameRule::PascalCase.apply_to_field(referenced_table_name.to_string()));
+        let referenced_table_primary_key_column_name_pascal_case = format_ident!("Id");
+        let get_row_of_referenced_table_by_primary_key_trait_name = format_ident!("Get{referenced_table_name_pascal_case}RowOptionBy{referenced_table_primary_key_column_name_pascal_case}");
+        let get_row_of_referenced_table_by_primary_key_method_name = format_ident!("get_{referenced_table_name}_by_id");
+
+        let referencing_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
+        let referencing_table_column_name = format_ident!("{}", *column.rust_field.name);
+        let referencing_table_column_getter_name = format_ident!("get_{referencing_table_column_name}");
+
+        let mut reference_integrity_violation_error_panic_message = format!(
+            "There must be a row inside the `{referenced_table_name}` table when trying to find one with primary key column `id` value "
+        );
+        reference_integrity_violation_error_panic_message.push_str("`{:?}`. Found none. ");
+        reference_integrity_violation_error_panic_message.push_str(reasons);
+
+        // TODO: Primary key columns should have #[wrap]
+        let referencing_table_column_type = column.rust_field.type_name_or_path.trim();
+
+        paths_of_traits_to_extend.push(format!("{}::{get_row_of_referenced_table_by_primary_key_trait_name}", &foreign_key.path).into());
+
+        let check = quote! {
+            match self.#get_row_of_referenced_table_by_primary_key_method_name(#referencing_table_name.#referencing_table_column_getter_name()) {
+                Some(_) => {},
+                None => {
+                    panic!(
+                        #reference_integrity_violation_error_panic_message,
+                        #referencing_table_name.#referencing_table_column_getter_name(),
+                    );
+                }
+            };
+        };
+
+        reference_integrity_checks.push(
+            match referencing_table_column_type {
+            "u8" | "u16" | "u32" | "u64" | "u128"  => quote! {
+                if #referencing_table_column_name.ne(&0) {
+                    #check
+                }
+            },
+            "Option"  => quote! {
+                if #referencing_table_column_name.is_some() {
+                    #check
+                }
+            },
+            _ => quote! {
+                #check
+            },
+        });
+    }
+
+    (paths_of_traits_to_extend, reference_integrity_checks)
 }
 
 pub(in crate::internal::dsl::method) struct MultiColumnIndexCheck {
@@ -1315,8 +1415,8 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_checks(
         let mut column_values = vec![];
 
         for column_name in index_column_names {
-            let cn = format_ident!("{column_name}");
-            column_values.push(quote! {#singular_table_name.#cn});
+            let column_name = format_ident!("{column_name}");
+            column_values.push(quote! {#singular_table_name.#column_name});
         }
 
         multi_column_index_checks.push(get_unique_multi_column_index_check(
@@ -1393,6 +1493,7 @@ fn for_referenced_by(
         &singular_table_name,
     );
     let primary_key_value_arg_name;
+    let paths_of_traits_to_extend = vec![];
     let mut function_args = vec![];
     // TODO: Result Type
     let return_type = quote! { Result<(), ()> };
@@ -1473,6 +1574,7 @@ fn for_referenced_by(
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
+        paths_of_traits_to_extend,
         method_name: function_name,
         method_args: function_args,
         return_type,
@@ -1582,6 +1684,7 @@ fn for_foreign_key(
 
     let primary_key_value_arg_name;
 
+    let paths_of_traits_to_extend = vec![];
     let mut function_args = vec![
         quote! {
             ctx: &spacetimedb::ReducerContext
@@ -1651,6 +1754,7 @@ fn for_foreign_key(
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
+        paths_of_traits_to_extend,
         method_name: function_name,
         method_args: function_args,
         return_type,
@@ -1727,7 +1831,6 @@ fn get_on_delete_strategy_implementation(
             OnDeleteStrategy::Delete => {
                 let optional_primary_key_value_setter;
 
-                // FIXME: no foreign key reference check if it's a int and its 0 or its a option and its none
                 if spacetimedsl_table.referencing_tables.is_empty() {
                     optional_primary_key_value_setter = TokenStream::default();
 
@@ -1761,7 +1864,7 @@ fn get_on_delete_strategy_implementation(
                         let mut primary_key_values_of_rows_to_delete: Vec<#primary_key_column_type> = vec![];
                         let mut rows_to_delete: Vec<#struct_name> = vec![];
                     };
-                    
+
                     let delete_one_hooks = get_referenced_table_function_name(
                         &DSLInternalReferencedByFunction::ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted,
                         &singular_table_name

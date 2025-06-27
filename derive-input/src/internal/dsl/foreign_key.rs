@@ -1,6 +1,6 @@
 use super::foreign_key;
 use crate::api::dsl::foreign_key::{ForeignKey, OnDeleteStrategy};
-use crate::internal::dsl::{column, on_delete, path, table};
+use crate::internal::dsl::{on_delete, path, table};
 use quote::ToTokens;
 use spacetime_bindings_macro_input::match_meta;
 use spacetime_bindings_macro_input::sats::SatsField;
@@ -46,7 +46,6 @@ impl ForeignKey {
 
             let mut path_value: Option<Path> = None;
             let mut table_name: Option<Ident> = None;
-            let mut column_name: Option<Ident> = None;
             let mut on_delete_strategy = None;
 
             attr.parse_nested_meta(|meta| {
@@ -58,10 +57,6 @@ impl ForeignKey {
                     table => {
                         check_duplicate(&table_name, &meta)?;
                         table_name = Some(meta.value()?.parse()?);
-                    }
-                    column => {
-                        check_duplicate(&column_name, &meta)?;
-                        column_name = Some(meta.value()?.parse()?);
                     }
                     on_delete => {
                         check_duplicate(&on_delete_strategy, &meta)?;
@@ -88,12 +83,6 @@ impl ForeignKey {
             .to_string()
             .into();
 
-            let column_name = match column_name {
-                Some(column_name) => column_name.to_token_stream().to_string().into(),
-                // TODO: Document this default
-                None => "id".into(),
-            };
-
             let on_delete_strategy = on_delete_strategy.ok_or_else(|| {
             syn::Error::new_spanned(
                 &attr.meta,
@@ -104,7 +93,6 @@ impl ForeignKey {
             foreign_key_value = Some(ForeignKey {
                 path: path_value,
                 table_name,
-                column_name,
                 on_delete_strategy,
             });
         }
