@@ -1,6 +1,6 @@
 [package]
 name = "spacetimedsl_test"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2024"
 publish = false
 
@@ -22,7 +22,7 @@ syn = { default-features = false, features = [
 ], version = "2.0" }
 
 # https://crates.io/crates/spacetimedsl Ergonomic DSL for SpacetimeDB
-spacetimedsl = { version = "0.6.0", path = "../" }
+spacetimedsl = { version = "0.7.0", path = "../" }
 
 # https://crates.io/crates/log A lightweight logging facade for Rust
 log = "0.4"

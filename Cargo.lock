@@ -611,7 +611,7 @@ dependencies = [
 
 [[package]]
 name = "spacetimedsl"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "itertools 0.14.0",
  "spacetimedb",
@@ -629,7 +629,7 @@ dependencies = [
 
 [[package]]
 name = "spacetimedsl_derive"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "ident_case",
  "proc-macro2",
@@ -641,7 +641,7 @@ dependencies = [
 
 [[package]]
 name = "spacetimedsl_derive-input"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "ident_case",
  "itertools 0.14.0",
@@ -654,7 +654,7 @@ dependencies = [
 
 [[package]]
 name = "spacetimedsl_test"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "log",
  "proc-macro2",
