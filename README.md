@@ -375,7 +375,7 @@ They need a value for the `path`, `table` and `on_delete` fields. I think the fi
 
 - If the on delete `SetNone` strategy is implemented, it will do the same as the `SetZero` strategy except it will set `None` instead of `0`.
 
-- The on delete `Delete` strategy (Cascade) is the most advanced strategy of them. Before a row of `table_a` is deleted, `table_b` will check if it's `#[primary_key]` column has also `#[referenced_by]`'s as `table_a` has. If that's true, it will ask any referenced table (e. g. `table_c` and `table_d`) whether they would have something against the deletion. If `table_c` has a `delete` strategy but `table_d` has a `error` strategy, the whole deletion request won't happen if any row inside table `table_d` is referencing a row of `table_d` - the deletion request won't delete any row, even not in `table_a`.
+- The on delete `Delete` strategy (Cascade) is the most advanced strategy of them. Before a row of `table_a` is deleted, `table_b` will check if it's `#[primary_key]` column has also `#[referenced_by]`'s as `table_a` has. If that's true, it will ask any referenced table (e. g. `table_c` and `table_d`) whether they would have something against the deletion. If `table_c` has a `delete` strategy but `table_d` has a `error` strategy, the whole deletion request won't happen if any row inside table `table_b` is referencing a row of `table_d` - the deletion request won't delete any row, even not in `table_a`.
 
 To ensure referential integrity, `#[foreign_key]`'s and `#[referenced_by]`'s also influence the create / update DSL methods:
 
@@ -412,8 +412,8 @@ pub trait CreateIdentifierRow: spacetimedsl::DSLContext + crate::entity::GetEnti
                 None => {
                     {
                         panic!(
-                                "There must be a row inside the `entity` table when trying to find one with primary key column `id` value `{0:?}`. Found none. There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the Foreign Key / Referenced By SpacetimeDSL feature is broken.",
-                                identifier.get_entity_id(),
+                            "There must be a row inside the `entity` table when trying to find one with primary key column `id` value `{0:?}`. Found none. There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the Foreign Key / Referenced By SpacetimeDSL feature is broken.",
+                            identifier.get_entity_id(),
                         );
                     };
                 }
@@ -443,11 +443,9 @@ pub trait UpdateEntityRelationshipRowById: spacetimedsl::DSLContext + crate::ent
                 Some(_) => {}
                 None => {
                     {
-                        ::core::panicking::panic_fmt(
-                            format_args!(
-                                "There must be a row inside the `entity` table when trying to find one with primary key column `id` value `{0:?}`. Found none. There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the Foreign Key / Referenced By SpacetimeDSL feature is broken.",
-                                entity_relationship.get_child_entity_id(),
-                            ),
+                        panic!(
+                            "There must be a row inside the `entity` table when trying to find one with primary key column `id` value `{0:?}`. Found none. There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the Foreign Key / Referenced By SpacetimeDSL feature is broken.",
+                            entity_relationship.get_child_entity_id(),
                         );
                     };
                 }
