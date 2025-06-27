@@ -483,8 +483,7 @@ pub mod test {
             );
         }
 
-        /* TODO: Uncomment if https://github.com/clockworklabs/SpacetimeDB/pull/2610 is fixed
-            match dsl.create_identifier(&player, "PLAYER") {
+        match dsl.create_identifier(&player, "PLAYER") {
             Ok(identifier) => {
                 return Err(format!(
                     "Entity {} ({}): Shouldn't be able to add an Identifier because it has already one!",
@@ -494,7 +493,6 @@ pub mod test {
             }
             Err(_) => {}
         };
-         */
 
         match dsl.get_identifier_by_value("PLAYER") {
             Some(identifier) => {
