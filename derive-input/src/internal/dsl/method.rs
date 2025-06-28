@@ -839,24 +839,6 @@ pub(in crate::internal) fn for_index(
         }
     };
 
-
-
-
-}
-
-
-pub(in crate::internal) fn for_single_column_index(
-    dsl_method: DSLColumnMethod,
-    rust_struct: &RustStruct,
-    spacetimedb_table: &SpacetimeDBTable,
-    spacetimedsl_table: &SpacetimeDSLTable,
-    rust_field: &RustField,
-    spacetimedsl_column: &SpacetimeDSLColumn,
-    primary_key_column_name: &Ident,
-    internal_columns: &Vec<InternalColumn>,
-) -> SpacetimeDSLMethod {
-    let doc_comment = doc_comment.into();
-
     let mut paths_of_traits_to_extend = vec![ parse_str("spacetimedsl::DSLContext").expect("parsing should have worked") ];
     let mut method_args = vec![];
     let method_impl;
@@ -930,11 +912,36 @@ pub(in crate::internal) fn for_single_column_index(
                     .ctx()
                     .db()
                     .#singular_table_name()
-                    .#column_name()
+                    .#index_name()
                     .update(#singular_table_name)
                 )
             };
-        }
+        },
+    };
+
+    SpacetimeDSLMethod {
+        doc_comment,
+        trait_name,
+        paths_of_traits_to_extend,
+        method_name,
+        method_args,
+        return_type,
+        method_impl,
+    }
+}
+
+
+pub(in crate::internal) fn for_single_column_index(
+    dsl_method: DSLColumnMethod,
+    rust_struct: &RustStruct,
+    spacetimedb_table: &SpacetimeDBTable,
+    spacetimedsl_table: &SpacetimeDSLTable,
+    rust_field: &RustField,
+    spacetimedsl_column: &SpacetimeDSLColumn,
+    primary_key_column_name: &Ident,
+    internal_columns: &Vec<InternalColumn>,
+) -> SpacetimeDSLMethod {
+    match dsl_method {
         dsl_method => {
             let mut into_option = TokenStream::default();
             let method_arg;
@@ -1204,69 +1211,8 @@ pub(in crate::internal) fn for_multi_column_index(
     primary_key_column_name: &Ident,
     internal_columns: &Vec<InternalColumn>,
 ) -> SpacetimeDSLMethod {
-    let panic_reason = "Panics if it finds more than one, because then the unique constraint is violated somewhere";
-    let doc_comment = match dsl_method {
-        DSLColumnMethod::GetMany => format!("Get all {struct_name} rows inside the {singular_table_name} table filtered by the multi-column index {index_name}."),
-        DSLColumnMethod::DeleteMany => format!("Delete all {struct_name} rows inside the {singular_table_name} table filtered by the multi-column index {index_name}."),
-        DSLColumnMethod::GetOneOption => format!("Get an Option<{struct_name}> row inside the {singular_table_name} table filtered by the unique multi-column index {index_name}.\n\n{panic_reason}."),
-        DSLColumnMethod::Update => format!("Update a {struct_name} row inside the {singular_table_name} table by the unique multi-column index {index_name}.\n\n{panic_reason}."),
-        DSLColumnMethod::DeleteOne => format!("Delete a {struct_name} row inside the {singular_table_name} table by the unique multi-column index {index_name}.\n\n{panic_reason}."),
-    }
-    .into();
-
-    let trait_name = match dsl_method {
-        DSLColumnMethod::GetMany => format_ident!("Get{singular_table_name_pascal_case}RowsBy{index_name_pascal_case}"),
-        DSLColumnMethod::DeleteMany => format_ident!("Delete{singular_table_name_pascal_case}RowsBy{index_name_pascal_case}"),
-        DSLColumnMethod::GetOneOption => {
-            format_ident!("Get{singular_table_name_pascal_case}RowOptionBy{index_name_pascal_case}")
-        }
-        DSLColumnMethod::Update => format_ident!("Update{singular_table_name_pascal_case}RowBy{index_name_pascal_case}"),
-        DSLColumnMethod::DeleteOne => format_ident!("Delete{singular_table_name_pascal_case}RowBy{index_name_pascal_case}"),
-    };
-
-    let method_name = match dsl_method {
-        DSLColumnMethod::GetMany => format_ident!("get_{plural_table_name}_by_{index_name}"),
-        DSLColumnMethod::DeleteMany => format_ident!("delete_{plural_table_name}_by_{index_name}"),
-        DSLColumnMethod::GetOneOption => format_ident!("get_{singular_table_name}_by_{index_name}"),
-        DSLColumnMethod::Update => format_ident!("update_{singular_table_name}_by_{index_name}"),
-        DSLColumnMethod::DeleteOne => format_ident!("delete_{singular_table_name}_by_{index_name}"),
-    };
-
-    let return_type = match dsl_method {
-        DSLColumnMethod::GetMany => quote! {impl Iterator<Item = #struct_name>},
-            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/36
-        DSLColumnMethod::DeleteMany => quote! {Result<u64,()>},
-        DSLColumnMethod::GetOneOption => quote! {Option<#struct_name>},
-        // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/36
-        DSLColumnMethod::Update => {
-            let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
-            quote! {Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>}
-        },
-            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/36
-        DSLColumnMethod::DeleteOne => quote! {Result<bool,()>},
-    };
-
-    let mut paths_of_traits_to_extend = vec![ parse_str("spacetimedsl::DSLContext").expect("parsing should have worked") ];
-    let mut method_args = vec![];
-    let method_impl;
-
     match dsl_method {
         DSLColumnMethod::Update => {
-            method_args.push(
-                SpacetimeDSLMethodArg {
-                    is_mut: true,
-                    arg_name: singular_table_name.clone(),
-                    arg_type: quote! { #struct_name }
-                }
-            );
-
-            let multi_column_index_checks = multi_column_index_checks(
-                &struct_name,
-                &singular_table_name,
-                &spacetimedb_table,
-                &primary_key_column_name,
-            );
-
             let mut column_getters = vec![];
 
             internal_columns.iter().filter(|internal_column| internal_column.spacetimedsl_column_foreign_key.is_some() && internal_column.rust_field_visibility.to_string().ne(&RustVisibility::Private.to_string())).for_each(|internal_column| {
