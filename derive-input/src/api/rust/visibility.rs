@@ -1,9 +1,11 @@
-#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
+use syn::Path;
+
+#[derive(Clone, Debug, PartialEq, Hash, Eq)]
 pub enum RustVisibility {
     /// `pub`
     Public,
     /// `pub(crate)`, `pub(super)` or `pub(in path::to::module)`
-    Restricted(Box<str>),
+    Restricted(Path),
     /// Default
     Private,
 }

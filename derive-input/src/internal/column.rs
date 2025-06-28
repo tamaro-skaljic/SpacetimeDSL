@@ -11,13 +11,14 @@ use crate::api::{
 };
 use itertools::izip;
 use spacetime_bindings_macro_input::table::ColumnArgs;
+use syn::{Ident, Path};
 
 pub(in crate::internal) fn try_parse(
     column_args: &ColumnArgs,
     rust_struct: &RustStruct,
     mut spacetimedb_table: SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
-) -> syn::Result<(SpacetimeDBTable, Vec<Column>, Vec<InternalColumn>, Box<str>)> {
+) -> syn::Result<(SpacetimeDBTable, Vec<Column>, Vec<InternalColumn>, Ident)> {
     let primary_key_column_name = match get_primary_key_column_name(column_args) {
         Some(pk) => pk,
         None => {
@@ -96,29 +97,29 @@ pub(in crate::internal) fn try_parse(
 }
 
 pub(in crate::internal) struct InternalColumn {
-    pub spacetimedb_table_singular_name: Box<str>,
+    pub spacetimedb_table_singular_name: Ident,
     pub rust_field_visibility: RustVisibility,
-    pub rust_field_name: Box<str>,
-    pub rust_field_type_name_or_path: Box<str>,
+    pub rust_field_name: Ident,
+    pub rust_field_type_name_or_path: Path,
     pub spacetimedb_is_auto_inc: bool,
     pub spacetimedsl_is_option: bool,
     pub spacetimedsl_column_foreign_key: Option<ForeignKey>,
     pub spacetimedsl_wrapper_type: Option<WrapperType>,
 }
 
-fn get_auto_inc_column_names(column_args: &ColumnArgs<'_>) -> Vec<Box<str>> {
+fn get_auto_inc_column_names(column_args: &ColumnArgs<'_>) -> Vec<Ident> {
     column_args
         .sequenced_columns
         .iter()
-        .map(|c| c.ident.to_string().into())
+        .map(|c| c.ident.clone())
         .collect()
 }
 
 pub(in crate::internal) fn get_primary_key_column_name(
     column_args: &ColumnArgs<'_>,
-) -> Option<Box<str>> {
+) -> Option<Ident> {
     column_args
         .primary_key_column
         .as_ref()
-        .map(|c| c.ident.to_string().into())
+        .map(|c| c.ident.clone())
 }

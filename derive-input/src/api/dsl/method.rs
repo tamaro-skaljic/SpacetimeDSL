@@ -1,10 +1,13 @@
-#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
+use proc_macro2::TokenStream;
+use syn::{Ident, Path};
+
+#[derive(Clone, Debug)]
 pub struct SpacetimeDSLMethod {
     pub doc_comment: Box<str>,
-    pub trait_name: Box<str>,
-    pub paths_of_traits_to_extend: Vec<Box<str>>,
-    pub method_name: Box<str>,
-    pub method_args: Vec<Box<str>>,
-    pub return_type: Box<str>,
-    pub method_impl: Box<str>,
+    pub trait_name: Ident,
+    pub paths_of_traits_to_extend: Vec<Path>,
+    pub method_name: Ident,
+    pub method_args: Vec<TokenStream>,
+    pub return_type: TokenStream,
+    pub method_impl: TokenStream,
 }

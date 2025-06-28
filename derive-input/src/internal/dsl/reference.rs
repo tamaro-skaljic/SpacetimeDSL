@@ -1,6 +1,5 @@
 use super::{path, referenced_by, table};
 use crate::api::dsl::reference::ReferencingTable;
-use quote::ToTokens;
 use spacetime_bindings_macro_input::{
     match_meta, sats::SatsField, sym::primary_key, util::check_duplicate,
 };
@@ -55,19 +54,13 @@ impl ReferencingTable {
             .ok_or_else(|| syn::Error::new_spanned(
                 &attr.meta,
                 "PathToTable must be set in `#[referenced_by(path = PathToTable)]`, e.g. `path = crate::path::to::my::table`.",
-            ))?
-            .to_token_stream()
-            .to_string()
-            .into();
+            ))?;
 
             let table_name = table_name
             .ok_or_else(|| syn::Error::new_spanned(
                 &attr.meta,
                 "TableName must be set in `#[referenced_by(table = TableName)]`, e.g. `table = my_table`.",
-            ))?
-            .to_token_stream()
-            .to_string()
-            .into();
+            ))?;
 
             referencing_tables.push(ReferencingTable {
                 path: path_value,

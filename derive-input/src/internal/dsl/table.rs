@@ -39,7 +39,7 @@ impl SpacetimeDSLTable {
                 Span::call_site(),
                 format_args!("PluralName must be set in `#[dsl(plural_name = PluralName)]`, e.g. `plural_name = {}s`.", spacetimedb_table.singular_name),
             )
-        })?.to_token_stream().to_string().into();
+        })?;
 
         for unique_index_name in unique_indices {
             for multi_column_index in &mut spacetimedb_table.multi_column_indices {
@@ -92,7 +92,12 @@ impl SpacetimeDSLTable {
                 };
             }
             if !has_created_at_column {
-                if field.name.as_ref().expect("should have a name").eq("created_at") {
+                if field
+                    .name
+                    .as_ref()
+                    .expect("should have a name")
+                    .eq("created_at")
+                {
                     let field_type = field.ty.to_token_stream().to_string();
                     if !field_type.eq("Timestamp") {
                         return Err(syn::Error::new(
@@ -123,7 +128,12 @@ impl SpacetimeDSLTable {
                 }
             }
             if !has_modified_at_column {
-                if field.name.as_ref().expect("should have a name").eq("modified_at") {
+                if field
+                    .name
+                    .as_ref()
+                    .expect("should have a name")
+                    .eq("modified_at")
+                {
                     let field_type = field.ty.to_token_stream().to_string();
                     // TODO: Allow Option<Timestamp> as modified_at column type
                     if !field_type.eq("Timestamp") {
@@ -169,7 +179,7 @@ impl SpacetimeDSLTable {
     }
 }
 
-fn parse_unique_index(meta: ParseNestedMeta<'_>) -> syn::Result<Box<str>> {
+fn parse_unique_index(meta: ParseNestedMeta<'_>) -> syn::Result<Ident> {
     let mut name: Option<Ident> = None;
 
     meta.parse_nested_meta(|meta| {
@@ -183,10 +193,7 @@ fn parse_unique_index(meta: ParseNestedMeta<'_>) -> syn::Result<Box<str>> {
     })?;
 
     let name = name
-        .ok_or_else(|| meta.error("IndexName must be set in `#[dsl(unique_index(name = IndexName))]`, e.g. `name = my_index`."))?
-        .to_token_stream()
-        .to_string()
-        .into();
+        .ok_or_else(|| meta.error("IndexName must be set in `#[dsl(unique_index(name = IndexName))]`, e.g. `name = my_index`."))?;
 
     Ok(name)
 }

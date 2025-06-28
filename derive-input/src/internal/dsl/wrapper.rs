@@ -8,7 +8,7 @@ use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::{
     match_meta, sats::SatsField, sym::name, util::check_duplicate,
 };
-use syn::{Error, Ident, Path, Type, parse_str};
+use syn::{Error, Ident, Path, Type, parse_str, parse2};
 
 impl WrapperType {
     pub(in crate::internal) fn try_parse(
@@ -38,7 +38,8 @@ impl WrapperType {
                         wrapper_struct_name_or_path = Some(
                             format!(
                                 "{}{}",
-                                RenameRule::PascalCase.apply_to_field(&rust_struct.name),
+                                RenameRule::PascalCase
+                                    .apply_to_field(&rust_struct.name.to_string()),
                                 RenameRule::PascalCase.apply_to_field(
                                     field.name.as_ref().expect("should have a name")
                                 ),
@@ -58,15 +59,14 @@ impl WrapperType {
                             name => {
                                 check_duplicate(&wrapper_struct_name_or_path, &meta)?;
                                 let wrapper_struct_name: Ident = meta.value()?.parse()?;
-                                wrapper_struct_name_or_path =
-                                    Some(wrapper_struct_name.to_string().into());
+                                wrapper_struct_name_or_path = Some(wrapper_struct_name.to_string());
                             }
                             path => {
                                 check_duplicate(&wrapper_struct_name_or_path, &meta)?;
                                 let wrapper_struct_path: Path = meta.value()?.parse()?;
 
                                 wrapper_struct_name_or_path =
-                                    Some(wrapper_struct_path.to_token_stream().to_string().into());
+                                    Some(wrapper_struct_path.to_token_stream().to_string());
                             }
                         });
                         Ok(())
@@ -76,25 +76,35 @@ impl WrapperType {
 
             let wrapper_struct_name_or_path =
                 wrapper_struct_name_or_path.expect("should have a name or path");
-            let wrapped_type_name_or_path = field.ty.to_token_stream().to_string().into();
+            let wrapped_type_name_or_path = field.ty.to_token_stream().to_string();
 
             if attr.meta.path().eq(&wrap) {
+                let wrapper_struct_name_or_path = format_ident!("{wrapper_struct_name_or_path}");
+
                 let wrapper_impl = get_wrapper_impl(
                     &rust_struct.name,
                     &wrapper_struct_name_or_path,
-                    &wrapped_type_name_or_path,
+                    &wrapped_type_name_or_path.clone().into(),
                     &rust_field.name,
                 );
 
+                let wrapped_type_name_or_path =
+                    parse_str(&wrapped_type_name_or_path).expect("should be parseable");
+
                 wrapper_type = Some(WrapperType::Wrap(Wrap {
                     wrapper_struct_name: wrapper_struct_name_or_path,
-                    wrapped_type_name_or_path,
+                    wrapped_type_name_or_path: wrapped_type_name_or_path,
                     wrapper_impl,
                 }));
             } else {
+                let wrapper_struct_name_or_path =
+                    parse_str(&wrapper_struct_name_or_path).expect("should be parseable");
+                let wrapped_type_name_or_path =
+                    parse_str(&wrapped_type_name_or_path).expect("should be parseable");
+
                 wrapper_type = Some(WrapperType::Wrapped(Wrapped {
-                    wrapper_struct_name_or_path,
-                    wrapped_type_name_or_path,
+                    wrapper_struct_name_or_path: wrapper_struct_name_or_path,
+                    wrapped_type_name_or_path: wrapped_type_name_or_path,
                 }));
             }
         }
@@ -106,17 +116,14 @@ impl WrapperType {
 // TODO: Make sure that the wrapped type implements Default and fail if not. Implement default instead of a custom method.
 // TODO: Doc comments on Wrapper Types
 fn get_wrapper_impl(
-    struct_name: &Box<str>,
-    wrapper_struct_name: &Box<str>,
+    struct_name: &Ident,
+    wrapper_struct_name: &Ident,
     wrapped_type_name_or_path: &Box<str>,
-    field_name: &Box<str>,
-) -> Box<str> {
-    let struct_name = format_ident!("{struct_name}");
-    let wrapper_struct_name = format_ident!("{wrapper_struct_name}");
+    field_name: &Ident,
+) -> TokenStream {
     let wrapped_type: Type = parse_str(wrapped_type_name_or_path).expect(&format!(
         "Expected to parse {wrapped_type_name_or_path} as Type in get_wrapper_impl!"
     ));
-    let field_name = format_ident!("{field_name}");
 
     let default_impl;
 
@@ -182,26 +189,24 @@ fn get_wrapper_impl(
             }
         }
     }
-    .to_string()
-    .into()
 }
 
 impl WrapperType {
     pub(in crate::internal) fn map_to_wrapped_type(value: &Wrap) -> Type {
-        parse_str(&value.wrapped_type_name_or_path).expect(&format!(
-            "Failed to parse {} as Ident in WrapperType::map_to_wrapped_type.",
+        parse2(value.wrapped_type_name_or_path.to_token_stream()).expect(&format!(
+            "Failed to parse {:?} as Ident in WrapperType::map_to_wrapped_type.",
             &value.wrapped_type_name_or_path
         ))
     }
 
     pub(in crate::internal) fn map(value: &WrapperType) -> Type {
         match value {
-            WrapperType::Wrap(w) => parse_str(&w.wrapper_struct_name).expect(&format!(
+            WrapperType::Wrap(w) => parse_str(&w.wrapper_struct_name.to_token_stream().to_string()).expect(&format!(
                 "Failed to parse {} as Ident in WrapperType::map_to_wrapper_type for WrapperType::Wrap.",
                 &w.wrapper_struct_name
             )),
-            WrapperType::Wrapped(w) => parse_str(&w.wrapper_struct_name_or_path).expect(&format!(
-                "Failed to parse {} as Path in WrapperType::map_to_wrapper_type for WrapperType::Wrapped.",
+            WrapperType::Wrapped(w) => parse_str(&w.wrapper_struct_name_or_path.to_token_stream().to_string()).expect(&format!(
+                "Failed to parse {:?} as Path in WrapperType::map_to_wrapper_type for WrapperType::Wrapped.",
                 &w.wrapper_struct_name_or_path
             )),
         }

@@ -3,7 +3,7 @@ use crate::api::{
     rust::column::RustField,
 };
 use quote::{format_ident, quote};
-use syn::{Ident, Type, parse_str};
+use syn::Ident;
 
 impl Getter {
     pub(in crate::internal) fn map(
@@ -11,7 +11,7 @@ impl Getter {
         is_option: bool,
         wrapper_type: &Option<WrapperType>,
     ) -> Getter {
-        let column_name = format_ident!("{}", *rust_field.name);
+        let column_name = &rust_field.name;
 
         let method_name = get_getter_method_name(&column_name);
         let return_type;
@@ -55,7 +55,7 @@ impl Getter {
                 }
             }
             None => {
-                let rt: Type = parse_str(&rust_field.type_name_or_path).expect("getter");
+                let rt = &rust_field.type_name_or_path;
                 return_type = quote! {
                     &#rt
                 };
@@ -66,16 +66,14 @@ impl Getter {
             }
         };
 
-        let method_impl = method_impl.to_string().into();
-
         Getter {
             method_name,
-            return_type: return_type.to_string().into(),
+            return_type,
             method_impl,
         }
     }
 }
 
-pub(in crate::internal) fn get_getter_method_name(column_name: &Ident) -> Box<str> {
-    format!("get_{column_name}").into()
+pub(in crate::internal) fn get_getter_method_name(column_name: &Ident) -> Ident {
+    format_ident!("get_{column_name}")
 }

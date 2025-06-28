@@ -1,13 +1,15 @@
-#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
+use syn::{Ident, Path};
+
+#[derive(Clone, Debug, PartialEq, Hash, Eq)]
 pub struct ForeignKey {
-    pub path: Box<str>,
-    pub table_name: Box<str>,
+    pub path: Path,
+    pub table_name: Ident,
     pub on_delete_strategy: OnDeleteStrategy,
 }
 
 // This enum is copy+paste of the enum in the SpacetimeDSL crate (which is the public API of the DSL).
 
-#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Hash, Eq, Ord)]
 pub enum OnDeleteStrategy {
     /// Available independent from the column type.
     Error,

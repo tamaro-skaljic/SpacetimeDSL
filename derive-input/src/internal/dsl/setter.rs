@@ -5,8 +5,7 @@ use crate::{
     },
     internal::dsl::wrapper::wrapper_type_into_option,
 };
-use quote::{format_ident, quote};
-use syn::{Type, parse_str};
+use quote::{ToTokens, format_ident, quote};
 
 impl Setter {
     pub(in crate::internal) fn map(
@@ -21,10 +20,10 @@ impl Setter {
             _ => {}
         };
 
-        let column_name = format_ident!("{}", *rust_field.name);
+        let column_name = &rust_field.name;
 
         let method_visibility = rust_field.visibility.clone();
-        let method_name = format!("set_{column_name}").into();
+        let method_name = format_ident!("set_{column_name}");
         let method_arg;
         let return_type;
         let return_expr;
@@ -35,7 +34,12 @@ impl Setter {
                 WrapperType::Wrap(wrap) => {
                     let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
 
-                    if rust_field.type_name_or_path.eq(&"String".into()) {
+                    if rust_field
+                        .type_name_or_path
+                        .to_token_stream()
+                        .to_string()
+                        .eq(&"String")
+                    {
                         method_arg = quote! {
                             #column_name: &str
                         };
@@ -110,12 +114,18 @@ impl Setter {
                 }
             },
             None => {
-                if rust_field.type_name_or_path.eq(&"String".into()) {
+                let rt = &rust_field.type_name_or_path;
+
+                if rust_field
+                    .type_name_or_path
+                    .to_token_stream()
+                    .to_string()
+                    .eq(&"String")
+                {
                     method_arg = quote! {
                         #column_name: &str
                     };
 
-                    let rt: Type = parse_str(&rust_field.type_name_or_path).expect("setter");
                     return_type = quote! {
                         #rt
                     };
@@ -127,7 +137,6 @@ impl Setter {
                         self.#column_name = #column_name.to_string();
                     };
                 } else {
-                    let rt: Type = parse_str(&rust_field.type_name_or_path).expect("setter");
                     method_arg = quote! { #column_name: #rt };
 
                     return_type = quote! {
@@ -144,19 +153,18 @@ impl Setter {
             }
         };
 
-        let method_arg = method_arg.to_string().into();
         let method_impl = quote! {
             let old_value = self.#column_name.clone();
             #method_impl
             #return_expr
         };
-        let method_impl = method_impl.to_string().into();
+        let method_impl = method_impl;
 
         Some(Setter {
             method_visibility,
             method_name,
             method_arg,
-            return_type: return_type.to_string().into(),
+            return_type,
             method_impl,
         })
     }
