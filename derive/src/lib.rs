@@ -27,6 +27,7 @@ pub fn dsl(args: TokenStream, item: TokenStream) -> TokenStream {
         // Build the output, possibly using quasi-quotation
         let output = output::output(&input)?;
 
+        // FIXME: All column visibilities should be set to private
         Ok(proc_macro2::TokenStream::from_iter([
             quote!(#derive_input),
             output,

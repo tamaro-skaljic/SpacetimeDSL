@@ -7,7 +7,13 @@ pub struct SpacetimeDSLMethod {
     pub trait_name: Ident,
     pub paths_of_traits_to_extend: Vec<Path>,
     pub method_name: Ident,
-    pub method_args: Vec<TokenStream>,
+    pub method_args: Vec<SpacetimeDSLMethodArg>,
     pub return_type: TokenStream,
     pub method_impl: TokenStream,
+}
+
+pub struct SpacetimeDSLMethodArg {
+    pub is_mut: bool,
+    pub arg_name: Ident,
+    pub arg_type: TokenStream,
 }

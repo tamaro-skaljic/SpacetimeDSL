@@ -128,10 +128,7 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
     let paths_of_traits_to_extend = &method.paths_of_traits_to_extend;
     let method_name = &method.method_name;
 
-    let mut method_args = vec![];
-    for method_arg in &method.method_args {
-        method_args.push(method_arg);
-    }
+    let method_args = map_method_args(method);
 
     let return_type = &method.return_type;
     let method_impl = &method.method_impl;
@@ -176,10 +173,7 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
     let paths_of_traits_to_extend = &method.paths_of_traits_to_extend;
     let method_name = &method.method_name;
 
-    let mut method_args = vec![];
-    for method_arg in &method.method_args {
-        method_args.push(method_arg);
-    }
+    let method_args = map_method_args(method);
 
     let return_type = &method.return_type;
     let method_impl = &method.method_impl;
@@ -222,10 +216,7 @@ pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     let trait_name = &method.trait_name;
     let method_name = &method.method_name;
 
-    let mut method_args = vec![];
-    for method_arg in &method.method_args {
-        method_args.push(method_arg);
-    }
+    let method_args = map_method_args(method);
 
     let return_type = &method.return_type;
     let method_impl = &method.method_impl;
@@ -262,7 +253,7 @@ pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
 fn add_impl_doc(
     trait_name: &Ident,
     method_name: &Ident,
-    method_args: &Vec<&TokenStream>,
+    method_args: &Vec<TokenStream>,
     return_type: &TokenStream,
     method_impl: &TokenStream,
     mut doc_comment: String,
@@ -318,4 +309,24 @@ fn setter(setter: &Setter) -> syn::Result<TokenStream> {
             #method_impl
         }
     })
+}
+
+fn map_method_args(method: &SpacetimeDSLMethod) -> Vec<TokenStream> {
+    let mut method_args = vec![];
+
+    for method_arg in &method.method_args {
+        let arg_name = &method_arg.arg_name;
+        let arg_type = &method_arg.arg_type;
+        if method_arg.is_mut {
+            method_args.push(quote! {
+                mut #arg_name: #arg_type
+            });
+        } else {
+            method_args.push(quote! {
+                #arg_name: #arg_type
+            });
+        }
+    }
+
+    method_args
 }
