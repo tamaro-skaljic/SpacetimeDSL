@@ -20,7 +20,7 @@ use crate::{
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens, TokenStreamExt};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use syn::{parse_str, Ident, Path};
 
 
@@ -534,7 +534,7 @@ pub(in crate::internal) fn for_table(
     let return_type;
 
     match dsl_table_method {
-        // TODO: Let foreign_key's influence the doc comment
+        // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/35
         DSLTableMethod::Create => {
             doc_comment = format!("Create a row in the `{singular_table_name}` table.");
             trait_name = format_ident!("Create{singular_table_name_pascal_case}Row");
@@ -699,6 +699,138 @@ pub(in crate::internal) fn for_table(
     }
 }
 
+pub(in crate::internal) fn for_index(
+    dsl_method: DSLColumnMethod,
+    rust_struct: &RustStruct,
+    spacetimedb_table: &SpacetimeDBTable,
+    spacetimedsl_table: &SpacetimeDSLTable,
+    rust_field: &RustField,
+    spacetimedsl_column: &SpacetimeDSLColumn,
+    index: &Index,
+    columns: &Vec<Column>,
+    primary_key_column_name: &Ident,
+    internal_columns: &Vec<InternalColumn>
+) -> SpacetimeDSLMethod {
+    let struct_name = &rust_struct.name;
+    let singular_table_name = &spacetimedb_table.singular_name;
+    let singular_table_name_pascal_case = RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
+    let plural_table_name = &spacetimedsl_table.plural_name;
+    
+    /* TODO: single column index method uses this, I think it's the same:
+    let column_name = &rust_field.name;
+    let column_name_pascal_case = RenameRule::PascalCase.apply_to_field(column_name.to_string());
+     */
+    let index_name = &index.name;
+    let index_name_pascal_case = RenameRule::PascalCase.apply_to_field(index_name.to_string());
+    
+    let doc_comment;
+    let trait_name;
+    let method_name;
+    let return_type;
+
+    let is_multi_column_index;
+    let value_matches_or_values_match;
+    let single_or_multi;
+    let mut index_documentation;
+    let mut documentation_on_column_or_columns;
+
+    match &index.index_type {
+        IndexType::BTreeSingleColumn { column } => {
+            is_multi_column_index = false;
+            value_matches_or_values_match = "value matches the value from";
+            single_or_multi = "single";
+            index_documentation = format!("btree index");
+            documentation_on_column_or_columns = format!("`{column}` column");
+        },
+        IndexType::BTreeMultiColumn { columns } => {
+            is_multi_column_index = true;
+            value_matches_or_values_match = "values match the values from";
+            single_or_multi = "multi";
+            index_documentation = format!("btree index `{index_name}`");
+
+            documentation_on_column_or_columns = String::new();
+            documentation_on_column_or_columns.push_str(&format!("columns"));
+
+            let mut columns: VecDeque<Ident> = columns.clone().into();
+
+            let first_column = columns.pop_front().expect("There should be a first column in Vec<Ident> of BTreeMultiColumn.");
+            let last_column = columns.pop_back().expect("There should be a last column in Vec<Ident> of BTreeMultiColumn.");
+            let any_other_column = columns;
+            
+            documentation_on_column_or_columns.push_str(&format!(" `{first_column}`"));
+            for any_other_column in any_other_column {
+                documentation_on_column_or_columns.push_str(&format!(", `{any_other_column}`"));
+            }
+            documentation_on_column_or_columns.push_str(&format!(" and `{last_column}`"));
+        },
+        IndexType::Direct { column } => {
+            is_multi_column_index = false;
+            value_matches_or_values_match = "value matches";
+            single_or_multi = "single";
+            index_documentation = format!("direct index");
+            documentation_on_column_or_columns = format!("`{column}` column");
+        },
+    };
+
+    match dsl_method {
+        DSLColumnMethod::GetMany => {
+            doc_comment = format!(
+                "Get a `{struct_name}` iterator that contains all rows in the `{singular_table_name}` table whose {value_matches_or_values_match} the {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
+            );
+            trait_name = format_ident!("Get{singular_table_name_pascal_case}RowsBy{index_name_pascal_case}");
+            method_name = format_ident!("get_{plural_table_name}_by_{index_name}");
+            return_type = quote! {
+                impl Iterator<Item = #struct_name>
+            };
+        }
+        DSLColumnMethod::DeleteMany => {
+            // TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/35
+            doc_comment = format!(
+                "Try to delete all `{struct_name}` rows in the `{singular_table_name}` table whose {value_matches_or_values_match} the {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
+            );
+            trait_name = format_ident!("Delete{singular_table_name_pascal_case}RowsBy{index_name_pascal_case}");
+            method_name = format_ident!("delete_{plural_table_name}_by_{index_name}");
+            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/36
+            return_type = quote! {Result<u64,()>};
+        }
+        DSLColumnMethod::GetOneOption => {
+            doc_comment = format!(
+                "Try to get a `{struct_name}` from the `{singular_table_name}` table whose {value_matches_or_values_match} the unique {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
+            );
+            trait_name = format_ident!("Get{singular_table_name_pascal_case}RowOptionBy{index_name_pascal_case}");
+            method_name = format_ident!("get_{singular_table_name}_by_{index_name}");
+            return_type = quote! {
+                Option<#struct_name>
+            };
+        }
+        DSLColumnMethod::Update => {
+            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/35
+            doc_comment = format!(
+                "Try to update a `{struct_name}` row of the `{singular_table_name}` table whose {value_matches_or_values_match} the unique {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
+            );
+            trait_name = format_ident!("Update{singular_table_name_pascal_case}RowBy{index_name_pascal_case}");
+            method_name = format_ident!("update_{singular_table_name}_by_{index_name}");
+
+            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/36
+            let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
+            return_type = quote! {
+                Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>
+            };
+        }
+        DSLColumnMethod::DeleteOne => {
+            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/35
+            doc_comment = format!(
+                "Try to delete a `{struct_name}` row in the `{singular_table_name}` table whose {value_matches_or_values_match} the unique {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
+            );
+            trait_name = format_ident!("Delete{singular_table_name_pascal_case}RowBy{index_name_pascal_case}");
+            method_name = format_ident!("delete_{singular_table_name}_by_{index_name}");
+            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/36
+            return_type = quote! {Result<bool,()>};
+        }
+    };
+}
+
+
 pub(in crate::internal) fn for_single_column_index(
     dsl_method: DSLColumnMethod,
     rust_struct: &RustStruct,
@@ -709,74 +841,10 @@ pub(in crate::internal) fn for_single_column_index(
     primary_key_column_name: &Ident,
     internal_columns: &Vec<InternalColumn>,
 ) -> SpacetimeDSLMethod {
-    let struct_name = &rust_struct.name;
-    let singular_table_name = &spacetimedb_table.singular_name;
-    let singular_table_name_pascal_case = RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
-    let plural_table_name = &spacetimedsl_table.plural_name;
-    let column_name = &rust_field.name;
-    let column_name_pascal_case = RenameRule::PascalCase.apply_to_field(column_name.to_string());
-    let primary_key_column_name = format_ident!("{primary_key_column_name}");
-
     let doc_comment;
     let trait_name;
     let method_name;
     let return_type;
-
-    match dsl_method {
-        DSLColumnMethod::GetMany => {
-            doc_comment = format!(
-                "Get all {struct_name} rows inside the {singular_table_name} table filtered by the single-column index on the {column_name} column."
-            );
-            trait_name = format_ident!("Get{singular_table_name_pascal_case}RowsBy{column_name_pascal_case}");
-            method_name = format_ident!("get_{plural_table_name}_by_{column_name}");
-            return_type = quote! {
-                impl Iterator<Item = #struct_name>
-            };
-        }
-        DSLColumnMethod::DeleteMany => {
-            // TODO: Let referenced_by's influence the doc comment
-            doc_comment = format!(
-                "Delete all {struct_name} rows inside the {singular_table_name} table filtered by the single-column index on the {column_name} column."
-            );
-            trait_name = format_ident!("Delete{singular_table_name_pascal_case}RowsBy{column_name_pascal_case}");
-            method_name = format_ident!("delete_{plural_table_name}_by_{column_name}");
-            // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
-            return_type = quote! {Result<u64,()>};
-        }
-        DSLColumnMethod::GetOneOption => {
-            doc_comment = format!(
-                "Get an Option<{struct_name}> row inside the {singular_table_name} table filtered by the unique single-column index on the {column_name} column."
-            );
-            trait_name = format_ident!("Get{singular_table_name_pascal_case}RowOptionBy{column_name_pascal_case}");
-            method_name = format_ident!("get_{singular_table_name}_by_{column_name}");
-            return_type = quote! {
-                Option<#struct_name>
-            };
-        }
-        DSLColumnMethod::Update => {
-            // TODO: Let foreign_key's influence the doc comment
-            doc_comment = format!(
-                "Update a {struct_name} row inside the {singular_table_name} table by the unique single-column index on the {column_name} column."
-            );
-            trait_name = format_ident!("Update{singular_table_name_pascal_case}RowBy{column_name_pascal_case}");
-            method_name = format_ident!("update_{singular_table_name}_by_{column_name}");
-
-            let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
-            return_type = quote! {
-                Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>
-            };
-        }
-        DSLColumnMethod::DeleteOne => {
-            // TODO: Let referenced_by's influence the doc comment
-            doc_comment = format!(
-                "Delete a {struct_name} row inside the {singular_table_name} table filtered by the unique single-column index on the {column_name} column."
-            );
-            trait_name = format_ident!("Delete{singular_table_name_pascal_case}RowBy{column_name_pascal_case}");
-            method_name = format_ident!("delete_{singular_table_name}_by_{column_name}");
-            // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
-            return_type = quote! {Result<bool,()>};
-        }
-    }
 
     let doc_comment = doc_comment.into();
 
@@ -1123,28 +1191,10 @@ pub(in crate::internal) fn for_multi_column_index(
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
     multi_column_index: &Index,
-    columns: &[Column],
+    columns: &Vec<Column>,
     primary_key_column_name: &Ident,
     internal_columns: &Vec<InternalColumn>,
 ) -> SpacetimeDSLMethod {
-    let index_columns = match &multi_column_index.index_type {
-        IndexType::BTreeMultiColumn { columns } => columns,
-        i => {
-            panic!(
-                "There shouldn't be an index with another type when this code is running. Found: {:#?}",
-                i
-            )
-        }
-    };
-
-    let struct_name = &rust_struct.name;
-    let singular_table_name = &spacetimedb_table.singular_name;
-    let singular_table_name_pascal_case = RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
-    let plural_table_name = &spacetimedsl_table.plural_name;
-    let index_name = &multi_column_index.name;
-    let index_name_pascal_case = RenameRule::PascalCase.apply_to_field(index_name.to_string());
-    let primary_key_column_name = format_ident!("{primary_key_column_name}");
-
     let panic_reason = "Panics if it finds more than one, because then the unique constraint is violated somewhere";
     let doc_comment = match dsl_method {
         DSLColumnMethod::GetMany => format!("Get all {struct_name} rows inside the {singular_table_name} table filtered by the multi-column index {index_name}."),
@@ -1175,14 +1225,15 @@ pub(in crate::internal) fn for_multi_column_index(
 
     let return_type = match dsl_method {
         DSLColumnMethod::GetMany => quote! {impl Iterator<Item = #struct_name>},
-        // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
+            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/36
         DSLColumnMethod::DeleteMany => quote! {Result<u64,()>},
         DSLColumnMethod::GetOneOption => quote! {Option<#struct_name>},
+        // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/36
         DSLColumnMethod::Update => {
             let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
             quote! {Result<#struct_name, spacetimedb::TryInsertError<#try_insert_error_generic_type>>}
         },
-        // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
+            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/36
         DSLColumnMethod::DeleteOne => quote! {Result<bool,()>},
     };
 
