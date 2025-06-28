@@ -1,5 +1,7 @@
-#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
+use syn::{Ident, Path};
+
+#[derive(Clone, Debug, PartialEq, Hash, Eq)]
 pub struct ReferencingTable {
-    pub path: Box<str>,
-    pub table_name: Box<str>,
+    pub path: Path,
+    pub table_name: Ident,
 }

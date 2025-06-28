@@ -1,8 +1,10 @@
+use syn::{Ident, Path};
+
 use crate::api::rust::visibility::RustVisibility;
 
-#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
+#[derive(Clone, Debug, PartialEq, Hash, Eq)]
 pub struct RustField {
     pub visibility: RustVisibility,
-    pub name: Box<str>,
-    pub type_name_or_path: Box<str>,
+    pub name: Ident,
+    pub type_name_or_path: Path,
 }

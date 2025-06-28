@@ -10,9 +10,7 @@ impl RustVisibility {
     pub(in crate::internal) fn map(value: &syn::Visibility) -> RustVisibility {
         match value {
             syn::Visibility::Public(_) => RustVisibility::Public,
-            syn::Visibility::Restricted(vis) => {
-                RustVisibility::Restricted(vis.path.to_token_stream().to_string().into())
-            }
+            syn::Visibility::Restricted(vis) => RustVisibility::Restricted(*vis.path.clone()),
             syn::Visibility::Inherited => RustVisibility::Private,
         }
     }
@@ -25,9 +23,9 @@ impl fmt::Display for RustVisibility {
                 write!(f, "pub")
             }
             Self::Restricted(str) => {
-                let str: &str = str;
+                let str = str.to_token_stream().to_string();
 
-                match str {
+                match str.as_str() {
                     "crate" => {
                         write!(f, "pub (crate)")
                     }

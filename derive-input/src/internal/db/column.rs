@@ -3,20 +3,20 @@ use crate::api::{
     rust::column::RustField,
 };
 use proc_macro2::Span;
-use syn::Error;
+use syn::{Error, Ident};
 
 impl SpacetimeDBColumn {
     pub(in crate::internal) fn map(
         rust_field: &RustField,
         mut spacetimedb_table: SpacetimeDBTable,
-        auto_inc_column_names: &Vec<Box<str>>,
-        primary_key_column_name: &Box<str>,
+        auto_inc_column_names: &Vec<Ident>,
+        primary_key_column_name: &Ident,
     ) -> Result<(SpacetimeDBTable, SpacetimeDBColumn), Error> {
         let column_name = &rust_field.name;
 
         let is_primary_key = column_name.eq(primary_key_column_name);
 
-        if is_primary_key && rust_field.name.ne(&"id".into()) {
+        if is_primary_key && rust_field.name.to_string().ne(&"id") {
             return Err(Error::new(
                 Span::call_site(),
                 "A #[primary_key] column must be named `id`!",

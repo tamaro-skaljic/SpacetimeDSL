@@ -1,4 +1,6 @@
-#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
+use syn::Ident;
+
+#[derive(Clone, Debug, PartialEq, PartialOrd, Hash, Eq, Ord)]
 pub struct ScheduledReducer {
-    pub reducer_name: Box<str>,
+    pub reducer_name: Ident,
 }

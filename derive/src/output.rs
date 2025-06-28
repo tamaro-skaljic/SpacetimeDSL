@@ -8,7 +8,7 @@ use spacetimedsl_derive_input::api::{
         setter::Setter, wrapper::WrapperType,
     },
 };
-use syn::{Ident, Path, Type, Visibility, parse_str};
+use syn::{Ident, Visibility, parse_str};
 
 pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     let struct_name = format_ident!("{}", &input.rust_struct.name.to_string());
@@ -18,8 +18,7 @@ pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
         match &column.spacetimedsl_column.wrapper_type {
             Some(wrapper_type) => match wrapper_type {
                 WrapperType::Wrap(wrapper_type) => {
-                    let wrapper_type_impl: TokenStream = parse_str(&wrapper_type.wrapper_impl)?;
-                    wrapper_types.push(wrapper_type_impl);
+                    wrapper_types.push(&wrapper_type.wrapper_impl);
                 }
                 _ => {}
             },
@@ -125,27 +124,23 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
     let mut doc_comment = String::new();
     doc_comment.push_str(&method.doc_comment);
 
-    let trait_name = format_ident!("{}", *method.trait_name);
-    let paths_of_traits_to_extend: Vec<Path> = method
-        .paths_of_traits_to_extend
-        .iter()
-        .map(|p| parse_str(p).expect("parsing should have worked"))
-        .collect();
-    let method_name = format_ident!("{}", *method.method_name);
+    let trait_name = &method.trait_name;
+    let paths_of_traits_to_extend = &method.paths_of_traits_to_extend;
+    let method_name = &method.method_name;
 
-    let mut method_args: Vec<TokenStream> = vec![];
+    let mut method_args = vec![];
     for method_arg in &method.method_args {
-        method_args.push(parse_str(&method_arg)?);
+        method_args.push(method_arg);
     }
 
-    let return_type: Type = parse_str(&method.return_type)?;
-    let method_impl: TokenStream = parse_str(&method.method_impl)?;
+    let return_type = &method.return_type;
+    let method_impl = &method.method_impl;
 
     doc_comment = add_impl_doc(
         &trait_name,
         &method_name,
         &method_args,
-        &return_type,
+        return_type,
         &method_impl,
         doc_comment,
     );
@@ -176,22 +171,18 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
     let mut doc_comment = String::new();
     doc_comment.push_str(&method.doc_comment);
 
-    let trait_name = format_ident!("{}", *method.trait_name);
-    
-    let paths_of_traits_to_extend: Vec<Path> = method
-        .paths_of_traits_to_extend
-        .iter()
-        .map(|p| parse_str(p).expect("parsing should have worked"))
-        .collect();
-    let method_name = format_ident!("{}", *method.method_name);
+    let trait_name = &method.trait_name;
 
-    let mut method_args: Vec<TokenStream> = vec![];
+    let paths_of_traits_to_extend = &method.paths_of_traits_to_extend;
+    let method_name = &method.method_name;
+
+    let mut method_args = vec![];
     for method_arg in &method.method_args {
-        method_args.push(parse_str(&method_arg)?);
+        method_args.push(method_arg);
     }
 
-    let return_type: Type = parse_str(&method.return_type)?;
-    let method_impl: TokenStream = parse_str(&method.method_impl)?;
+    let return_type = &method.return_type;
+    let method_impl = &method.method_impl;
 
     doc_comment = add_impl_doc(
         &trait_name,
@@ -228,16 +219,16 @@ pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     let mut doc_comment = String::new();
     doc_comment.push_str(&method.doc_comment);
 
-    let trait_name = format_ident!("{}", *method.trait_name);
-    let method_name = format_ident!("{}", *method.method_name);
+    let trait_name = &method.trait_name;
+    let method_name = &method.method_name;
 
-    let mut method_args: Vec<TokenStream> = vec![];
+    let mut method_args = vec![];
     for method_arg in &method.method_args {
-        method_args.push(parse_str(&method_arg)?);
+        method_args.push(method_arg);
     }
 
-    let return_type: Type = parse_str(&method.return_type)?;
-    let method_impl: TokenStream = parse_str(&method.method_impl)?;
+    let return_type = &method.return_type;
+    let method_impl = &method.method_impl;
 
     doc_comment = add_impl_doc(
         &trait_name,
@@ -271,8 +262,8 @@ pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
 fn add_impl_doc(
     trait_name: &Ident,
     method_name: &Ident,
-    method_args: &Vec<TokenStream>,
-    return_type: &Type,
+    method_args: &Vec<&TokenStream>,
+    return_type: &TokenStream,
     method_impl: &TokenStream,
     mut doc_comment: String,
 ) -> String {
@@ -295,16 +286,16 @@ fn add_impl_doc(
         .expect("implementation doc formatting should work");
 
     doc_comment.push_str(&format!(
-        "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
+        "\n\nImplementation:\n\n```no_run\n{implementation_docs}\n```",
     ));
 
     doc_comment
 }
 
 fn getter(getter: &Getter) -> syn::Result<TokenStream> {
-    let method_name = format_ident!("{}", *getter.method_name);
-    let return_type: Type = parse_str(&getter.return_type)?;
-    let method_impl: TokenStream = parse_str(&getter.method_impl)?;
+    let method_name = &getter.method_name;
+    let return_type = &getter.return_type;
+    let method_impl = &getter.method_impl;
 
     Ok(quote! {
         pub fn #method_name(&self) -> #return_type {
@@ -316,10 +307,10 @@ fn getter(getter: &Getter) -> syn::Result<TokenStream> {
 
 fn setter(setter: &Setter) -> syn::Result<TokenStream> {
     let method_visibility: Visibility = parse_str(&setter.method_visibility.to_string())?;
-    let method_name = format_ident!("{}", *setter.method_name);
-    let method_arg: TokenStream = parse_str(&setter.method_arg)?;
-    let return_type: Type = parse_str(&setter.return_type)?;
-    let method_impl: TokenStream = parse_str(&setter.method_impl)?;
+    let method_name = &setter.method_name;
+    let method_arg = &setter.method_arg;
+    let return_type = &setter.return_type;
+    let method_impl = &setter.method_impl;
 
     Ok(quote! {
         #method_visibility fn #method_name(&mut self, #method_arg) -> #return_type {

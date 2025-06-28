@@ -3,14 +3,15 @@ use crate::api::db::{
     reducer::ScheduledReducer,
     table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
 };
-use quote::ToTokens;
+use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::table::{
     IndexArg, IndexType as SpacetimeIndexType, ScheduledArg, TableAccess, TableArgs,
 };
+use syn::Ident;
 
 impl SpacetimeDBTable {
     pub(in crate::internal) fn map(table: &TableArgs) -> SpacetimeDBTable {
-        let singular_name = table.name.to_string().into();
+        let singular_name = table.name.clone();
         let visibility = SpacetimeDBTableVisibility::map(&table.access);
         let indices = table.indices.iter().map(|i| Index::map(i)).collect();
         let scheduled_reducer = table.scheduled.as_ref().map(|s| ScheduledReducer::map(s));
@@ -39,15 +40,15 @@ impl SpacetimeDBTableVisibility {
 
 impl Index {
     fn map(index: &IndexArg) -> Index {
-        let name = index.name.to_string().into();
+        let name = index.name.clone();
         let is_unique = index.is_unique;
         let r#type = match &index.kind {
             SpacetimeIndexType::Direct { column } => {
-                let column = column.to_string().into();
+                let column = column.clone();
                 IndexType::Direct { column }
             }
             SpacetimeIndexType::BTree { columns } => {
-                let columns: Vec<Box<str>> = columns.iter().map(|c| c.to_string().into()).collect();
+                let columns: Vec<Ident> = columns.iter().map(|c| c.clone()).collect();
 
                 match columns.len() {
                     1 => IndexType::BTreeSingleColumn {
@@ -68,7 +69,7 @@ impl Index {
 
 impl ScheduledReducer {
     fn map(scheduled: &ScheduledArg) -> ScheduledReducer {
-        let reducer_name = scheduled.reducer.to_token_stream().to_string().into();
+        let reducer_name = format_ident!("{}", scheduled.reducer.to_token_stream().to_string());
 
         ScheduledReducer { reducer_name }
     }

@@ -1,6 +1,9 @@
-#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
+use proc_macro2::TokenStream;
+use syn::Ident;
+
+#[derive(Clone, Debug)]
 pub struct Getter {
-    pub method_name: Box<str>,
-    pub return_type: Box<str>,
-    pub method_impl: Box<str>,
+    pub method_name: Ident,
+    pub return_type: TokenStream,
+    pub method_impl: TokenStream,
 }

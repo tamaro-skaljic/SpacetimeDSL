@@ -1,10 +1,13 @@
+use proc_macro2::TokenStream;
+use syn::Ident;
+
 use crate::api::rust::visibility::RustVisibility;
 
-#[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType, Hash, Eq, Ord)]
+#[derive(Clone, Debug)]
 pub struct Setter {
     pub method_visibility: RustVisibility,
-    pub method_name: Box<str>,
-    pub method_arg: Box<str>,
-    pub return_type: Box<str>,
-    pub method_impl: Box<str>,
+    pub method_name: Ident,
+    pub method_arg: TokenStream,
+    pub return_type: TokenStream,
+    pub method_impl: TokenStream,
 }

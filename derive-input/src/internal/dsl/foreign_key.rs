@@ -1,7 +1,6 @@
 use super::foreign_key;
 use crate::api::dsl::foreign_key::{ForeignKey, OnDeleteStrategy};
 use crate::internal::dsl::{on_delete, path, table};
-use quote::ToTokens;
 use spacetime_bindings_macro_input::match_meta;
 use spacetime_bindings_macro_input::sats::SatsField;
 use spacetime_bindings_macro_input::sym::{index, primary_key, unique};
@@ -70,18 +69,13 @@ impl ForeignKey {
             .ok_or_else(|| syn::Error::new_spanned(
                 &attr.meta,
                 "PathToTable must be set in `#[foreign_key(path = PathToTable)]`, e.g. `path = crate::path::to::my::table`.",
-            ))?
-            .to_token_stream()
-            .to_string().into();
+            ))?;
 
             let table_name = table_name
             .ok_or_else(|| syn::Error::new_spanned(
                 &attr.meta,
                 "TableName must be set in `#[foreign_key(table = TableName)]`, e.g. `table = my_table`.",
-            ))?
-            .to_token_stream()
-            .to_string()
-            .into();
+            ))?;
 
             let on_delete_strategy = on_delete_strategy.ok_or_else(|| {
             syn::Error::new_spanned(

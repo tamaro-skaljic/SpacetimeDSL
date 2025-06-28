@@ -19,9 +19,9 @@ use crate::{
 };
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
-use quote::{TokenStreamExt, format_ident, quote};
+use quote::{format_ident, quote, ToTokens, TokenStreamExt};
 use std::collections::HashMap;
-use syn::{parse_str, Ident, Path, Type};
+use syn::{parse_str, Ident, Path};
 
 #[derive(Debug)]
 pub(in crate::internal) enum DSLTableMethod {
@@ -66,7 +66,7 @@ impl SpacetimeDSLColumnMethods {
         rust_field: &RustField,
         spacetimedb_column: &SpacetimeDBColumn,
         spacetimedsl_column: &SpacetimeDSLColumn,
-        primary_key_column_name: &Box<str>,
+        primary_key_column_name: &Ident,
         internal_columns: &Vec<InternalColumn>,
     ) -> Option<SpacetimeDSLColumnMethods> {
         let index = match &spacetimedb_column.single_column_index {
@@ -162,7 +162,7 @@ impl SpacetimeDSLTableMethods {
         spacetimedb_table: &SpacetimeDBTable,
         spacetimedsl_table: &SpacetimeDSLTable,
         columns: &Vec<Column>,
-        primary_key_column_name: &Box<str>,
+        primary_key_column_name: &Ident,
         internal_columns: &Vec<InternalColumn>,
     ) -> syn::Result<SpacetimeDSLTableMethods> {
         let create = for_table(
@@ -381,30 +381,29 @@ fn process_columns_for_create_and_update_method(create_or_update: CreateOrUpdate
     let mut constructor_arg = None;
     let constructor_arg_name;
 
-    let singular_table_name = format_ident!("{}", *internal_column.spacetimedb_table_singular_name);
-    let column_name = format_ident!("{}", *internal_column.rust_field_name);
+    let singular_table_name = &internal_column.spacetimedb_table_singular_name;
+    let column_name = &internal_column.rust_field_name;
     let getter_name = format_ident!("get_{column_name}");
     constructor_arg_name = quote! { #column_name };
 
-    let column_type: Type =
-        parse_str(&internal_column.rust_field_type_name_or_path).expect("create");
+    let column_type = &internal_column.rust_field_type_name_or_path;
 
     match create_or_update {
         CreateOrUpdateDSLMethod::Create => {
             // TODO: Allow Option<Timestamp> as modified_at column type
             if internal_column.spacetimedb_is_auto_inc
-                || internal_column.rust_field_name.eq(&"created_at".to_string().into())
-                || internal_column.rust_field_name.eq(&"modified_at".to_string().into())
+                || internal_column.rust_field_name.to_string().eq(&"created_at")
+                || internal_column.rust_field_name.to_string().eq(&"modified_at")
             {
                 if internal_column.spacetimedb_is_auto_inc {
                     constructor_arg = Some(quote! {
                         let #column_name = #column_type::default();
                     });
-                } else if internal_column.rust_field_name.eq(&"created_at".to_string().into()) {
+                } else if internal_column.rust_field_name.to_string().eq(&"created_at") {
                     constructor_arg = Some(quote! {
                         let created_at = self.ctx().timestamp;
                     });
-                } else if internal_column.rust_field_name.eq(&"modified_at".to_string().into()) {
+                } else if internal_column.rust_field_name.to_string().eq(&"modified_at") {
                     constructor_arg = Some(quote! {
                         let modified_at = self.ctx().timestamp;
                     });
@@ -420,7 +419,7 @@ fn process_columns_for_create_and_update_method(create_or_update: CreateOrUpdate
     match &internal_column.spacetimedsl_wrapper_type {
         Some(wrapper_type) => match wrapper_type {
             WrapperType::Wrap(wrapper_type) => {
-                if internal_column.rust_field_type_name_or_path.eq(&"String".into()) {
+                if internal_column.rust_field_type_name_or_path.to_token_stream().to_string().eq(&"String") {
                     method_arg = Some(quote! {
                         #column_name: &str
                     });
@@ -475,7 +474,7 @@ fn process_columns_for_create_and_update_method(create_or_update: CreateOrUpdate
             }
         },
         None => {
-            if internal_column.rust_field_type_name_or_path.eq(&"String".into()) {
+            if internal_column.rust_field_type_name_or_path.to_token_stream().to_string().eq(&"String") {
                 method_arg = Some(quote! {
                     #column_name: &str
                 });
@@ -510,8 +509,8 @@ pub(in crate::internal) fn for_table(
     spacetimedsl_table: &SpacetimeDSLTable,
     internal_columns: &Vec<InternalColumn>,
 ) -> SpacetimeDSLMethod {
-    let struct_name = format_ident!("{}", *rust_struct.name);
-    let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
+    let struct_name = &rust_struct.name;
+    let singular_table_name = &spacetimedb_table.singular_name;
     let singular_table_name_pascal_case = RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
     let plural_table_name = &spacetimedsl_table.plural_name;
 
@@ -524,8 +523,8 @@ pub(in crate::internal) fn for_table(
         // TODO: Let foreign_key's influence the doc comment
         DSLTableMethod::Create => {
             doc_comment = format!("Create a row in the `{singular_table_name}` table.");
-            trait_name = format!("Create{singular_table_name_pascal_case}Row");
-            method_name = format!("create_{}", singular_table_name);
+            trait_name = format_ident!("Create{singular_table_name_pascal_case}Row");
+            method_name = format_ident!("create_{}", singular_table_name);
 
             let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
             return_type = quote! {
@@ -534,16 +533,16 @@ pub(in crate::internal) fn for_table(
         }
         DSLTableMethod::GetAll => {
             doc_comment = format!("Get all rows inside the `{singular_table_name}` table.");
-            trait_name = format!("GetAll{singular_table_name_pascal_case}Rows");
-            method_name = format!("get_all_{}", plural_table_name);
+            trait_name = format_ident!("GetAll{singular_table_name_pascal_case}Rows");
+            method_name = format_ident!("get_all_{}", plural_table_name);
             return_type = quote! {
                 impl Iterator<Item = #struct_name>
             };
         }
         DSLTableMethod::GetCount => {
             doc_comment = format!("Count all rows inside the `{singular_table_name}` table.");
-            trait_name = format!("CountOfAll{singular_table_name_pascal_case}Rows");
-            method_name = format!("count_of_all_{}", plural_table_name);
+            trait_name = format_ident!("CountOfAll{singular_table_name_pascal_case}Rows");
+            method_name = format_ident!("count_of_all_{}", plural_table_name);
             return_type = quote! {
                 u64
             };
@@ -551,11 +550,8 @@ pub(in crate::internal) fn for_table(
     }
 
     let doc_comment = doc_comment.into();
-    let trait_name = trait_name.into();
-    let method_name = method_name.into();
-    let return_type = return_type.to_string().into();
 
-    let mut paths_of_traits_to_extend = vec![ "spacetimedsl::DSLContext".into()];
+    let mut paths_of_traits_to_extend = vec![ parse_str("spacetimedsl::DSLContext").expect("parsing should have worked") ];
     let mut method_args = vec![];
     let method_impl;
 
@@ -678,9 +674,6 @@ pub(in crate::internal) fn for_table(
         }
     };
 
-    let method_args = method_args.iter().map(|ts| ts.to_string().into()).collect();
-    let method_impl = method_impl.to_string().into();
-
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
@@ -699,14 +692,14 @@ pub(in crate::internal) fn for_single_column_index(
     spacetimedsl_table: &SpacetimeDSLTable,
     rust_field: &RustField,
     spacetimedsl_column: &SpacetimeDSLColumn,
-    primary_key_column_name: &Box<str>,
+    primary_key_column_name: &Ident,
     internal_columns: &Vec<InternalColumn>,
 ) -> SpacetimeDSLMethod {
-    let struct_name = format_ident!("{}", *rust_struct.name);
-    let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
+    let struct_name = &rust_struct.name;
+    let singular_table_name = &spacetimedb_table.singular_name;
     let singular_table_name_pascal_case = RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
     let plural_table_name = &spacetimedsl_table.plural_name;
-    let column_name = format_ident!("{}", *rust_field.name);
+    let column_name = &rust_field.name;
     let column_name_pascal_case = RenameRule::PascalCase.apply_to_field(column_name.to_string());
     let primary_key_column_name = format_ident!("{primary_key_column_name}");
 
@@ -720,8 +713,8 @@ pub(in crate::internal) fn for_single_column_index(
             doc_comment = format!(
                 "Get all {struct_name} rows inside the {singular_table_name} table filtered by the single-column index on the {column_name} column."
             );
-            trait_name = format!("Get{singular_table_name_pascal_case}RowsBy{column_name_pascal_case}");
-            method_name = format!("get_{plural_table_name}_by_{column_name}");
+            trait_name = format_ident!("Get{singular_table_name_pascal_case}RowsBy{column_name_pascal_case}");
+            method_name = format_ident!("get_{plural_table_name}_by_{column_name}");
             return_type = quote! {
                 impl Iterator<Item = #struct_name>
             };
@@ -731,8 +724,8 @@ pub(in crate::internal) fn for_single_column_index(
             doc_comment = format!(
                 "Delete all {struct_name} rows inside the {singular_table_name} table filtered by the single-column index on the {column_name} column."
             );
-            trait_name = format!("Delete{singular_table_name_pascal_case}RowsBy{column_name_pascal_case}");
-            method_name = format!("delete_{plural_table_name}_by_{column_name}");
+            trait_name = format_ident!("Delete{singular_table_name_pascal_case}RowsBy{column_name_pascal_case}");
+            method_name = format_ident!("delete_{plural_table_name}_by_{column_name}");
             // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
             return_type = quote! {Result<u64,()>};
         }
@@ -740,8 +733,8 @@ pub(in crate::internal) fn for_single_column_index(
             doc_comment = format!(
                 "Get an Option<{struct_name}> row inside the {singular_table_name} table filtered by the unique single-column index on the {column_name} column."
             );
-            trait_name = format!("Get{singular_table_name_pascal_case}RowOptionBy{column_name_pascal_case}");
-            method_name = format!("get_{singular_table_name}_by_{column_name}");
+            trait_name = format_ident!("Get{singular_table_name_pascal_case}RowOptionBy{column_name_pascal_case}");
+            method_name = format_ident!("get_{singular_table_name}_by_{column_name}");
             return_type = quote! {
                 Option<#struct_name>
             };
@@ -751,8 +744,8 @@ pub(in crate::internal) fn for_single_column_index(
             doc_comment = format!(
                 "Update a {struct_name} row inside the {singular_table_name} table by the unique single-column index on the {column_name} column."
             );
-            trait_name = format!("Update{singular_table_name_pascal_case}RowBy{column_name_pascal_case}");
-            method_name = format!("update_{singular_table_name}_by_{column_name}");
+            trait_name = format_ident!("Update{singular_table_name_pascal_case}RowBy{column_name_pascal_case}");
+            method_name = format_ident!("update_{singular_table_name}_by_{column_name}");
 
             let try_insert_error_generic_type = format_ident!("{singular_table_name}__TableHandle");
             return_type = quote! {
@@ -764,19 +757,16 @@ pub(in crate::internal) fn for_single_column_index(
             doc_comment = format!(
                 "Delete a {struct_name} row inside the {singular_table_name} table filtered by the unique single-column index on the {column_name} column."
             );
-            trait_name = format!("Delete{singular_table_name_pascal_case}RowBy{column_name_pascal_case}");
-            method_name = format!("delete_{singular_table_name}_by_{column_name}");
+            trait_name = format_ident!("Delete{singular_table_name_pascal_case}RowBy{column_name_pascal_case}");
+            method_name = format_ident!("delete_{singular_table_name}_by_{column_name}");
             // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
             return_type = quote! {Result<bool,()>};
         }
     }
 
     let doc_comment = doc_comment.into();
-    let trait_name = trait_name.into();
-    let method_name = method_name.into();
-    let return_type = return_type.to_string().into();
 
-    let mut paths_of_traits_to_extend = vec![ "spacetimedsl::DSLContext".into()];
+    let mut paths_of_traits_to_extend = vec![ parse_str("spacetimedsl::DSLContext").expect("parsing should have worked") ];
     let mut method_args = vec![];
     let method_impl;
 
@@ -857,7 +847,7 @@ pub(in crate::internal) fn for_single_column_index(
                 Some(wrapper_type) => {
                     let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
                     // TODO: Also special cases for Strings in multi-column indices?
-                    if rust_field.type_name_or_path.eq(&"String".into()) {
+                    if rust_field.type_name_or_path.to_token_stream().to_string().eq(&"String") {
                         match &dsl_method {
                             DSLColumnMethod::GetMany | DSLColumnMethod::DeleteMany => {
                                 method_arg = quote! { #column_name: &str };
@@ -888,12 +878,11 @@ pub(in crate::internal) fn for_single_column_index(
                 }
                 None => match dsl_method {
                     DSLColumnMethod::GetMany => {
-                        let column_type: Type;
-                        if rust_field.type_name_or_path.eq(&"String".into()) {
+                        let column_type;
+                        if rust_field.type_name_or_path.to_token_stream().to_string().eq(&"String") {
                             column_type = parse_str("str").expect("parsing should have worked");
                         } else {
-                            column_type = parse_str(&rust_field.type_name_or_path)
-                                .expect("get_many.for_single_column_index");
+                            column_type = rust_field.type_name_or_path.clone();
                         }
 
                         let ma = quote! {
@@ -907,12 +896,11 @@ pub(in crate::internal) fn for_single_column_index(
                         };
                     }
                     DSLColumnMethod::DeleteMany => {
-                        let column_type: Type;
-                        if rust_field.type_name_or_path.eq(&"String".into()) {
+                        let column_type;
+                        if rust_field.type_name_or_path.to_token_stream().to_string().eq(&"String") {
                             column_type = parse_str("str").expect("parsing should have worked");
                         } else {
-                            column_type = parse_str(&rust_field.type_name_or_path)
-                                .expect("delete_many.for_single_column_index");
+                            column_type = rust_field.type_name_or_path.clone();
                         }
 
                         method_arg = quote! { #column_name: &'a #column_type };
@@ -922,13 +910,12 @@ pub(in crate::internal) fn for_single_column_index(
                         };
                     }
                     DSLColumnMethod::GetOneOption => {
-                        if rust_field.type_name_or_path.eq(&"String".into()) {
+                        if rust_field.type_name_or_path.to_token_stream().to_string().eq(&"String") {
                             method_arg = quote! { #column_name: &str };
 
                             column_value = quote! { #column_name.to_string() };
                         } else {
-                            let column_type: Type = parse_str(&rust_field.type_name_or_path)
-                                .expect("get_one_option.for_single_column_index");
+                            let column_type = &rust_field.type_name_or_path;
                             method_arg = quote! { #column_name: &#column_type };
 
                             column_value = quote! {
@@ -937,8 +924,7 @@ pub(in crate::internal) fn for_single_column_index(
                         }
                     }
                     DSLColumnMethod::DeleteOne => {
-                        let column_type: Type = parse_str(&rust_field.type_name_or_path)
-                            .expect("delete_one.for_single_column_index");
+                        let column_type = &rust_field.type_name_or_path;
                         method_arg = quote! { #column_name: &#column_type };
 
                         column_value = quote! {
@@ -984,11 +970,10 @@ pub(in crate::internal) fn for_single_column_index(
 
                         let primary_key_column = internal_columns
                                 .iter()
-                                .find(|c| c.rust_field_name.eq(&primary_key_column_name.to_string().into()))
+                                .find(|c| c.rust_field_name.eq(&primary_key_column_name))
                                 .expect("should have a primary key");
 
-                        let primary_key_column_type: Type = parse_str(&primary_key_column.rust_field_type_name_or_path)
-                                .expect("parsing should have worked");
+                        let primary_key_column_type = &primary_key_column.rust_field_type_name_or_path;
 
                         quote! {
                             #into_option
@@ -1070,9 +1055,6 @@ pub(in crate::internal) fn for_single_column_index(
         }
     };
 
-    let method_args = method_args.iter().map(|ts| ts.to_string().into()).collect();
-    let method_impl = method_impl.to_string().into();
-
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
@@ -1091,7 +1073,7 @@ pub(in crate::internal) fn for_multi_column_index(
     spacetimedsl_table: &SpacetimeDSLTable,
     multi_column_index: &Index,
     columns: &[Column],
-    primary_key_column_name: &Box<str>,
+    primary_key_column_name: &Ident,
     internal_columns: &Vec<InternalColumn>,
 ) -> SpacetimeDSLMethod {
     let index_columns = match &multi_column_index.index_type {
@@ -1104,11 +1086,11 @@ pub(in crate::internal) fn for_multi_column_index(
         }
     };
 
-    let struct_name = format_ident!("{}", *rust_struct.name);
-    let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
+    let struct_name = &rust_struct.name;
+    let singular_table_name = &spacetimedb_table.singular_name;
     let singular_table_name_pascal_case = RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
-    let plural_table_name = format_ident!("{}", *spacetimedsl_table.plural_name);
-    let index_name = format_ident!("{}", *multi_column_index.name);
+    let plural_table_name = &spacetimedsl_table.plural_name;
+    let index_name = &multi_column_index.name;
     let index_name_pascal_case = RenameRule::PascalCase.apply_to_field(index_name.to_string());
     let primary_key_column_name = format_ident!("{primary_key_column_name}");
 
@@ -1123,24 +1105,22 @@ pub(in crate::internal) fn for_multi_column_index(
     .into();
 
     let trait_name = match dsl_method {
-        DSLColumnMethod::GetMany => format!("Get{singular_table_name_pascal_case}RowsBy{index_name_pascal_case}"),
-        DSLColumnMethod::DeleteMany => format!("Delete{singular_table_name_pascal_case}RowsBy{index_name_pascal_case}"),
+        DSLColumnMethod::GetMany => format_ident!("Get{singular_table_name_pascal_case}RowsBy{index_name_pascal_case}"),
+        DSLColumnMethod::DeleteMany => format_ident!("Delete{singular_table_name_pascal_case}RowsBy{index_name_pascal_case}"),
         DSLColumnMethod::GetOneOption => {
-            format!("Get{singular_table_name_pascal_case}RowOptionBy{index_name_pascal_case}")
+            format_ident!("Get{singular_table_name_pascal_case}RowOptionBy{index_name_pascal_case}")
         }
-        DSLColumnMethod::Update => format!("Update{singular_table_name_pascal_case}RowBy{index_name_pascal_case}"),
-        DSLColumnMethod::DeleteOne => format!("Delete{singular_table_name_pascal_case}RowBy{index_name_pascal_case}"),
-    }
-    .into();
+        DSLColumnMethod::Update => format_ident!("Update{singular_table_name_pascal_case}RowBy{index_name_pascal_case}"),
+        DSLColumnMethod::DeleteOne => format_ident!("Delete{singular_table_name_pascal_case}RowBy{index_name_pascal_case}"),
+    };
 
     let method_name = match dsl_method {
-        DSLColumnMethod::GetMany => format!("get_{plural_table_name}_by_{index_name}"),
-        DSLColumnMethod::DeleteMany => format!("delete_{plural_table_name}_by_{index_name}"),
-        DSLColumnMethod::GetOneOption => format!("get_{singular_table_name}_by_{index_name}"),
-        DSLColumnMethod::Update => format!("update_{singular_table_name}_by_{index_name}"),
-        DSLColumnMethod::DeleteOne => format!("delete_{singular_table_name}_by_{index_name}"),
-    }
-    .into();
+        DSLColumnMethod::GetMany => format_ident!("get_{plural_table_name}_by_{index_name}"),
+        DSLColumnMethod::DeleteMany => format_ident!("delete_{plural_table_name}_by_{index_name}"),
+        DSLColumnMethod::GetOneOption => format_ident!("get_{singular_table_name}_by_{index_name}"),
+        DSLColumnMethod::Update => format_ident!("update_{singular_table_name}_by_{index_name}"),
+        DSLColumnMethod::DeleteOne => format_ident!("delete_{singular_table_name}_by_{index_name}"),
+    };
 
     let return_type = match dsl_method {
         DSLColumnMethod::GetMany => quote! {impl Iterator<Item = #struct_name>},
@@ -1153,11 +1133,9 @@ pub(in crate::internal) fn for_multi_column_index(
         },
         // TODO: Result<spacetimedsl::DeletionResult, spacetimedsl::ReferenceIntegrityViolationError>
         DSLColumnMethod::DeleteOne => quote! {Result<bool,()>},
-    }
-    .to_string()
-    .into();
+    };
 
-    let mut paths_of_traits_to_extend = vec![ "spacetimedsl::DSLContext".into()];
+    let mut paths_of_traits_to_extend = vec![ parse_str("spacetimedsl::DSLContext").expect("parsing should have worked") ];
     let mut method_args = vec![];
     let method_impl;
 
@@ -1242,7 +1220,7 @@ pub(in crate::internal) fn for_multi_column_index(
                     continue;
                 }
 
-                let column_name = format_ident!("{}", *column.rust_field.name);
+                let column_name = &column.rust_field.name;
 
                 match &column.spacetimedsl_column.wrapper_type {
                     Some(wrapper_type) => {
@@ -1282,8 +1260,7 @@ pub(in crate::internal) fn for_multi_column_index(
                         }
                     }
                     None => {
-                        let column_type: Type = parse_str(&column.rust_field.type_name_or_path)
-                            .expect("for_multi_column_index");
+                        let column_type = &column.rust_field.type_name_or_path;
 
                         match dsl_method {
                             DSLColumnMethod::GetMany | DSLColumnMethod::DeleteMany => {
@@ -1338,11 +1315,10 @@ pub(in crate::internal) fn for_multi_column_index(
 
                                 let primary_key_column = internal_columns
                                     .iter()
-                                    .find(|c| c.rust_field_name.eq(&primary_key_column_name.to_string().into()))
+                                    .find(|c| c.rust_field_name.eq(&primary_key_column_name))
                                     .expect("should have a primary key");
 
-                                let primary_key_column_type: Type = parse_str(&primary_key_column.rust_field_type_name_or_path)
-                                    .expect("parsing should have worked");
+                                let primary_key_column_type = &primary_key_column.rust_field_type_name_or_path;
                                 quote! {
                                     #(#into_options)*
 
@@ -1459,9 +1435,6 @@ pub(in crate::internal) fn for_multi_column_index(
         }
     };
 
-    let method_args = method_args.iter().map(|ts| ts.to_string().into()).collect();
-    let method_impl = method_impl.to_string().into();
-
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
@@ -1477,8 +1450,8 @@ fn reference_integrity_checks(
     create_or_update_dsl_method: CreateOrUpdateDSLMethod,
     spacetimedb_table: &SpacetimeDBTable,
     columns: &Vec<InternalColumn>,
-    mut paths_of_traits_to_extend: Vec<Box<str>>,
-) -> (Vec<Box<str>>, Vec<TokenStream>) {
+    mut paths_of_traits_to_extend: Vec<Path>,
+) -> (Vec<Path>, Vec<TokenStream>) {
     let mut reference_integrity_checks = vec![];
 
     let reasons = "There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the Foreign Key / Referenced By SpacetimeDSL feature is broken.";
@@ -1496,14 +1469,14 @@ fn reference_integrity_checks(
             None => continue,
         };
 
-        let referenced_table_name = format_ident!("{}", *foreign_key.table_name);
+        let referenced_table_name = &foreign_key.table_name;
         let referenced_table_name_pascal_case = format_ident!("{}", RenameRule::PascalCase.apply_to_field(referenced_table_name.to_string()));
         let referenced_table_primary_key_column_name_pascal_case = format_ident!("Id");
         let get_row_of_referenced_table_by_primary_key_trait_name = format_ident!("Get{referenced_table_name_pascal_case}RowOptionBy{referenced_table_primary_key_column_name_pascal_case}");
         let get_row_of_referenced_table_by_primary_key_method_name = format_ident!("get_{referenced_table_name}_by_id");
 
-        let referencing_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
-        let referencing_table_column_name = format_ident!("{}", *column.rust_field_name);
+        let referencing_table_name = &spacetimedb_table.singular_name;
+        let referencing_table_column_name = &column.rust_field_name;
         let referencing_table_column_getter_name = format_ident!("get_{referencing_table_column_name}");
 
         let mut reference_integrity_violation_error_panic_message = format!(
@@ -1512,9 +1485,9 @@ fn reference_integrity_checks(
         reference_integrity_violation_error_panic_message.push_str("`{:?}`. Found none. ");
         reference_integrity_violation_error_panic_message.push_str(reasons);
 
-        let referencing_table_column_type = column.rust_field_type_name_or_path.trim();
+        let referencing_table_column_type = column.rust_field_type_name_or_path.to_token_stream().to_string();
 
-        paths_of_traits_to_extend.push(format!("{}::{get_row_of_referenced_table_by_primary_key_trait_name}", &foreign_key.path).into());
+        paths_of_traits_to_extend.push(parse_str(&format!("{}::{get_row_of_referenced_table_by_primary_key_trait_name}", &foreign_key.path.to_token_stream().to_string())).expect("should be parseable"));
 
         let check = quote! {
             match self.#get_row_of_referenced_table_by_primary_key_method_name(#referencing_table_name.#referencing_table_column_getter_name()) {
@@ -1529,7 +1502,7 @@ fn reference_integrity_checks(
         };
 
         reference_integrity_checks.push(
-            match referencing_table_column_type {
+            match referencing_table_column_type.trim() {
             "u8" | "u16" | "u32" | "u64" | "u128"  => quote! {
                 if #referencing_table_column_name.ne(&0) {
                     #check
@@ -1618,7 +1591,7 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_checks(
         multi_column_index_checks.push(get_unique_multi_column_index_check(
             struct_name,
             &singular_table_name,
-            &format_ident!("{}", *multi_column_index.name),
+            &multi_column_index.name,
             &column_values,
         ));
     }
@@ -1663,9 +1636,9 @@ fn for_referenced_by(
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
     columns: &Vec<Column>,
-    primary_key_column_name: &Box<str>,
+    primary_key_column_name: &Ident,
 ) -> SpacetimeDSLMethod {
-    let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
+    let singular_table_name = &spacetimedb_table.singular_name;
     let singular_table_name_pascal_case = format_ident!(
         "{}",
         RenameRule::PascalCase.apply_to_field(spacetimedb_table.singular_name.to_string())
@@ -1676,8 +1649,7 @@ fn for_referenced_by(
         .find(|c| c.rust_field.name.eq(primary_key_column_name))
         .expect("should have a primary key");
 
-    let primary_key_column_type: Type = parse_str(&primary_key_column.rust_field.type_name_or_path)
-        .expect("parsing should have worked");
+    let primary_key_column_type = &primary_key_column.rust_field.type_name_or_path;
 
     let doc_comment;
     let trait_name = get_referenced_table_trait_name(
@@ -1716,18 +1688,14 @@ fn for_referenced_by(
     };
 
     let doc_comment = doc_comment.into();
-    let trait_name = trait_name.to_string().into();
-    let function_name = function_name.to_string().into();
-    let return_type = return_type.to_string().into();
 
     let function_impl;
 
     let mut strategy_calls = vec![];
 
     for referencing_table in &spacetimedsl_table.referencing_tables {
-        let referencing_table_path: Path =
-            parse_str(&referencing_table.path).expect("parsing should have worked");
-        let referencing_table_name = format_ident!("{}", *referencing_table.table_name);
+        let referencing_table_path = &referencing_table.path;
+        let referencing_table_name = &referencing_table.table_name;
         let referencing_table_name_pascal_case = format_ident!(
             "{}",
             RenameRule::PascalCase.apply_to_field(referencing_table_name.to_string())
@@ -1761,12 +1729,6 @@ fn for_referenced_by(
         Ok(())
     };
 
-    let function_args = function_args
-        .iter()
-        .map(|ts| ts.to_string().into())
-        .collect();
-    let function_impl = function_impl.to_string().into();
-
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
@@ -1784,11 +1746,11 @@ fn for_foreign_key(
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
     columns: &Vec<Column>,
-    referenced_table_name: &str,
+    referenced_table_name: &syn::Ident,
     columns_with_foreign_key: &Vec<&&Column>,
-    primary_key_column_name: &Box<str>,
+    primary_key_column_name: &Ident,
 ) -> SpacetimeDSLMethod {
-    let primary_key_column_type: Type = parse_str(
+    let primary_key_column_type = 
         &columns
         .iter()
         .find(|c| {
@@ -1798,9 +1760,7 @@ fn for_foreign_key(
         })
         .expect("should have a primary key")
             .rust_field
-            .type_name_or_path,
-    )
-    .expect("parsing should have worked");
+            .type_name_or_path;
 
     let first_foreign_key_column = columns_with_foreign_key
         .first()
@@ -1815,8 +1775,8 @@ fn for_foreign_key(
     for column_with_foreign_key in columns_with_foreign_key {
         if column_with_foreign_key
             .rust_field
-            .type_name_or_path
-            .ne(&referenced_table_primary_key_column_type)
+            .type_name_or_path.to_token_stream().to_string()
+            .ne(&referenced_table_primary_key_column_type.to_token_stream().to_string())
         {
             // TODO: If Option is supported, the type of the primary key values needs to be without option and it's allowed to have both, option and non-option columns. There is already a function to remove option from the type representation, search for `Option <`` in the code.
             panic!(
@@ -1844,11 +1804,9 @@ fn for_foreign_key(
             .push(column_with_foreign_key);
     }
 
-    let struct_name = format_ident!("{}", *rust_struct.name);
-    let referenced_table_primary_key_column_type: Type =
-        parse_str(&referenced_table_primary_key_column_type).expect("parsing should have worked");
+    let struct_name = &rust_struct.name;
 
-    let singular_table_name = format_ident!("{}", *spacetimedb_table.singular_name);
+    let singular_table_name = &spacetimedb_table.singular_name;
     let singular_table_name_pascal_case = format_ident!(
         "{}",
         RenameRule::PascalCase.apply_to_field(spacetimedb_table.singular_name.to_string())
@@ -1865,17 +1823,13 @@ fn for_foreign_key(
         &dsl_internal_foreign_key_function,
         &singular_table_name_pascal_case,
         &referenced_table_name_pascal_case,
-    )
-    .to_string()
-    .into();
+    );
 
     let function_name = get_referencing_table_function_name(
         &dsl_internal_foreign_key_function,
         &singular_table_name,
         &referenced_table_name,
-    )
-    .to_string()
-    .into();
+    );
 
     let primary_key_value_arg_name;
 
@@ -1892,9 +1846,7 @@ fn for_foreign_key(
     // TODO: Result Type
     let return_type = quote! {
         Result<(),()>
-    }
-    .to_string()
-    .into();
+    };
 
     match dsl_internal_foreign_key_function {
         DSLInternalForeignKeyFunction::ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted => {
@@ -1923,7 +1875,7 @@ fn for_foreign_key(
             &struct_name,
             &singular_table_name,
             &primary_key_column_name,
-            &primary_key_column_type,
+            primary_key_column_type,
             &spacetimedsl_table,
             &dsl_internal_foreign_key_function,
             on_delete_strategy,
@@ -1940,12 +1892,6 @@ fn for_foreign_key(
         Ok(())
     };
 
-    let function_args = function_args
-        .iter()
-        .map(|ts| ts.to_string().into())
-        .collect();
-    let function_impl = function_impl.to_string().into();
-
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
@@ -1961,7 +1907,7 @@ fn get_on_delete_strategy_implementation(
     struct_name: &Ident,
     singular_table_name: &Ident,
     primary_key_column_name: &Ident,
-    primary_key_column_type: &Type,
+    primary_key_column_type: &Path,
     spacetimedsl_table: &SpacetimeDSLTable,
     dsl_internal_foreign_key_function: &DSLInternalForeignKeyFunction,
     on_delete_strategy: &OnDeleteStrategy,
@@ -1972,7 +1918,7 @@ fn get_on_delete_strategy_implementation(
     let mut strategy_after_all_columns = TokenStream::default();
 
     for column in &columns_by_on_delete_strategy {
-        let column_name = format_ident!("{}", *column.rust_field.name);
+        let column_name = &column.rust_field.name;
 
         let is_unique_index = column
             .spacetimedb_column
