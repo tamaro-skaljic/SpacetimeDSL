@@ -3,7 +3,7 @@ use syn::{Ident, Path};
 
 
 pub struct SpacetimeDSLMethod {
-    pub doc_comment: Box<str>,
+    pub doc_comment: String,
     pub trait_name: Ident,
     pub paths_of_traits_to_extend: Vec<Path>,
     pub method_name: Ident,
