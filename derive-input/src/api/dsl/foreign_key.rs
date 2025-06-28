@@ -1,6 +1,5 @@
 use syn::{Ident, Path};
-
-#[derive(Clone, Debug, PartialEq, Hash, Eq)]
+#[derive(Clone)]
 pub struct ForeignKey {
     pub path: Path,
     pub table_name: Ident,
@@ -9,7 +8,7 @@ pub struct ForeignKey {
 
 // This enum is copy+paste of the enum in the SpacetimeDSL crate (which is the public API of the DSL).
 
-#[derive(Clone, Debug, PartialEq, PartialOrd, Hash, Eq, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq)]
 pub enum OnDeleteStrategy {
     /// Available independent from the column type.
     Error,

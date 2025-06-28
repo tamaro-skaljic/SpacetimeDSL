@@ -194,8 +194,8 @@ fn get_wrapper_impl(
 impl WrapperType {
     pub(in crate::internal) fn map_to_wrapped_type(value: &Wrap) -> Type {
         parse2(value.wrapped_type_name_or_path.to_token_stream()).expect(&format!(
-            "Failed to parse {:?} as Ident in WrapperType::map_to_wrapped_type.",
-            &value.wrapped_type_name_or_path
+            "Failed to parse {} as Ident in WrapperType::map_to_wrapped_type.",
+            &value.wrapped_type_name_or_path.to_token_stream().to_string()
         ))
     }
 
@@ -206,8 +206,8 @@ impl WrapperType {
                 &w.wrapper_struct_name
             )),
             WrapperType::Wrapped(w) => parse_str(&w.wrapper_struct_name_or_path.to_token_stream().to_string()).expect(&format!(
-                "Failed to parse {:?} as Path in WrapperType::map_to_wrapper_type for WrapperType::Wrapped.",
-                &w.wrapper_struct_name_or_path
+                "Failed to parse {} as Path in WrapperType::map_to_wrapper_type for WrapperType::Wrapped.",
+                &w.wrapper_struct_name_or_path.to_token_stream().to_string()
             )),
         }
     }

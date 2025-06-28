@@ -3,7 +3,7 @@ use syn::Ident;
 use super::reference::ReferencingTable;
 use crate::api::dsl::{column::SpacetimeDSLColumnMethods, method::SpacetimeDSLMethod};
 
-#[derive(Clone, Debug, PartialEq, Hash, Eq)]
+
 pub struct SpacetimeDSLTable {
     pub plural_name: Ident,
     pub is_mutable: bool,
@@ -12,7 +12,7 @@ pub struct SpacetimeDSLTable {
     pub referencing_tables: Vec<ReferencingTable>,
 }
 
-#[derive(Clone, Debug)]
+
 pub struct SpacetimeDSLTableMethods {
     pub create: SpacetimeDSLMethod,
     pub get_all: SpacetimeDSLMethod,

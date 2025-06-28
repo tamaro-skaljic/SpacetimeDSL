@@ -1,6 +1,9 @@
+use std::fmt::Display;
+
+use quote::ToTokens;
 use syn::Path;
 
-#[derive(Clone, Debug, PartialEq, Hash, Eq)]
+#[derive(Clone)]
 pub enum RustVisibility {
     /// `pub`
     Public,

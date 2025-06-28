@@ -2,7 +2,7 @@ use syn::{Ident, Path};
 
 use crate::api::rust::visibility::RustVisibility;
 
-#[derive(Clone, Debug, PartialEq, Hash, Eq)]
+
 pub struct RustField {
     pub visibility: RustVisibility,
     pub name: Ident,

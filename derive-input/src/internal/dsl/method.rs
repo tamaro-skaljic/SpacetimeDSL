@@ -23,14 +23,14 @@ use quote::{format_ident, quote, ToTokens, TokenStreamExt};
 use std::collections::HashMap;
 use syn::{parse_str, Ident, Path};
 
-#[derive(Debug)]
+
 pub(in crate::internal) enum DSLTableMethod {
     Create,
     GetAll,
     GetCount,
 }
 
-#[derive(Debug)]
+
 pub(in crate::internal) enum DSLColumnMethod {
     GetMany,
     DeleteMany,
@@ -40,19 +40,20 @@ pub(in crate::internal) enum DSLColumnMethod {
 }
 
 //TODO: Remove if all methods are in one enum
+
 #[derive(PartialEq)]
 enum CreateOrUpdateDSLMethod {
     Create,
     Update
 }
 
-#[derive(Debug)]
+
 pub(in crate::internal) enum DSLInternalReferencedByFunction {
     ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted,
     ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted,
 }
 
-#[derive(Debug)]
+
 pub(in crate::internal) enum DSLInternalForeignKeyFunction {
     ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted,
     ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted,
@@ -1458,7 +1459,7 @@ fn reference_integrity_checks(
 
     for column in columns {
         // Checks of private columns only need to happen in checks for create methods, because they can't be changed, they don't need to be checked during updates
-        if create_or_update_dsl_method.eq(&CreateOrUpdateDSLMethod::Update) && column.rust_field_visibility.eq(&crate::api::rust::visibility::RustVisibility::Private) {
+        if create_or_update_dsl_method.eq(&CreateOrUpdateDSLMethod::Update) && column.rust_field_visibility.to_string().eq(&crate::api::rust::visibility::RustVisibility::Private.to_string()) {
             continue;
         }
 
