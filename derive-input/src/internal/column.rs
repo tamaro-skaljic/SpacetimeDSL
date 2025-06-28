@@ -55,9 +55,9 @@ pub(in crate::internal) fn try_parse(
             rust_field_name: rust_field.name.clone(),
             rust_field_type_name_or_path: rust_field.type_name_or_path.clone(),
             spacetimedsl_column_foreign_key: spacetimedsl_column.foreign_key.clone(),
-            spacetimedb_is_auto_inc: spacetimedb_column.is_auto_inc,
-            spacetimedsl_is_option: spacetimedsl_column.is_option,
-            spacetimedsl_wrapper_type: spacetimedsl_column.wrapper_type.clone(),
+            spacetimedb_column_is_auto_inc: spacetimedb_column.is_auto_inc,
+            spacetimedsl_column_is_option: spacetimedsl_column.is_option,
+            spacetimedsl_column_wrapper_type: spacetimedsl_column.wrapper_type.clone(),
         };
 
         rust_fields.push(rust_field);
@@ -73,9 +73,7 @@ pub(in crate::internal) fn try_parse(
             &rust_struct,
             &spacetimedb_table,
             &spacetimedsl_table,
-            &rust_field,
             &spacetimedb_column,
-            &spacetimedsl_column,
             &primary_key_column_name,
             &internal_columns,
         );
@@ -101,10 +99,10 @@ pub(in crate::internal) struct InternalColumn {
     pub rust_field_visibility: RustVisibility,
     pub rust_field_name: Ident,
     pub rust_field_type_name_or_path: Path,
-    pub spacetimedb_is_auto_inc: bool,
-    pub spacetimedsl_is_option: bool,
+    pub spacetimedb_column_is_auto_inc: bool,
+    pub spacetimedsl_column_is_option: bool,
     pub spacetimedsl_column_foreign_key: Option<ForeignKey>,
-    pub spacetimedsl_wrapper_type: Option<WrapperType>,
+    pub spacetimedsl_column_wrapper_type: Option<WrapperType>,
 }
 
 fn get_auto_inc_column_names(column_args: &ColumnArgs<'_>) -> Vec<Ident> {

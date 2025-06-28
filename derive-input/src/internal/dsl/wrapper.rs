@@ -213,7 +213,7 @@ impl WrapperType {
     }
 }
 
-pub(in crate::internal) fn wrapper_type_into_option(
+pub(in crate::internal) fn map_wrapper_type_option_to_wrapped_type_option(
     column_name: &Ident,
     wrapper_type_name_or_path: &Type,
 ) -> TokenStream {

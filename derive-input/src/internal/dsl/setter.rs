@@ -3,7 +3,7 @@ use crate::{
         dsl::{setter::Setter, wrapper::WrapperType},
         rust::{column::RustField, visibility::RustVisibility},
     },
-    internal::dsl::wrapper::wrapper_type_into_option,
+    internal::dsl::wrapper::map_wrapper_type_option_to_wrapped_type_option,
 };
 use quote::{ToTokens, format_ident, quote};
 
@@ -92,7 +92,7 @@ impl Setter {
                         };
 
                         let into_option =
-                            wrapper_type_into_option(&column_name, wrapper_type_name_or_path);
+                            map_wrapper_type_option_to_wrapped_type_option(&column_name, wrapper_type_name_or_path);
                         method_impl = quote! {
                             #into_option
                             self.#column_name = #column_name;
