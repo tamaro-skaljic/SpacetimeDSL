@@ -93,6 +93,7 @@ pub mod component {
             #[primary_key]
             #[auto_inc]
             #[wrap]
+            #[referenced_by(path = crate::component::identifier, table = identifier_reference)]
             id: u128,
 
             /// The unique ID of the Entity the Identifier belongs to.
@@ -108,6 +109,15 @@ pub mod component {
             created_at: Timestamp,
 
             modified_at: Timestamp,
+        }
+        
+        #[dsl(plural_name = identifier_references)]
+        #[table(name = identifier_reference, public)]
+        pub struct IdentifierReference {
+            #[primary_key]
+            #[wrapped(name = IdentifierId)]
+            #[foreign_key(path = crate::component::identifier, table = identifier, on_delete = Delete)]
+            id: u128,
         }
 
         pub(crate) fn update_modified_at(identifier: &mut Identifier, new_value: Timestamp) {

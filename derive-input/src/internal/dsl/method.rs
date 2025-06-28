@@ -1063,19 +1063,19 @@ pub(in crate::internal) fn for_method(
                                         
                                         let #index_name = (#(#column_value_getters),*);
 
-                                        let primary_key_values_of_rows_to_delete: Vec<#primary_key_column_type> = #method_impl_prefix
+                                        let pk_values_of_rows_to_delete: Vec<#primary_key_column_type> = #method_impl_prefix
                                             .filter(#index_name)
                                             .map(|row| row.#primary_key_column_name)
                                             .collect();
 
-                                        if primary_key_values_of_rows_to_delete.is_empty() {
+                                        if pk_values_of_rows_to_delete.is_empty() {
                                             return Ok(0);
                                         }
 
-                                        spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::Error, &primary_key_values_of_rows_to_delete)?;
-                                        spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::Delete, &primary_key_values_of_rows_to_delete)?;
-                                        //TODO: spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::SetNone, &primary_key_values_of_rows_to_delete)?;
-                                        spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::SetZero, &primary_key_values_of_rows_to_delete)?;
+                                        spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::Error, &pk_values_of_rows_to_delete)?;
+                                        spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::Delete, &pk_values_of_rows_to_delete)?;
+                                        //TODO: spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::SetNone, &pk_values_of_rows_to_delete)?;
+                                        spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::SetZero, &pk_values_of_rows_to_delete)?;
                                         
                                         Ok(
                                             #method_impl_prefix
@@ -1087,19 +1087,19 @@ pub(in crate::internal) fn for_method(
 
                                         let #index_name = #(#column_value_getters),*;
 
-                                        let primary_key_values_of_rows_to_delete: Vec<#primary_key_column_type> = #method_impl_prefix
-                                            .filter(#index_name)
+                                        let pk_values_of_rows_to_delete: Vec<#primary_key_column_type> = #method_impl_prefix
+                                            .filter(#index_name.clone())
                                             .map(|row| row.#primary_key_column_name)
-                                            .collect(); // TODO: maybe some types need a .clone() after #column_name
+                                            .collect();
 
-                                        if primary_key_values_of_rows_to_delete.is_empty() {
+                                        if pk_values_of_rows_to_delete.is_empty() {
                                             return Ok(0);
                                         }
 
-                                        spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::Error, &primary_key_values_of_rows_to_delete)?;
-                                        spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::Delete, &primary_key_values_of_rows_to_delete)?;
-                                        //TODO: spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::SetNone, &primary_key_values_of_rows_to_delete)?;
-                                        spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::SetZero, &primary_key_values_of_rows_to_delete)?;
+                                        spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::Error, &pk_values_of_rows_to_delete)?;
+                                        spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::Delete, &pk_values_of_rows_to_delete)?;
+                                        //TODO: spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::SetNone, &pk_values_of_rows_to_delete)?;
+                                        spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), spacetimedsl::OnDeleteStrategy::SetZero, &pk_values_of_rows_to_delete)?;
 
                                         Ok(
                                             #method_impl_prefix
@@ -1218,7 +1218,7 @@ pub(in crate::internal) fn for_method(
                                         let #index_name = #(#column_value_getters),*;
 
                                         let row_to_delete = #method_impl_prefix
-                                            .find(#index_name); // TODO: maybe some types need a .clone() after #index_name
+                                            .find(#index_name.clone());
 
                                         let primary_key_value_of_row_to_delete;
 
@@ -1827,19 +1827,19 @@ fn get_on_delete_strategy_implementation(
                     match is_unique_index {
                         true => {
                             optional_primary_key_value_setter = quote! {
-                                primary_key_values_of_rows_to_delete.push(row.#primary_key_column_name);
+                                pk_values_of_rows_to_delete.push(row.#primary_key_column_name);
                             };
                         }
                         false => {
                             optional_primary_key_value_setter = quote! {
                                 let mut primary_keys = rows.iter().map(|row| row.#primary_key_column_name).collect();
-                                primary_key_values_of_rows_to_delete.append(&mut primary_keys);
+                                pk_values_of_rows_to_delete.append(&mut primary_keys);
                             }
                         }
                     };
 
                     strategy_before_all_columns = quote! {
-                        let mut primary_key_values_of_rows_to_delete: Vec<#primary_key_column_type> = vec![];
+                        let mut pk_values_of_rows_to_delete: Vec<#primary_key_column_type> = vec![];
                         let mut rows_to_delete: Vec<#struct_name> = vec![];
                     };
 
@@ -1854,8 +1854,8 @@ fn get_on_delete_strategy_implementation(
                     );
 
                     strategy_after_all_columns = quote! {
-                        if primary_key_values_of_rows_to_delete.len().eq(&1) {
-                            let primary_key_value_of_row_to_delete = primary_key_values_of_rows_to_delete[0];
+                        if pk_values_of_rows_to_delete.len().eq(&1) {
+                            let primary_key_value_of_row_to_delete = pk_values_of_rows_to_delete[0];
 
                             spacetimedsl::internal::DSLInternals::#delete_one_hooks(ctx, spacetimedsl::OnDeleteStrategy::Error, &primary_key_value_of_row_to_delete)?;
                             spacetimedsl::internal::DSLInternals::#delete_one_hooks(ctx, spacetimedsl::OnDeleteStrategy::Delete, &primary_key_value_of_row_to_delete)?;
@@ -1868,10 +1868,10 @@ fn get_on_delete_strategy_implementation(
                                 .#primary_key_column_name()
                                 .delete(row_to_delete.#primary_key_column_name);
                         } else {
-                            spacetimedsl::internal::DSLInternals::#delete_many_hooks(ctx, spacetimedsl::OnDeleteStrategy::Error, &primary_key_values_of_rows_to_delete)?;
-                            spacetimedsl::internal::DSLInternals::#delete_many_hooks(ctx, spacetimedsl::OnDeleteStrategy::Delete, &primary_key_values_of_rows_to_delete)?;
-                            //TODO: spacetimedsl::internal::DSLInternals::#delete_many_hooks(ctx, spacetimedsl::OnDeleteStrategy::SetNone, &primary_key_values_of_rows_to_delete)?;
-                            spacetimedsl::internal::DSLInternals::#delete_many_hooks(ctx, spacetimedsl::OnDeleteStrategy::SetZero, &primary_key_values_of_rows_to_delete)?;
+                            spacetimedsl::internal::DSLInternals::#delete_many_hooks(ctx, spacetimedsl::OnDeleteStrategy::Error, &pk_values_of_rows_to_delete)?;
+                            spacetimedsl::internal::DSLInternals::#delete_many_hooks(ctx, spacetimedsl::OnDeleteStrategy::Delete, &pk_values_of_rows_to_delete)?;
+                            //TODO: spacetimedsl::internal::DSLInternals::#delete_many_hooks(ctx, spacetimedsl::OnDeleteStrategy::SetNone, &pk_values_of_rows_to_delete)?;
+                            spacetimedsl::internal::DSLInternals::#delete_many_hooks(ctx, spacetimedsl::OnDeleteStrategy::SetZero, &pk_values_of_rows_to_delete)?;
                             for row_to_delete in rows_to_delete {
                                 #spacetimedb_call_prefix
                                     .#primary_key_column_name()
