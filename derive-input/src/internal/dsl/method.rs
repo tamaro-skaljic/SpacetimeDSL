@@ -803,7 +803,7 @@ pub(in crate::internal) fn for_single_column_index(
             
             let mut column_getters = vec![];
 
-            internal_columns.iter().filter(|internal_column| internal_column.spacetimedsl_column_foreign_key.is_some()).for_each(|internal_column| {
+            internal_columns.iter().filter(|internal_column| internal_column.spacetimedsl_column_foreign_key.is_some() && internal_column.rust_field_visibility.to_string().ne(&RustVisibility::Private.to_string())).for_each(|internal_column| {
                 let (_, _, column_getter, _) = process_columns_for_create_and_update_method(CreateOrUpdateDSLMethod::Update, &internal_column);
 
                 match column_getter {
@@ -1209,7 +1209,7 @@ pub(in crate::internal) fn for_multi_column_index(
 
             let mut column_getters = vec![];
 
-            internal_columns.iter().filter(|internal_column| internal_column.spacetimedsl_column_foreign_key.is_some()).for_each(|internal_column| {
+            internal_columns.iter().filter(|internal_column| internal_column.spacetimedsl_column_foreign_key.is_some() && internal_column.rust_field_visibility.to_string().ne(&RustVisibility::Private.to_string())).for_each(|internal_column| {
                 let (_, _, column_getter, _) = process_columns_for_create_and_update_method(CreateOrUpdateDSLMethod::Update, &internal_column);
 
                 match column_getter {
