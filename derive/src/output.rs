@@ -286,7 +286,7 @@ fn add_impl_doc(
         .expect("implementation doc formatting should work");
 
     doc_comment.push_str(&format!(
-        "\n\nImplementation:\n\n```rust\n{implementation_docs}\n```",
+        "\n\nImplementation:\n\n```no_run\n{implementation_docs}\n```",
     ));
 
     doc_comment
