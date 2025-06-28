@@ -729,6 +729,16 @@ pub(in crate::internal) fn for_index(
     let return_type;
 
     let is_multi_column_index;
+    let is_unique_index = index.is_unique;
+
+    let unique_multi_column_index_hint;
+    
+    if is_unique_index {
+        unique_multi_column_index_hint = "Warning: The unique multi-column index feature of SpacetimeDSL is experimental.\n- It will be removed if unique multi-column indices are implemented in SpacetimeDB.\n- SpacetimeDSL is only able to enforce referential integrity if you never use the (mutating) `insert`, `update` and `delete` methods of `spacetimedb::ReducerContext` yourself.";
+    } else {
+        unique_multi_column_index_hint = "";
+    };
+
     let value_matches_or_values_match;
     let single_or_multi;
     let mut index_documentation;
@@ -795,7 +805,7 @@ pub(in crate::internal) fn for_index(
         }
         DSLColumnMethod::GetOneOption => {
             doc_comment = format!(
-                "Try to get a `{struct_name}` from the `{singular_table_name}` table whose {value_matches_or_values_match} the unique {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
+                "{unique_multi_column_index_hint}\n\nTry to get a `{struct_name}` from the `{singular_table_name}` table whose {value_matches_or_values_match} the unique {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
             );
             trait_name = format_ident!("Get{singular_table_name_pascal_case}RowOptionBy{index_name_pascal_case}");
             method_name = format_ident!("get_{singular_table_name}_by_{index_name}");
@@ -806,7 +816,7 @@ pub(in crate::internal) fn for_index(
         DSLColumnMethod::Update => {
             // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/35
             doc_comment = format!(
-                "Try to update a `{struct_name}` row of the `{singular_table_name}` table whose {value_matches_or_values_match} the unique {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
+                "{unique_multi_column_index_hint}\n\nTry to update a `{struct_name}` row of the `{singular_table_name}` table whose {value_matches_or_values_match} the unique {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
             );
             trait_name = format_ident!("Update{singular_table_name_pascal_case}RowBy{index_name_pascal_case}");
             method_name = format_ident!("update_{singular_table_name}_by_{index_name}");
@@ -820,7 +830,7 @@ pub(in crate::internal) fn for_index(
         DSLColumnMethod::DeleteOne => {
             // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/35
             doc_comment = format!(
-                "Try to delete a `{struct_name}` row in the `{singular_table_name}` table whose {value_matches_or_values_match} the unique {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
+                "{unique_multi_column_index_hint}\n\nTry to delete a `{struct_name}` row in the `{singular_table_name}` table whose {value_matches_or_values_match} the unique {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
             );
             trait_name = format_ident!("Delete{singular_table_name_pascal_case}RowBy{index_name_pascal_case}");
             method_name = format_ident!("delete_{singular_table_name}_by_{index_name}");
@@ -828,6 +838,10 @@ pub(in crate::internal) fn for_index(
             return_type = quote! {Result<bool,()>};
         }
     };
+
+
+
+
 }
 
 
@@ -841,11 +855,6 @@ pub(in crate::internal) fn for_single_column_index(
     primary_key_column_name: &Ident,
     internal_columns: &Vec<InternalColumn>,
 ) -> SpacetimeDSLMethod {
-    let doc_comment;
-    let trait_name;
-    let method_name;
-    let return_type;
-
     let doc_comment = doc_comment.into();
 
     let mut paths_of_traits_to_extend = vec![ parse_str("spacetimedsl::DSLContext").expect("parsing should have worked") ];
