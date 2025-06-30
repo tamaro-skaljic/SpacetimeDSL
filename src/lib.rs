@@ -87,7 +87,7 @@ impl Display for OnDeleteStrategy {
 }
 
 #[derive(Debug)]
-pub enum SpacetimeDSLError<'a> {
+pub enum SpacetimeDSLError {
     NotFoundError {
         table_name: Box<str>,
         column_names_and_row_values: Box<str>,
@@ -101,10 +101,10 @@ pub enum SpacetimeDSLError<'a> {
     AutoIncOverflow {
         table_name: Box<str>,
     },
-    ReferenceIntegrityViolation(DeletionResult<'a>),
+    ReferenceIntegrityViolation(DeletionResult),
 }
 
-impl<'a> Display for SpacetimeDSLError<'a> {
+impl Display for SpacetimeDSLError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut message: String = String::new();
 
@@ -145,7 +145,7 @@ impl<'a> Display for SpacetimeDSLError<'a> {
     }
 }
 
-impl<'a> Error for SpacetimeDSLError<'a> {}
+impl Error for SpacetimeDSLError {}
 
 #[derive(Debug)]
 pub enum CreateOrUpdate {
@@ -166,24 +166,22 @@ pub enum OneOrMultiple {
 }
 
 #[derive(Debug)]
-pub struct DeletionResult<'a> {
-    pub table_name: &'a str,
+pub struct DeletionResult {
+    pub table_name: Box<str>,
     pub one_or_multiple: OneOrMultiple,
-    pub table_names: Vec<Box<str>>,
-    pub column_names: Vec<Box<str>>,
-    pub entries: Vec<DeletionResultEntry<'a>>,
+    pub entries: Vec<DeletionResultEntry>,
 }
 
 #[derive(Debug)]
-pub struct DeletionResultEntry<'a> {
-    pub table_name: &'a str,
-    pub column_name: &'a str,
+pub struct DeletionResultEntry {
+    pub table_name: Box<str>,
+    pub column_name: Box<str>,
     pub strategy: OnDeleteStrategy,
     pub row_value: Box<str>,
-    pub child_entries: Vec<DeletionResultEntry<'a>>,
+    pub child_entries: Vec<DeletionResultEntry>,
 }
 
-impl<'a> DeletionResultEntry<'a> {
+impl DeletionResultEntry {
     pub fn to_csv(
         &self,
         mut entry_id: u128,
@@ -192,8 +190,8 @@ impl<'a> DeletionResultEntry<'a> {
     ) -> (u128, String) {
         entry_id += 1;
 
-        let table_name = self.table_name;
-        let column_name = self.column_name;
+        let table_name = &self.table_name;
+        let column_name = &self.column_name;
         let strategy = &self.strategy;
         let row_value = &self.row_value;
 
@@ -211,7 +209,7 @@ impl<'a> DeletionResultEntry<'a> {
     }
 }
 
-impl<'a> fmt::Display for DeletionResult<'a> {
+impl fmt::Display for DeletionResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut message = String::new();
 
@@ -228,7 +226,7 @@ impl<'a> fmt::Display for DeletionResult<'a> {
     }
 }
 
-impl DeletionResult<'_> {
+impl DeletionResult {
     pub fn to_error_string(&self) -> String {
         let mut message: String = String::new();
 
