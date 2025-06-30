@@ -7,7 +7,7 @@ use crate::{
         }, dsl::{
             column::{
                 SpacetimeDSLColumnMethods, SpacetimeDSLColumnMethodsForIndex,
-                SpacetimeDSLColumnMethodsForUniqueIndex, SpacetimeDSLDeletionResult,
+                SpacetimeDSLColumnMethodsForUniqueIndex,
             },
             foreign_key::OnDeleteStrategy,
             method::{SpacetimeDSLMethod, SpacetimeDSLMethodArg},
@@ -90,7 +90,6 @@ impl SpacetimeDSLColumnMethods {
                 SpacetimeDSLColumnMethods::ForIndex(SpacetimeDSLColumnMethodsForIndex {
                     get_many,
                     delete_many,
-                    delete_many_result_type: SpacetimeDSLDeletionResult {}, // TODO
                 })
             }
             true => {
@@ -128,7 +127,6 @@ impl SpacetimeDSLColumnMethods {
                     get_one_option,
                     update,
                     delete_one,
-                    delete_one_result_type: SpacetimeDSLDeletionResult {}, // TODO
                 })
             }
         };
@@ -287,7 +285,6 @@ impl SpacetimeDSLTableMethods {
                         SpacetimeDSLColumnMethodsForIndex {
                             get_many,
                             delete_many,
-                            delete_many_result_type: SpacetimeDSLDeletionResult {}, // TODO
                         },
                     ));
                 }
@@ -327,7 +324,6 @@ impl SpacetimeDSLTableMethods {
                             get_one_option,
                             update,
                             delete_one,
-                            delete_one_result_type: SpacetimeDSLDeletionResult {}, // TODO
                         },
                     ));
                 }
