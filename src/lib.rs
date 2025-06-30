@@ -1,7 +1,6 @@
 pub use itertools;
 use spacetimedb::ReducerContext;
 pub use spacetimedsl_derive::{SpacetimeDSL, dsl};
-use std::collections::HashMap;
 use std::{
     error::Error,
     fmt::{self, Display},
@@ -88,135 +87,177 @@ impl Display for OnDeleteStrategy {
 }
 
 #[derive(Debug)]
-pub struct DeletionResult {
-    pub table_name: Box<str>,
-    pub primary_key_values: Vec<PrimaryKeyValue>,
-    pub on_delete_strategy_executions: Option<OnDeleteStrategyExecutions>,
+pub enum SpacetimeDSLError<'a> {
+    NotFoundError {
+        table_name: Box<str>,
+        column_names_and_row_values: Box<str>,
+    },
+    UniqueConstraintViolation {
+        table_name: Box<str>,
+        create_or_update: CreateOrUpdate,
+        error_from: ErrorFrom,
+        column_names_and_row_values: Box<str>,
+    },
+    AutoIncOverflow {
+        table_name: Box<str>,
+    },
+    ReferenceIntegrityViolation(DeletionResult<'a>),
 }
 
-impl DeletionResult {
-    pub fn is_one_deletion(&self) -> bool {
-        self.primary_key_values.len().eq(&1)
+impl<'a> Display for SpacetimeDSLError<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut message: String = String::new();
+
+        let dig_spacetimedb = "Unfortunately SpacetimeDB doesn't provide more information";
+
+        message.push_str(&match self {
+            SpacetimeDSLError::NotFoundError {
+                table_name,
+                column_names_and_row_values
+            } => format!("Not Found Error while trying to find a row in the `{table_name}` table with {column_names_and_row_values}!"),
+            SpacetimeDSLError::UniqueConstraintViolation {
+                table_name,
+                create_or_update,
+                error_from,
+                column_names_and_row_values,
+            } => {
+                let create_or_update = match create_or_update {
+                    CreateOrUpdate::Create => "create",
+                    CreateOrUpdate::Update => "update",
+                };
+
+                let column_names_and_row_values = match error_from {
+                    ErrorFrom::SpacetimeDB => format!("! {dig_spacetimedb}, so here are all columns and their values: {column_names_and_row_values}."),
+                    ErrorFrom::SpacetimeDSL => format!(" because of {column_names_and_row_values}!"),
+                };
+
+                format!("Unique Constraint Violation Error while trying to {create_or_update} a row in the `{table_name}` table{column_names_and_row_values}")
+            }
+            SpacetimeDSLError::AutoIncOverflow { table_name } => {
+                format!("Auto Inc Overflow Error on `{table_name}` table! {dig_spacetimedb}.")
+            }
+            SpacetimeDSLError::ReferenceIntegrityViolation(error) => {
+                format!("Reference Integrity Violation Error: {}", error.to_error_string())
+            }
+        });
+
+        write!(f, "{}", message)
     }
 }
 
-pub type OnDeleteStrategyExecutions =
-    HashMap<PrimaryKeyValue, HashMap<OnDeleteStrategy, Vec<(ColumnName, DeletionResult)>>>;
+impl<'a> Error for SpacetimeDSLError<'a> {}
 
-pub type ReferenceIntegrityViolationError = DeletionResult;
+#[derive(Debug)]
+pub enum CreateOrUpdate {
+    Create,
+    Update,
+}
 
-type ColumnName = Box<str>;
-type PrimaryKeyValue = Box<str>;
+#[derive(Debug)]
+pub enum ErrorFrom {
+    SpacetimeDB,
+    SpacetimeDSL,
+}
+
+#[derive(Debug)]
+pub enum OneOrMultiple {
+    One,
+    Multiple,
+}
+
+#[derive(Debug)]
+pub struct DeletionResult<'a> {
+    pub table_name: &'a str,
+    pub one_or_multiple: OneOrMultiple,
+    pub table_names: Vec<Box<str>>,
+    pub column_names: Vec<Box<str>>,
+    pub entries: Vec<DeletionResultEntry<'a>>,
+}
+
+#[derive(Debug)]
+pub struct DeletionResultEntry<'a> {
+    pub table_name: &'a str,
+    pub column_name: &'a str,
+    pub strategy: OnDeleteStrategy,
+    pub row_value: Box<str>,
+    pub child_entries: Vec<DeletionResultEntry<'a>>,
+}
+
+impl<'a> DeletionResultEntry<'a> {
+    pub fn to_csv(
+        &self,
+        mut entry_id: u128,
+        mut parent_entry_id: u128,
+        mut message: String,
+    ) -> (u128, String) {
+        entry_id += 1;
+
+        let table_name = self.table_name;
+        let column_name = self.column_name;
+        let strategy = &self.strategy;
+        let row_value = &self.row_value;
+
+        message.push_str(&format!(
+            "{entry_id}, {parent_entry_id}, {table_name}, {column_name}, {strategy}, {row_value}\n"
+        ));
+
+        parent_entry_id = entry_id;
+
+        for child_entry in &self.child_entries {
+            (entry_id, message) = child_entry.to_csv(entry_id, parent_entry_id, message);
+        }
+
+        (entry_id, message)
+    }
+}
+
+impl<'a> fmt::Display for DeletionResult<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut message = String::new();
+
+        message
+            .push_str("entry_id, parent_entry_id, table_name, column_name, strategy, row_value,\n");
+
+        let mut entry_id: u128 = 0;
+
+        for entry in &self.entries {
+            (entry_id, message) = entry.to_csv(entry_id, 0, message);
+        }
+
+        write!(f, "{}", message)
+    }
+}
+
+impl DeletionResult<'_> {
+    pub fn to_error_string(&self) -> String {
+        let mut message: String = String::new();
+
+        message.push_str("While deleting ");
+
+        match self.one_or_multiple {
+            OneOrMultiple::One => message.push_str("a row "),
+            OneOrMultiple::Multiple => message.push_str("rows "),
+        }
+
+        message.push_str(&format!(
+            "in the `{}` table, the following reference integrity violations occurred:\n\n",
+            &self.table_name
+        ));
+
+        message
+            .push_str("entry_id, parent_entry_id, table_name, column_name, strategy, row_value,\n");
+
+        let mut entry_id: u128 = 0;
+
+        for entry in &self.entries {
+            (entry_id, message) = entry.to_csv(entry_id, 0, message);
+        }
+
+        message
+    }
+}
 
 #[doc(hidden)]
 pub mod internal {
-    use crate::{DeletionResult, OnDeleteStrategy, ReferenceIntegrityViolationError};
-    use core::fmt;
-
     pub struct DSLInternals;
-
-    impl fmt::Display for ReferenceIntegrityViolationError {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            let mut message: String = String::new();
-
-            message.push_str("Reference Integrity Violation Error: While deleting ");
-
-            let only_one_deletion = self.is_one_deletion();
-            if only_one_deletion {
-                message.push_str("a row ");
-            } else {
-                message.push_str("rows ");
-            }
-
-            message.push_str(&format!(
-                "in the `{}` table, the following reference integrity violations occurred:\n\n",
-                &self.table_name
-            ));
-
-            // TODO: Create a data structure like this and use this as the DeletionResult instead of the current one
-            message.push_str("error_id,table,pk_value,parent_error_id,reason,trace\n");
-
-            let mut error_id: u128 = 1;
-            let mut parent_error_id: Box<str> = "".into();
-
-            for (primary_key_value, results_by_strategy) in
-                self.on_delete_strategy_executions.as_ref().expect("should exist")
-            {
-                message.push_str(&format!(
-                    "{},{},{},{},,\n",
-                    &error_id, &self.table_name, &primary_key_value, &parent_error_id
-                ));
-
-                parent_error_id = format!("{error_id}").into();
-                let trace = format!("{error_id}").into();
-
-                for (foreign_key_column_name, result) in
-                    results_by_strategy.get(&OnDeleteStrategy::Error).expect("should exist")
-                {
-                    (message, error_id) = process_each_reference_integrity_violation(
-                        message,
-                        error_id,
-                        &parent_error_id,
-                        foreign_key_column_name,
-                        primary_key_value,
-                        &trace,
-                        result,
-                    )
-                }
-            }
-
-            write!(f, "{}", message)
-        }
-    }
-
-    fn process_each_reference_integrity_violation(
-        mut message: String,
-        mut error_id: u128,
-        parent_error_id: &Box<str>,
-        foreign_key_column_name: &Box<str>,
-        foreign_key_column_value: &Box<str>,
-        trace: &Box<str>,
-        result: &DeletionResult,
-    ) -> (String, u128) {
-        for primary_key_value in &result.primary_key_values {
-            error_id += 1;
-
-            let trace: Box<str> = format!("{trace}<-{error_id}").into();
-            message.push_str(&format!(
-                "{},{},{},{},{} == {},{}{}\n",
-                &error_id,
-                &result.table_name,
-                &primary_key_value,
-                &parent_error_id,
-                foreign_key_column_name,
-                foreign_key_column_value,
-                trace,
-                &error_id
-            ));
-
-            if result.on_delete_strategy_executions.is_some() {
-                for (foreign_key_column_name, result) in result
-                    .on_delete_strategy_executions
-                    .as_ref()
-                    .expect("should exist")
-                    .get(primary_key_value)
-                    .expect("should exist")
-                    .get(&OnDeleteStrategy::Error)
-                    .expect("should exist")
-                {
-                    (message, error_id) = process_each_reference_integrity_violation(
-                        message,
-                        error_id,
-                        &parent_error_id,
-                        foreign_key_column_name,
-                        &primary_key_value,
-                        &trace,
-                        result,
-                    )
-                }
-            }
-        }
-
-        (message, error_id)
-    }
 }
