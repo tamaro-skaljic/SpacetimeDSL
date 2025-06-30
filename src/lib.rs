@@ -95,8 +95,9 @@ pub enum SpacetimeDSLError {
     },
     UniqueConstraintViolation {
         table_name: Box<str>,
-        create_or_update: CreateOrUpdate,
+        action: Action,
         error_from: ErrorFrom,
+        one_or_multiple: OneOrMultiple,
         column_names_and_row_values: Box<str>,
     },
     AutoIncOverflow {
@@ -109,7 +110,7 @@ pub enum SpacetimeDSLError {
 pub enum ReferenceIntegrityViolationError {
     OnCreateOrUpdate {
         table_name: Box<str>,
-        create_or_update: CreateOrUpdate,
+        create_or_update: Action,
         column_names_and_row_values: Box<str>,
     },
     OnDelete(DeletionResult),
@@ -129,21 +130,23 @@ impl Display for SpacetimeDSLError {
             } => format!("Not Found Error while trying to find a row in the `{table_name}` table with `{column_names_and_row_values}`!"),
             SpacetimeDSLError::UniqueConstraintViolation {
                 table_name,
-                create_or_update,
+                action,
                 error_from,
+                one_or_multiple,
                 column_names_and_row_values,
             } => {
-                let create_or_update = match create_or_update {
-                    CreateOrUpdate::Create => "create",
-                    CreateOrUpdate::Update => "update",
-                };
-
                 let column_names_and_row_values = match error_from {
                     ErrorFrom::SpacetimeDB => format!("! {dig_spacetimedb}, so here are all columns and their values: `{column_names_and_row_values}`."),
-                    ErrorFrom::SpacetimeDSL => format!(" because of `{column_names_and_row_values}`!"),
+                    ErrorFrom::SpacetimeDSL => {
+                        let one_or_multiple = match one_or_multiple {
+                            OneOrMultiple::One => "",
+                            OneOrMultiple::Multiple => " There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the unique multi-column index feature of SpacetimeDSL is broken.",
+                        };
+                        format!(" because of `{column_names_and_row_values}`!{one_or_multiple}")
+                    },
                 };
 
-                format!("Unique Constraint Violation Error while trying to {create_or_update} a row in the `{table_name}` table{column_names_and_row_values}")
+                format!("Unique Constraint Violation Error while trying to {action} a row in the `{table_name}` table{column_names_and_row_values}")
             }
             SpacetimeDSLError::AutoIncOverflow { table_name } => {
                 format!("Auto Inc Overflow Error on `{table_name}` table! {dig_spacetimedb}.")
@@ -156,8 +159,8 @@ impl Display for SpacetimeDSLError {
                         column_names_and_row_values
                     } => {
                         let create_or_update = match create_or_update {
-                            CreateOrUpdate::Create => "create",
-                            CreateOrUpdate::Update => "update",
+                            Action::Get | Action::Delete => panic!("Reference Integrity Violation Error On Create Or Update only allowed while creating or updating a row."),
+                            action => action.to_string()
                         };
 
                         format!("Reference Integrity Violation Error while trying to {create_or_update} a row in the `{table_name}` table because of `{column_names_and_row_values}`!")
@@ -181,9 +184,22 @@ impl Display for SpacetimeDSLError {
 impl Error for SpacetimeDSLError {}
 
 #[derive(Debug)]
-pub enum CreateOrUpdate {
+pub enum Action {
     Create,
+    Get,
     Update,
+    Delete,
+}
+
+impl Display for Action {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Action::Create => write!(f, "create"),
+            Action::Get => write!(f, "get"),
+            Action::Update => write!(f, "update"),
+            Action::Delete => write!(f, "delete"),
+        }
+    }
 }
 
 #[derive(Debug)]
