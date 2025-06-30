@@ -102,7 +102,17 @@ pub enum SpacetimeDSLError {
     AutoIncOverflow {
         table_name: Box<str>,
     },
-    ReferenceIntegrityViolation(DeletionResult),
+    ReferenceIntegrityViolation(ReferenceIntegrityViolationError),
+}
+
+#[derive(Debug)]
+pub enum ReferenceIntegrityViolationError {
+    OnCreateOrUpdate {
+        table_name: Box<str>,
+        create_or_update: CreateOrUpdate,
+        column_names_and_row_values: Box<str>,
+    },
+    OnDelete(DeletionResult),
 }
 
 impl Display for SpacetimeDSLError {
@@ -116,7 +126,7 @@ impl Display for SpacetimeDSLError {
             SpacetimeDSLError::NotFoundError {
                 table_name,
                 column_names_and_row_values
-            } => format!("Not Found Error while trying to find a row in the `{table_name}` table with {column_names_and_row_values}!"),
+            } => format!("Not Found Error while trying to find a row in the `{table_name}` table with `{column_names_and_row_values}`!"),
             SpacetimeDSLError::UniqueConstraintViolation {
                 table_name,
                 create_or_update,
@@ -129,8 +139,8 @@ impl Display for SpacetimeDSLError {
                 };
 
                 let column_names_and_row_values = match error_from {
-                    ErrorFrom::SpacetimeDB => format!("! {dig_spacetimedb}, so here are all columns and their values: {column_names_and_row_values}."),
-                    ErrorFrom::SpacetimeDSL => format!(" because of {column_names_and_row_values}!"),
+                    ErrorFrom::SpacetimeDB => format!("! {dig_spacetimedb}, so here are all columns and their values: `{column_names_and_row_values}`."),
+                    ErrorFrom::SpacetimeDSL => format!(" because of `{column_names_and_row_values}`!"),
                 };
 
                 format!("Unique Constraint Violation Error while trying to {create_or_update} a row in the `{table_name}` table{column_names_and_row_values}")
@@ -139,7 +149,28 @@ impl Display for SpacetimeDSLError {
                 format!("Auto Inc Overflow Error on `{table_name}` table! {dig_spacetimedb}.")
             }
             SpacetimeDSLError::ReferenceIntegrityViolation(error) => {
-                format!("Reference Integrity Violation Error: {}", error.to_error_string())
+                match error {
+                    ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                        table_name,
+                        create_or_update,
+                        column_names_and_row_values
+                    } => {
+                        let create_or_update = match create_or_update {
+                            CreateOrUpdate::Create => "create",
+                            CreateOrUpdate::Update => "update",
+                        };
+
+                        format!("Reference Integrity Violation Error while trying to {create_or_update} a row in the `{table_name}` table because of `{column_names_and_row_values}`!")
+                    },
+                    ReferenceIntegrityViolationError::OnDelete(deletion_result) => {
+                        let one_or_multiple_rows = match deletion_result.one_or_multiple {
+                            OneOrMultiple::One => "a row",
+                            OneOrMultiple::Multiple => "multiple rows",
+                        };
+
+                        format!("Reference Integrity Violation Error while trying to delete {one_or_multiple_rows} in the `{}` table because of:\n\n{}", &deletion_result.table_name, deletion_result.to_csv())
+                    },
+                }
             }
         });
 
@@ -213,36 +244,13 @@ impl DeletionResultEntry {
 
 impl fmt::Display for DeletionResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut message = String::new();
-
-        message
-            .push_str("entry_id, parent_entry_id, table_name, column_name, strategy, row_value,\n");
-
-        let mut entry_id: u128 = 0;
-
-        for entry in &self.entries {
-            (entry_id, message) = entry.to_csv(entry_id, 0, message);
-        }
-
-        write!(f, "{}", message)
+        write!(f, "{}", self.to_csv())
     }
 }
 
 impl DeletionResult {
-    pub fn to_error_string(&self) -> String {
+    pub fn to_csv(&self) -> String {
         let mut message: String = String::new();
-
-        message.push_str("While deleting ");
-
-        match self.one_or_multiple {
-            OneOrMultiple::One => message.push_str("a row "),
-            OneOrMultiple::Multiple => message.push_str("rows "),
-        }
-
-        message.push_str(&format!(
-            "in the `{}` table, the following reference integrity violations occurred:\n\n",
-            &self.table_name
-        ));
 
         message
             .push_str("entry_id, parent_entry_id, table_name, column_name, strategy, row_value,\n");
