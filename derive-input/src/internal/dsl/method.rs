@@ -1926,6 +1926,7 @@ fn get_on_delete_strategy_implementation(
                     }
                 }
             }
+            OnDeleteStrategy::Ignore => quote! {},
         })
     }
 

@@ -2,6 +2,10 @@ pub use itertools;
 use spacetimedb::ReducerContext;
 pub use spacetimedsl_derive::{SpacetimeDSL, dsl};
 use std::collections::HashMap;
+use std::{
+    error::Error,
+    fmt::{self, Display},
+};
 
 pub struct DSL<'a> {
     pub(crate) ctx: &'a ReducerContext,
@@ -30,20 +34,57 @@ pub trait Wrapper<WrappedType: Clone + Default, WrapperType> {
 // TODO: New Feature "Soft Deletion" - if a table has a column "deleted: bool" then there is another dsl method which sets the flag to true instead of deleting the row.
 
 // Don't forget to copy + paste this enum into `derive_input::api::dsl::foreign_key` if you change it
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum OnDeleteStrategy {
-    /// Available independent from the column type.
+    /**
+     * Available independent from the column type.
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
+     * ... the deletion fails.
+     */
     Error,
 
-    /// Available independent from the column type.
+    /**
+     * Available independent from the column type.
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
+     * ... it's checked whether any primary key value of rows to delete is referenced in a foreign key with `OnDeleteStrategy::Error`.
+     * If true, the deletion fails and no other on delete strategy is executed.
+     * If false, the on delete strategies of all affected rows are executed.
+     */
     Delete,
 
-    // TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
-    /// Available only for columns with type `Option<T>`.
+    /**
+     * TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
+     * Available only for columns with type `Option<T>`.
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
+     * ... the value of the foreign key column is set to `None`.
+     */
     //SetNone,
 
-    /// Available only for columns with a numeric type.
+    /**
+     * Available only for columns with a numeric type.
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
+     * ... the value of the foreign key column is set to `0`.
+     */
     SetZero,
+
+    /**
+     * Available independent from the column type.
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
+     * ... nothing happens, which means the referencing rows will reference a primary key value which doesn't exist anymore.
+     * The referential integrity is only enforced while creating a row or if a row is updated and the foreign key column value is changed.
+     */
+    Ignore,
+}
+
+impl Display for OnDeleteStrategy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            OnDeleteStrategy::Error => write!(f, "Error"),
+            OnDeleteStrategy::Delete => write!(f, "Delete"),
+            OnDeleteStrategy::SetZero => write!(f, "SetZero"),
+            OnDeleteStrategy::Ignore => write!(f, "Ignore"),
+        }
+    }
 }
 
 #[derive(Debug)]
