@@ -88,6 +88,7 @@ impl Display for OnDeleteStrategy {
 
 #[derive(Debug)]
 pub enum SpacetimeDSLError {
+    Error(String),
     NotFoundError {
         table_name: Box<str>,
         column_names_and_row_values: Box<str>,
@@ -111,6 +112,7 @@ impl Display for SpacetimeDSLError {
         let dig_spacetimedb = "Unfortunately SpacetimeDB doesn't provide more information";
 
         message.push_str(&match self {
+            SpacetimeDSLError::Error(error) => error.into(),
             SpacetimeDSLError::NotFoundError {
                 table_name,
                 column_names_and_row_values
