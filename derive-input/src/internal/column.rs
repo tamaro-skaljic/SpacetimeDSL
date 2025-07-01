@@ -74,7 +74,6 @@ pub(in crate::internal) fn try_parse(
             &spacetimedb_table,
             &spacetimedsl_table,
             &spacetimedb_column,
-            &primary_key_column_name,
             &internal_columns,
         );
 
