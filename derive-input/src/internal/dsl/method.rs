@@ -776,7 +776,8 @@ pub(in crate::internal) fn for_method(
                     single_or_multi = "single";
                     index_documentation = format!("btree index");
                     documentation_on_column_or_columns = format!("`{column}` column");
-                    // FIXME: column_names_and_row_values
+                    column_names_and_row_values.push_str(&format!(", {column} : "));
+                    column_names_and_row_values.push_str("{} ");
                 }
                 IndexType::BTreeMultiColumn { columns } => {
                     is_multi_column_index = true;
@@ -822,7 +823,8 @@ pub(in crate::internal) fn for_method(
                     single_or_multi = "single";
                     index_documentation = format!("direct index");
                     documentation_on_column_or_columns = format!("`{column}` column");
-                    // FIXME: column_names_and_row_values
+                    column_names_and_row_values.push_str(&format!(", {column} : "));
+                    column_names_and_row_values.push_str("{} ");
                 }
             };
             column_names_and_row_values.push_str(" }}");
@@ -1253,7 +1255,7 @@ pub(in crate::internal) fn for_method(
                                 }
                             };
 
-                            let delete_many_and_return_result_impl = quote! {
+                            let delete_many_impl = quote! {
                                 let count_of_rows_to_delete = primary_key_values_of_rows_to_delete.len();
                                 let count_of_deleted_rows = #method_impl_prefix.delete(#index_name);
 
@@ -1268,7 +1270,9 @@ pub(in crate::internal) fn for_method(
                                         )
                                     );
                                 }
+                            };
 
+                            let return_result_impl = quote! {
                                 return Ok(spacetimedsl::DeletionResult {
                                     table_name: #singular_table_name_as_string.into(),
                                     one_or_multiple: #multiple,
@@ -1282,7 +1286,8 @@ pub(in crate::internal) fn for_method(
 
                                     #map_primary_key_values_of_rows_to_delete_to_deletion_result_entries
 
-                                    #delete_many_and_return_result_impl
+                                    #delete_many_impl
+                                    #return_result_impl
                                 };
                             } else {
                                 let error_strategy =
@@ -1360,7 +1365,7 @@ pub(in crate::internal) fn for_method(
                                         }
                                     };
 
-                                    // FIXME: Delete initial rows after success of error strategy
+                                    #delete_many_impl
 
                                     #delete_strategy
 
@@ -1376,7 +1381,7 @@ pub(in crate::internal) fn for_method(
 
                                     #ignore_strategy
 
-                                    #delete_many_and_return_result_impl
+                                    #return_result_impl
                                 };
                             }
                         }
@@ -1404,12 +1409,12 @@ pub(in crate::internal) fn for_method(
                                         None => {
                                             return Err(
                                                 spacetimedsl::SpacetimeDSLError::NotFoundError {
-                                                    table_name: #singular_table_name_as_string,
+                                                    table_name: #singular_table_name_as_string.into(),
                                                     column_names_and_row_values: format!(#column_names_and_row_values, #(#row_value_getters),*)
                                                 }
                                             );
                                         }
-                                    };
+                                    }
                                 };
                             }
                             false => {
@@ -1420,11 +1425,11 @@ pub(in crate::internal) fn for_method(
                                         Some(#singular_table_name) => Ok(#singular_table_name),
                                         None => return Err(
                                             spacetimedsl::SpacetimeDSLError::NotFoundError {
-                                                table_name: #singular_table_name_as_string,
+                                                table_name: #singular_table_name_as_string.into(),
                                                 column_names_and_row_values: format!(#column_names_and_row_values, #(#row_value_getters),*)
                                             }
                                         )
-                                    };
+                                    }
                                 }
                             }
                         },
@@ -1470,7 +1475,7 @@ pub(in crate::internal) fn for_method(
                                 let primary_key_value_of_a_row_to_delete = match primary_key_value_of_a_row_to_delete {
                                     None => return Err(
                                         spacetimedsl::SpacetimeDSLError::NotFoundError {
-                                            table_name: #singular_table_name_as_string,
+                                            table_name: #singular_table_name_as_string.into(),
                                             column_names_and_row_values: format!(#column_names_and_row_values, #(#row_value_getters),*)
                                         }
                                     );,
@@ -1488,7 +1493,7 @@ pub(in crate::internal) fn for_method(
                                 };
                             };
 
-                            let delete_one_and_return_result_impl = quote! {
+                            let delete_one_impl = quote! {
                                 match self
                                         .ctx()
                                         .db()
@@ -1502,14 +1507,16 @@ pub(in crate::internal) fn for_method(
                                             )
                                         );
                                     },
-                                    true => {
-                                        return Ok(spacetimedsl::DeletionResult {
-                                            table_name: #singular_table_name_as_string.into(),
-                                            one_or_multiple: #one,
-                                            entries = vec![deletion_result_entry],
-                                        });
-                                    },
+                                    true => {},
                                 };
+                            };
+
+                            let return_result_impl = quote! {
+                                return Ok(spacetimedsl::DeletionResult {
+                                    table_name: #singular_table_name_as_string.into(),
+                                    one_or_multiple: #one,
+                                    entries = vec![deletion_result_entry],
+                                });
                             };
 
                             if spacetimedsl_table.referencing_tables.is_empty() {
@@ -1518,7 +1525,8 @@ pub(in crate::internal) fn for_method(
 
                                     #map_primary_key_value_of_a_row_to_delete_to_deletion_result_entry
 
-                                    #delete_one_and_return_result_impl
+                                    #delete_one_impl
+                                    #return_result_impl
                                 };
                             } else {
                                 let error_strategy =
@@ -1596,7 +1604,7 @@ pub(in crate::internal) fn for_method(
                                         }
                                     };
 
-                                    // FIXME: Delete initial row after success of error strategy
+                                    #delete_one_impl
 
                                     #delete_strategy
 
@@ -1612,7 +1620,7 @@ pub(in crate::internal) fn for_method(
 
                                     #ignore_strategy
 
-                                    #delete_one_and_return_result_impl
+                                    #return_result_impl
                                 };
                             }
                         }
@@ -1675,7 +1683,7 @@ fn get_referenced_table_function_call_for_dsl_method(
                 match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), #on_delete_strategy, primary_key_values_of_rows_to_delete) {
                     Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                         for (primary_key_value_of_a_row_to_delete, child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                            deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).child_entries.append(child_entries);
+                            deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).unwrap().child_entries.append(child_entries);
                         }
 
                         error = Some(spacetimedsl::DeletionResult {
@@ -1686,7 +1694,7 @@ fn get_referenced_table_function_call_for_dsl_method(
                     },
                     Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                         for (primary_key_value_of_a_row_to_delete, child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                            deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).child_entries.append(child_entries);
+                            deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).unwrap().child_entries.append(child_entries);
                         }
                     }
                 };
@@ -1768,7 +1776,7 @@ fn reference_integrity_checks_on_create_or_update(
                             return Err(
                                 spacetimedsl::SpacetimeDSLError::ReferenceIntegrityViolation(
                                     spacetimedsl::ReferenceIntegrityViolationError::OnCreateOrUpdate {
-                                        table_name: #referencing_table_name_as_string,
+                                        table_name: #referencing_table_name_as_string.into(),
                                         create_or_update: spacetimedsl::Action::Create,
                                         column_names_and_row_values: format!(#column_names_and_row_values, #referencing_table_name.#referencing_table_column_getter_name())
                                     }
@@ -1788,7 +1796,7 @@ fn reference_integrity_checks_on_create_or_update(
                             None => {
                                 return Err(
                                     spacetimedsl::SpacetimeDSLError::NotFoundError {
-                                        table_name: #referencing_table_name_as_string,
+                                        table_name: #referencing_table_name_as_string.into(),
                                         column_names_and_row_values: format!(#column_names_and_row_values, #(#row_value_getters),*)
                                     }
                                 );
@@ -1801,7 +1809,7 @@ fn reference_integrity_checks_on_create_or_update(
                             None => return Err(
                                 spacetimedsl::SpacetimeDSLError::ReferenceIntegrityViolation(
                                     spacetimedsl::ReferenceIntegrityViolationError::OnCreateOrUpdate {
-                                        table_name: #referencing_table_name_as_string,
+                                        table_name: #referencing_table_name_as_string.into(),
                                         create_or_update: spacetimedsl::Action::Update,
                                         column_names_and_row_values: format!(#column_names_and_row_values, #(#row_value_getters),*)
                                     }
@@ -2015,13 +2023,13 @@ fn for_referenced_by(
                 is_mut: false,
                 arg_name: arg_name.clone(),
                 arg_type: quote! {
-                    Vec<&#primary_key_column_type>
+                    &'a Vec<#primary_key_column_type>
                 },
             });
             return_type = quote! {
                 Result<
-                    std::collections::HashMap<&#primary_key_column_type, Vec<spacetimedsl::DeletionResultEntry>>,
-                    std::collections::HashMap<&#primary_key_column_type, Vec<spacetimedsl::DeletionResultEntry>>
+                    std::collections::HashMap<&'a #primary_key_column_type, Vec<spacetimedsl::DeletionResultEntry>>,
+                    std::collections::HashMap<&'a #primary_key_column_type, Vec<spacetimedsl::DeletionResultEntry>>
                 >
             };
         }
@@ -2076,13 +2084,13 @@ fn for_referenced_by(
                         use #referencing_table_path::#referencing_table_trait_name;
 
                         match spacetimedsl::internal::DSLInternals::#referencing_table_function_name(ctx, &strategy, #arg_name) {
-                            Err(child_entries) => {
-                                entries.append(child_entries);
+                            Err(mut child_entries) => {
+                                entries.append(&mut child_entries);
 
                                 error = true;
                             },
-                            Ok(child_entries) => {
-                                entries.append(child_entries);
+                            Ok(mut child_entries) => {
+                                entries.append(&mut child_entries);
                             },
                         };
                     }
@@ -2093,15 +2101,15 @@ fn for_referenced_by(
 
                         match spacetimedsl::internal::DSLInternals::#referencing_table_function_name(ctx, &strategy, #arg_name) {
                             Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
-                                for (primary_key_value_of_a_row_to_delete, child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                                    entries.get_mut(primary_key_value_of_a_row_to_delete).child_entries.append(child_entries);
+                                for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
+                                    entries.get_mut(&primary_key_value_of_a_row_to_delete).unwrap().append(&mut child_entries);
                                 }
 
                                 error = true;
                             },
                             Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                                 for (primary_key_value_of_a_row_to_delete, child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                                    entries.get_mut(primary_key_value_of_a_row_to_delete).child_entries.append(child_entries);
+                                    entries.get_mut(&primary_key_value_of_a_row_to_delete).unwrap().append(&mut child_entries);
                                 }
                             },
                         };
@@ -2144,13 +2152,6 @@ fn for_foreign_key(
     referenced_table_name: &syn::Ident,
     columns_with_foreign_key: &Vec<&&Column>,
 ) -> SpacetimeDSLMethod {
-    let primary_key_column_type = &columns
-        .iter()
-        .find(|c| c.rust_field.name.to_string().eq(&"id"))
-        .expect("should have a primary key")
-        .rust_field
-        .type_name_or_path;
-
     let first_foreign_key_column = columns_with_foreign_key
         .first()
         .expect("there should be a column with foreign key");
@@ -2248,7 +2249,7 @@ fn for_foreign_key(
             function_args.push(SpacetimeDSLMethodArg {
                 is_mut: false,
                 arg_name: arg_name.clone(),
-                arg_type: quote! { &#primary_key_column_type },
+                arg_type: quote! { &#referenced_table_primary_key_column_type },
             });
             return_type = quote! {
                 Result<Vec<spacetimedsl::DeletionResultEntry>, Vec<spacetimedsl::DeletionResultEntry>>
@@ -2263,13 +2264,13 @@ fn for_foreign_key(
                 is_mut: false,
                 arg_name: arg_name.clone(),
                 arg_type: quote! {
-                    Vec<&#primary_key_column_type>
+                    &Vec<#referenced_table_primary_key_column_type>
                 },
             });
             return_type = quote! {
                 Result<
-                    std::collections::HashMap<&#primary_key_column_type, Vec<spacetimedsl::DeletionResultEntry>>,
-                    std::collections::HashMap<&#primary_key_column_type, Vec<spacetimedsl::DeletionResultEntry>>
+                    std::collections::HashMap<&#referenced_table_primary_key_column_type, Vec<spacetimedsl::DeletionResultEntry>>,
+                    std::collections::HashMap<&#referenced_table_primary_key_column_type, Vec<spacetimedsl::DeletionResultEntry>>
                 >
             };
         }
@@ -2324,6 +2325,7 @@ fn for_foreign_key(
         .collect_vec();
 
     let function_impl = quote! {
+        use spacetimedsl::itertools::Itertools;
         #create_data_structure_for_child_entries
 
         let mut error = false;
@@ -2414,7 +2416,7 @@ fn get_on_delete_strategy_implementation(
             }
             OneOrMultiple::Multiple => {
                 create_entry_and_add_it_to_entries = quote! {
-                    entries.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).push(#create_entry);
+                    entries.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).unwrap().push(#create_entry);
                 };
             }
         };
@@ -2454,14 +2456,12 @@ fn get_on_delete_strategy_implementation(
                         let error_strategy =
                             get_referenced_table_function_call_for_strategy_implementation(
                                 singular_table_name,
-                                &singular_table_name_as_string,
                                 OnDeleteStrategy::Error,
                             );
 
                         let delete_strategy =
                             get_referenced_table_function_call_for_strategy_implementation(
                                 singular_table_name,
-                                &singular_table_name_as_string,
                                 OnDeleteStrategy::Delete,
                             );
 
@@ -2476,14 +2476,12 @@ fn get_on_delete_strategy_implementation(
                         let set_zero_strategy =
                             get_referenced_table_function_call_for_strategy_implementation(
                                 singular_table_name,
-                                &singular_table_name_as_string,
                                 OnDeleteStrategy::SetZero,
                             );
 
                         let ignore_strategy =
                             get_referenced_table_function_call_for_strategy_implementation(
                                 singular_table_name,
-                                &singular_table_name_as_string,
                                 OnDeleteStrategy::Ignore,
                             );
 
@@ -2506,8 +2504,8 @@ fn get_on_delete_strategy_implementation(
                         };
 
                         strategy_for_each_row = quote! {
-                            if !child_entries_by_primary_key_value_of_row_to_delete.contains(&row.id) {
-                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).push(&row.id);
+                            if !child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.id) {
+                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).unwrap().push(&row.id);
                                 child_entries_by_primary_key_value_of_row_to_delete.insert(&row.id, vec![]);
                             }
                         };
@@ -2544,7 +2542,11 @@ fn get_on_delete_strategy_implementation(
                                 }
                             };
 
-                            // FIXME: Delete initial rows after success of error strategy
+                            for id in primary_key_values_of_rows_to_delete {
+                                #spacetimedb_call_prefix
+                                    .id()
+                                    .delete(id);
+                            }
 
                             #special_error_handler
 
@@ -2661,25 +2663,23 @@ fn strategy_by_row(
 
 fn get_referenced_table_function_call_for_strategy_implementation(
     singular_table_name: &Ident,
-    singular_table_name_as_string: &String,
     on_delete_strategy: OnDeleteStrategy,
 ) -> TokenStream {
     let referenced_table_function_name =
         get_referenced_table_function_name(&OneOrMultiple::Multiple, &singular_table_name);
 
-    // std::collections::HashMap<&#primary_key_column_type, Vec<spacetimedsl::DeletionResultEntry>>
     quote! {
-        match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), #on_delete_strategy, primary_key_values_of_rows_to_delete) {
+        match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(ctx, #on_delete_strategy, primary_key_values_of_rows_to_delete) {
             Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                 error = true;
 
                 for (primary_key_value_of_a_row_to_delete, child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                    child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).append(child_entries);
+                    child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).unwrap().append(child_entries);
                 }
             },
             Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                 for (primary_key_value_of_a_row_to_delete, child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                    child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).append(child_entries);
+                    child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).unwrap().append(child_entries);
                 }
             }
         };
