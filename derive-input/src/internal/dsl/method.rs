@@ -46,6 +46,8 @@ pub(in crate::internal) enum DSLMethod<'a> {
 
 // FIXME: Ensure that any panic! / expect() / unwrap() is replaced by proper error handling, either returning spacetimedsl::SpacetimeDSLError during runtime or syn::Error during compilation time
 
+// FIXME: Ensure that struct_name is only used in doc comments, not in generated code
+
 #[derive(Debug)]
 pub enum OneOrMultiple {
     One,
@@ -105,16 +107,6 @@ impl Display for Action {
             Action::Delete => write!(f, "Delete"),
         }
     }
-}
-
-pub(in crate::internal) enum DSLInternalReferencedByFunction {
-    ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThisTableWasDeleted,
-    ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThisTableWereDeleted,
-}
-
-pub(in crate::internal) enum DSLInternalForeignKeyFunction {
-    ExecuteOnDeleteStrategiesOfThisTableAfterOneRowOfTheReferencedTableWasDeleted,
-    ExecuteOnDeleteStrategiesOfThisTableAfterMultipleRowsOfTheReferencedTableWereDeleted,
 }
 
 impl SpacetimeDSLColumnMethods {
@@ -247,7 +239,6 @@ impl SpacetimeDSLTableMethods {
                 spacetimedb_table,
                 spacetimedsl_table,
                 columns,
-                primary_key_column_name,
             ));
         }
 
@@ -289,10 +280,9 @@ impl SpacetimeDSLTableMethods {
                 .for_each(|(referenced_table_name, columns_with_foreign_key)| {
                     execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted.push(
                         for_foreign_key(
-                            rust_struct,
                             &OneOrMultiple::One,
+                            spacetimedsl_table.referencing_tables.is_empty(),
                             spacetimedb_table,
-                            spacetimedsl_table,
                             columns,
                             referenced_table_name,
                             &columns_with_foreign_key,
@@ -300,10 +290,9 @@ impl SpacetimeDSLTableMethods {
                     );
                     execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted.push(
                         for_foreign_key(
-                            rust_struct,
                             &OneOrMultiple::Multiple,
+                            spacetimedsl_table.referencing_tables.is_empty(),
                             spacetimedb_table,
-                            spacetimedsl_table,
                             columns,
                             referenced_table_name,
                             &columns_with_foreign_key,
@@ -658,7 +647,6 @@ pub(in crate::internal) fn for_method(
 
             let multi_column_index_checks = multi_column_index_checks(
                 Action::Create,
-                &struct_name,
                 &singular_table_name,
                 &spacetimedb_table,
                 &column_names_and_row_values,
@@ -939,7 +927,6 @@ pub(in crate::internal) fn for_method(
 
                     let multi_column_index_checks = multi_column_index_checks(
                         Action::Update,
-                        &struct_name,
                         &singular_table_name,
                         &spacetimedb_table,
                         &column_names_and_row_values,
@@ -1721,7 +1708,6 @@ fn reference_integrity_checks_on_create_or_update(
 
 fn multi_column_index_checks(
     action: Action,
-    struct_name: &Ident,
     singular_table_name: &Ident,
     spacetimedb_table: &SpacetimeDBTable,
     column_names_and_row_values: &String,
@@ -1841,7 +1827,6 @@ fn for_referenced_by(
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
     columns: &Vec<Column>,
-    primary_key_column_name: &Ident,
 ) -> SpacetimeDSLMethod {
     let singular_table_name = &spacetimedb_table.singular_name;
     let singular_table_name_pascal_case = format_ident!(
@@ -1976,10 +1961,9 @@ fn for_referenced_by(
 }
 
 fn for_foreign_key(
-    rust_struct: &RustStruct,
     one_or_multiple: &OneOrMultiple,
+    has_referenced_bys: bool,
     spacetimedb_table: &SpacetimeDBTable,
-    spacetimedsl_table: &SpacetimeDSLTable,
     columns: &Vec<Column>,
     referenced_table_name: &syn::Ident,
     columns_with_foreign_key: &Vec<&&Column>,
@@ -2035,8 +2019,6 @@ fn for_foreign_key(
             .expect("The key OnDeleteStrategy should exist!")
             .push(column_with_foreign_key);
     }
-
-    let struct_name = &rust_struct.name;
 
     let singular_table_name = &spacetimedb_table.singular_name;
     let singular_table_name_pascal_case = format_ident!(
