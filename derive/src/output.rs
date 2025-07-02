@@ -53,15 +53,11 @@ pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     }
 
     for execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted in &input.spacetimedsl_methods.execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted {
-        dsl_methods.push(build_internal(
-            execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted
-        )?);
+        dsl_methods.push(build_internal(execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted)?);
     }
 
     for execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted in &input.spacetimedsl_methods.execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted {
-        dsl_methods.push(build_internal(
-            execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted
-        )?);
+        dsl_methods.push(build_internal(execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted)?);
     }
 
     for multi_column_index in &input.spacetimedsl_methods.multi_column_indices {
@@ -235,7 +231,7 @@ pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
         #[doc=#doc_comment]
         pub trait #trait_name {
             #[doc=#doc_comment]
-            fn #method_name(
+            fn #method_name<'a>(
                 #(#method_args),*
             ) -> #return_type {
                 use spacetimedsl::Wrapper;
