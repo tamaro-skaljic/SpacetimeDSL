@@ -183,6 +183,12 @@ impl Display for SpacetimeDSLError {
 
 impl Error for SpacetimeDSLError {}
 
+impl From<SpacetimeDSLError> for String {
+    fn from(value: SpacetimeDSLError) -> Self {
+        value.to_string()
+    }
+}
+
 #[derive(Debug)]
 pub enum Action {
     Create,
