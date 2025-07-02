@@ -1756,10 +1756,8 @@ fn reference_integrity_checks_on_create_or_update(
             "{}",
             RenameRule::PascalCase.apply_to_field(referenced_table_name.to_string())
         );
-        let referenced_table_primary_key_column_name_pascal_case = format_ident!("Id");
-        let get_row_of_referenced_table_by_primary_key_trait_name = format_ident!(
-            "Get{referenced_table_name_pascal_case}RowOptionBy{referenced_table_primary_key_column_name_pascal_case}"
-        );
+        let get_row_of_referenced_table_by_primary_key_trait_name =
+            format_ident!("Get{referenced_table_name_pascal_case}RowOptionById");
         let get_row_of_referenced_table_by_primary_key_method_name =
             format_ident!("get_{referenced_table_name}_by_id");
 

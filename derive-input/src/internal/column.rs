@@ -18,7 +18,7 @@ pub(in crate::internal) fn try_parse(
     rust_struct: &RustStruct,
     mut spacetimedb_table: SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
-) -> syn::Result<(SpacetimeDBTable, Vec<Column>, Vec<InternalColumn>, Ident)> {
+) -> syn::Result<(SpacetimeDBTable, Vec<Column>, Vec<InternalColumn>)> {
     let primary_key_column_name = match get_primary_key_column_name(column_args) {
         Some(pk) => pk,
         None => {
@@ -85,12 +85,7 @@ pub(in crate::internal) fn try_parse(
         });
     }
 
-    Ok((
-        spacetimedb_table,
-        columns,
-        internal_columns,
-        primary_key_column_name,
-    ))
+    Ok((spacetimedb_table, columns, internal_columns))
 }
 
 pub(in crate::internal) struct InternalColumn {
