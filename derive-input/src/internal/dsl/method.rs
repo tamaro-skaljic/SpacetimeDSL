@@ -662,6 +662,7 @@ pub(in crate::internal) fn for_method(
                 &internal_columns,
                 paths_of_traits_to_extend,
                 None,
+                &OneOrMultiple::One,
             );
             paths_of_traits_to_extend = res.0;
             let reference_integrity_checks = res.1;
@@ -970,12 +971,18 @@ pub(in crate::internal) fn for_method(
                         TokenStream::default()
                     };
 
+                    let one_or_multiple = match is_multi_column_index {
+                        false => OneOrMultiple::One,
+                        true => OneOrMultiple::Multiple,
+                    };
+
                     let res = reference_integrity_checks_on_create_or_update(
                         CreateOrUpdate::Update,
                         spacetimedb_table,
                         internal_columns,
                         paths_of_traits_to_extend,
-                        Some(&column_names_and_row_values),
+                        Some((&column_names_and_row_values, &index_columns)),
+                        &one_or_multiple,
                     );
                     paths_of_traits_to_extend = res.0;
                     let reference_integrity_checks = res.1;
@@ -1258,7 +1265,7 @@ pub(in crate::internal) fn for_method(
                                 }
                             };
 
-                                let delete_many_impl = quote! {let count_of_rows_to_delete: u64 = primary_key_values_of_rows_to_delete
+                            let delete_many_impl = quote! {let count_of_rows_to_delete: u64 = primary_key_values_of_rows_to_delete
                                     .len()
                                     .try_into()
                                     .unwrap_or(u64::MAX);
@@ -1435,7 +1442,10 @@ pub(in crate::internal) fn for_method(
                             }
                         },
                         DSLMethod::DeleteOne(_) => {
-                            let get_row_to_delete = match is_multi_column_index {
+                            let get_primary_key_value_of_row_to_delete;
+                            let get_row_to_delete;
+
+                            match is_multi_column_index {
                                 true => {
                                     let multi_column_index_check =
                                         get_unique_multi_column_index_check(
@@ -1446,32 +1456,54 @@ pub(in crate::internal) fn for_method(
                                             &row_value_getters,
                                         );
 
-                                    quote! {
-                                        let #index_name = (#(#row_value_getters),*);
-
+                                    get_row_to_delete = quote! {
                                         let mut #field_name_for_found_value: Option<#struct_name> = None;
 
                                         #multi_column_index_check
 
                                         let row_to_delete = #field_name_for_found_value;
-                                    }
+                                    };
+
+                                    get_primary_key_value_of_row_to_delete = quote! {
+                                        let primary_key_value_of_a_row_to_delete = match row_to_delete {
+                                            None => return Err(
+                                                spacetimedsl::SpacetimeDSLError::NotFoundError {
+                                                    table_name: #singular_table_name_as_string.into(),
+                                                    column_names_and_row_values: format!(#column_names_and_row_values, #(#row_value_getters),*).into()
+                                                }
+                                            ),
+                                            Some(row_to_delete) => row_to_delete.id,
+                                        };
+                                    };
                                 }
                                 false => {
                                     let column_name = &index_columns[0];
                                     let column_type = &internal_columns.iter().find(|c| c.rust_field_name.eq(column_name)).expect("The index should have a column in the internal columns").rust_field_type_name_or_path;
                                     if column_type.to_token_stream().to_string().eq(&"String") {
-                                        quote! {
+                                        get_row_to_delete = quote! {
                                             let #index_name = #(#row_value_getters),*;
 
                                             let row_to_delete = #method_impl_prefix.find(&#index_name);
                                         }
                                     } else {
-                                        quote! {
+                                        get_row_to_delete = quote! {
                                             let #index_name = #(#row_value_getters),*;
 
                                             let row_to_delete = #method_impl_prefix.find(#index_name);
                                         }
                                     }
+
+                                    get_primary_key_value_of_row_to_delete = quote! {
+                                        let primary_key_value_of_a_row_to_delete = match row_to_delete {
+                                            None => return Err(
+                                                spacetimedsl::SpacetimeDSLError::NotFoundError {
+                                                    table_name: #singular_table_name_as_string.into(),
+                                                    column_names_and_row_values: format!(#column_names_and_row_values, &#index_name).into()
+                                                }
+                                            ),
+                                            Some(row_to_delete) => row_to_delete.id,
+                                        };
+                                    };
                                 }
                             };
 
@@ -1482,15 +1514,7 @@ pub(in crate::internal) fn for_method(
 
                                 #get_row_to_delete
 
-                                let primary_key_value_of_a_row_to_delete = match row_to_delete {
-                                    None => return Err(
-                                        spacetimedsl::SpacetimeDSLError::NotFoundError {
-                                            table_name: #singular_table_name_as_string.into(),
-                                            column_names_and_row_values: format!(#column_names_and_row_values, &#index_name).into()
-                                        }
-                                    ),
-                                    Some(row_to_delete) => row_to_delete.id,
-                                };
+                                #get_primary_key_value_of_row_to_delete
                             };
 
                             let map_primary_key_value_of_a_row_to_delete_to_deletion_result_entry = quote! {
@@ -1704,7 +1728,8 @@ fn reference_integrity_checks_on_create_or_update(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &Vec<InternalColumn>,
     mut paths_of_traits_to_extend: Vec<Path>,
-    column_names_and_row_values: Option<&String>,
+    column_names_and_row_values_and_column_names: Option<(&String, &Vec<Ident>)>,
+    one_or_multiple: &OneOrMultiple,
 ) -> (Vec<Path>, Vec<TokenStream>) {
     let mut reference_integrity_checks = vec![];
 
@@ -1741,6 +1766,7 @@ fn reference_integrity_checks_on_create_or_update(
         let referencing_table_name = &spacetimedb_table.singular_name;
         let referencing_table_name_as_string = referencing_table_name.to_string();
         let referencing_table_column_name = &column.rust_field_name;
+        let referencing_table_column_name_as_string = referencing_table_column_name.to_string();
         let referencing_table_column_getter_name =
             format_ident!("get_{referencing_table_column_name}");
 
@@ -1780,6 +1806,30 @@ fn reference_integrity_checks_on_create_or_update(
                 }
             }
             CreateOrUpdate::Update => {
+                let column_names_and_row_value_getters =
+                    column_names_and_row_values_and_column_names.expect(
+                        "DSLMethod::Update should have column names and row value getters!",
+                    );
+                let column_names_and_row_values = column_names_and_row_value_getters.0;
+                let column_names = column_names_and_row_value_getters.1;
+                let row_value_getters = column_names
+                    .iter()
+                    .map(|cn| {
+                        quote! {
+                            #referencing_table_name.#cn
+                        }
+                    })
+                    .collect_vec();
+
+                let format_for_not_found_error = match one_or_multiple {
+                    OneOrMultiple::One => quote! {
+                        format!(#column_names_and_row_values, #referencing_table_column_name)
+                    },
+                    OneOrMultiple::Multiple => quote! {
+                        format!(#column_names_and_row_values, #(#row_value_getters),*)
+                    },
+                };
+
                 quote! {
                     if #field_name_for_found_value.is_none() {
                         #field_name_for_found_value = match self.ctx().db().#referencing_table_name().id().find(#referencing_table_name.get_id().value()) {
@@ -1788,7 +1838,7 @@ fn reference_integrity_checks_on_create_or_update(
                                 return Err(
                                     spacetimedsl::SpacetimeDSLError::NotFoundError {
                                         table_name: #referencing_table_name_as_string.into(),
-                                        column_names_and_row_values: format!(#column_names_and_row_values, #referencing_table_column_name).into()
+                                        column_names_and_row_values: #format_for_not_found_error.into()
                                     }
                                 );
                             }
@@ -1802,7 +1852,7 @@ fn reference_integrity_checks_on_create_or_update(
                                     spacetimedsl::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                         table_name: #referencing_table_name_as_string.into(),
                                         create_or_update: spacetimedsl::Action::Update,
-                                        column_names_and_row_values: format!(#column_names_and_row_values, #referencing_table_column_name).into()
+                                        column_names_and_row_values: format!("{{ {} : {} }}", #referencing_table_column_name_as_string, #referencing_table_column_name).into()
                                     }
                                 )
                             )
@@ -1818,14 +1868,19 @@ fn reference_integrity_checks_on_create_or_update(
                     #check
                 }
             },
-            "Option" => quote! {
-                if #referencing_table_column_name.is_some() {
-                    #check
+            column_type => {
+                if column_type.starts_with("Option") {
+                    quote! {
+                        if #referencing_table_column_name.is_some() {
+                            #check
+                        }
+                    }
+                } else {
+                    quote! {
+                        #check
+                    }
                 }
-            },
-            _ => quote! {
-                #check
-            },
+            }
         });
     }
 
