@@ -66,6 +66,11 @@ pub(in crate::internal) fn try_parse(
         internal_columns.push(internal_column);
     }
 
+    let primary_key_column = internal_columns
+        .iter()
+        .find(|c| c.rust_field_name.to_string().eq(&"id"))
+        .expect("should have a primary key");
+
     for (rust_field, spacetimedb_column, spacetimedsl_column) in
         izip!(rust_fields, spacetimedb_columns, spacetimedsl_columns)
     {
@@ -75,6 +80,7 @@ pub(in crate::internal) fn try_parse(
             &spacetimedsl_table,
             &spacetimedb_column,
             &internal_columns,
+            primary_key_column,
         );
 
         columns.push(Column {

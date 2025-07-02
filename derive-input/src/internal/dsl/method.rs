@@ -118,6 +118,7 @@ impl SpacetimeDSLColumnMethods {
         spacetimedsl_table: &SpacetimeDSLTable,
         spacetimedb_column: &SpacetimeDBColumn,
         internal_columns: &Vec<InternalColumn>,
+        primary_key_column: &InternalColumn,
     ) -> Option<SpacetimeDSLColumnMethods> {
         let index = match &spacetimedb_column.single_column_index {
             None => {
@@ -134,6 +135,7 @@ impl SpacetimeDSLColumnMethods {
                     spacetimedb_table,
                     spacetimedsl_table,
                     internal_columns,
+                    primary_key_column,
                 );
 
                 let delete_many = for_method(
@@ -142,6 +144,7 @@ impl SpacetimeDSLColumnMethods {
                     spacetimedb_table,
                     spacetimedsl_table,
                     internal_columns,
+                    primary_key_column,
                 );
 
                 SpacetimeDSLColumnMethods::ForIndex(SpacetimeDSLColumnMethodsForIndex {
@@ -156,6 +159,7 @@ impl SpacetimeDSLColumnMethods {
                     spacetimedb_table,
                     spacetimedsl_table,
                     internal_columns,
+                    primary_key_column,
                 );
 
                 let update = match spacetimedsl_table.is_mutable {
@@ -166,6 +170,7 @@ impl SpacetimeDSLColumnMethods {
                         spacetimedb_table,
                         spacetimedsl_table,
                         internal_columns,
+                        primary_key_column,
                     )),
                 };
 
@@ -175,6 +180,7 @@ impl SpacetimeDSLColumnMethods {
                     spacetimedb_table,
                     spacetimedsl_table,
                     internal_columns,
+                    primary_key_column,
                 );
 
                 SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
@@ -196,6 +202,7 @@ impl SpacetimeDSLTableMethods {
         spacetimedsl_table: &SpacetimeDSLTable,
         columns: &Vec<Column>,
         internal_columns: &Vec<InternalColumn>,
+        primary_key_column: &InternalColumn,
     ) -> syn::Result<SpacetimeDSLTableMethods> {
         let create = for_method(
             DSLMethod::Create,
@@ -203,6 +210,7 @@ impl SpacetimeDSLTableMethods {
             spacetimedb_table,
             spacetimedsl_table,
             internal_columns,
+            primary_key_column,
         );
 
         let get_all = for_method(
@@ -211,6 +219,7 @@ impl SpacetimeDSLTableMethods {
             spacetimedb_table,
             spacetimedsl_table,
             internal_columns,
+            primary_key_column,
         );
 
         let get_count = for_method(
@@ -219,6 +228,7 @@ impl SpacetimeDSLTableMethods {
             spacetimedb_table,
             spacetimedsl_table,
             internal_columns,
+            primary_key_column,
         );
 
         let execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted;
@@ -287,6 +297,7 @@ impl SpacetimeDSLTableMethods {
                             spacetimedb_table,
                             referenced_table_name,
                             &columns_with_foreign_key,
+                            &primary_key_column,
                         )
                     );
                     execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted.push(
@@ -296,6 +307,7 @@ impl SpacetimeDSLTableMethods {
                             spacetimedb_table,
                             referenced_table_name,
                             &columns_with_foreign_key,
+                            &primary_key_column,
                         )
                     );
                 });
@@ -312,6 +324,7 @@ impl SpacetimeDSLTableMethods {
                         spacetimedb_table,
                         spacetimedsl_table,
                         internal_columns,
+                        &primary_key_column,
                     );
                     let delete_many = for_method(
                         DSLMethod::DeleteMany(multi_column_index),
@@ -319,6 +332,7 @@ impl SpacetimeDSLTableMethods {
                         spacetimedb_table,
                         spacetimedsl_table,
                         internal_columns,
+                        &primary_key_column,
                     );
 
                     multi_column_indices.push(SpacetimeDSLColumnMethods::ForIndex(
@@ -335,6 +349,7 @@ impl SpacetimeDSLTableMethods {
                         spacetimedb_table,
                         spacetimedsl_table,
                         internal_columns,
+                        &primary_key_column,
                     );
 
                     let update = match spacetimedsl_table.is_mutable {
@@ -345,6 +360,7 @@ impl SpacetimeDSLTableMethods {
                             spacetimedb_table,
                             spacetimedsl_table,
                             internal_columns,
+                            &primary_key_column,
                         )),
                     };
 
@@ -354,6 +370,7 @@ impl SpacetimeDSLTableMethods {
                         spacetimedb_table,
                         spacetimedsl_table,
                         internal_columns,
+                        &primary_key_column,
                     );
 
                     multi_column_indices.push(SpacetimeDSLColumnMethods::ForUniqueIndex(
@@ -568,6 +585,7 @@ pub(in crate::internal) fn for_method(
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
     internal_columns: &Vec<InternalColumn>,
+    primary_key_column: &InternalColumn,
 ) -> SpacetimeDSLMethod {
     let struct_name = &rust_struct.name;
     let singular_table_name = &spacetimedb_table.singular_name;
@@ -575,6 +593,8 @@ pub(in crate::internal) fn for_method(
     let singular_table_name_pascal_case =
         RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
     let plural_table_name = &spacetimedsl_table.plural_name;
+
+    let primary_key_column_type = &primary_key_column.rust_field_type_name_or_path;
 
     let one = OneOrMultiple::One;
     let multiple = OneOrMultiple::Multiple;
@@ -1219,14 +1239,6 @@ pub(in crate::internal) fn for_method(
                                 },
                             };
 
-                            let primary_key_column = internal_columns
-                                .iter()
-                                .find(|c| c.rust_field_name.to_string().eq(&"id"))
-                                .expect("should have a primary key");
-
-                            let primary_key_column_type =
-                                &primary_key_column.rust_field_type_name_or_path;
-
                             let impl_until_return_ok_on_is_empty = quote! {
                                 use spacetimedsl::itertools::Itertools;
 
@@ -1248,6 +1260,19 @@ pub(in crate::internal) fn for_method(
                                 }
                             };
 
+                            let wrapper_type_struct_name_or_path = match primary_key_column
+                                .spacetimedsl_column_wrapper_type
+                                .as_ref()
+                                .unwrap()
+                            {
+                                WrapperType::Wrap(wrap) => {
+                                    wrap.wrapper_struct_name.to_token_stream()
+                                }
+                                WrapperType::Wrapped(wrapped) => {
+                                    wrapped.wrapper_struct_name_or_path.to_token_stream()
+                                }
+                            };
+
                             let map_primary_key_values_of_rows_to_delete_to_deletion_result_entries = quote! {
                                 let mut deletion_result_entries = std::collections::HashMap::new();
 
@@ -1258,7 +1283,7 @@ pub(in crate::internal) fn for_method(
                                             table_name: #singular_table_name_as_string.into(),
                                             column_name: "id".into(),
                                             strategy: spacetimedsl::OnDeleteStrategy::Delete,
-                                            row_value: format!("{primary_key_value_of_a_row_to_delete}").into(),
+                                            row_value: format!("{}", #wrapper_type_struct_name_or_path::new(primary_key_value_of_a_row_to_delete.clone())).into(),
                                             child_entries: vec![],
                                         }
                                     );
@@ -1517,12 +1542,25 @@ pub(in crate::internal) fn for_method(
                                 #get_primary_key_value_of_row_to_delete
                             };
 
+                            let wrapper_type_struct_name_or_path = match primary_key_column
+                                .spacetimedsl_column_wrapper_type
+                                .as_ref()
+                                .unwrap()
+                            {
+                                WrapperType::Wrap(wrap) => {
+                                    wrap.wrapper_struct_name.to_token_stream()
+                                }
+                                WrapperType::Wrapped(wrapped) => {
+                                    wrapped.wrapper_struct_name_or_path.to_token_stream()
+                                }
+                            };
+
                             let map_primary_key_value_of_a_row_to_delete_to_deletion_result_entry = quote! {
                                 let mut deletion_result_entry = spacetimedsl::DeletionResultEntry {
                                     table_name: #singular_table_name_as_string.into(),
                                     column_name: "id".into(),
                                     strategy: spacetimedsl::OnDeleteStrategy::Delete,
-                                    row_value: format!("{primary_key_value_of_a_row_to_delete}").into(),
+                                    row_value: format!("{}", #wrapper_type_struct_name_or_path::new(primary_key_value_of_a_row_to_delete.clone())).into(),
                                     child_entries: vec![],
                                 };
                             };
@@ -2212,6 +2250,7 @@ fn for_foreign_key(
     spacetimedb_table: &SpacetimeDBTable,
     referenced_table_name: &syn::Ident,
     columns_with_foreign_key: &Vec<&&Column>,
+    primary_key_column: &InternalColumn,
 ) -> SpacetimeDSLMethod {
     let first_foreign_key_column = columns_with_foreign_key
         .first()
@@ -2370,6 +2409,7 @@ fn for_foreign_key(
                 on_delete_strategy,
                 columns_by_on_delete_strategy,
                 &one_or_multiple,
+                primary_key_column,
             ),
         );
     }
@@ -2418,6 +2458,7 @@ fn get_on_delete_strategy_implementation(
     on_delete_strategy: &OnDeleteStrategy,
     columns_by_on_delete_strategy: Vec<&&&Column>,
     one_or_multiple: &OneOrMultiple,
+    primary_key_column: &InternalColumn,
 ) -> TokenStream {
     let spacetimedb_call_prefix = quote! {
         ctx
@@ -2455,12 +2496,21 @@ fn get_on_delete_strategy_implementation(
             }
         };
 
+        let wrapper_type_struct_name_or_path = match primary_key_column
+            .spacetimedsl_column_wrapper_type
+            .as_ref()
+            .unwrap()
+        {
+            WrapperType::Wrap(wrap) => wrap.wrapper_struct_name.to_token_stream(),
+            WrapperType::Wrapped(wrapped) => wrapped.wrapper_struct_name_or_path.to_token_stream(),
+        };
+
         let create_entry = quote! {
             spacetimedsl::DeletionResultEntry {
                 table_name: #singular_table_name_as_string.into(),
                 column_name: #column_name_as_string.into(),
                 strategy: #on_delete_strategy,
-                row_value: format!("{}", id).into(),
+                row_value: format!("{}", #wrapper_type_struct_name_or_path::new(id.clone())).into(),
                 child_entries,
             }
         };
