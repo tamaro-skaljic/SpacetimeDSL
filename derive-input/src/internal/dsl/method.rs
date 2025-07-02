@@ -1424,7 +1424,7 @@ pub(in crate::internal) fn for_method(
                             }
                         },
                         DSLMethod::DeleteOne(_) => {
-                            let get_primary_key_value_of_a_row_to_delete =
+                            let get_row_to_delete =
                                 match is_multi_column_index {
                                     true => {
                                         let multi_column_index_check =
@@ -1443,7 +1443,7 @@ pub(in crate::internal) fn for_method(
 
                                             #multi_column_index_check
 
-                                            let primary_key_value_of_a_row_to_delete = #field_name_for_found_value;
+                                            let row_to_delete = #field_name_for_found_value;
                                         }
                                     }
                                     false => {
@@ -1453,13 +1453,13 @@ pub(in crate::internal) fn for_method(
                                             quote! {
                                                 let #index_name = #(#row_value_getters),*;
 
-                                                let primary_key_value_of_a_row_to_delete = #method_impl_prefix.find(&#index_name);
+                                                let row_to_delete = #method_impl_prefix.find(&#index_name);
                                             }
                                         } else {
                                             quote! {
                                                 let #index_name = #(#row_value_getters),*;
 
-                                                let primary_key_value_of_a_row_to_delete = #method_impl_prefix.find(#index_name);
+                                                let row_to_delete = #method_impl_prefix.find(#index_name);
                                             }
                                         }
                                     }
@@ -1470,16 +1470,16 @@ pub(in crate::internal) fn for_method(
 
                                 #(#wrapper_type_option_to_wrapped_type_option_mappers)*
 
-                                #get_primary_key_value_of_a_row_to_delete
+                                #get_row_to_delete
 
-                                let primary_key_value_of_a_row_to_delete = match primary_key_value_of_a_row_to_delete {
+                                let primary_key_value_of_a_row_to_delete = match row_to_delete {
                                     None => return Err(
                                         spacetimedsl::SpacetimeDSLError::NotFoundError {
                                             table_name: #singular_table_name_as_string.into(),
                                             column_names_and_row_values: format!(#column_names_and_row_values, &#index_name).into()
                                         }
                                     ),
-                                    Some(primary_key_value_of_a_row_to_delete) => primary_key_value_of_a_row_to_delete.id,
+                                    Some(row_to_delete) => row_to_delete.id,
                                 };
                             };
 
