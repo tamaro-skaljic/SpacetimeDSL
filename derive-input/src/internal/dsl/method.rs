@@ -641,13 +641,13 @@ pub(in crate::internal) fn for_method(
             let mut column_names_and_row_values = String::new();
             column_names_and_row_values.push_str("{{ ");
             column_names_and_row_values.push_str(&format!("{singular_table_name} : "));
-            column_names_and_row_values.push_str("{} }}");
+            column_names_and_row_values.push_str("{:?} }}");
 
             let multi_column_index_checks = multi_column_index_checks(
                 Action::Create,
                 &singular_table_name,
                 &spacetimedb_table,
-                &column_names_and_row_values,
+                None,
             );
 
             let use_itertools = if multi_column_index_checks.len() > 0 {
@@ -663,7 +663,7 @@ pub(in crate::internal) fn for_method(
                 spacetimedb_table,
                 &internal_columns,
                 paths_of_traits_to_extend,
-                (&column_names_and_row_values, None),
+                None,
             );
             paths_of_traits_to_extend = res.0;
             let reference_integrity_checks = res.1;
@@ -696,7 +696,7 @@ pub(in crate::internal) fn for_method(
                                 action: spacetimedsl::Action::Create,
                                 error_from: spacetimedsl::ErrorFrom::SpacetimeDB,
                                 one_or_multiple: #one,
-                                column_names_and_row_values: format!("{:?}", #singular_table_name).into(),
+                                column_names_and_row_values: format!(#column_names_and_row_values, #singular_table_name).into(),
                             })
                         }
                         spacetimedb::TryInsertError::AutoIncOverflow(_) => {
@@ -929,7 +929,7 @@ pub(in crate::internal) fn for_method(
                         Action::Update,
                         &singular_table_name,
                         &spacetimedb_table,
-                        &column_names_and_row_values,
+                        Some(&column_names_and_row_values),
                     );
 
                     let mut row_value_getters = vec![];
@@ -978,7 +978,7 @@ pub(in crate::internal) fn for_method(
                         spacetimedb_table,
                         internal_columns,
                         paths_of_traits_to_extend,
-                        (&column_names_and_row_values, Some(&row_value_getters)),
+                        Some((&column_names_and_row_values, &row_value_getters)),
                     );
                     paths_of_traits_to_extend = res.0;
                     let reference_integrity_checks = res.1;
@@ -1706,12 +1706,9 @@ fn reference_integrity_checks_on_create_or_update(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &Vec<InternalColumn>,
     mut paths_of_traits_to_extend: Vec<Path>,
-    column_names_and_row_value_getters: (&String, Option<&Vec<TokenStream>>),
+    column_names_and_row_value_getters: Option<(&String, &Vec<TokenStream>)>,
 ) -> (Vec<Path>, Vec<TokenStream>) {
     let mut reference_integrity_checks = vec![];
-
-    let column_names_and_row_values = column_names_and_row_value_getters.0;
-    let row_value_getters = column_names_and_row_value_getters.1;
 
     for column in columns {
         // Checks of private columns only need to happen in checks for create methods, because they can't be changed, they don't need to be checked during updates
@@ -1776,7 +1773,7 @@ fn reference_integrity_checks_on_create_or_update(
                                     spacetimedsl::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                         table_name: #referencing_table_name_as_string.into(),
                                         create_or_update: spacetimedsl::Action::Create,
-                                        column_names_and_row_values: format!(#column_names_and_row_values, #referencing_table_name.#referencing_table_column_getter_name()).into()
+                                        column_names_and_row_values: format!("{{ {} : {} }}", #referencing_table_column_name, #referencing_table_name.#referencing_table_column_getter_name()).into()
                                     }
                                 )
                             );
@@ -1785,8 +1782,10 @@ fn reference_integrity_checks_on_create_or_update(
                 }
             }
             CreateOrUpdate::Update => {
-                let row_value_getters =
-                    row_value_getters.expect("Update Method should have row value getters");
+                let column_names_and_row_value_getters = column_names_and_row_value_getters
+                    .expect("Update Method should have column_names_and_row_value_getters");
+                let column_names_and_row_values = column_names_and_row_value_getters.0;
+                let row_value_getters = column_names_and_row_value_getters.1;
                 quote! {
                     if #field_name_for_found_value.is_none() {
                         #field_name_for_found_value = match self.ctx().db().#referencing_table_name().id().find(#referencing_table_name.get_id().value()) {
@@ -1843,14 +1842,14 @@ fn multi_column_index_checks(
     action: Action,
     singular_table_name: &Ident,
     spacetimedb_table: &SpacetimeDBTable,
-    column_names_and_row_values: &String,
+    column_names_and_row_values: Option<&String>,
 ) -> Vec<TokenStream> {
     let mut multi_column_index_checks = vec![];
     let singular_table_name_as_string = singular_table_name.to_string();
 
     for multi_column_index in &spacetimedb_table.multi_column_indices {
-        let index_column_names = match &multi_column_index.index_type {
-            IndexType::BTreeMultiColumn { columns } => columns,
+        let mut index_column_names: VecDeque<Ident> = match &multi_column_index.index_type {
+            IndexType::BTreeMultiColumn { columns } => columns.clone().into(),
             _ => {
                 continue;
             }
@@ -1864,11 +1863,43 @@ fn multi_column_index_checks(
 
         let mut row_value_getters = vec![];
 
-        // TODO: Is it possible to use the row_value_getters multiple times or do they move the values?
-        for column_name in index_column_names {
-            let column_name = format_ident!("{column_name}");
-            row_value_getters.push(quote! {#singular_table_name.#column_name});
-        }
+        let column_names_and_row_values = match column_names_and_row_values {
+            Some(column_names_and_row_values) => {
+                for column_name in &index_column_names {
+                    row_value_getters.push(quote! {#singular_table_name.#column_name});
+                }
+                column_names_and_row_values.clone()
+            }
+            None => {
+                let mut column_names_and_row_values = String::new();
+
+                let first_column_name = index_column_names
+                    .pop_front()
+                    .expect("There should be a first column in Vec<Ident> of BTreeMultiColumn.");
+
+                let last_column_name = index_column_names
+                    .pop_back()
+                    .expect("There should be a last column in Vec<Ident> of BTreeMultiColumn.");
+
+                let any_other_column_name = index_column_names;
+
+                column_names_and_row_values.push_str(&format!("{first_column_name} : "));
+                column_names_and_row_values.push_str("{} ");
+                row_value_getters.push(quote! {#singular_table_name.#first_column_name});
+
+                for any_other_column_name in any_other_column_name {
+                    column_names_and_row_values.push_str(&format!(", {any_other_column_name} : "));
+                    column_names_and_row_values.push_str("{} ");
+                    row_value_getters.push(quote! {#singular_table_name.#any_other_column_name});
+                }
+
+                column_names_and_row_values.push_str(&format!(", {last_column_name} : "));
+                column_names_and_row_values.push_str("{}");
+                row_value_getters.push(quote! {#singular_table_name.#last_column_name});
+
+                column_names_and_row_values
+            }
+        };
 
         let mut multi_column_index_check = get_unique_multi_column_index_check(
             &action,
