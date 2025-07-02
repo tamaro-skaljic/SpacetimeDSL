@@ -18,7 +18,7 @@ pub(in crate::internal) fn try_parse(
     rust_struct: &RustStruct,
     mut spacetimedb_table: SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
-) -> syn::Result<(SpacetimeDBTable, Vec<Column>, Vec<InternalColumn>, Ident)> {
+) -> syn::Result<(SpacetimeDBTable, Vec<Column>, Vec<InternalColumn>)> {
     let primary_key_column_name = match get_primary_key_column_name(column_args) {
         Some(pk) => pk,
         None => {
@@ -66,6 +66,11 @@ pub(in crate::internal) fn try_parse(
         internal_columns.push(internal_column);
     }
 
+    let primary_key_column = internal_columns
+        .iter()
+        .find(|c| c.rust_field_name.to_string().eq(&"id"))
+        .expect("should have a primary key");
+
     for (rust_field, spacetimedb_column, spacetimedsl_column) in
         izip!(rust_fields, spacetimedb_columns, spacetimedsl_columns)
     {
@@ -74,8 +79,8 @@ pub(in crate::internal) fn try_parse(
             &spacetimedb_table,
             &spacetimedsl_table,
             &spacetimedb_column,
-            &primary_key_column_name,
             &internal_columns,
+            primary_key_column,
         );
 
         columns.push(Column {
@@ -86,12 +91,7 @@ pub(in crate::internal) fn try_parse(
         });
     }
 
-    Ok((
-        spacetimedb_table,
-        columns,
-        internal_columns,
-        primary_key_column_name,
-    ))
+    Ok((spacetimedb_table, columns, internal_columns))
 }
 
 pub(in crate::internal) struct InternalColumn {

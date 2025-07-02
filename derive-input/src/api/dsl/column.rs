@@ -24,15 +24,10 @@ pub struct SpacetimeDSLColumnMethodsForUniqueIndex {
     pub get_one_option: SpacetimeDSLMethod,
     pub update: Option<SpacetimeDSLMethod>,
     pub delete_one: SpacetimeDSLMethod,
-    pub delete_one_result_type: SpacetimeDSLDeletionResult,
 }
 
 
 pub struct SpacetimeDSLColumnMethodsForIndex {
     pub get_many: SpacetimeDSLMethod,
     pub delete_many: SpacetimeDSLMethod,
-    pub delete_many_result_type: SpacetimeDSLDeletionResult,
 }
-
-
-pub struct SpacetimeDSLDeletionResult {}

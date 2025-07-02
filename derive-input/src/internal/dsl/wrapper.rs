@@ -143,6 +143,9 @@ fn get_wrapper_impl(
             #wrapped_type::default()
         }
     }
+
+    let wrapper_struct_name_as_str = wrapper_struct_name.to_string();
+
     quote! {
         #[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType)]
         pub struct #wrapper_struct_name {
@@ -175,6 +178,12 @@ fn get_wrapper_impl(
             }
         }
 
+        impl std::fmt::Display for #wrapper_struct_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{} {{ id: {:?} }}", #wrapper_struct_name_as_str, self.value)
+            }
+        }
+
         impl spacetimedsl::Wrapper<#wrapped_type, #wrapper_struct_name> for #wrapper_struct_name {
             fn new(value: #wrapped_type) -> Self {
                 Self { value }
@@ -195,7 +204,10 @@ impl WrapperType {
     pub(in crate::internal) fn map_to_wrapped_type(value: &Wrap) -> Type {
         parse2(value.wrapped_type_name_or_path.to_token_stream()).expect(&format!(
             "Failed to parse {} as Ident in WrapperType::map_to_wrapped_type.",
-            &value.wrapped_type_name_or_path.to_token_stream().to_string()
+            &value
+                .wrapped_type_name_or_path
+                .to_token_stream()
+                .to_string()
         ))
     }
 

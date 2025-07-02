@@ -32,3 +32,6 @@ spacetimedb = "1.2.0"
 
 # https://crates.io/crates/spacetime-bindings-macro-input Unofficial Input Crate for the SpacetimeDB Macro Bindings.
 spacetime-bindings-macro-input = "1.1.1"
+
+# https://crates.io/crates/strum Helpful macros for working with enums and strings
+strum = { version = "0.27", features = ["derive"] }
