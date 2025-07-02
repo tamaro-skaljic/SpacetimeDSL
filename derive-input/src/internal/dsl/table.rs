@@ -99,7 +99,7 @@ impl SpacetimeDSLTable {
                     .eq("created_at")
                 {
                     let field_type = field.ty.to_token_stream().to_string();
-                    if !field_type.eq("Timestamp") {
+                    if !field_type.eq("Timestamp") && !field_type.eq("spacetimedb :: Timestamp") {
                         return Err(syn::Error::new(
                             Span::call_site(),
                             format!(
@@ -136,7 +136,7 @@ impl SpacetimeDSLTable {
                 {
                     let field_type = field.ty.to_token_stream().to_string();
                     // TODO: Allow Option<Timestamp> as modified_at column type
-                    if !field_type.eq("Timestamp") {
+                    if !field_type.eq("Timestamp") && !field_type.eq("spacetimedb :: Timestamp") {
                         return Err(syn::Error::new(
                             Span::call_site(),
                             format!(
