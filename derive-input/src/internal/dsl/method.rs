@@ -48,6 +48,8 @@ pub(in crate::internal) enum DSLMethod<'a> {
 
 // FIXME: Ensure that struct_name is only used in doc comments, not in generated code
 
+// FIXME: Rename wrap to create_wrapper and wrapped to use_wrapper
+
 #[derive(Debug)]
 pub enum OneOrMultiple {
     One,
@@ -643,12 +645,8 @@ pub(in crate::internal) fn for_method(
             column_names_and_row_values.push_str(&format!("{singular_table_name} : "));
             column_names_and_row_values.push_str("{:?} }}");
 
-            let multi_column_index_checks = multi_column_index_checks(
-                Action::Create,
-                &singular_table_name,
-                &spacetimedb_table,
-                None,
-            );
+            let multi_column_index_checks =
+                multi_column_index_checks(Action::Create, &singular_table_name, &spacetimedb_table);
 
             let use_itertools = if multi_column_index_checks.len() > 0 {
                 quote! {
@@ -929,7 +927,6 @@ pub(in crate::internal) fn for_method(
                         Action::Update,
                         &singular_table_name,
                         &spacetimedb_table,
-                        Some(&column_names_and_row_values),
                     );
 
                     let mut row_value_getters = vec![];
@@ -978,7 +975,7 @@ pub(in crate::internal) fn for_method(
                         spacetimedb_table,
                         internal_columns,
                         paths_of_traits_to_extend,
-                        Some((&column_names_and_row_values, &row_value_getters)),
+                        Some(&column_names_and_row_values),
                     );
                     paths_of_traits_to_extend = res.0;
                     let reference_integrity_checks = res.1;
@@ -1707,7 +1704,7 @@ fn reference_integrity_checks_on_create_or_update(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &Vec<InternalColumn>,
     mut paths_of_traits_to_extend: Vec<Path>,
-    column_names_and_row_value_getters: Option<(&String, &Vec<TokenStream>)>,
+    column_names_and_row_values: Option<&String>,
 ) -> (Vec<Path>, Vec<TokenStream>) {
     let mut reference_integrity_checks = vec![];
 
@@ -1783,10 +1780,6 @@ fn reference_integrity_checks_on_create_or_update(
                 }
             }
             CreateOrUpdate::Update => {
-                let column_names_and_row_value_getters = column_names_and_row_value_getters
-                    .expect("Update Method should have column_names_and_row_value_getters");
-                let column_names_and_row_values = column_names_and_row_value_getters.0;
-                let row_value_getters = column_names_and_row_value_getters.1;
                 quote! {
                     if #field_name_for_found_value.is_none() {
                         #field_name_for_found_value = match self.ctx().db().#referencing_table_name().id().find(#referencing_table_name.get_id().value()) {
@@ -1795,7 +1788,7 @@ fn reference_integrity_checks_on_create_or_update(
                                 return Err(
                                     spacetimedsl::SpacetimeDSLError::NotFoundError {
                                         table_name: #referencing_table_name_as_string.into(),
-                                        column_names_and_row_values: format!(#column_names_and_row_values, #(#row_value_getters),*).into()
+                                        column_names_and_row_values: format!(#column_names_and_row_values, #referencing_table_column_name).into()
                                     }
                                 );
                             }
@@ -1809,7 +1802,7 @@ fn reference_integrity_checks_on_create_or_update(
                                     spacetimedsl::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                         table_name: #referencing_table_name_as_string.into(),
                                         create_or_update: spacetimedsl::Action::Update,
-                                        column_names_and_row_values: format!(#column_names_and_row_values, #(#row_value_getters),*).into()
+                                        column_names_and_row_values: format!(#column_names_and_row_values, #referencing_table_column_name).into()
                                     }
                                 )
                             )
@@ -1843,7 +1836,6 @@ fn multi_column_index_checks(
     action: Action,
     singular_table_name: &Ident,
     spacetimedb_table: &SpacetimeDBTable,
-    column_names_and_row_values: Option<&String>,
 ) -> Vec<TokenStream> {
     let mut multi_column_index_checks = vec![];
     let singular_table_name_as_string = singular_table_name.to_string();
@@ -1863,44 +1855,31 @@ fn multi_column_index_checks(
         let index_name = &multi_column_index.name;
 
         let mut row_value_getters = vec![];
+        let mut column_names_and_row_values = String::new();
 
-        let column_names_and_row_values = match column_names_and_row_values {
-            Some(column_names_and_row_values) => {
-                for column_name in &index_column_names {
-                    row_value_getters.push(quote! {#singular_table_name.#column_name});
-                }
-                column_names_and_row_values.clone()
-            }
-            None => {
-                let mut column_names_and_row_values = String::new();
+        let first_column_name = index_column_names
+            .pop_front()
+            .expect("There should be a first column in Vec<Ident> of BTreeMultiColumn.");
 
-                let first_column_name = index_column_names
-                    .pop_front()
-                    .expect("There should be a first column in Vec<Ident> of BTreeMultiColumn.");
+        let last_column_name = index_column_names
+            .pop_back()
+            .expect("There should be a last column in Vec<Ident> of BTreeMultiColumn.");
 
-                let last_column_name = index_column_names
-                    .pop_back()
-                    .expect("There should be a last column in Vec<Ident> of BTreeMultiColumn.");
+        let any_other_column_name = index_column_names;
 
-                let any_other_column_name = index_column_names;
+        column_names_and_row_values.push_str(&format!("{first_column_name} : "));
+        column_names_and_row_values.push_str("{} ");
+        row_value_getters.push(quote! {#singular_table_name.#first_column_name});
 
-                column_names_and_row_values.push_str(&format!("{first_column_name} : "));
-                column_names_and_row_values.push_str("{} ");
-                row_value_getters.push(quote! {#singular_table_name.#first_column_name});
+        for any_other_column_name in any_other_column_name {
+            column_names_and_row_values.push_str(&format!(", {any_other_column_name} : "));
+            column_names_and_row_values.push_str("{} ");
+            row_value_getters.push(quote! {#singular_table_name.#any_other_column_name});
+        }
 
-                for any_other_column_name in any_other_column_name {
-                    column_names_and_row_values.push_str(&format!(", {any_other_column_name} : "));
-                    column_names_and_row_values.push_str("{} ");
-                    row_value_getters.push(quote! {#singular_table_name.#any_other_column_name});
-                }
-
-                column_names_and_row_values.push_str(&format!(", {last_column_name} : "));
-                column_names_and_row_values.push_str("{}");
-                row_value_getters.push(quote! {#singular_table_name.#last_column_name});
-
-                column_names_and_row_values
-            }
-        };
+        column_names_and_row_values.push_str(&format!(", {last_column_name} : "));
+        column_names_and_row_values.push_str("{}");
+        row_value_getters.push(quote! {#singular_table_name.#last_column_name});
 
         let mut multi_column_index_check = get_unique_multi_column_index_check(
             &action,
