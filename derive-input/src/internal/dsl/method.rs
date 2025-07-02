@@ -1385,6 +1385,7 @@ pub(in crate::internal) fn for_method(
                         }
                         DSLMethod::GetOneOption(_) => match is_multi_column_index {
                             true => {
+                                // FIXME: Row Value Getters of Wrapper Types shouldn't be `id.clone().into().value()`, they should be `let id = id.into();` at the method beginning and then `id.value()` anywhere else
                                 let multi_column_index_check = get_unique_multi_column_index_check(
                                     &Action::Get,
                                     &singular_table_name,
@@ -1766,8 +1767,8 @@ fn reference_integrity_checks_on_create_or_update(
             CreateOrUpdate::Create => {
                 quote! {
                     match self.#get_row_of_referenced_table_by_primary_key_method_name(#referencing_table_name.#referencing_table_column_getter_name()) {
-                        Some(_) => {},
-                        None => {
+                        Ok(_) => {},
+                        Err(_) => {
                             return Err(
                                 spacetimedsl::SpacetimeDSLError::ReferenceIntegrityViolation(
                                     spacetimedsl::ReferenceIntegrityViolationError::OnCreateOrUpdate {
@@ -1802,8 +1803,8 @@ fn reference_integrity_checks_on_create_or_update(
                     }
                     if #field_name_for_found_value.as_ref().unwrap().#referencing_table_column_getter_name().ne(&#referencing_table_name.#referencing_table_column_getter_name()) {
                         match self.#get_row_of_referenced_table_by_primary_key_method_name(#referencing_table_name.#referencing_table_column_getter_name()) {
-                            Some(_) => {},
-                            None => return Err(
+                            Ok(_) => {},
+                            Err(_) => return Err(
                                 spacetimedsl::SpacetimeDSLError::ReferenceIntegrityViolation(
                                     spacetimedsl::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                         table_name: #referencing_table_name_as_string.into(),
