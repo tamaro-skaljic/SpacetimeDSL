@@ -1213,7 +1213,7 @@ pub(in crate::internal) fn for_method(
                             };
 
                             let impl_until_return_ok_on_is_empty = quote! {
-                                use itertools::Itertools;
+                                use spacetimedsl::itertools::Itertools;
 
                                 #(#wrapper_type_option_to_wrapped_type_option_mappers)*
 
@@ -1462,7 +1462,7 @@ pub(in crate::internal) fn for_method(
                                 };
 
                             let impl_until_return_err_on_is_none = quote! {
-                                use itertools::Itertools;
+                                use spacetimedsl::itertools::Itertools;
 
                                 #(#wrapper_type_option_to_wrapped_type_option_mappers)*
 
