@@ -1212,6 +1212,14 @@ pub(in crate::internal) fn for_method(
                                 },
                             };
 
+                            let primary_key_column = internal_columns
+                                .iter()
+                                .find(|c| c.rust_field_name.to_string().eq(&"id"))
+                                .expect("should have a primary key");
+
+                            let primary_key_column_type =
+                                &primary_key_column.rust_field_type_name_or_path;
+
                             let impl_until_return_ok_on_is_empty = quote! {
                                 use spacetimedsl::itertools::Itertools;
 
@@ -1219,7 +1227,7 @@ pub(in crate::internal) fn for_method(
 
                                 #let_index_name
 
-                                let primary_key_values_of_rows_to_delete = #method_impl_prefix
+                                let primary_key_values_of_rows_to_delete: Vec<#primary_key_column_type> = #method_impl_prefix
                                     .filter(#index_name)
                                     .map(|row| row.id)
                                     .collect();
@@ -1250,8 +1258,11 @@ pub(in crate::internal) fn for_method(
                                 }
                             };
 
-                            let delete_many_impl = quote! {
-                                let count_of_rows_to_delete = primary_key_values_of_rows_to_delete.len();
+                                let delete_many_impl = quote! {let count_of_rows_to_delete: u64 = primary_key_values_of_rows_to_delete
+                                    .len()
+                                    .try_into()
+                                    .unwrap_or(u64::MAX);
+
                                 let count_of_deleted_rows = #method_impl_prefix.delete(#index_name);
 
                                 if count_of_rows_to_delete.ne(&count_of_deleted_rows) {
@@ -1424,46 +1435,45 @@ pub(in crate::internal) fn for_method(
                             }
                         },
                         DSLMethod::DeleteOne(_) => {
-                            let get_row_to_delete =
-                                match is_multi_column_index {
-                                    true => {
-                                        let multi_column_index_check =
-                                            get_unique_multi_column_index_check(
-                                                &Action::Delete,
-                                                &singular_table_name,
-                                                &index_name,
-                                                &column_names_and_row_values,
-                                                &row_value_getters,
-                                            );
+                            let get_row_to_delete = match is_multi_column_index {
+                                true => {
+                                    let multi_column_index_check =
+                                        get_unique_multi_column_index_check(
+                                            &Action::Delete,
+                                            &singular_table_name,
+                                            &index_name,
+                                            &column_names_and_row_values,
+                                            &row_value_getters,
+                                        );
 
+                                    quote! {
+                                        let #index_name = (#(#row_value_getters),*);
+
+                                        let mut #field_name_for_found_value: Option<#struct_name> = None;
+
+                                        #multi_column_index_check
+
+                                        let row_to_delete = #field_name_for_found_value;
+                                    }
+                                }
+                                false => {
+                                    let column_name = &index_columns[0];
+                                    let column_type = &internal_columns.iter().find(|c| c.rust_field_name.eq(column_name)).expect("The index should have a column in the internal columns").rust_field_type_name_or_path;
+                                    if column_type.to_token_stream().to_string().eq(&"String") {
                                         quote! {
-                                            let #index_name = (#(#row_value_getters),*);
+                                            let #index_name = #(#row_value_getters),*;
 
-                                            let mut #field_name_for_found_value: Option<#struct_name> = None;
+                                            let row_to_delete = #method_impl_prefix.find(&#index_name);
+                                        }
+                                    } else {
+                                        quote! {
+                                            let #index_name = #(#row_value_getters),*;
 
-                                            #multi_column_index_check
-
-                                            let row_to_delete = #field_name_for_found_value;
+                                            let row_to_delete = #method_impl_prefix.find(#index_name);
                                         }
                                     }
-                                    false => {
-                                        let column_name = &index_columns[0];
-                                        let column_type = &internal_columns.iter().find(|c| c.rust_field_name.eq(column_name)).expect("The index should have a column in the internal columns").rust_field_type_name_or_path;
-                                        if column_type.to_token_stream().to_string().eq(&"String") {
-                                            quote! {
-                                                let #index_name = #(#row_value_getters),*;
-
-                                                let row_to_delete = #method_impl_prefix.find(&#index_name);
-                                            }
-                                        } else {
-                                            quote! {
-                                                let #index_name = #(#row_value_getters),*;
-
-                                                let row_to_delete = #method_impl_prefix.find(#index_name);
-                                            }
-                                        }
-                                    }
-                                };
+                                }
+                            };
 
                             let impl_until_return_err_on_is_none = quote! {
                                 use spacetimedsl::itertools::Itertools;
