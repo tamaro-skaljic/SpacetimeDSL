@@ -180,7 +180,7 @@ fn get_wrapper_impl(
 
         impl std::fmt::Display for #wrapper_struct_name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, format!("{} {{ id: {} }}", #wrapper_struct_name_as_str, self.value))
+                write!(f, "{} {{ id: {:?} }}", #wrapper_struct_name_as_str, self.value)
             }
         }
 
