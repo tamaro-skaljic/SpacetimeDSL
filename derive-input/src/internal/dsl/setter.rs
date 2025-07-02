@@ -31,7 +31,7 @@ impl Setter {
 
         match wrapper_type {
             Some(wrapper_type) => match wrapper_type {
-                WrapperType::Wrap(wrap) => {
+                WrapperType::Created(wrap) => {
                     let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
 
                     if rust_field
@@ -70,7 +70,7 @@ impl Setter {
                         #wrapper_type_name_or_path
                     };
                 }
-                WrapperType::Wrapped(_) => {
+                WrapperType::Used(_) => {
                     let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
 
                     if is_option {

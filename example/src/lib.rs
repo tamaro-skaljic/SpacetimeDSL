@@ -10,7 +10,7 @@ pub mod entity {
         /// The unique ID of the Entity.
         #[primary_key]
         #[auto_inc]
-        #[wrap]
+        #[create_wrapper]
         #[referenced_by(path = crate::entity,                table = entity_relationship)]
         #[referenced_by(path = crate::entity,                table = entity_relationship2)]
         #[referenced_by(path = crate::component::identifier, table = identifier)]
@@ -29,16 +29,16 @@ pub mod entity {
         /// The unique ID of the Entity Relationship.
         #[primary_key]
         #[auto_inc]
-        #[wrap]
+        #[create_wrapper]
         id: u128,
 
         #[index(btree)]
-        #[wrapped(name = EntityId)]
+        #[use_wrapper(name = EntityId)]
         #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
         parent_entity_id: u128,
 
         #[index(btree)]
-        #[wrapped(name = EntityId)]
+        #[use_wrapper(name = EntityId)]
         #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
         child_entity_id: u128,
     }
@@ -49,16 +49,16 @@ pub mod entity {
         /// The unique ID of the Entity Relationship2.
         #[primary_key]
         #[auto_inc]
-        #[wrap]
+        #[create_wrapper]
         id: u128,
 
         #[index(btree)]
-        #[wrapped(name = EntityId)]
+        #[use_wrapper(name = EntityId)]
         #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
         parent_entity_id: u128,
 
         #[index(btree)]
-        #[wrapped(name = EntityId)]
+        #[use_wrapper(name = EntityId)]
         #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
         pub child_entity_id: u128,
     }
@@ -69,12 +69,12 @@ pub mod entity {
         /// The unique ID of the Entity Relationship3.
         #[primary_key]
         #[auto_inc]
-        #[wrap]
+        #[create_wrapper]
         #[referenced_by(path = crate::entity, table = entity_relationship3)]
         id: u128,
 
         #[index(btree)]
-        #[wrapped(name = EntityRelationship3Id)]
+        #[use_wrapper(name = EntityRelationship3Id)]
         #[foreign_key(path = crate::entity, table = entity_relationship3, on_delete = SetZero)]
         parent_entity_relationship3_id: u128,
     }
@@ -85,12 +85,12 @@ pub mod entity {
         /// The unique ID of the Entity Relationship3.
         #[primary_key]
         #[auto_inc]
-        #[wrap]
+        #[create_wrapper]
         #[referenced_by(path = crate::entity, table = entity_relationship4)]
         id: u128,
 
         #[index(btree)]
-        #[wrapped(name = EntityRelationship4Id)]
+        #[use_wrapper(name = EntityRelationship4Id)]
         #[foreign_key(path = crate::entity, table = entity_relationship4, on_delete = Ignore)]
         pub parent_entity_relationship4_id: u128,
     }
@@ -108,13 +108,13 @@ pub mod component {
             /// The unique ID of the Identifier.
             #[primary_key]
             #[auto_inc]
-            #[wrap]
+            #[create_wrapper]
             #[referenced_by(path = crate::component::identifier, table = identifier_reference)]
             id: u128,
 
             /// The unique ID of the Entity the Identifier belongs to.
             #[unique]
-            #[wrapped(path = crate::entity::EntityId)]
+            #[use_wrapper(path = crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
             entity_id: u128,
 
@@ -131,7 +131,7 @@ pub mod component {
         #[table(name = identifier_reference, public)]
         pub struct IdentifierReference {
             #[primary_key]
-            #[wrapped(name = IdentifierId)]
+            #[use_wrapper(name = IdentifierId)]
             #[foreign_key(path = crate::component::identifier, table = identifier, on_delete = Delete)]
             id: u128,
         }
@@ -152,12 +152,12 @@ pub mod component {
             /// The unique ID of the Position.
             #[primary_key]
             #[auto_inc]
-            #[wrap]
+            #[create_wrapper]
             id: u128,
 
             /// The unique ID of the Entity the Position belongs to.
             #[unique]
-            #[wrapped(path = crate::entity::EntityId)]
+            #[use_wrapper(path = crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, on_delete = SetZero)]
             entity_id: u128,
 
@@ -167,7 +167,7 @@ pub mod component {
 
             pub z: i128,
 
-            #[wrapped(path = crate::component::position::PositionId)]
+            #[use_wrapper(path = crate::component::position::PositionId)]
             mirrored_position_id: Option<u128>,
 
             created_at: Timestamp,
@@ -182,12 +182,12 @@ pub mod component {
             /// The unique ID of the unique Position.
             #[primary_key]
             #[auto_inc]
-            #[wrap]
+            #[create_wrapper]
             id: u128,
 
             /// The unique ID of the Entity the unique Position belongs to.
             #[unique]
-            #[wrapped(path = crate::entity::EntityId)]
+            #[use_wrapper(path = crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
             entity_id: u128,
 
@@ -214,10 +214,10 @@ pub mod component {
             /// The unique ID of the World.
             #[primary_key]
             #[auto_inc]
-            #[wrap]
+            #[create_wrapper]
             id: u128,
 
-            #[wrapped(path = crate::entity::EntityId)]
+            #[use_wrapper(path = crate::entity::EntityId)]
             pub wrapped_option: Option<u128>,
 
             // TODO: Add #[unique] if it's allowed by SpacetimeDB
@@ -226,14 +226,14 @@ pub mod component {
 
             // TODO: Add unique_wrapped_option if it's allowed by SpacetimeDB
             // #[unique]
-            // #[wrapped(path = crate::entity::EntityId)]
+            // #[use_wrapper(path = crate::entity::EntityId)]
             // pub unique_wrapped_option: Option<u128>,
             #[unique]
-            #[wrapped(path = crate::entity::EntityId)]
+            #[use_wrapper(path = crate::entity::EntityId)]
             pub wrapped_unique: u128,
 
             #[index(btree)]
-            #[wrapped(path = crate::entity::EntityId)]
+            #[use_wrapper(path = crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
             pub wrapped_index: u128,
 
@@ -241,7 +241,7 @@ pub mod component {
             pub btree_index: u128,
 
             #[unique]
-            #[wrapped(path = crate::entity::EntityId)]
+            #[use_wrapper(path = crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, on_delete = SetZero)]
             pub unique: u128,
 
@@ -251,14 +251,14 @@ pub mod component {
             pub index_on_string: String,
 
             #[index(btree)]
-            #[wrap]
+            #[create_wrapper]
             pub index_on_wrapped_string: String,
 
             #[unique]
-            #[wrap]
+            #[create_wrapper]
             pub unique_on_wrapped_string: String,
 
-            #[wrap]
+            #[create_wrapper]
             pub wrapped_string_option: Option<String>,
 
             #[index(direct)]
@@ -277,16 +277,16 @@ pub mod component {
         pub struct ShipObject {
             #[primary_key]
             #[auto_inc]
-            #[wrap]
+            #[create_wrapper]
             id: u64,
 
             #[unique]
             #[auto_inc]
-            #[wrap]
+            #[create_wrapper]
             pub sobj_id: u64,
 
             #[unique]
-            #[wrapped(path = crate::entity::EntityId)]
+            #[use_wrapper(path = crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
             pub entity_id: u128,
         }
@@ -296,16 +296,16 @@ pub mod component {
         pub struct SpaceShipObject {
             #[primary_key]
             #[auto_inc]
-            #[wrap]
+            #[create_wrapper]
             id: u64,
 
             #[unique]
             #[auto_inc]
-            #[wrap]
+            #[create_wrapper]
             pub sobj_id: u64,
 
             #[unique]
-            #[wrapped(path = crate::entity::EntityId)]
+            #[use_wrapper(path = crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
             pub entity_id: u128,
         }
@@ -503,7 +503,11 @@ pub mod test {
                     .row_value
                     .ne(&er4_1.get_id().to_string().into())
                 {
-                    return Err(format!("Should be able to delete 'er4_1'! Got: {} and {}\n{success}", success.entries[0].row_value, er4_1.get_id()));
+                    return Err(format!(
+                        "Should be able to delete 'er4_1'! Got: {} and {}\n{success}",
+                        success.entries[0].row_value,
+                        er4_1.get_id()
+                    ));
                 }
             }
             Err(error) => {

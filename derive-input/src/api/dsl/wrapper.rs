@@ -3,19 +3,19 @@ use syn::{Ident, Path};
 
 #[derive(Clone)]
 pub enum WrapperType {
-    Wrap(Wrap),
-    Wrapped(Wrapped),
+    Created(CreatedWrapper),
+    Used(UsedWrapper),
 }
 
 #[derive(Clone)]
-pub struct Wrap {
+pub struct CreatedWrapper {
     pub wrapper_struct_name: Ident,
     pub wrapped_type_name_or_path: Path,
     pub wrapper_impl: TokenStream,
 }
 
 #[derive(Clone)]
-pub struct Wrapped {
+pub struct UsedWrapper {
     pub wrapper_struct_name_or_path: Path,
     pub wrapped_type_name_or_path: Path,
 }

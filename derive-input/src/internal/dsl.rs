@@ -24,5 +24,5 @@ symbol!(referenced_by);
 symbol!(path);
 symbol!(column);
 symbol!(on_delete);
-symbol!(wrap);
-symbol!(wrapped);
+symbol!(create_wrapper);
+symbol!(use_wrapper);

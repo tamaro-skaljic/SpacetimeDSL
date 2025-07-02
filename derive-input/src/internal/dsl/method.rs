@@ -467,7 +467,7 @@ fn process_columns_for_create_and_update_method(
 
     match &internal_column.spacetimedsl_column_wrapper_type {
         Some(wrapper_type) => match wrapper_type {
-            WrapperType::Wrap(wrapper_type) => {
+            WrapperType::Created(wrapper_type) => {
                 if internal_column
                     .rust_field_type_name_or_path
                     .to_token_stream()
@@ -501,7 +501,7 @@ fn process_columns_for_create_and_update_method(
                     });
                 }
             }
-            WrapperType::Wrapped(_) => {
+            WrapperType::Used(_) => {
                 let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
 
                 if internal_column.spacetimedsl_column_is_option {
@@ -1265,10 +1265,10 @@ pub(in crate::internal) fn for_method(
                                 .as_ref()
                                 .unwrap()
                             {
-                                WrapperType::Wrap(wrap) => {
+                                WrapperType::Created(wrap) => {
                                     wrap.wrapper_struct_name.to_token_stream()
                                 }
-                                WrapperType::Wrapped(wrapped) => {
+                                WrapperType::Used(wrapped) => {
                                     wrapped.wrapper_struct_name_or_path.to_token_stream()
                                 }
                             };
@@ -1547,10 +1547,10 @@ pub(in crate::internal) fn for_method(
                                 .as_ref()
                                 .unwrap()
                             {
-                                WrapperType::Wrap(wrap) => {
+                                WrapperType::Created(wrap) => {
                                     wrap.wrapper_struct_name.to_token_stream()
                                 }
-                                WrapperType::Wrapped(wrapped) => {
+                                WrapperType::Used(wrapped) => {
                                     wrapped.wrapper_struct_name_or_path.to_token_stream()
                                 }
                             };
@@ -2501,8 +2501,8 @@ fn get_on_delete_strategy_implementation(
             .as_ref()
             .unwrap()
         {
-            WrapperType::Wrap(wrap) => wrap.wrapper_struct_name.to_token_stream(),
-            WrapperType::Wrapped(wrapped) => wrapped.wrapper_struct_name_or_path.to_token_stream(),
+            WrapperType::Created(wrap) => wrap.wrapper_struct_name.to_token_stream(),
+            WrapperType::Used(wrapped) => wrapped.wrapper_struct_name_or_path.to_token_stream(),
         };
 
         let create_entry = quote! {

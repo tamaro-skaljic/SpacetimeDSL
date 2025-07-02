@@ -27,7 +27,7 @@ impl Getter {
                     };
 
                     match wrapper_type {
-                        WrapperType::Wrap(_) => {
+                        WrapperType::Created(_) => {
                             method_impl = quote! {
                                 match &self.#column_name {
                                     None => None,
@@ -35,7 +35,7 @@ impl Getter {
                                 }
                             };
                         }
-                        WrapperType::Wrapped(_) => {
+                        WrapperType::Used(_) => {
                             method_impl = quote! {
                                 match &self.#column_name {
                                     None => None,

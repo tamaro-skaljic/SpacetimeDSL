@@ -17,7 +17,7 @@ pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
     for column in &input.columns {
         match &column.spacetimedsl_column.wrapper_type {
             Some(wrapper_type) => match wrapper_type {
-                WrapperType::Wrap(wrapper_type) => {
+                WrapperType::Created(wrapper_type) => {
                     wrapper_types.push(&wrapper_type.wrapper_impl);
                 }
                 _ => {}

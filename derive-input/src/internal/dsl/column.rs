@@ -29,7 +29,7 @@ impl SpacetimeDSLColumn {
         if spacetimedb_column.is_primary_key && wrapper_type.is_none() {
             return Err(Error::new(
                 Span::call_site(),
-                "A #[primary_key] column must have `#[wrap]` or `#[wrapped]`!",
+                "A #[primary_key] column must have `#[create_wrapper]` or `#[use_wrapper]`!",
             ));
         }
 
@@ -39,17 +39,17 @@ impl SpacetimeDSLColumn {
             if wrapper_type.is_none() {
                 return Err(Error::new(
                     Span::call_site(),
-                    "A #[foreign_key] column must have `#[wrapped]`!",
+                    "A #[foreign_key] column must have `#[use_wrapper]`!",
                 ));
             } else {
                 match wrapper_type.as_ref().unwrap() {
-                    WrapperType::Wrap(_) => {
+                    WrapperType::Created(_) => {
                         return Err(Error::new(
                             Span::call_site(),
-                            "A #[foreign_key] column must have `#[wrapped]`, not `#[wrap]`!",
+                            "A #[foreign_key] column must have `#[use_wrapper]`, not `#[create_wrapper]`!",
                         ));
                     }
-                    WrapperType::Wrapped(_) => {}
+                    WrapperType::Used(_) => {}
                 }
             }
         }
