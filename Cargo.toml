@@ -23,4 +23,4 @@ spacetimedsl_derive = { version = "0.7.3", path = "derive" }
 itertools = "^0.14"
 
 [workspace]
-members = ["debug-helper", "derive-input", "derive", "example"]
+members = ["debug-helper", "derive-input", "derive", "example", "example2"]
