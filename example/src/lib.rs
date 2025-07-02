@@ -76,7 +76,23 @@ pub mod entity {
         #[index(btree)]
         #[wrapped(name = EntityRelationship3Id)]
         #[foreign_key(path = crate::entity, table = entity_relationship3, on_delete = SetZero)]
-        parent_entity_id: u128,
+        parent_entity_relationship3_id: u128,
+    }
+
+    #[dsl(plural_name = entity_relationships4)]
+    #[table(name = entity_relationship4, public)]
+    pub struct EntityRelationship4 {
+        /// The unique ID of the Entity Relationship3.
+        #[primary_key]
+        #[auto_inc]
+        #[wrap]
+        #[referenced_by(path = crate::entity, table = entity_relationship4)]
+        id: u128,
+
+        #[index(btree)]
+        #[wrapped(name = EntityRelationship4Id)]
+        #[foreign_key(path = crate::entity, table = entity_relationship4, on_delete = Ignore)]
+        pub parent_entity_relationship4_id: u128,
     }
 }
 
@@ -110,7 +126,7 @@ pub mod component {
 
             modified_at: Timestamp,
         }
-        
+
         #[dsl(plural_name = identifier_references)]
         #[table(name = identifier_reference, public)]
         pub struct IdentifierReference {
@@ -317,17 +333,25 @@ pub mod test {
         },
         entity::{
             CountOfAllEntityRelationship2Rows, CountOfAllEntityRelationshipRows,
-            CreateEntityRelationship2Row, CreateEntityRelationshipRow, CreateEntityRow,
-            DeleteEntityRowById, EntityId, GetEntityRowOptionById,
+            CreateEntityRelationship2Row, CreateEntityRelationship4Row,
+            CreateEntityRelationshipRow, CreateEntityRow, DeleteEntityRelationship4RowById,
+            DeleteEntityRowById, EntityId, EntityRelationship4Id,
+            GetEntityRelationship4RowOptionById, GetEntityRowOptionById,
+            UpdateEntityRelationship4RowById,
         },
     };
     use log::info;
-    use spacetimedb::{ReducerContext, TimeDuration, reducer};
+    use spacetimedb::{ReducerContext, TimeDuration, TryInsertError, reducer};
     use spacetimedsl::{Wrapper, dsl};
 
     #[reducer]
     fn tester(ctx: &ReducerContext) -> Result<(), String> {
         let dsl = dsl(ctx);
+
+        let result: Result<
+            crate::entity::Entity,
+            TryInsertError<crate::entity::entity__TableHandle>,
+        >;
 
         let mut player;
         match dsl.create_entity() {
@@ -455,6 +479,36 @@ pub mod test {
 
         if dsl.count_of_all_entity_relationships2().ne(&1) {
             return Err("Count of entity relationships should be 1 because 2 should be deleted through the foreign key / referenced by feature!".to_string());
+        }
+
+        let er4_1 = dsl.create_entity_relationship4(EntityRelationship4Id::new(0))?;
+        let mut er4_2 = dsl.create_entity_relationship4(&er4_1)?;
+
+        let res = dsl.delete_entity_relationship4_by_id(&er4_1);
+
+        if res.is_err() || res.is_ok_and(|r| r.eq(&false)) {
+            return Err("Should be able to delete 'er4_1'".to_string());
+        }
+
+        if er4_2.get_parent_entity_relationship4_id().ne(&dsl
+            .get_entity_relationship4_by_id(&er4_2)
+            .expect("shouldn't be deleted")
+            .get_parent_entity_relationship4_id())
+        {
+            return Err(
+                "`parent_entity_relationship4_id` of `er4_2` shouldn't have changed.".to_string(),
+            );
+        }
+
+        er4_2.set_parent_entity_relationship4_id(EntityRelationship4Id::new(0));
+        er4_2 = dsl.update_entity_relationship4_by_id(er4_2)?;
+        er4_2.set_parent_entity_relationship4_id(&er4_1);
+        if dsl.update_entity_relationship4_by_id(er4_2).is_ok() {
+            return Err("Shouldn't be able to set `parent_entity_relationship4_id` of `er4_2` to id of previously deleted `er4_1`".to_string());
+        }
+
+        if dsl.create_entity_relationship4(&er4_1).is_ok() {
+            return Err("Shouldn't be able to create a `entity_relationship4` with `er4_1` as `parent_entity_relationship4_id`".to_string());
         }
 
         let mut player_identifier;
@@ -787,6 +841,7 @@ pub mod test {
             Err(_) => {}
         };
 
+        // FIXME: Add test where two foreign keys match the same primary key - is it tried to delete the same row two times and therefore it fails?
         // TODO: Add test for SetNone strategy if it's implemented
 
         info!("Test executed successfully!");
