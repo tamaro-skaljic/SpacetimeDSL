@@ -1285,94 +1285,88 @@ pub(in crate::internal) fn for_method(
                                     #return_result_impl
                                 };
                             } else {
+                                let on_error_handler = quote! {
+                                    let error = spacetimedsl::DeletionResult {
+                                        table_name: #singular_table_name_as_string.into(),
+                                        one_or_multiple: #multiple,
+                                        entries: deletion_result_entries.into_values().collect_vec(),
+                                    };
+
+                                    return Err(
+                                        spacetimedsl::SpacetimeDSLError::Error(
+                                            format!("Delete Many Error: An unknown error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
+                                        )
+                                    );
+                                };
+
                                 let error_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
-                                        &singular_table_name_as_string,
                                         OnDeleteStrategy::Error,
                                         OneOrMultiple::Multiple,
+                                        &quote! {
+                                            let error = spacetimedsl::DeletionResult {
+                                                table_name: #singular_table_name_as_string.into(),
+                                                one_or_multiple: #multiple,
+                                                entries: deletion_result_entries.into_values().collect_vec(),
+                                            };
+
+                                            return Err(
+                                                spacetimedsl::SpacetimeDSLError::ReferenceIntegrityViolation(
+                                                    spacetimedsl::ReferenceIntegrityViolationError::OnDelete(error)
+                                                )
+                                            );
+                                        },
                                     );
 
                                 let delete_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
-                                        &singular_table_name_as_string,
                                         OnDeleteStrategy::Delete,
                                         OneOrMultiple::Multiple,
+                                        &on_error_handler,
                                     );
 
                                 /* TODO
-                                                               let set_none_strategy =
-                                                                   get_referenced_table_function_call_for_dsl_method(
-                                                                       singular_table_name,
-                                                                       &singular_table_name_as_string,
-                                                                       OnDeleteStrategy::SetNone,
-                                                                       OneOrMultiple::Multiple,
-                                                                   );
+                                let set_none_strategy =
+                                    get_referenced_table_function_call_for_dsl_method(
+                                        singular_table_name,
+                                        OnDeleteStrategy::SetNone,
+                                        OneOrMultiple::Multiple,
+                                        &on_error_handler,
+                                    );
                                 */
 
                                 let set_zero_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
-                                        &singular_table_name_as_string,
                                         OnDeleteStrategy::SetZero,
                                         OneOrMultiple::Multiple,
+                                        &on_error_handler,
                                     );
 
                                 let ignore_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
-                                        &singular_table_name_as_string,
                                         OnDeleteStrategy::Ignore,
                                         OneOrMultiple::Multiple,
+                                        &on_error_handler,
                                     );
-
-                                let special_error_handler = quote! {
-                                    match error {
-                                        None => {},
-                                        Some(error) => {
-                                            return Err(
-                                                spacetimedsl::SpacetimeDSLError::Error(
-                                                    format!("Delete Many Error: An unknown error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
-                                                )
-                                            );
-                                        }
-                                    };
-                                };
 
                                 method_impl = quote! {
                                     #impl_until_return_ok_on_is_empty
 
                                     #map_primary_key_values_of_rows_to_delete_to_deletion_result_entries
 
-                                    let mut error: Option<spacetimedsl::DeletionResult> = None;
-
                                     #error_strategy
-
-                                    match error {
-                                        None => {},
-                                        Some(error) => {
-                                            return Err(
-                                                spacetimedsl::SpacetimeDSLError::ReferenceIntegrityViolation(
-                                                    spacetimedsl::ReferenceIntegrityViolationError::OnDelete(error)
-                                                )
-                                            );
-                                        }
-                                    };
 
                                     #delete_many_impl
 
                                     #delete_strategy
 
-                                    #special_error_handler
-
                                     //TODO #set_none_strategy
 
-                                    // TODO #special_error_handler
-
                                     #set_zero_strategy
-
-                                    #special_error_handler
 
                                     #ignore_strategy
 
@@ -1443,8 +1437,6 @@ pub(in crate::internal) fn for_method(
                                             );
 
                                         quote! {
-                                            use spacetimedsl::itertools::Itertools;
-
                                             let #index_name = (#(#row_value_getters),*);
 
                                             let mut #field_name_for_found_value: Option<#struct_name> = None;
@@ -1472,10 +1464,10 @@ pub(in crate::internal) fn for_method(
                                     None => return Err(
                                         spacetimedsl::SpacetimeDSLError::NotFoundError {
                                             table_name: #singular_table_name_as_string.into(),
-                                            column_names_and_row_values: format!(#column_names_and_row_values, #(#row_value_getters),*).into()
+                                            column_names_and_row_values: format!(#column_names_and_row_values, &#index_name).into()
                                         }
-                                    );,
-                                    Some(primary_key_value_of_a_row_to_delete) => primary_key_value_of_a_row_to_delete,
+                                    ),
+                                    Some(primary_key_value_of_a_row_to_delete) => primary_key_value_of_a_row_to_delete.id,
                                 };
                             };
 
@@ -1511,7 +1503,7 @@ pub(in crate::internal) fn for_method(
                                 return Ok(spacetimedsl::DeletionResult {
                                     table_name: #singular_table_name_as_string.into(),
                                     one_or_multiple: #one,
-                                    entries = vec![deletion_result_entry],
+                                    entries: vec![deletion_result_entry],
                                 });
                             };
 
@@ -1525,94 +1517,88 @@ pub(in crate::internal) fn for_method(
                                     #return_result_impl
                                 };
                             } else {
+                                let on_error_handler = quote! {
+                                    let error = spacetimedsl::DeletionResult {
+                                        table_name: #singular_table_name_as_string.into(),
+                                        one_or_multiple: #one,
+                                        entries: vec![deletion_result_entry],
+                                    };
+
+                                    return Err(
+                                        spacetimedsl::SpacetimeDSLError::Error(
+                                            format!("Delete One Error: An unknown error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
+                                        )
+                                    );
+                                };
+
                                 let error_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
-                                        &singular_table_name_as_string,
                                         OnDeleteStrategy::Error,
                                         OneOrMultiple::One,
+                                        &quote! {
+                                            let error = spacetimedsl::DeletionResult {
+                                                table_name: #singular_table_name_as_string.into(),
+                                                one_or_multiple: #one,
+                                                entries: vec![deletion_result_entry],
+                                            };
+
+                                            return Err(
+                                                spacetimedsl::SpacetimeDSLError::ReferenceIntegrityViolation(
+                                                    spacetimedsl::ReferenceIntegrityViolationError::OnDelete(error)
+                                                )
+                                            );
+                                        },
                                     );
 
                                 let delete_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
-                                        &singular_table_name_as_string,
                                         OnDeleteStrategy::Delete,
                                         OneOrMultiple::One,
+                                        &on_error_handler,
                                     );
 
                                 /* TODO
-                                                               let set_none_strategy =
-                                                                   get_referenced_table_function_call_for_dsl_method(
-                                                                       singular_table_name,
-                                                                       &singular_table_name_as_string,
-                                                                       OnDeleteStrategy::SetNone,
-                                                                       OneOrMultiple::One,
-                                                                   );
+                                let set_none_strategy =
+                                    get_referenced_table_function_call_for_dsl_method(
+                                        singular_table_name,
+                                        OnDeleteStrategy::SetNone,
+                                        OneOrMultiple::One,
+                                        &on_error_handler,
+                                    );
                                 */
 
                                 let set_zero_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
-                                        &singular_table_name_as_string,
                                         OnDeleteStrategy::SetZero,
                                         OneOrMultiple::One,
+                                        &on_error_handler,
                                     );
 
                                 let ignore_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
-                                        &singular_table_name_as_string,
                                         OnDeleteStrategy::Ignore,
                                         OneOrMultiple::One,
+                                        &on_error_handler,
                                     );
-
-                                let special_error_handler = quote! {
-                                    match error {
-                                        None => {},
-                                        Some(error) => {
-                                            return Err(
-                                                spacetimedsl::SpacetimeDSLError::Error(
-                                                    format!("Delete One Error: An unknown error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
-                                                )
-                                            );
-                                        }
-                                    };
-                                };
 
                                 method_impl = quote! {
                                     #impl_until_return_err_on_is_none
 
                                     #map_primary_key_value_of_a_row_to_delete_to_deletion_result_entry
 
-                                    let mut error: Option<spacetimedsl::DeletionResult> = None;
-
                                     #error_strategy
-
-                                    match error {
-                                        None => {},
-                                        Some(error) => {
-                                            return Err(
-                                                spacetimedsl::SpacetimeDSLError::ReferenceIntegrityViolation(
-                                                    spacetimedsl::ReferenceIntegrityViolationError::OnDelete(error)
-                                                )
-                                            );
-                                        }
-                                    };
 
                                     #delete_one_impl
 
                                     #delete_strategy
 
-                                    #special_error_handler
-
                                     //TODO #set_none_strategy
 
-                                    // TODO #special_error_handler
-
                                     #set_zero_strategy
-
-                                    #special_error_handler
 
                                     #ignore_strategy
 
@@ -1645,9 +1631,9 @@ pub(in crate::internal) fn for_method(
 
 fn get_referenced_table_function_call_for_dsl_method(
     singular_table_name: &Ident,
-    singular_table_name_as_string: &String,
     on_delete_strategy: OnDeleteStrategy,
     one_or_multiple: OneOrMultiple,
+    on_error_handler: &TokenStream,
 ) -> TokenStream {
     match one_or_multiple {
         OneOrMultiple::One => {
@@ -1655,15 +1641,11 @@ fn get_referenced_table_function_call_for_dsl_method(
                 get_referenced_table_function_name(&OneOrMultiple::One, &singular_table_name);
 
             quote! {
-                match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), #on_delete_strategy, primary_key_value_of_a_row_to_delete) {
+                match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), #on_delete_strategy, &primary_key_value_of_a_row_to_delete) {
                     Err(mut child_entries) => {
                         deletion_result_entry.child_entries.append(&mut child_entries);
 
-                        error = Some(spacetimedsl::DeletionResult {
-                            table_name: #singular_table_name_as_string.into(),
-                            one_or_multiple: #one_or_multiple,
-                            entries: vec![deletion_result_entry],
-                        });
+                        #on_error_handler
                     },
                     Ok(mut child_entries) => {
                         deletion_result_entry.child_entries.append(&mut child_entries);
@@ -1682,11 +1664,7 @@ fn get_referenced_table_function_call_for_dsl_method(
                             deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).unwrap().child_entries.append(&mut child_entries);
                         }
 
-                        error = Some(spacetimedsl::DeletionResult {
-                            table_name: #singular_table_name_as_string.into(),
-                            one_or_multiple: #one_or_multiple,
-                            entries: deletion_result_entries.into_values().collect_vec(),
-                        });
+                        #on_error_handler
                     },
                     Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                         for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
