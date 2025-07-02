@@ -328,7 +328,6 @@ pub mod test {
             test::{
                 CreateShipObjectRow, CreateTestRow, DeleteTestRowsByBtreeIndex,
                 DeleteTestRowsByWrappedIndex, GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex,
-                Test,
             },
         },
         entity::{
@@ -341,25 +340,20 @@ pub mod test {
         },
     };
     use log::info;
-    use spacetimedb::{ReducerContext, TimeDuration, TryInsertError, reducer};
+    use spacetimedb::{ReducerContext, TimeDuration, reducer};
     use spacetimedsl::{Wrapper, dsl};
 
     #[reducer]
     fn tester(ctx: &ReducerContext) -> Result<(), String> {
         let dsl = dsl(ctx);
 
-        let result: Result<
-            crate::entity::Entity,
-            TryInsertError<crate::entity::entity__TableHandle>,
-        >;
-
         let mut player;
         match dsl.create_entity() {
             Ok(entity) => {
                 player = entity;
             }
-            Err(_) => {
-                return Err("Should be able to create an Entity!".to_string());
+            Err(error) => {
+                return Err(format!("Should be able to create an Entity! Got:\n{error}"));
             }
         };
 
@@ -372,11 +366,13 @@ pub mod test {
         }
 
         match dsl.get_entity_by_id(&player) {
-            Some(entity) => {
+            Ok(entity) => {
                 player = entity;
             }
-            None => {
-                return Err("Should be able to get an Entity by it's ID!".to_string());
+            Err(error) => {
+                return Err(format!(
+                    "Should be able to get an Entity by it's ID! Got:\n{error}"
+                ));
             }
         };
 
@@ -385,17 +381,19 @@ pub mod test {
             Ok(entity) => {
                 player2 = entity;
             }
-            Err(_) => {
-                return Err("Should be able to create an Entity!".to_string());
+            Err(error) => {
+                return Err(format!("Should be able to create an Entity! Got:\n{error}"));
             }
         };
 
-        if dsl.create_identifier(&player, "cool").is_err() {
-            return Err(format!(
-                "{:?}: Should be able to add an newly created Identifier!",
-                player
-            ));
-        }
+        match dsl.create_identifier(&player, "cool") {
+            Ok(_) => {}
+            Err(error) => {
+                return Err(format!(
+                    "{player:?}: Should be able to add an newly created Identifier! Got:\n{error}"
+                ));
+            }
+        };
 
         if dsl.count_of_all_identifiers().ne(&1) {
             return Err("Count of identifiers should be 1!".to_string());
@@ -421,29 +419,43 @@ pub mod test {
             return Err("Count of entity relationships should be 3!".to_string());
         }
 
-        if dsl.delete_entity_by_id(&player3).is_err() {
-            return Err("Should be able to delete 'player3' because it's only a child in entity relationships!".to_string());
-        }
+        match dsl.delete_entity_by_id(&player3) {
+            Ok(_) => {}
+            Err(error) => {
+                return Err(format!(
+                    "Should be able to delete 'player3' because it's only a child in entity relationships! Got:\n{error}"
+                ));
+            }
+        };
 
         if dsl.count_of_all_entity_relationships().ne(&1) {
             return Err("Count of entity relationships should be 1 because 2 should be deleted through the foreign key / referenced by feature!".to_string());
         }
 
-        if dsl.delete_entity_by_id(&player2).is_err() {
-            return Err("Should be able to delete 'player2' because it's only a child in entity relationships!".to_string());
-        }
+        match dsl.delete_entity_by_id(&player2) {
+            Ok(_) => {}
+            Err(error) => {
+                return Err(format!(
+                    "Should be able to delete 'player2' because it's only a child in entity relationships! Got:\n{error}"
+                ));
+            }
+        };
 
         if dsl.count_of_all_entity_relationships().ne(&0) {
             return Err(
                 "Count of entity relationships should be 0 because the last one should be deleted through the foreign key / referenced by feature!".to_string(),
             );
         }
+        match dsl.delete_entity_by_id(&player) {
+            Ok(_) => {}
+            Err(error) => {
+                return Err(format!(
+                    "Should be able to delete 'player' because it's not a parent anymore in a entity relationship! Got:\n{error}"
+                ));
+            }
+        };
 
-        if dsl.delete_entity_by_id(&player).is_err() {
-            return Err("Should be able to delete 'player' because it's not a parent anymore in a entity relationship!".to_string());
-        }
-
-        if dsl.get_entity_by_id(&player).is_some() {
+        if dsl.get_entity_by_id(&player).is_ok() {
             return Err(
                 "Shouldn't be able to get an Entity by an ID which doesn't exist!".to_string(),
             );
@@ -457,8 +469,8 @@ pub mod test {
             Ok(entity) => {
                 player = entity;
             }
-            Err(_) => {
-                return Err("Should be able to create an Entity!".to_string());
+            Err(error) => {
+                return Err(format!("Should be able to create an Entity! Got:\n{error}"));
             }
         };
 
@@ -473,9 +485,10 @@ pub mod test {
             return Err("Count of entity relationships 2 should be 3!".to_string());
         }
 
-        if dsl.delete_entity_by_id(&player2).is_err() {
-            return Err("Should be able to delete 'player'".to_string());
-        }
+        match dsl.delete_entity_by_id(&player2) {
+            Ok(_) => {}
+            Err(error) => return Err(format!("Should be able to delete 'player'! Got:\n{error}")),
+        };
 
         if dsl.count_of_all_entity_relationships2().ne(&1) {
             return Err("Count of entity relationships should be 1 because 2 should be deleted through the foreign key / referenced by feature!".to_string());
@@ -484,10 +497,18 @@ pub mod test {
         let er4_1 = dsl.create_entity_relationship4(EntityRelationship4Id::new(0))?;
         let mut er4_2 = dsl.create_entity_relationship4(&er4_1)?;
 
-        let res = dsl.delete_entity_relationship4_by_id(&er4_1);
-
-        if res.is_err() || res.is_ok_and(|r| r.eq(&false)) {
-            return Err("Should be able to delete 'er4_1'".to_string());
+        match dsl.delete_entity_relationship4_by_id(&er4_1) {
+            Ok(success) => {
+                if success.entries[0]
+                    .row_value
+                    .ne(&er4_1.get_id().to_string().into())
+                {
+                    return Err(format!("Should be able to delete 'er4_1'! Got: {} and {}\n{success}", success.entries[0].row_value, er4_1.get_id()));
+                }
+            }
+            Err(error) => {
+                return Err(format!("Should be able to delete 'er4_1'! Got:\n{error}"));
+            }
         }
 
         if er4_2.get_parent_entity_relationship4_id().ne(&dsl
@@ -516,9 +537,9 @@ pub mod test {
             Ok(identifier) => {
                 player_identifier = identifier;
             }
-            Err(_) => {
+            Err(error) => {
                 return Err(format!(
-                    "{:?}: Should be able to add an newly created Identifier!",
+                    "{:?}: Should be able to add an newly created Identifier! Got:\n{error}",
                     player
                 ));
             }
@@ -558,11 +579,13 @@ pub mod test {
         };
 
         match dsl.get_identifier_by_value("PLAYER") {
-            Some(identifier) => {
+            Ok(identifier) => {
                 player_identifier = identifier;
             }
-            None => {
-                return Err("Should be able to get an Identifier by it's value!".to_string());
+            Err(error) => {
+                return Err(format!(
+                    "Should be able to get an Identifier by it's value! Got:\n{error}"
+                ));
             }
         }
 
@@ -599,7 +622,7 @@ pub mod test {
         let player_reflection = player;
 
         match dsl.get_identifier_by_entity_id(&player_reflection) {
-            Some(identifier) => {
+            Ok(identifier) => {
                 if identifier
                     .get_value()
                     .ne(player_reflection_identifier.get_value())
@@ -611,8 +634,10 @@ pub mod test {
                     ));
                 }
             }
-            None => {
-                return Err("Should be able to get an Identifier by it's Entity!".to_string());
+            Err(error) => {
+                return Err(format!(
+                    "Should be able to get an Identifier by it's Entity! Got:\n{error}"
+                ));
             }
         }
         let player_reflection_position_id;
@@ -631,8 +656,8 @@ pub mod test {
             Ok(entity) => {
                 player = entity;
             }
-            Err(_) => {
-                return Err("Should be able to create an Entity!".to_string());
+            Err(error) => {
+                return Err(format!("Should be able to create an Entity! Got:\n{error}"));
             }
         };
 
@@ -759,7 +784,7 @@ pub mod test {
             return Err("The count of unique Positions should equal!".to_string());
         }
 
-        let world1 = handle_test_result(dsl.create_test(
+        let world1 = dsl.create_test(
             None,
             &player,
             &player,
@@ -772,9 +797,9 @@ pub mod test {
             Some("wrapped_string_option".to_string()),
             0,
             spacetimedb::ScheduleAt::Time(ctx.timestamp),
-        ))?;
+        )?;
 
-        let mut world2 = handle_test_result(dsl.create_test(
+        let mut world2 = dsl.create_test(
             &player,
             player_reflection.get_id(),
             player.get_id(),
@@ -787,7 +812,8 @@ pub mod test {
             Some("wrapped_string_option".to_string()),
             1,
             spacetimedb::ScheduleAt::Time(ctx.timestamp),
-        ))?;
+        )?;
+
         let _: Option<EntityId> = world1.get_wrapped_option();
         world2.set_wrapped_option(None);
         world2.set_wrapped_option(&player);
@@ -815,9 +841,15 @@ pub mod test {
         let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index());
         //let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index()..);
 
-        if dsl.delete_entity_by_id(&player_reflection).is_err() {
-            return Err("Should be able to delete the player_reflection Entity!".to_string());
+        match dsl.delete_entity_by_id(&player_reflection) {
+            Ok(_) => {}
+            Err(error) => {
+                return Err(format!(
+                    "Should be able to delete the player_reflection Entity! Got:\n{error}"
+                ));
+            }
         }
+
         if dsl.count_of_all_identifiers().ne(&0) {
             return Err("The count of Identifiers should be 0 because the player_reflection Entity was deleted and the foreign key has a Delete strategy!".to_string());
         }
@@ -835,8 +867,10 @@ pub mod test {
 
         // TODO: TryDeleteError
         match dsl.delete_entity_by_id(&player) {
-            Ok(_) => {
-                return Err("The deletion of the entity player shouldn't have worked because ship_object.entity_id has a foreign key on the entity id with Error strategy".to_string());
+            Ok(success) => {
+                return Err(format!(
+                    "The deletion of the entity player shouldn't have worked because ship_object.entity_id has a foreign key on the entity id with Error strategy Got: {success}",
+                ));
             }
             Err(_) => {}
         };
@@ -847,25 +881,5 @@ pub mod test {
         info!("Test executed successfully!");
 
         Ok(())
-    }
-
-    fn handle_test_result(
-        result: Result<
-            Test,
-            spacetimedb::TryInsertError<crate::component::test::test__TableHandle>,
-        >,
-    ) -> Result<Test, Box<str>> {
-        match result {
-            Ok(w) => {
-                return Ok(w);
-            }
-            Err(e) => {
-                return Err(format!(
-                    "Should have been able to create a test. Got: {}",
-                    e.to_string()
-                )
-                .into());
-            }
-        }
     }
 }
