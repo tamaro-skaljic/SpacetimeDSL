@@ -1446,11 +1446,23 @@ pub(in crate::internal) fn for_method(
                                             let primary_key_value_of_a_row_to_delete = #field_name_for_found_value;
                                         }
                                     }
-                                    false => quote! {
-                                        let #index_name = #(#row_value_getters),*;
+                                    false => {
+                                        let column_name = &index_columns[0];
+                                        let column_type = &internal_columns.iter().find(|c| c.rust_field_name.eq(column_name)).expect("The index should have a column in the internal columns").rust_field_type_name_or_path;
+                                        if column_type.to_token_stream().to_string().eq(&"String") {
+                                            quote! {
+                                                let #index_name = #(#row_value_getters),*;
 
-                                        let primary_key_value_of_a_row_to_delete = #method_impl_prefix.find(#index_name);
-                                    },
+                                                let primary_key_value_of_a_row_to_delete = #method_impl_prefix.find(&#index_name);
+                                            }
+                                        } else {
+                                            quote! {
+                                                let #index_name = #(#row_value_getters),*;
+
+                                                let primary_key_value_of_a_row_to_delete = #method_impl_prefix.find(#index_name);
+                                            }
+                                        }
+                                    }
                                 };
 
                             let impl_until_return_err_on_is_none = quote! {
