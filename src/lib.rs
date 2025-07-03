@@ -24,7 +24,9 @@ impl DSLContext for DSL<'_> {
     }
 }
 
-pub trait Wrapper<WrappedType: Clone + Default, WrapperType> {
+pub trait Wrapper<WrappedType: Clone + Default, WrapperType>:
+    Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
+{
     fn new(value: WrappedType) -> WrapperType;
     fn default() -> WrapperType;
     fn value(&self) -> WrappedType;
