@@ -95,7 +95,7 @@ pub struct Position {
 
     #[unique]
     #[use_wrapper(name = EntityId)]                                                        // Added
-    #[foreign_key(path = crate, table = entity, on_delete = Delete)]
+    #[foreign_key(path = crate, table = entity, on_delete = Delete)]                       // Added
     entity_id: u128,
 
     x: i128,

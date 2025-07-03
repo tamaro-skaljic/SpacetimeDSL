@@ -1,7 +1,7 @@
 [package]
 authors = ["Tamaro Skaljic<mail@tamaro-skaljic.de>"]
 name = "spacetimedsl"
-version = "0.7.3"
+version = "0.8.0"
 edition = "2024"
 description = "Ergonomic DSL for SpacetimeDB"
 documentation = "https://docs.rs/spacetimedsl"
@@ -17,7 +17,7 @@ readme = "README.md"
 spacetimedb = "1.2.0"
 
 # https://crates.io/crates/spacetimedsl_derive Macros to extend SpacetimeDSL
-spacetimedsl_derive = { version = "0.7.3", path = "derive" }
+spacetimedsl_derive = { version = "0.8.0", path = "derive" }
 
 # https://crates.io/crates/itertools Extra iterator adaptors, iterator methods, free functions, and macros.
 itertools = "^0.14"
