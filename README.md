@@ -1,8 +1,8 @@
 # *SpacetimeDSL*
 
-SpacetimeDSL provides you a high-level [*D*omain *S*pecific *L*anguage (DSL)](https://en.wikipedia.org/wiki/Domain-specific_language) to interact in an ergonomic and type-safe way with the data in your SpacetimeDB instance.
+SpacetimeDSL provides you a high-level [*D*omain *S*pecific *L*anguage (DSL)](https://en.wikipedia.org/wiki/Domain-specific_language) in Rust to interact in an ergonomic, more developer-friendly and type-safe way with the data in your [SpacetimeDB](https://spacetimedb.com/) instances.
 
-## Limitations
+## Current imitations
 
 - The `#[spacetimedsl::dsl]` attribute macro must be above the `#[spacetimedb::table]` attribute macro.
 
@@ -16,122 +16,211 @@ The following SpacetimeDB features can't be used:
 
 ## Features
 
-> The documentation is currently outdated due to major refactorings, e. g. it doesn't contain the actual generated code, except for the [Unique Multi Column Index](#-unique-multi-column-indices) and [Foreign Key Referential Integrity](#-foreign-keys--referential-integrity) which are the newest and biggest features of SpacetimeDSL.
-
-If features contain snippets of generated code, they relate to the following input code:
+Let's start with a ordinary SpacetimeDB schema:
 
 ```rust
-pub mod entity {
-    use spacetimedb::Timestamp;
-    use spacetimedb::table;
-    use spacetimedsl::dsl;
+/// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
+#[spacetimedb::table(name = entity, public)]
+pub struct Entity {
+    /// The unique ID of the Entity.
+    #[primary_key]
+    #[auto_inc]
+    id: u128,
 
-    /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
-    #[dsl(plural_name = entities)]
-    #[table(name = entity, public)]
-    pub struct Entity {
-        /// The unique ID of the Entity.
-        #[primary_key]
-        #[auto_inc]
-        #[create_wrapper]
-        #[referenced_by(path = crate::component::identifier, table = identifier)]
-        #[referenced_by(path = crate::component::position,   table = position)]
-        #[referenced_by(path = crate::component::position,   table = unique_position)]
-        id: u128,
+    created_at: spacetimedb::Timestamp,
 
-        created_at: Timestamp,
-    }
+    modified_at: spacetimedb::Timestamp,
 }
+```
 
-pub mod component {
-    pub mod identifier {
-        use spacetimedb::{Timestamp, table};
-        use spacetimedsl::dsl;
+You can now do various things using SpacetimeDB:
 
-        /// A Identifier is a developer-friendly String.
-        #[dsl(plural_name = identifiers)]
-        #[table(name = identifier, public)]
-        pub struct Identifier {
-            /// The unique ID of the Identifier.
-            #[primary_key]
-            #[auto_inc]
-            #[create_wrapper]
-            id: u128,
+```rust
+#[spacetimedb::reducer]
+pub fn example(ctx: &spacetimedb::ReducerContext) -> Result<(), String> {
+    use spacetimedb::Table;
 
-            /// The unique ID of the Entity the Identifier belongs to.
-            #[unique]
-            #[use_wrapper(path = crate::entity::EntityId)]
-            #[foreign_key(table = entity, on_delete = Cascade)]
-            entity_id: u128,
-
-            // The unique value of the Identifier.
-            #[unique]
-            pub value: String,
-
-            created_at: Timestamp,
-
-            modified_at: Timestamp,
+    // Create an Entity
+    let entity: Entity = ctx.db.entity().try_insert(
+        Entity {
+            id: 0,
+            created_at: ctx.timestamp,
+            modified_at: ctx.timestamp
         }
-    }
+    )?; // Result<Entity, spacetimedb::TryInsertError<entity__TableHandle>>
+    
+    let entity_id: &u128 = &entity.id;
 
-    pub mod position {
-        use spacetimedb::{Timestamp, table};
-        use spacetimedsl::dsl;
+    // Get the count of all Entities
+    let count: u64 = ctx.db.entity().count();
 
-        /// A Position in the World.
-        #[spacetimedsl::dsl(plural_name = positions)]
-        #[spacetimedb::table(name = position, public, index(name = x_y_z, btree(columns = [x, y, z])))]
-        pub struct Position {
-            /// The unique ID of the Position.
-            #[primary_key]
-            #[auto_inc]
-            #[create_wrapper]
-            id: u128,
+    // Get all Entities and log their ids
+    ctx.db.entity().iter().for_each(|e: Entity| log::debug!("{}", e.id));
 
-            /// The unique ID of the Entity the Position belongs to.
-            #[unique]
-            #[use_wrapper(path = crate::entity::EntityId)]
-            #[foreign_key(table = entity, on_delete = Cascade)]
-            entity_id: u128,
+    // Get an Entity by its id
+    let entity: Option<Entity> = ctx.db.entity().id().find(entity_id);
 
-            pub x: i128,
+    // Update an Entity by its id
+    let entity: Entity = ctx.db.entity().id().update(entity);
 
-            pub y: i128,
+    // Delete an Entity by its id
+    let success: bool = ctx.db.entity().id().delete(entity_id);
 
-            pub z: i128,
+    Ok(())
+}
+```
 
-            created_at: Timestamp,
+Let's now have a look what happens when you're adding *SpacetimeDSL* to your Entity table...
 
-            modified_at: Timestamp,
-        }
+```rust
+#[spacetimedsl::dsl(plural_name = entities)] // Added
+#[spacetimedb::table(name = entity, public)]
+pub struct Entity {
+    /// The unique ID of the Entity.
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]                        // Added
+    id: u128,
 
-        /// A unique Position in the World.
-        #[dsl(plural_name = unique_positions, unique_index(name = x_y_z))]
-        #[table(name = unique_position, public, index(name = x_y_z, btree(columns = [x, y, z])))]
-        pub struct UniquePosition {
-            /// The unique ID of the unique Position.
-            #[primary_key]
-            #[auto_inc]
-            #[create_wrapper]
-            id: u128,
+    created_at: spacetimedb::Timestamp,
 
-            /// The unique ID of the Entity the unique Position belongs to.
-            #[unique]
-            #[use_wrapper(path = crate::entity::EntityId)]
-            #[foreign_key(table = entity, on_delete = Cascade)]
-            entity_id: u128,
+    modified_at: spacetimedb::Timestamp,
+}
+```
 
-            pub x: i128,
+Looks like nothing much, but let's have a look what you can do now:
 
-            pub y: i128,
+```rust
 
-            pub z: i128,
+#[spacetimedb::reducer]
+pub fn example(ctx: &spacetimedb::ReducerContext) -> Result<(), String> {
+    let dsl: spacetimedsl::DSL<'_> = spacetimedsl::dsl(ctx);
 
-            created_at: Timestamp,
+    let entity: Entity = dsl.create_entity()?;                                        // Result<Entity, spacetimedsl::SpacetimeDSLError>
+    
+    let entity_id: EntityId = entity.get_id();
 
-            modified_at: Timestamp,
-        }
-    }
+    let count: u64 = dsl.count_of_all_entities();
+
+    dsl.get_all_entities().for_each(|e: Entity| log::debug!("{}", e.get_id()));
+
+    let entity: Entity = dsl.get_entity_by_id(&entity)?;                              // Result<Entity, spacetimedsl::SpacetimeDSLError>
+
+    // Where is the Update method?
+
+    let success: spacetimedsl::DeletionResult = dsl.delete_entity_by_id(&entity)?;    // Result<spacetimedsl::DeletionResult, spacetimedsl::SpacetimeDSLError>
+
+    Ok(())
+}
+```
+
+First and foremost: Your code is now much nicer to read and write!
+
+But there are much more differences:
+
+### The `Create` DSL Method
+
+The `Create` DSL Method didn't want you to create and supply an `Entity` in order to insert it into the database. That's because
+
+- the `id` column has the `#[auto_inc]` attribute and
+
+- the second and third columns are named `created_at` and `modified_at` and have the `spacetimedb::Timestamp` type.
+
+SpacetimeDSL automatically applies default values to them during creation:
+
+- `0` for the `id` column (which means the ID is generated by SpacetimeDB) and
+- `ctx.timestamp` for the `created_at` and `modified_at` columns.
+
+Instead of a `Result<Entity, spacetimedb::TryInsertError<entity__TableHandle>>` the `Create` DSL Method returns a `Result<Entity, spacetimedsl::SpacetimeDSLError>`.
+
+### The `SpacetimeDSLError` Type
+
+The errors which `SpacetimeDB` gives you if something is failing are bad.
+
+That's why I've invested time into creating a better error handling in `SpacetimeDSL`, which transforms the errors returned from `SpacetimeDB` and adds metadata for better debugging capabilities.
+
+Stuff which is returning
+
+- a `bool` (`Delete One`),
+
+- an `Option` (`Get One`) or
+
+- an `u64` (`Delete Many`)
+
+in `SpacetimeDB` methods returns `SpacetimeDSLError`s through the `SpacetimeDSL` methods.
+
+```rust
+pub enum SpacetimeDSLError {
+    Error,                       // Not available in vanilla SpacetimeDB
+    NotFoundError,               // Not available in vanilla SpacetimeDB
+    UniqueConstraintViolation,
+    AutoIncOverflow,
+    ReferenceIntegrityViolation, // Not available in vanilla SpacetimeDB
+}
+```
+
+### Wrapper Types
+
+Every column with SpacetimeDB's `#[primary_key]`, `#[unique]` or `#[index]` attribute requires a `#[create_wrapper]` or `#[use_wrapper]` attribute as well in *SpacetimeDSL*.
+
+*SpacetimeDSL* generates [unique, auto-generated alias types](https://medium.com/unil-ci-software-engineering/clean-ddd-lessons-modeling-identity-ff8bc17e0ae6#:~:text=We%20should%20not%20use%20primitives) for these columns.
+
+They're called `Wrapper Types` because they're decreasing [primitive obsession](https://refactoring.guru/smells/primitive-obsession) by wrapping primitive column types.
+
+[Logical dependencies become physical ones](https://medium.com/@gara.mohamed/domain-driven-design-the-identifier-type-pattern-d86fd3c128b3#:~:text=Make%20logical%20dependencies%20physical) and [reversing the order of fields (e.g. of multi-column indices) results in compilation-errors instead of runtime-errors when accessing them](https://medium.com/@gara.mohamed/domain-driven-design-the-identifier-type-pattern-d86fd3c128b3#:~:text=Suppose%20that%20we,at%20compile%20time.)..
+
+```rust
+pub trait Wrapper<WrappedType: Clone + Default, WrapperType>: Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display {
+    fn new(value: WrappedType) -> WrapperType;
+    fn default() -> WrapperType;
+    fn value(&self) -> WrappedType;
+}
+```
+
+The difference between `#[create_wrapper]` and `#[use_wrapper]` is that the first is creating a new `Wrapper Type` while the second is using one which is already generated by another column (in a possibly foreign table).
+
+```rust
+#[spacetimedsl::dsl(plural_name = entities)]
+#[spacetimedb::table(name = entity, public)]
+pub struct Entity {
+    #[create_wrapper]                          // Default Name Strategy: EntityId ( format!("{}{}", singular_table_name_pascal_case, column_name_pascal_case) )
+    #[create_wrapper(name = EntityID)]         // Custom Name Strategy: EntityID
+    id: u128,
+
+    #[use_wrapper(name = EntityId)]                // Provide the name of the wrapper type if you're in the same module
+    #[use_wrapper(path = crate::entity::EntityId)] // Provide the path of the wrapper type if your're not in the same module
+    parent_entity_id: u128,
+}
+```
+
+If you encounter an compilation error like:
+
+The trait bound `WrapperType: From<NumericType>` is not satisifed.\
+The trait `From<NumericType>` is not implemented for `WrapperType`.\
+But trait `From<&TableType>` is implemented fort it.\
+For that trait implementation, expected `&TableType`, found `NumericType`.\
+Required for `NumericType` to implement `Into<WrapperType>`
+
+this means that you've provided a `NumericType` (like `u128`) as argument where a `WrapperType` is required.
+
+It's a common limitation of the SpacetimeDB CLI and the [Admin Panel](https://github.com/JulienLavocat/SpacetimeDB-Admin/) that they don't support custom, non-primitive types - they are affected by primitive obsession. Therefore they have no feature-parity with SpacetimeDB server modules. SpacetimeDSL tries to increase the developer experience and uses the full capacities of SpacetimeDB for it, which are supported by SpacetimeDB clients.
+
+That said: If you're creating a Wrapper Type object yourself (`WrapperType::new(wrapped_type)`) you're doing something what you shouldn't do, because the whole ecosystem around your server modules should incorporate the `Wrapper Types` into their API (e. g. reducer arguments) to not be obsessed by the primitive types which they wrap.
+
+### The `DeletionResult` Type
+
+```rust
+pub struct DeletionResult {
+    pub table_name: Box<str>,
+    pub one_or_multiple: OneOrMultiple,
+    pub entries: Vec<DeletionResultEntry>,
+}
+pub struct DeletionResultEntry {
+    pub table_name: Box<str>,
+    pub column_name: Box<str>,
+    pub strategy: OnDeleteStrategy,
+    pub row_value: Box<str>,
+    pub child_entries: Vec<DeletionResultEntry>,
 }
 ```
 
@@ -464,39 +553,6 @@ Keep in mind that the referential integrity which SpacetimeDSL provides is only 
 Also: This feature is unstable. First it will be removed if SpacetimeDB has implemented it's own referential integrity / foreign key features, second I have implemented tests to ensure referential integrity - but there may be edge cases. Make backups of your data before testing the feature and PLEASE, if you find any bug, create a GitHub issue!
 
 Also in one of the next 0.x.0 versions of SpacetimeDSL I'll probably add proper error types, which should contain data about the rows which were deleted (of any table which is affected by a delete method call, not only of the initial deletions!) which will result in breaking changes on your own error handling code. (SpacetimeDB has `TryInsertError`/`UniqueConstraintViolationError`, but SpacetimeDSL needs a `TryUpdateError` and a `TryDeleteError` as well as a `ReferentialIntegrityViolationError` to increase it's maturity.)
-
-### 🔥🥵 Wrapper Types
-
-SpacetimeDSL allows developers to wrap their (primitive) table fields into [unique, auto-generated alias types](https://medium.com/unil-ci-software-engineering/clean-ddd-lessons-modeling-identity-ff8bc17e0ae6#:~:text=We%20should%20not%20use%20primitives) to decrease [primitive obsession](https://refactoring.guru/smells/primitive-obsession). This allows the following:
-
-- [Reversing the order of fields (e.g. of multi-column indices) results in compilation-errors instead of runtime-errors when accessing them](https://medium.com/@gara.mohamed/domain-driven-design-the-identifier-type-pattern-d86fd3c128b3#:~:text=Suppose%20that%20we,at%20compile%20time.) and
-- [Logical dependencies become physical ones](https://medium.com/@gara.mohamed/domain-driven-design-the-identifier-type-pattern-d86fd3c128b3#:~:text=Make%20logical%20dependencies%20physical) (this is huge!)
-
-If you add `#[create_wrapper]` to a field of your table-struct, SpacetimeDSL will generate such a Wrapper Type.
-
-The name of it is generated through the name of the table-struct and the name of the field. If you want to override this default, just provide a name like so: `#[create_wrapper(GameObjectId)]`.
-
-If they're generated, the generated code of other features is influenced, which is described in each feature's section.
-
-You can reference Wrapper Types at other table's fields by adding their path to the attribute. In the input code, both the `identifier` and the `position` table contain a `entity_id` field with `#[create_wrapper(crate::entity::EntityId)]`. SpacetimeDSL will require developers to provide an object of type EntityId instead of a u128, so the code won't compile if they provide something else.
-More of, they can just provide a reference to a `Entity` object instead of calling `get_id()` on the entity because there is a `impl From<&Entity> for EntityId`, which reduces much boilerplate code. SpacetimeDSL will make the navigation to access the raw value for the developer instead.
-
-If you need to reference the same Wrapper Type twice in the same table, you'll need to provide the name of the already generated Wrapper type and prefix it with `self::`.
-For example, if we would want Entities to have a parent, you would add `#[create_wrapper(self::EntityId)] parent: u128,` to your table-struct. First of all the name is needed because it would create a new Wrapper Type called `EntityParent` instead if it's not named, second it needs to be prefixed with `self::` because SpacetimeDSL doesn't check whether it has already created a Wrapper Type with the same name, instead it looks whether the name is set and contains a `::` and if so it generates no new one Wrapper Type and instead assumes it's generated while parsing another table field.
-
-#### Understanding the implications of Wrapper Types
-
-If you encounter an compilation error like:
-
-The trait bound `WrapperType: From<NumericType>` is not satisifed.\
-The trait `From<NumericType>` is not implemented for `WrapperType`.\
-But trait `From<&TableType>` is implemented fort it.\
-For that trait implementation, expected `&TableType`, found `NumericType`.\
-Required for `NumericType` to implement `Into<WrapperType>`
-
-this means that you've provided a `NumericType` (like `u128`) as argument where a `WrapperType` is required. The caller should instead provide a `WrapperType` and incorporate it into it's API (e. g. reducer arguments).
-
-It's a common limitation of the SpacetimeDB CLI and the [Admin Panel](https://github.com/JulienLavocat/SpacetimeDB-Admin/) that they don't support custom, non-primitive types - they are affected by primitive obsession. Therefore they have no feature-parity with SpacetimeDB server modules. SpacetimeDSL tries to increase the developer experience and uses the full capacities of SpacetimeDB for it, which are supported by SpacetimeDB clients. That said: If you're creating a Wrapper Type object yourself (`WrapperType::new(wrapped_type)`) you're doing something what you shouldn't do, because the whole ecosystem around your server module should incorporate them and not be obsessed my primitives.
 
 #### Output
 
