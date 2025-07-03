@@ -25,10 +25,9 @@ impl DSLContext for DSL<'_> {
 }
 
 pub trait Wrapper<WrappedType: Clone + Default, WrapperType>:
-    Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
+    Default + Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
 {
     fn new(value: WrappedType) -> WrapperType;
-    fn default() -> WrapperType;
     fn value(&self) -> WrappedType;
 }
 
@@ -40,7 +39,7 @@ pub enum OnDeleteStrategy {
     /**
      * Available independent from the column type.
      * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
-     * ... the deletion fails.
+     * ... the deletion fails with a Reference Integrity Violation Error.
      */
     Error,
 
@@ -48,7 +47,7 @@ pub enum OnDeleteStrategy {
      * Available independent from the column type.
      * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
      * ... it's checked whether any primary key value of rows to delete is referenced in a foreign key with `OnDeleteStrategy::Error`.
-     * If true, the deletion fails and no other on delete strategy is executed.
+     * If true, the deletion fails with a Reference Integrity Violation Error and no other on delete strategy is executed.
      * If false, the on delete strategies of all affected rows are executed.
      */
     Delete,
@@ -151,7 +150,7 @@ impl Display for SpacetimeDSLError {
                 format!("Unique Constraint Violation Error while trying to {action} a row in the `{table_name}` table{column_names_and_row_values}")
             }
             SpacetimeDSLError::AutoIncOverflow { table_name } => {
-                format!("Auto Inc Overflow Error on `{table_name}` table! {dig_spacetimedb}.")
+                format!("Auto Inc Overflow Error on the `{table_name}` table! {dig_spacetimedb}.")
             }
             SpacetimeDSLError::ReferenceIntegrityViolation(error) => {
                 match error {

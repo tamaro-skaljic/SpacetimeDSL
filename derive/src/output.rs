@@ -131,6 +131,7 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
 
     doc_comment = add_impl_doc(
         &trait_name,
+        paths_of_traits_to_extend,
         &method_name,
         &method_args,
         return_type,
@@ -176,6 +177,7 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
 
     doc_comment = add_impl_doc(
         &trait_name,
+        paths_of_traits_to_extend,
         &method_name,
         &method_args,
         &return_type,
@@ -210,6 +212,7 @@ pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     doc_comment.push_str(&method.doc_comment);
 
     let trait_name = &method.trait_name;
+    let paths_of_traits_to_extend = &method.paths_of_traits_to_extend;
     let method_name = &method.method_name;
 
     let method_args = map_method_args(method);
@@ -219,6 +222,7 @@ pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
 
     doc_comment = add_impl_doc(
         &trait_name,
+        paths_of_traits_to_extend,
         &method_name,
         &method_args,
         &return_type,
@@ -248,6 +252,7 @@ pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
 
 fn add_impl_doc(
     trait_name: &Ident,
+    paths_of_traits_to_extend: &Vec<syn::Path>,
     method_name: &Ident,
     method_args: &Vec<TokenStream>,
     return_type: &TokenStream,
@@ -256,7 +261,7 @@ fn add_impl_doc(
 ) -> String {
     let pretty_please = PrettyPlease::default();
     let implementation_docs = quote! {
-        pub trait #trait_name {
+        pub trait #trait_name: #(#paths_of_traits_to_extend)+* {
             fn #method_name<'a>(
                 &'a self,
                 #(#method_args),*

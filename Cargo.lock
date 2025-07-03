@@ -671,17 +671,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "spacetimedsl_test2"
-version = "0.7.3"
-dependencies = [
- "log",
- "proc-macro2",
- "spacetimedb",
- "spacetimedsl",
- "syn 2.0.104",
-]
-
-[[package]]
 name = "strum"
 version = "0.27.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
