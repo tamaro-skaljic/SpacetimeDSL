@@ -125,31 +125,33 @@ fn get_wrapper_impl(
         "Expected to parse {wrapped_type_name_or_path} as Type in get_wrapper_impl!"
     ));
 
-    let default_impl;
-
-    if wrapped_type_name_or_path.starts_with("Option <") {
-        let wrapped_type_name_or_path: Type = parse_str(
-            &wrapped_type_name_or_path
-                .replace("Option <", "")
-                .replace(">", ""),
-        )
-        .expect("parsing should have worked");
-
-        default_impl = quote! {
-            Some(#wrapped_type_name_or_path::default())
-        }
-    } else {
-        default_impl = quote! {
-            #wrapped_type::default()
-        }
-    }
-
     let wrapper_struct_name_as_str = wrapper_struct_name.to_string();
 
     quote! {
         #[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType)]
         pub struct #wrapper_struct_name {
             value: #wrapped_type,
+        }
+        
+        impl Default for #wrapper_struct_name {
+            fn default() -> #wrapper_struct_name {
+                #wrapper_struct_name { value: Default::default() }
+            }
+        }
+
+        impl std::fmt::Display for #wrapper_struct_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{} {{ id: {:?} }}", #wrapper_struct_name_as_str, self.value)
+            }
+        }
+
+        impl spacetimedsl::Wrapper<#wrapped_type, #wrapper_struct_name> for #wrapper_struct_name {
+            fn new(value: #wrapped_type) -> Self {
+                Self { value }
+            }
+            fn value(&self) -> #wrapped_type {
+                self.value.clone()
+            }
         }
 
         impl From<&#struct_name> for #wrapper_struct_name {
@@ -175,26 +177,6 @@ fn get_wrapper_impl(
             fn from(value: &#wrapper_struct_name) -> Self {
                 use spacetimedsl::Wrapper;
                 #wrapper_struct_name::new(value.value())
-            }
-        }
-
-        impl std::fmt::Display for #wrapper_struct_name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{} {{ id: {:?} }}", #wrapper_struct_name_as_str, self.value)
-            }
-        }
-
-        impl spacetimedsl::Wrapper<#wrapped_type, #wrapper_struct_name> for #wrapper_struct_name {
-            fn new(value: #wrapped_type) -> Self {
-                Self { value }
-            }
-            fn default() -> Self {
-                Self {
-                    value: #default_impl,
-                }
-            }
-            fn value(&self) -> #wrapped_type {
-                self.value.clone()
             }
         }
     }
