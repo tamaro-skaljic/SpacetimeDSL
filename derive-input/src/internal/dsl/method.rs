@@ -696,6 +696,7 @@ pub(in crate::internal) fn for_method(
                     #(#constructor_arg_names),*
                 };
 
+                // FIXME: Isn't needed if there are no multi column index or reference integrity checks
                 let mut #field_name_for_found_value: Option<#struct_name> = None;
 
                 #(#multi_column_index_checks)*
@@ -706,7 +707,7 @@ pub(in crate::internal) fn for_method(
                     .ctx()
                     .db()
                     .#singular_table_name()
-                    .try_insert(#singular_table_name.clone()) {
+                    .try_insert(#singular_table_name.clone()) { // FIXME: No clone?
                     Ok(entity) => Ok(entity),
                     Err(error) => match error {
                         spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
@@ -715,7 +716,7 @@ pub(in crate::internal) fn for_method(
                                 action: spacetimedsl::Action::Create,
                                 error_from: spacetimedsl::ErrorFrom::SpacetimeDB,
                                 one_or_multiple: #one,
-                                column_names_and_row_values: format!(#column_names_and_row_values, #singular_table_name).into(),
+                                column_names_and_row_values: format!(#column_names_and_row_values, #singular_table_name).into(), // FIXME: Only show unique columns here
                             })
                         }
                         spacetimedb::TryInsertError::AutoIncOverflow(_) => {
