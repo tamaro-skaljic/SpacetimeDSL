@@ -362,7 +362,9 @@ The DSL generates [unique, auto-generated alias types](https://medium.com/unil-c
 This is their API:
 
 ```rust
-pub trait Wrapper<WrappedType: Clone + Default, WrapperType>: Default + Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display {
+pub trait Wrapper<WrappedType: Clone + Default, WrapperType>: Default +
+    Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
+{
     fn new(value: WrappedType) -> WrapperType;
     fn value(&self) -> WrappedType;
 }
@@ -425,7 +427,11 @@ Here is an example:
 
 ```rust
 #[dsl(plural_name = entity_relationships, unique_index(name = parent_child_entity_id))]
-#[table(name = entity_relationship, public, index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])))]
+#[table(
+    name = entity_relationship,
+    public,
+    index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id]))
+)]
 pub struct EntityRelationship {
     #[primary_key]
     #[auto_inc]
@@ -1125,11 +1131,9 @@ impl ExecuteOnDeleteStrategiesOfTheIdentifierTableAfterMultipleRowsOfTheEntityTa
 
 Because the `Identifier` table is referenced by the `Identifier Reference` table, it does much during execution of the `OnDeleteStrategy::Delete` strategy. It calls it's own function generated because it has at least one `#[referenced_by]`. This method is like the [one before](#internal-function-execute-ondeletestrategies-of-referencing-tables), except that it calls the function of the `Identifier Reference` table.
 
-Let's have a look into it (which doesn't do that much stuff in the `OnDeleteStrategy::Delete` match arm):
-
 <details>
 
-<summary>TODO</summary>
+<summary>Let's have a look into it (which doesn't do that much stuff in the `OnDeleteStrategy::Delete` match arm):</summary>
 
 ```rust
 pub trait ExecuteOnDeleteStrategiesOfTheIdentifierReferenceTableAfterMultipleRowsOfTheIdentifierTableWereDeleted {
