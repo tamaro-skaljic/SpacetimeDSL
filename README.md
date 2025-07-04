@@ -2,7 +2,7 @@
 
 *SpacetimeDSL* provides you a high-level [*D*omain *S*pecific *L*anguage (DSL)](https://en.wikipedia.org/wiki/Domain-specific_language) in Rust to interact in an ergonomic, more developer-friendly and type-safe way with the data in your [*SpacetimeDB*](https://spacetimedb.com/) instances.
 
-Try SpacetimeDSL for yourself, by adding it to your `Cargo.toml`:
+Try SpacetimeDSL for yourself, by adding it to your server modules `Cargo.toml`:
 
 ```toml
 # https://crates.io/crates/spacetimedsl Ergonomic DSL for SpacetimeDB
