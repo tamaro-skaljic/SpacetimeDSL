@@ -9,11 +9,12 @@ Try SpacetimeDSL for yourself, by adding it to your server modules `Cargo.toml`:
 spacetimedsl = { version = "*" }
 ```
 
-Get started by adding `#[spacetimedsl::dsl]` as well as it's helper attributes `#[create_wrapper]`, `#[use_wrapper]`, `#[foreign_key]` and `#[referenced_by]` to your `#[spacetimedb::table]`s!
+Get started by adding `#[spacetimedsl::dsl]` as well as it's helper attributes `#[create_wrapper]`, `#[use_wrapper]`,\
+`#[foreign_key]` and `#[referenced_by]` to your structs with `#[spacetimedb::table]`!
 
 ## Vanilla SpacetimeDB
 
-Let's start with a ordinary DB schema:
+Let's start with a ordinary SpacetimeDB schema:
 
 ```rust
 #[spacetimedb::table(name = entity, public)]
@@ -66,7 +67,7 @@ Based on the types of the `x` and `y` columns in the `Position` table, we could 
 
 - In addition, we must change the `modified_at` column each time and store the correct data (`ctx.timestamp`) when we make changes to it.
 
-SpacetimeDB is a great technology, but it still has some weaknesses that prevent developers from utilizing its full potential—sometimes they even have to work against the database.
+SpacetimeDB is a great technology, but it still has some weaknesses that prevent developers from utilizing its full potential — sometimes they even have to work against the database.
 
 ## SpacetimeDB with SpacetimeDSL
 
@@ -85,7 +86,7 @@ pub struct Entity {
     created_at: spacetimedb::Timestamp,
 }
 
-#[spacetimedsl::dsl(plural_name = positions, unique_index(name =x_y))]                     // Added
+#[spacetimedsl::dsl(plural_name = positions, unique_index(name = x_y))]                     // Added
 #[spacetimedb::table(name = position, public, index(name = x_y, btree(columns = [x, y])))]
 pub struct Position {
     #[primary_key]
@@ -239,7 +240,9 @@ Used in unpleasant moments with the DB, when even the DSL can't help you. If you
 
 Where the DB would only return an ordinary `Option<T>`, the DSL gives you a `NotFound` error – including the name of the table and the values of the columns.
 
-You would see them in the logs as following: `Not Found Error while trying to find a row in the position table with {{ entity_id : 1 }}!`).
+You would see them in the logs as following:
+
+`Not Found Error while trying to find a row in the position table with {{ entity_id : 1 }}!`).
 
 #### The `UniqueConstraintViolation` variant
 
@@ -247,39 +250,56 @@ This error can originate from both the DB (unique **single**-column indices) and
 
 You've already seen how the DSL is transforming the error from the DB into it's own error type in the `Create` DSL method.
 
-You would see them in the logs as following: `Unique Constraint Violation Error while trying to create a row in the entity table! Unfortunately SpacetimeDB doesn't provide more information, so here are all columns and their values: {{ entity : Entity { id: EntityId { id: 1 }, created_at: /* omitted */ } }}`.
+You would see them in the logs as following:
+
+`Unique Constraint Violation Error while trying to create a row in the entity table! Unfortunately SpacetimeDB doesn't provide more information, so here are all columns and their values: {{ entity : Entity { id: EntityId { id: 1 }, created_at: /* omitted */ } }}`.
 
 #### The `AutoIncOverflow` variant
 
 It's the same error as the DB is currently returning (without the name of the column which caused it), but at least it returns the name of the table in the DSL.
 
-You would see them in the logs as following: `Auto Inc Overflow Error on the entity table! Unfortunately SpacetimeDB doesn't provide more information.`
+You would see them in the logs as following:
+
+`Auto Inc Overflow Error on the entity table! Unfortunately SpacetimeDB doesn't provide more information.`
 
 #### The `ReferenceIntegrityViolation` variant
 
 Is huge. You are able to encounter this error in two ways:
 
-- When creating or updating rows in tables whose foreign keys reference primary keys of other tables (have one or multiple `#[foreign_key]`) or
+- When creating or updating rows in tables whose foreign keys reference primary keys of other tables (have one or multiple columns with `#[foreign_key]`) or
 
-- when deleting rows in tables whose primary keys are referenced by foreign keys of other tables (have one or multiple `#[referenced_by]`).
+- when deleting rows in tables whose primary keys are referenced by foreign keys of other tables (have one or multiple `#[referenced_by]`s on the primary key column).
 
 The first type is not particularly complex: If you create or update a row and set the value of a column that has a foreign key, the DSL method checks whether a row exists in the referenced table with the same value in its primary key column.
 
-You would see them in the logs as following: `Reference Integrity Violation Error while trying to create a row in the position table because of {{ entity_id : 1 }}!`
+You would see them in the logs as following:
+
+`Reference Integrity Violation Error while trying to create a row in the position table because of {{ entity_id : 1 }}!`
 
 The second is more complex! Because:
 
 ### The `DeletionResult[Entry]` Type
 
-**Developer** : "*Hi! It's me, a developer. I need an audit log about every deletion. How would I do that with you, SpacetimeDB?*"
+**Developer** : "*Hi! It's me, a developer. I need an audit log about every deletion. How would I do that with you, **DB**?*"
 
-**DB** : "*Eh... I can give you information about whether you've deleted a row or not (`bool` in `Delete One` methods) or how many rows you've deleted (`u64` in `Delete Many` methods). Is that enough?*"
+**DB** : "*Eh...\
+I can give you information about whether*
 
-**DSL** : "*May I answer this question for you, developer? Yes? Okay, so DB, the answer is: No!*"
+- *you've deleted a row or not (`bool` in `Delete One` methods) or*
 
-(Any resemblance with anything is purely coincidental.)
+- *how many rows you've deleted (`u64` in `Delete Many` methods).*
 
-Yeah, where was I? Ah, the `DeletionResult` Type!
+*Is that enough?*"
+
+**DSL** : "*May I answer this question for you, **developer**?*"
+
+**Developer** : "*Yes, please!*"
+
+**DSL** : "*Okay, so **DB**, the answer is: No!*
+
+*But don't worry, **developer**, I have a solution for you! Let me present to you:*"
+
+The `DeletionResult` Type!
 
 ```rust
 pub struct DeletionResult {
@@ -297,57 +317,70 @@ pub struct DeletionResultEntry {
 }
 ```
 
-If you're using the `Delete One` or `Delete Many` DSL methods, you get a DeletionResult on success as well as on failure.
+If you're using the `Delete One` or `Delete Many` DSL methods, you get a `DeletionResult` on success as well as on failure.
 
-You can use it directly to process it programmatically or use the `to_csv` method to log/persist it. You can then import it into your favorite spreadsheet application.
+You can use it directly to process it programmatically or use the `to_csv` method to log/persist it. You can then for example import it into your favorite spreadsheet application.
+
+More on the creation of `DeletionResult`s also later in the docs section about [Foreign Keys and Referential Integrity](#foreign-keys--referential-integrity).
 
 ### The `OnDeleteStrategy` Type
 
-You've seen it already in you the `#[foreign_key]` attribute as well as in the `DeletionResultEntry` type.
+You've seen it already in the `#[foreign_key]` attribute as well as in the `DeletionResultEntry` type.
 
-It influences how the DSL should handle deletions of rows which are referenced by other rows. The doc comments speak for themselves:
+It influences how the DSL should handle deletions of rows which are referenced by other rows.
+
+The doc comments speak for themselves:
 
 ```rust
 pub enum OnDeleteStrategy {
     /**
      * Available independent from the column type.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys
-     * of other tables the deletion fails with a Reference Integrity Violation Error.
+     * 
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys ...
+     * ... of other tables the deletion fails with a Reference Integrity Violation Error.
      */
     Error,
 
     /**
      * Available independent from the column type.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys
-     * of other tables it's checked whether any primary key value of rows to delete is referenced
-     * in a foreign key with `OnDeleteStrategy::Error`. If true, the deletion fails with a
-     * Reference Integrity Violation Error and no other on delete strategy is executed (and no row
-     * is deleted). If false, the on delete strategies of all affected rows are executed and rows
-     * are deleted.
+     * 
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys ...
+     * ... of other tables, it's checked whether any primary key value of rows to delete is referenced
+     * in a foreign key with `OnDeleteStrategy::Error`.
+     * 
+     * If true, the deletion fails with a Reference Integrity Violation Error and
+     * no other OnDeleteStrategy is executed (especially: no row is deleted).
+     * 
+     * If false, the on delete strategies of all affected rows are executed and rows are deleted.
      */
     Delete,
 
     /**
      * TODO: Because Option is currently not allowed on primary_key and unique/btree indices this
-     * strategy isn't used and implemented yet. Available only for columns with type `Option<T>`.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys
-     * of other tables the value of the foreign key column is set to `None`.
+     * strategy isn't used and implemented yet.
+     * 
+     * Available only for columns with type `Option<T>`.
+     * 
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys ...
+     * ... of other tables the value of the foreign key column is set to `None`.
      */
     //SetNone,
 
     /**
      * Available only for columns with a numeric type.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys
-     * of other tables the value of the foreign key column is set to `0`.
+     * 
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys ...
+     * ... of other tables the value of the foreign key column is set to `0`.
      */
     SetZero,
 
     /**
      * Available independent from the column type.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys
-     * of other tables nothing happens, which means the referencing rows will reference a
-     * primary key value which doesn't exist anymore. The referential integrity is only enforced
-     * while creating a row or if a row is updated and the foreign key column value is changed.
+     * 
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys ...
+     * ... of other tables nothing happens, which means the referencing rows will reference a primary
+     * key value which doesn't exist anymore. The referential integrity is only enforced while creating
+     * a row or if a row is updated and the foreign key column value is changed.
      */
     Ignore,
 }
@@ -355,9 +388,27 @@ pub enum OnDeleteStrategy {
 
 ### The `#[create_wrapper]` and `#[use_wrapper]` attributes - aka Wrapper Types
 
-Every column with `#[primary_key]`, `#[unique]` or `#[index]` attribute requires a `#[create_wrapper]` or `#[use_wrapper]` attribute.
+Every column with
 
-The DSL generates [unique, auto-generated alias types](https://medium.com/unil-ci-software-engineering/clean-ddd-lessons-modeling-identity-ff8bc17e0ae6#:~:text=We%20should%20not%20use%20primitives) for these columns. They're called `Wrapper Types` because they're decreasing [primitive obsession](https://refactoring.guru/smells/primitive-obsession) by wrapping primitive column types. [Logical dependencies become physical ones](https://medium.com/@gara.mohamed/domain-driven-design-the-identifier-type-pattern-d86fd3c128b3#:~:text=Make%20logical%20dependencies%20physical) and [reversing the order of fields (e.g. of multi-column indices) results in compilation-errors instead of runtime-errors when accessing them](https://medium.com/@gara.mohamed/domain-driven-design-the-identifier-type-pattern-d86fd3c128b3#:~:text=Suppose%20that%20we,at%20compile%20time.).
+- `#[primary_key]`,
+
+- `#[unique]` or
+
+- `#[index]`
+
+attribute requires a
+
+- `#[create_wrapper]` or
+
+- `#[use_wrapper]`
+
+attribute.
+
+The DSL generates [unique, auto-generated alias types](https://medium.com/unil-ci-software-engineering/clean-ddd-lessons-modeling-identity-ff8bc17e0ae6#:~:text=We%20should%20not%20use%20primitives) for these columns.
+
+They're called `Wrapper Types` because they're decreasing [primitive obsession](https://refactoring.guru/smells/primitive-obsession) by wrapping primitive column types.
+
+[Logical dependencies become physical ones](https://medium.com/@gara.mohamed/domain-driven-design-the-identifier-type-pattern-d86fd3c128b3#:~:text=Make%20logical%20dependencies%20physical) and [reversing the order of fields (e.g. of multi-column indices) results in compilation-errors instead of runtime-errors when accessing them](https://medium.com/@gara.mohamed/domain-driven-design-the-identifier-type-pattern-d86fd3c128b3#:~:text=Suppose%20that%20we,at%20compile%20time.).
 
 This is their API:
 
@@ -377,16 +428,20 @@ The difference between `#[create_wrapper]` and `#[use_wrapper]` is that the firs
 #[spacetimedb::table(name = entity, public)]
 pub struct Entity {
     // Default Name Strategy: EntityId
-    // ( format!("{}{}", singular_table_name_pascal_case, column_name_pascal_case) )
+    // format!("{}{}", singular_table_name_pascal_case, column_name_pascal_case)
     #[create_wrapper]
+
     //  Custom Name Strategy: EntityID
     #[create_wrapper(name = EntityID)]
+
     id: u128,
 
     // Provide the name of the wrapper type if you're     in the same module
     #[use_wrapper(name = EntityId)]
+
      // Provide the path of the wrapper type if you're not in the same module
     #[use_wrapper(path = crate::entity::EntityId)]
+
     parent_entity_id: u128,
 }
 ```
@@ -414,7 +469,9 @@ For any column in the table **which is not private**, a setter with the visibili
 This is useful for e. g.
 
 - primary- and foreign key columns, which possibly should never change, as well as
+
 - a `created_at` column or
+
 - an event table for auditing purposes whose data should never change after creation.
 
 (If <https://github.com/rust-lang/rust/issues/105077> is released, the DSL will use the field mutability restrictions instead of the visibility to decide whether or not to generate setters)
@@ -426,7 +483,10 @@ This is useful for e. g.
 Here is an example:
 
 ```rust
-#[dsl(plural_name = entity_relationships, unique_index(name = parent_child_entity_id))]
+#[dsl(
+    plural_name = entity_relationships,
+    unique_index(name = parent_child_entity_id)
+)]
 #[table(
     name = entity_relationship,
     public,
@@ -443,9 +503,29 @@ pub struct EntityRelationship {
 }
 ```
 
-As you can see, you just need to add `, unique_index(name = parent_child_entity_id)` to your `#[spacetimedsl::dsl(plural_name = entity_relationships)]` attribute macro (and have a multi-column index on your `#[spacetimedb::table]` with the same name).
+As you can see, you just need
 
-You'll have the `Get One`, `Update` and `Delete One` DSL methods now instead of the `Get Many` and `Delete Many` DSL methods and if you're creating or updating a row, the DSL checks whether you're violating any unique multi-column index.
+- to add `unique_index(name = parent_child_entity_id)`
+
+- to your `#[spacetimedsl::dsl(plural_name = entity_relationships)]` attribute macro and
+
+- have a multi-column index on your `#[spacetimedb::table]` with the same name.
+
+You'll have the
+
+- `Get One`,
+
+- `Update` and
+
+- `Delete One`
+
+DSL methods now instead of the
+
+- `Get Many` and
+
+- `Delete Many`
+
+DSL methods. And if you're creating or updating a row, the DSL checks whether you're violating any unique multi-column index (while the DB checks all unique single-column indices).
 
 Keep in mind that the unique multi-column indices which the DSL provides are only enforced if you never call DB state mutating methods on the `&spacetimedb::ReducerContext` yourself (insert, update, delete) - so only use the `&spacetimedsl::DSL` methods.
 
@@ -462,11 +542,10 @@ pub mod entity {
     #[dsl(plural_name = entities)]
     #[table(name = entity, public)]
     pub struct Entity {
-        /// The unique ID of the Entity.
         #[primary_key]
         #[auto_inc]
         #[create_wrapper]
-        #[referenced_by(path = crate, table = identifier)]
+        #[referenced_by(path = crate, table = identifier)] // Added
         id: u128,
 
         created_at: Timestamp,
@@ -480,12 +559,12 @@ pub mod identifier {
         #[primary_key]
         #[auto_inc]
         #[create_wrapper]
-        #[referenced_by(path = crate, table = identifier_reference)]
+        #[referenced_by(path = crate, table = identifier_reference)]     // Added
         id: u128
 
         #[unique]
         #[use_wrapper(path = crate::EntityId)]
-        #[foreign_key(path = crate, table = entity, on_delete = Delete)]
+        #[foreign_key(path = crate, table = entity, on_delete = Delete)] // Added
         entity_id: u128
 
         #[unique]
@@ -502,37 +581,47 @@ pub mod identifier {
 pub struct IdentifierReference {
     #[primary_key]
     #[use_wrapper(name = IdentifierId)]
-    #[foreign_key(path = crate, table = identifier, on_delete = Error)]
+    #[foreign_key(path = crate, table = identifier, on_delete = Error)]   // Added
     id: u128,
 
     #[unique]
     #[use_wrapper(name = IdentifierId)]
-    #[foreign_key(path = crate, table = identifier, on_delete = Delete)]
+    #[foreign_key(path = crate, table = identifier, on_delete = Delete)]  // Added
     id2: u128,
 
     #[unique]
     #[use_wrapper(name = IdentifierId)]
-    #[foreign_key(path = crate, table = identifier, on_delete = SetZero)]
+    #[foreign_key(path = crate, table = identifier, on_delete = SetZero)] // Added
     id3: u128,
 
     #[unique]
     #[use_wrapper(name = IdentifierId)]
-    #[foreign_key(path = crate, table = identifier, on_delete = Ignore)]
+    #[foreign_key(path = crate, table = identifier, on_delete = Ignore)]  // Added
     id4: u128,
 }
 ```
 
-The `#[referenced_by]` attribute needs values for the `path` and the `table` field and is only allowed on `#[primary_key]` columns (which require `#[create_wrapper]`/`#[use_wrapper]`). You can add multiple `#[referenced_by]`'s to the same primary key column, but you need one for each table which has a `#[foreign_key]` which is referencing the table (see the pk column of the entity table). `#[referenced_by]`'s are responsible for calling the `OnDeleteStrategy`'s of tables which reference them though a `#[foreign_key]`, that means it's influencing the `Delete One` and `Delete Many` DSL methods.
+The `#[referenced_by]` attribute needs values for the `path` and the `table` field and is only allowed on `#[primary_key]` columns (which require `#[create_wrapper]`/`#[use_wrapper]`).
 
-`#[foreign_key]`'s are only allowed on columns with `#[primary_key]`, `#[index]` or `#[unique]`. They require the `#[use_wrapper]` attribute and you need a value for the `path`, `table` and `on_delete` fields. Only one `#[foreign_key]` is allowed per column. `#[foreign_key]`s are responsible for referential integrity checks when creating or updating rows as well as executing a `OnDeleteStrategy` if a row of the referenced table is deleted.
+You can add multiple `#[referenced_by]`'s to the same primary key column, but you need one for each table which has a `#[foreign_key]` referencing the table (see the pk column of the entity table).
+
+`#[referenced_by]`'s are responsible for calling the `OnDeleteStrategy`'s of tables which reference them though a `#[foreign_key]`, that means it's influencing the `Delete One` and `Delete Many` DSL methods.
+
+`#[foreign_key]`'s are only allowed on columns with `#[primary_key]`, `#[index]` or `#[unique]`.
+
+They require the `#[use_wrapper]` attribute and you need a value for the `path`, `table` and `on_delete` fields.
+
+Only one `#[foreign_key]` is allowed per column.
+
+`#[foreign_key]`s are responsible for referential integrity checks when creating or updating rows as well as executing the `OnDeleteStrategy` if a row of the referenced table is deleted.
 
 Keep in mind that the referential integrity which the DSL provides is only enforced if you never call DB state mutating methods on the `&spacetimedb::ReducerContext` yourself (insert, update, delete) - so only use the `&spacetimedsl::DSL` methods.
 
-This feature is unstable. First it will be removed if SpacetimeDB has implemented it's own referential integrity / foreign key features, second there are tests to ensure referential integrity, but there may be edge cases which aren't tested yet. Make backups of your data before testing the feature and PLEASE, if you find any bug, create a GitHub issue!
+This feature is unstable. First it will be removed if SpacetimeDB has implemented it's own referential integrity / foreign key features, second there are tests to ensure referential integrity, but there may be cases which aren't tested yet. Make backups of your data before testing the feature and PLEASE, if you find any bug, create a GitHub issue!
 
 <details>
 
-<summary>Here is the `Delete One` DSL method of the Entity table:</summary>
+<summary>Here is the `Delete One` DSL method of the Entity table</summary>
 
 ```rust
 pub trait DeleteEntityRowById: spacetimedsl::DSLContext {
@@ -683,11 +772,12 @@ impl DeleteEntityRowById for spacetimedsl::DSL<'_> {}
 
 </details>
 
-The `Delete One` and `Delete Many` DSL methods call internal functions, which are generated by tables with `#[referenced_by]`'s.
+The `Delete One` and `Delete Many` DSL methods call internal functions,
+which are generated by tables with `#[referenced_by]`'s.
 
 #### Internals
 
-> You don't need to know that, but if you want, keep reading.
+> You don't need to know that. If you want, keep reading, if not jump to [the plural name DSL attribute field](#the-plural-name-dsl-attribute-field).
 
 They are called more than one time to ensure that `OnDeleteStrategy::Error` is always processed first.
 
@@ -706,7 +796,7 @@ They're the same except that the one for multiple rows has
 
 <details>
 
-<summary>Let's have a look at the function for the multiple rows:</summary>
+<summary>Let's have a look at the function for the multiple rows</summary>
 
 ```rust
 pub trait ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfTheEntityTableWereDeleted {
@@ -759,11 +849,12 @@ impl ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfTheEntityTab
 
 </details>
 
-As you can see it's calling an other internal function, which is generated by the `Identifier` table (because it has a `#[foreign_key]`) attribute.
+As you can see it's calling another internal function,
+which is generated by the `Identifier` table(because it has a `#[foreign_key]`) attribute.
 
 <details>
 
-<summary>Let's have a look into the one created by the `Identifier` table:</summary>
+<summary>Let's have a look into the one created by the `Identifier` table</summary>
 
 ```rust
 pub trait ExecuteOnDeleteStrategiesOfTheIdentifierTableAfterMultipleRowsOfTheEntityTableWereDeleted {
@@ -1130,11 +1221,15 @@ impl ExecuteOnDeleteStrategiesOfTheIdentifierTableAfterMultipleRowsOfTheEntityTa
 
 </details>
 
-Because the `Identifier` table is referenced by the `Identifier Reference` table, it does much during execution of the `OnDeleteStrategy::Delete` strategy. It calls it's own function generated because it has at least one `#[referenced_by]`. This method is like the one before, except that it calls the function of the `Identifier Reference` table.
+Because the `Identifier` table is referenced by the `Identifier Reference` table, it does much during execution of the `OnDeleteStrategy::Delete` strategy.
+
+It calls it's own function generated because it has at least one `#[referenced_by]`.
+
+This method is like the one before, except that it calls the function of the `Identifier Reference` table.
 
 <details>
 
-<summary>Let's have a look into it (which doesn't do that much stuff in the `OnDeleteStrategy::Delete` match arm):</summary>
+<summary>Let's have a look into it (which doesn't do that much stuff in the <code>OnDeleteStrategy::Delete</code> match arm as the one for the <code>Identifier</code> table)</summary>
 
 ```rust
 pub trait ExecuteOnDeleteStrategiesOfTheIdentifierReferenceTableAfterMultipleRowsOfTheIdentifierTableWereDeleted {
@@ -1272,14 +1367,15 @@ You haven't seen any method which the DSL provides you - every DB method has a e
 
 ![Example usage of the generated dsl methods](example_dsl_usage.png)
 
-That's why I wholeheartedly invite you to try SpacetimeDSL for yourself, by adding it to your `Cargo.toml`:
+That's why I wholeheartedly invite you to try SpacetimeDSL for yourself, by adding it to the `Cargo.toml` of your server modules:
 
 ```toml
 # https://crates.io/crates/spacetimedsl Ergonomic DSL for SpacetimeDB
 spacetimedsl = { version = "*" }
 ```
 
-Get started by adding `#[spacetimedsl::dsl]` as well as it's helper attributes `#[create_wrapper]`, `#[use_wrapper]`, `#[foreign_key]` and `#[referenced_by]` to your `#[spacetimedb::table]`s!
+Get started by adding `#[spacetimedsl::dsl]` as well as it's helper attributes `#[create_wrapper]`, `#[use_wrapper]`,\
+`#[foreign_key]` and `#[referenced_by]` to your structs with `#[spacetimedb::table]`!
 
 ## Current imitations
 
