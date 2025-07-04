@@ -1291,7 +1291,8 @@ pub(in crate::internal) fn for_method(
                                 }
                             };
 
-                            let delete_many_impl = quote! {let count_of_rows_to_delete: u64 = primary_key_values_of_rows_to_delete
+                            let delete_many_impl = quote! {
+                                let count_of_rows_to_delete: u64 = primary_key_values_of_rows_to_delete
                                     .len()
                                     .try_into()
                                     .unwrap_or(u64::MAX);
@@ -2565,36 +2566,56 @@ fn get_on_delete_strategy_implementation(
                         },
                     )),
                     true => {
+                        let create_entries_and_add_them_to_entries = quote! {
+                            for (primary_key_value_of_a_row_of_another_table_to_delete, primary_key_values_of_rows_to_delete) in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete {
+                                for id in &primary_key_values_of_rows_to_delete {
+                                    let child_entries = child_entries_by_primary_key_value_of_row_to_delete.remove(&id).unwrap();
+                                    #create_entry_and_add_it_to_entries
+                                }
+                            }
+                        };
+
+                        let on_error_handler = quote! {
+                            #create_entries_and_add_them_to_entries
+                            return Err(entries);
+                        };
+
                         let error_strategy =
                             get_referenced_table_function_call_for_strategy_implementation(
                                 singular_table_name,
                                 OnDeleteStrategy::Error,
+                                &on_error_handler,
                             );
 
                         let delete_strategy =
                             get_referenced_table_function_call_for_strategy_implementation(
                                 singular_table_name,
                                 OnDeleteStrategy::Delete,
+                                &on_error_handler,
                             );
 
                         /*
-                                               let set_none_strategy = get_referenced_table_function_call_for_strategy_implementation(
-                                                   singular_table_name,
-                                                   &singular_table_name_as_string,
-                                                   OnDeleteStrategy::SetNone,
-                                               );
+                        let set_none_strategy =
+                            get_referenced_table_function_call_for_strategy_implementation(
+                                singular_table_name,
+                                &singular_table_name_as_string,
+                                OnDeleteStrategy::SetNone,
+                                &on_error_handler
+                            );
                         */
 
                         let set_zero_strategy =
                             get_referenced_table_function_call_for_strategy_implementation(
                                 singular_table_name,
                                 OnDeleteStrategy::SetZero,
+                                &on_error_handler,
                             );
 
                         let ignore_strategy =
                             get_referenced_table_function_call_for_strategy_implementation(
                                 singular_table_name,
                                 OnDeleteStrategy::Ignore,
+                                &on_error_handler,
                             );
 
                         let strategy_for_each_row;
@@ -2622,23 +2643,14 @@ fn get_on_delete_strategy_implementation(
                             }
                         };
 
-                        let create_entries_and_add_them_to_entries = quote! {
-                            for (primary_key_value_of_a_row_of_another_table_to_delete, primary_key_values_of_rows_to_delete) in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete {
-                                for id in &primary_key_values_of_rows_to_delete {
-                                    let child_entries = child_entries_by_primary_key_value_of_row_to_delete.remove(&id).unwrap();
-                                    #create_entry_and_add_it_to_entries
-                                }
+                        let delete_many_impl = quote! {
+                            for id in &primary_key_values_of_rows_to_delete {
+                                if !#spacetimedb_call_prefix
+                                    .id()
+                                    .delete(id) {
+                                        #on_error_handler
+                                    }
                             }
-                        };
-
-                        let special_error_handler = quote! {
-                            match error {
-                                false => {},
-                                true => {
-                                    #create_entries_and_add_them_to_entries
-                                    return Err(entries);
-                                }
-                            };
                         };
 
                         strategy_after_all = quote! {
@@ -2646,33 +2658,13 @@ fn get_on_delete_strategy_implementation(
 
                             #error_strategy
 
-                            match error {
-                                false => {},
-                                true => {
-                                    #create_entries_and_add_them_to_entries
-                                    return Err(entries);
-                                }
-                            };
-
-                            for id in &primary_key_values_of_rows_to_delete {
-                                #spacetimedb_call_prefix
-                                    .id()
-                                    .delete(id);
-                            }
-
-                            #special_error_handler
+                            #delete_many_impl
 
                             #delete_strategy
 
-                            #special_error_handler
-
                             //TODO #set_none_strategy
 
-                            #special_error_handler
-
                             #set_zero_strategy
-
-                            #special_error_handler
 
                             #ignore_strategy
 
@@ -2776,6 +2768,7 @@ fn strategy_by_row(
 fn get_referenced_table_function_call_for_strategy_implementation(
     singular_table_name: &Ident,
     on_delete_strategy: OnDeleteStrategy,
+    on_error_handler: &TokenStream,
 ) -> TokenStream {
     let referenced_table_function_name =
         get_referenced_table_function_name(&OneOrMultiple::Multiple, &singular_table_name);
@@ -2783,11 +2776,11 @@ fn get_referenced_table_function_call_for_strategy_implementation(
     quote! {
         match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(ctx, #on_delete_strategy, &primary_key_values_of_rows_to_delete[..]) {
             Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
-                error = true;
-
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
                     child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).unwrap().append(&mut child_entries);
                 }
+
+                #on_error_handler
             },
             Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
