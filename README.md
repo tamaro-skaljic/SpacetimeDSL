@@ -118,7 +118,8 @@ pub fn create_example(ctx: &spacetimedb::ReducerContext) -> Result<(), String> {
     // Vanilla SpacetimeDB
     use spacetimedb::Table;
 
-    // Without the question mark it would return a Result<Entity, spacetimedb::TryInsertError<entity__TableHandle>>
+    // Without the question mark it would return a
+    // Result<Entity, spacetimedb::TryInsertError<entity__TableHandle>>
     let entity: Entity = ctx.db.entity().try_insert(
         Entity {
             id: 0,
@@ -181,7 +182,10 @@ pub trait CreateEntityRow : spacetimedsl::DSLContext {
                             action: spacetimedsl::Action::Create,
                             error_from: spacetimedsl::ErrorFrom::SpacetimeDB,
                             one_or_multiple: spacetimedsl::OneOrMultiple::One,
-                            column_names_and_row_values: format!("{{ entity : {:?} }}", entity).into(),
+                            column_names_and_row_values: format!(
+                                "{{ entity : {:?} }}",
+                                entity
+                            ).into(),
                         })
                     }
                     spacetimedb::TryInsertError::AutoIncOverflow(_) => {
@@ -307,40 +311,43 @@ It influences how the DSL should handle deletions of rows which are referenced b
 pub enum OnDeleteStrategy {
     /**
      * Available independent from the column type.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
-     * ... the deletion fails with a Reference Integrity Violation Error.
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys
+     * of other tables the deletion fails with a Reference Integrity Violation Error.
      */
     Error,
 
     /**
      * Available independent from the column type.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
-     * ... it's checked whether any primary key value of rows to delete is referenced in a foreign key with `OnDeleteStrategy::Error`.
-     * If true, the deletion fails with a Reference Integrity Violation Error and no other on delete strategy is executed (and no row is deleted).
-     * If false, the on delete strategies of all affected rows are executed and rows are deleted.
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys
+     * of other tables it's checked whether any primary key value of rows to delete is referenced
+     * in a foreign key with `OnDeleteStrategy::Error`. If true, the deletion fails with a
+     * Reference Integrity Violation Error and no other on delete strategy is executed (and no row
+     * is deleted). If false, the on delete strategies of all affected rows are executed and rows
+     * are deleted.
      */
     Delete,
 
     /**
-     * TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
-     * Available only for columns with type `Option<T>`.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
-     * ... the value of the foreign key column is set to `None`.
+     * TODO: Because Option is currently not allowed on primary_key and unique/btree indices this
+     * strategy isn't used and implemented yet. Available only for columns with type `Option<T>`.
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys
+     * of other tables the value of the foreign key column is set to `None`.
      */
     //SetNone,
 
     /**
      * Available only for columns with a numeric type.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
-     * ... the value of the foreign key column is set to `0`.
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys
+     * of other tables the value of the foreign key column is set to `0`.
      */
     SetZero,
 
     /**
      * Available independent from the column type.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
-     * ... nothing happens, which means the referencing rows will reference a primary key value which doesn't exist anymore.
-     * The referential integrity is only enforced while creating a row or if a row is updated and the foreign key column value is changed.
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys
+     * of other tables nothing happens, which means the referencing rows will reference a
+     * primary key value which doesn't exist anymore. The referential integrity is only enforced
+     * while creating a row or if a row is updated and the foreign key column value is changed.
      */
     Ignore,
 }
@@ -355,7 +362,9 @@ The DSL generates [unique, auto-generated alias types](https://medium.com/unil-c
 This is their API:
 
 ```rust
-pub trait Wrapper<WrappedType: Clone + Default, WrapperType>: Default + Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display {
+pub trait Wrapper<WrappedType: Clone + Default, WrapperType>: Default +
+    Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
+{
     fn new(value: WrappedType) -> WrapperType;
     fn value(&self) -> WrappedType;
 }
@@ -367,12 +376,17 @@ The difference between `#[create_wrapper]` and `#[use_wrapper]` is that the firs
 #[spacetimedsl::dsl(plural_name = entities)]
 #[spacetimedb::table(name = entity, public)]
 pub struct Entity {
-    #[create_wrapper]                              // Default Name Strategy: EntityId ( format!("{}{}", singular_table_name_pascal_case, column_name_pascal_case) )
-    #[create_wrapper(name = EntityID)]             //  Custom Name Strategy: EntityID
+    // Default Name Strategy: EntityId
+    // ( format!("{}{}", singular_table_name_pascal_case, column_name_pascal_case) )
+    #[create_wrapper]
+    //  Custom Name Strategy: EntityID
+    #[create_wrapper(name = EntityID)]
     id: u128,
 
-    #[use_wrapper(name = EntityId)]                // Provide the name of the wrapper type if you're     in the same module
-    #[use_wrapper(path = crate::entity::EntityId)] // Provide the path of the wrapper type if you're not in the same module
+    // Provide the name of the wrapper type if you're     in the same module
+    #[use_wrapper(name = EntityId)]
+     // Provide the path of the wrapper type if you're not in the same module
+    #[use_wrapper(path = crate::entity::EntityId)]
     parent_entity_id: u128,
 }
 ```
@@ -413,7 +427,11 @@ Here is an example:
 
 ```rust
 #[dsl(plural_name = entity_relationships, unique_index(name = parent_child_entity_id))]
-#[table(name = entity_relationship, public, index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])))]
+#[table(
+    name = entity_relationship,
+    public,
+    index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id]))
+)]
 pub struct EntityRelationship {
     #[primary_key]
     #[auto_inc]
@@ -512,7 +530,9 @@ Keep in mind that the referential integrity which the DSL provides is only enfor
 
 This feature is unstable. First it will be removed if SpacetimeDB has implemented it's own referential integrity / foreign key features, second there are tests to ensure referential integrity, but there may be edge cases which aren't tested yet. Make backups of your data before testing the feature and PLEASE, if you find any bug, create a GitHub issue!
 
-Here is the `Delete One` DSL method of the Entity table:
+<details>
+
+<summary>Here is the `Delete One` DSL method of the Entity table:</summary>
 
 ```rust
 pub trait DeleteEntityRowById: spacetimedsl::DSLContext {
@@ -661,6 +681,8 @@ pub trait DeleteEntityRowById: spacetimedsl::DSLContext {
 impl DeleteEntityRowById for spacetimedsl::DSL<'_> {}
 ```
 
+</details>
+
 The `Delete One` and `Delete Many` DSL methods call internal functions, which are generated by tables with `#[referenced_by]`'s.
 
 #### Internals
@@ -682,9 +704,9 @@ They're the same except that the one for multiple rows has
 - a `&'a [PrimaryKeyType]` instead of a `&PrimaryKeyType` parameter and
 - a `std::collections::HashMap<&'a u128, Vec<spacetimedsl::DeletionResultEntry>>` instead of a `Vec<spacetimedsl::DeletionResultEntry>` return type.
 
-##### Internal Function "Execute OnDeleteStrategies of referencing tables"
+<details>
 
-Let's have a look at the function for the multiple rows:
+<summary>Let's have a look at the function for the multiple rows:</summary>
 
 ```rust
 pub trait ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfTheEntityTableWereDeleted {
@@ -735,11 +757,13 @@ pub trait ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfTheEnti
 impl ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfTheEntityTableWereDeleted for spacetimedsl::internal::DSLInternals {}
 ```
 
+</details>
+
 As you can see it's calling an other internal function, which is generated by the `Identifier` table (because it has a `#[foreign_key]`) attribute.
 
-##### Internal Function "Execute OnDeleteStrategies of one referencing table"
+<details>
 
-Let's have a look into the one created by the `Identifier` table:
+<summary>Let's have a look into the one created by the `Identifier` table:</summary>
 
 ```rust
 pub trait ExecuteOnDeleteStrategiesOfTheIdentifierTableAfterMultipleRowsOfTheEntityTableWereDeleted {
@@ -1104,7 +1128,13 @@ pub trait ExecuteOnDeleteStrategiesOfTheIdentifierTableAfterMultipleRowsOfTheEnt
 impl ExecuteOnDeleteStrategiesOfTheIdentifierTableAfterMultipleRowsOfTheEntityTableWereDeleted for spacetimedsl::internal::DSLInternals {}
 ```
 
-Because the `Identifier` table is referenced by the `Identifier Reference` table, it does much during execution of the `OnDeleteStrategy::Delete` strategy. It calls it's own function generated because it has at least one `#[referenced_by]`. This method is like the [one before](#internal-function-execute-ondeletestrategies-of-referencing-tables), except that it calls the function of the `Identifier Reference` table. Let's have a look into it (which doesn't do that much stuff in the `OnDeleteStrategy::Delete` match arm):
+</details>
+
+Because the `Identifier` table is referenced by the `Identifier Reference` table, it does much during execution of the `OnDeleteStrategy::Delete` strategy. It calls it's own function generated because it has at least one `#[referenced_by]`. This method is like the one before, except that it calls the function of the `Identifier Reference` table.
+
+<details>
+
+<summary>Let's have a look into it (which doesn't do that much stuff in the `OnDeleteStrategy::Delete` match arm):</summary>
 
 ```rust
 pub trait ExecuteOnDeleteStrategiesOfTheIdentifierReferenceTableAfterMultipleRowsOfTheIdentifierTableWereDeleted {
@@ -1225,6 +1255,8 @@ pub trait ExecuteOnDeleteStrategiesOfTheIdentifierReferenceTableAfterMultipleRow
 }
 impl ExecuteOnDeleteStrategiesOfTheIdentifierReferenceTableAfterMultipleRowsOfTheIdentifierTableWereDeleted for spacetimedsl::internal::DSLInternals {}
 ```
+
+</details>
 
 ### The `plural name` DSL attribute field
 
