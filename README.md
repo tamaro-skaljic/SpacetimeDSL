@@ -12,6 +12,8 @@ spacetimedsl = { version = "*" }
 Get started by adding `#[spacetimedsl::dsl]` as well as it's helper attributes `#[create_wrapper]`, `#[use_wrapper]`,\
 `#[foreign_key]` and `#[referenced_by]` to your structs with `#[spacetimedb::table]`!
 
+If you've questions, consult the [FAQ](#faq) and if it's not answered there, you can find me in the [SpacetimeDSL channel of the SpacetimeDB Discord Server](https://discord.com/channels/1037340874172014652/1362826754259157205).
+
 ## Vanilla SpacetimeDB
 
 Let's start with a ordinary SpacetimeDB schema:
@@ -473,6 +475,8 @@ This is useful for e. g.
 - a `created_at` column or
 
 - an event table for auditing purposes whose data should never change after creation.
+
+If all of your table columns are private, **no** `Update` DSL method will be generated, because you said through that, that the row should never change after its insertion.
 
 (If <https://github.com/rust-lang/rust/issues/105077> is released, the DSL will use the field mutability restrictions instead of the visibility to decide whether or not to generate setters)
 
@@ -1388,6 +1392,36 @@ The following things aren't considered during code generation yet:
 The following SpacetimeDB features can't be used:
 
 - [More than one `#[table]` attribute macro on the same struct](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/10) (only the last one is processed)
+
+## FAQ
+
+- **Why must `#[primary_key]` columns be private?**
+
+  Because they should never change after insertion.
+
+  The **DSL** generates [setters](#accessors-getters-and-setters) for every column which is not private.
+
+  By making them public, you could change them after creation through the setter and you could also access them directly as struct member, where you wouldn't get their [wrapped type](#the-create_wrapper-and-use_wrapper-attributes---aka-wrapper-types).
+
+- **Why has the DSL generated no `Update` method for this table?**
+
+  Because all of your columns are private - therefor they have no [setters](#accessors-getters-and-setters) and the row should never change after insertion.
+
+  Make the columns which should change `pub`, `pub(self)` or `pub(in <path>)` and an `Update` DSL method is generated for the table!
+
+- **Why must `#[primary_key]` columns be named `id`?**
+
+  Because the creator of the **DSL** thought it's a good standard (which makes his life easier).
+
+  Joking aside, that would disrupt the flow of reading. During development, great importance was attached to naming DSL methods in such a way that they are readable for humans and can also be understood by non-developers.
+
+  So it's intended to make reading and writing code easier.
+
+  For example, if you always put the table name before the ID, DSL methods would be called
+
+  - `delete_stellar_object_by_stellar_object_id` instead of
+
+  - `delete_stellar_object_by_id`.
 
 ## Licensing
 
