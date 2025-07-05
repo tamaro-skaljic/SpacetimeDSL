@@ -21,13 +21,38 @@ pub mod entity {
         created_at: Timestamp,
     }
 
-    #[spacetimedsl::dsl(plural_name = tables)]
-    #[spacetimedb::table(name = table, public)]
+    #[spacetimedsl::dsl(
+        plural_name = tables,
+        unique_index(name = id_and_name1),
+        unique_index(name = id_and_name3),
+    )]
+    #[spacetimedb::table(
+        name = table,
+        public,
+        index(name = id_and_name1, btree(columns = [id, name1])),
+        index(name = id_and_name2, btree(columns = [id, name2])),
+        index(name = id_and_name3, btree(columns = [id, name3])),
+        index(name = id_and_name4, btree(columns = [id, name4])),
+    )]
     pub struct Table {
         #[primary_key]
         #[auto_inc]
         #[create_wrapper]
         id: u128,
+
+        #[unique]
+        pub name1: String,
+
+        #[index(btree)]
+        pub name2: String,
+
+        #[unique]
+        #[create_wrapper]
+        pub name3: String,
+
+        #[index(btree)]
+        #[create_wrapper]
+        pub name4: String,
     }
 
     #[spacetimedsl::dsl(plural_name = entity_relationships, unique_index(name = parent_child_entity_id))]
@@ -873,7 +898,6 @@ pub mod test {
 
         let _ = dsl.create_ship_object(&player);
 
-        // TODO: TryDeleteError
         match dsl.delete_entity_by_id(&player) {
             Ok(success) => {
                 return Err(format!(
