@@ -10,6 +10,7 @@ use crate::api::{
     rust::{column::RustField, table::RustStruct, visibility::RustVisibility},
 };
 use itertools::izip;
+use proc_macro2::Span;
 use spacetime_bindings_macro_input::table::ColumnArgs;
 use syn::{Ident, Path};
 
@@ -22,7 +23,10 @@ pub(in crate::internal) fn try_parse(
     let primary_key_column_name = match get_primary_key_column_name(column_args) {
         Some(pk) => pk,
         None => {
-            panic!("The table should have a column with `#[primary_key]` helper attribute!")
+            return Err(syn::Error::new(
+                Span::call_site(),
+                "`The table should have a column with `#[primary_key]` helper attribute!",
+            ));
         }
     };
 

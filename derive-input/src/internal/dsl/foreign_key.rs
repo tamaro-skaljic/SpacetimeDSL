@@ -9,7 +9,6 @@ use syn::meta::ParseNestedMeta;
 use syn::{Ident, Meta, Path};
 
 impl ForeignKey {
-    // TODO: There should be a proper error message if the primary_key column which is referenced by this column has not a valid type (This column: T, the other column: T | Option<T>). But this probably won't work from inside rust macros, more likely in a build.rs. Currently it's a compilation error.
     pub(in crate::internal) fn try_parse(field: &SatsField<'_>) -> syn::Result<Option<ForeignKey>> {
         let mut foreign_key_value = None;
 

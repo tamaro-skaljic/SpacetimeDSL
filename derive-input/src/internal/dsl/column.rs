@@ -36,13 +36,8 @@ impl SpacetimeDSLColumn {
         let foreign_key = ForeignKey::try_parse(field)?;
 
         if foreign_key.is_some() {
-            if wrapper_type.is_none() {
-                return Err(Error::new(
-                    Span::call_site(),
-                    "A #[foreign_key] column must have `#[use_wrapper]`!",
-                ));
-            } else {
-                match wrapper_type.as_ref().unwrap() {
+            match &wrapper_type {
+                Some(wrapper_type) => match wrapper_type {
                     WrapperType::Created(_) => {
                         return Err(Error::new(
                             Span::call_site(),
@@ -50,6 +45,12 @@ impl SpacetimeDSLColumn {
                         ));
                     }
                     WrapperType::Used(_) => {}
+                },
+                None => {
+                    return Err(Error::new(
+                        Span::call_site(),
+                        "A #[foreign_key] column must have `#[use_wrapper]`!",
+                    ));
                 }
             }
         }

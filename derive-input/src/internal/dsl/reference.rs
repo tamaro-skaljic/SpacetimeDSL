@@ -6,7 +6,6 @@ use spacetime_bindings_macro_input::{
 use syn::{Ident, Path};
 
 impl ReferencingTable {
-    // TODO: There should be a proper error message if the column which references the primary_key column has not a valid type (This column: T | Option<T>, the other column: T). But this probably won't work from inside rust macros, more likely in a build.rs. Currently it's a compilation error.
     pub(in crate::internal) fn try_parse(
         field: &SatsField<'_>,
     ) -> syn::Result<Vec<ReferencingTable>> {

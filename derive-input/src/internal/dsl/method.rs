@@ -44,8 +44,6 @@ pub(in crate::internal) enum DSLMethod<'a> {
     DeleteOne(&'a Index),
 }
 
-// FIXME: Ensure that any panic! / expect() / unwrap() is replaced by proper error handling, either returning spacetimedsl::SpacetimeDSLError during runtime or syn::Error during compilation time
-
 #[derive(Debug)]
 pub enum OneOrMultiple {
     One,
@@ -687,6 +685,15 @@ pub(in crate::internal) fn for_method(
             paths_of_traits_to_extend = res.0;
             let reference_integrity_checks = res.1;
 
+            let let_field_name_for_found_value =
+                if multi_column_index_checks.is_empty() && reference_integrity_checks.is_empty() {
+                    TokenStream::default()
+                } else {
+                    quote! {
+                        let mut #field_name_for_found_value: Option<#struct_name> = None;
+                    }
+                };
+
             method_impl = quote! {
                 #use_itertools
 
@@ -696,8 +703,7 @@ pub(in crate::internal) fn for_method(
                     #(#constructor_arg_names),*
                 };
 
-                // FIXME: Isn't needed if there are no multi column index or reference integrity checks
-                let mut #field_name_for_found_value: Option<#struct_name> = None;
+                #let_field_name_for_found_value
 
                 #(#multi_column_index_checks)*
 
@@ -1009,6 +1015,16 @@ pub(in crate::internal) fn for_method(
                     paths_of_traits_to_extend = res.0;
                     let reference_integrity_checks = res.1;
 
+                    let let_field_name_for_found_value = if multi_column_index_checks.is_empty()
+                        && reference_integrity_checks.is_empty()
+                    {
+                        TokenStream::default()
+                    } else {
+                        quote! {
+                            let mut #field_name_for_found_value: Option<#struct_name> = None;
+                        }
+                    };
+
                     let index_name = match is_multi_column_index {
                         true => &format_ident!("id"),
                         false => index_name,
@@ -1017,7 +1033,7 @@ pub(in crate::internal) fn for_method(
                     method_impl = quote! {
                         #use_itertools
 
-                        let mut #field_name_for_found_value: Option<#struct_name> = None;
+                        #let_field_name_for_found_value
 
                         #(#multi_column_index_checks)*
 
@@ -1061,7 +1077,6 @@ pub(in crate::internal) fn for_method(
                             Some(wrapper_type) => {
                                 let wrapper_type = &WrapperType::map(wrapper_type);
 
-                                // TODO: string stuff was only in the single column index implementation, does that work for multi column indices?
                                 if column_is_string {
                                     wrapper_type_option_to_wrapped_type_option_mapper =
                                         TokenStream::default();
@@ -1081,7 +1096,12 @@ pub(in crate::internal) fn for_method(
                                                 arg_name: column_name.clone(),
                                                 arg_type: quote! { &str },
                                             };
-                                            row_value_getter = quote! { #column_name.to_string() };
+                                            if is_multi_column_index {
+                                                row_value_getter = quote! { #column_name };
+                                            } else {
+                                                row_value_getter =
+                                                    quote! { #column_name.to_string() };
+                                            }
                                         }
                                         DSLMethod::Update(_) => {
                                             panic!(
@@ -1176,12 +1196,15 @@ pub(in crate::internal) fn for_method(
                                             arg_type: quote! { &#column_type },
                                         };
 
-                                        // TODO: string stuff was only in the single column index implementation, does that work for multi column indices?
-                                        // TODO: Does that String stuff also work for GetMany and DeleteMany?
-                                        if column_is_string {
-                                            row_value_getter = quote! { #column_name.to_string() };
-                                        } else {
+                                        if is_multi_column_index {
                                             row_value_getter = quote! { #column_name };
+                                        } else {
+                                            if column_is_string {
+                                                row_value_getter =
+                                                    quote! { #column_name.to_string() };
+                                            } else {
+                                                row_value_getter = quote! { #column_name };
+                                            }
                                         }
                                     }
                                     DSLMethod::Update(_) => {
@@ -1265,7 +1288,7 @@ pub(in crate::internal) fn for_method(
                             let wrapper_type_struct_name_or_path = match primary_key_column
                                 .spacetimedsl_column_wrapper_type
                                 .as_ref()
-                                .unwrap()
+                                .expect("Should have a wrapper type")
                             {
                                 WrapperType::Created(wrap) => {
                                     wrap.wrapper_struct_name.to_token_stream()
@@ -1548,7 +1571,7 @@ pub(in crate::internal) fn for_method(
                             let wrapper_type_struct_name_or_path = match primary_key_column
                                 .spacetimedsl_column_wrapper_type
                                 .as_ref()
-                                .unwrap()
+                                .expect("should have a wrapper type")
                             {
                                 WrapperType::Created(wrap) => {
                                     wrap.wrapper_struct_name.to_token_stream()
@@ -1748,14 +1771,14 @@ fn get_referenced_table_function_call_for_dsl_method(
                 match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), #on_delete_strategy, &primary_key_values_of_rows_to_delete[..]) {
                     Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                         for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                            deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).unwrap().child_entries.append(&mut child_entries);
+                            deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries.")).child_entries.append(&mut child_entries);
                         }
 
                         #on_error_handler
                     },
                     Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                         for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                            deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).unwrap().child_entries.append(&mut child_entries);
+                            deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries.")).child_entries.append(&mut child_entries);
                         }
                     }
                 };
@@ -1883,7 +1906,7 @@ fn reference_integrity_checks_on_create_or_update(
                             }
                         };
                     }
-                    if #field_name_for_found_value.as_ref().unwrap().#referencing_table_column_getter_name().ne(&#referencing_table_name.#referencing_table_column_getter_name()) {
+                    if #field_name_for_found_value.as_ref().expect("field_name_for_found_value should be Some(_)").#referencing_table_column_getter_name().ne(&#referencing_table_name.#referencing_table_column_getter_name()) {
                         match self.#get_row_of_referenced_table_by_primary_key_method_name(#referencing_table_name.#referencing_table_column_getter_name()) {
                             Ok(_) => {},
                             Err(_) => return Err(
@@ -2246,14 +2269,14 @@ fn for_referenced_by(
                         match spacetimedsl::internal::DSLInternals::#referencing_table_function_name(ctx, &strategy, #arg_name) {
                             Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                                    entries.get_mut(&primary_key_value_of_a_row_to_delete).unwrap().append(&mut child_entries);
+                                    entries.get_mut(&primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in entries.")).append(&mut child_entries);
                                 }
 
                                 error = true;
                             },
                             Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                                    entries.get_mut(&primary_key_value_of_a_row_to_delete).unwrap().append(&mut child_entries);
+                                    entries.get_mut(&primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in entries.")).append(&mut child_entries);
                                 }
                             },
                         };
@@ -2524,7 +2547,7 @@ fn get_on_delete_strategy_implementation(
             .spacetimedb_column
             .single_column_index
             .as_ref()
-            .unwrap()
+            .expect("Index should exist")
             .is_unique;
 
         let row_finder = match is_unique_index {
@@ -2543,7 +2566,7 @@ fn get_on_delete_strategy_implementation(
         let wrapper_type_struct_name_or_path = match primary_key_column
             .spacetimedsl_column_wrapper_type
             .as_ref()
-            .unwrap()
+            .expect("Wrapper Type should exist")
         {
             WrapperType::Created(wrap) => wrap.wrapper_struct_name.to_token_stream(),
             WrapperType::Used(wrapped) => wrapped.wrapper_struct_name_or_path.to_token_stream(),
@@ -2571,7 +2594,7 @@ fn get_on_delete_strategy_implementation(
             }
             OneOrMultiple::Multiple => {
                 create_entry_and_add_it_to_entries = quote! {
-                    entries.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).unwrap().push(#create_entry);
+                    entries.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).expect(&format!("{primary_key_value_of_a_row_of_another_table_to_delete} should exist in entries.")).push(#create_entry);
                 };
             }
         };
@@ -2611,7 +2634,7 @@ fn get_on_delete_strategy_implementation(
                         let create_entries_and_add_them_to_entries = quote! {
                             for (primary_key_value_of_a_row_of_another_table_to_delete, primary_key_values_of_rows_to_delete) in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete {
                                 for id in &primary_key_values_of_rows_to_delete {
-                                    let child_entries = child_entries_by_primary_key_value_of_row_to_delete.remove(&id).unwrap();
+                                    let child_entries = child_entries_by_primary_key_value_of_row_to_delete.remove(&id).expect(&format!("{id} should exist in child_entries_by_primary_key_value_of_row_to_delete."));
                                     #create_entry_and_add_it_to_entries
                                 }
                             }
@@ -2680,7 +2703,7 @@ fn get_on_delete_strategy_implementation(
 
                         strategy_for_each_row = quote! {
                             if !child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.id) {
-                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).unwrap().push(row.id);
+                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).expect(&format!("{primary_key_value_of_a_row_of_another_table_to_delete} should exist in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.")).push(row.id);
                                 child_entries_by_primary_key_value_of_row_to_delete.insert(row.id, vec![]);
                             }
                         };
@@ -2819,14 +2842,14 @@ fn get_referenced_table_function_call_for_strategy_implementation(
         match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(ctx, #on_delete_strategy, &primary_key_values_of_rows_to_delete[..]) {
             Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                    child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).unwrap().append(&mut child_entries);
+                    child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in child_entries_by_primary_key_value_of_row_to_delete.")).append(&mut child_entries);
                 }
 
                 #on_error_handler
             },
             Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                    child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).unwrap().append(&mut child_entries);
+                    child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in child_entries_by_primary_key_value_of_row_to_delete.")).append(&mut child_entries);
                 }
             }
         };

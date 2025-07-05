@@ -113,7 +113,6 @@ impl WrapperType {
     }
 }
 
-// TODO: Make sure that the wrapped type implements Default and fail if not. Implement default instead of a custom method.
 // TODO: Doc comments on Wrapper Types
 fn get_wrapper_impl(
     struct_name: &Ident,

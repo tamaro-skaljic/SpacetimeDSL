@@ -141,7 +141,6 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
 
     // TODO: The trait doc comment should link to the method doc comment
     let method = quote! {
-        #[doc=#doc_comment]
         pub trait #trait_name: #(#paths_of_traits_to_extend)+* {
             #[doc=#doc_comment]
             fn #method_name<'a>(
@@ -187,7 +186,6 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
 
     // TODO: The trait doc comment should link to the method doc comment
     let method = quote! {
-        #[doc=#doc_comment]
         pub trait #trait_name: #(#paths_of_traits_to_extend)+* {
             #[doc=#doc_comment]
             fn #method_name(
@@ -232,7 +230,6 @@ pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
 
     // TODO: The trait doc comment should link to the method doc comment
     let method = quote! {
-        #[doc=#doc_comment]
         pub trait #trait_name {
             #[doc=#doc_comment]
             fn #method_name<'a>(

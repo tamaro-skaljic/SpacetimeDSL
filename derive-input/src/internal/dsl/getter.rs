@@ -31,7 +31,7 @@ impl Getter {
                             method_impl = quote! {
                                 match &self.#column_name {
                                     None => None,
-                                    Some(value) => Some(#wrapper_type_name_or_path::new(self.#column_name.clone())),
+                                    Some(value) => Some(#wrapper_type_name_or_path::new(Some(value.clone()))),
                                 }
                             };
                         }
@@ -39,7 +39,7 @@ impl Getter {
                             method_impl = quote! {
                                 match &self.#column_name {
                                     None => None,
-                                    Some(value) => Some(#wrapper_type_name_or_path::new(self.#column_name.unwrap())),
+                                    Some(value) => Some(#wrapper_type_name_or_path::new(value.clone())),
                                 }
                             };
                         }
