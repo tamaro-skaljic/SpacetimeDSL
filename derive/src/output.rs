@@ -149,7 +149,7 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
                 #(#method_args),*
             ) -> #return_type {
                 use spacetimedsl::Wrapper;
-                use spacetimedb::{DbContext,Table};
+                use spacetimedb::{DbContext, Table as _};
                 #method_impl
             }
         }
@@ -195,7 +195,7 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
                 #(#method_args),*
             ) -> #return_type {
                 use spacetimedsl::Wrapper;
-                use spacetimedb::{DbContext,Table};
+                use spacetimedb::{DbContext, Table as _};
                 #method_impl
             }
         }
@@ -239,7 +239,7 @@ pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
                 #(#method_args),*
             ) -> #return_type {
                 use spacetimedsl::Wrapper;
-                use spacetimedb::{DbContext,Table};
+                use spacetimedb::{DbContext, Table as _};
                 #method_impl
             }
         }
@@ -267,7 +267,7 @@ fn add_impl_doc(
                 #(#method_args),*
             ) -> #return_type {
                 use spacetimedsl::Wrapper;
-                use spacetimedb::{DbContext,Table};
+                use spacetimedb::{DbContext, Table as _};
                 #method_impl
             }
         }

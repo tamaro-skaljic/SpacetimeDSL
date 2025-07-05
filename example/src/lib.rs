@@ -1,11 +1,9 @@
 pub mod entity {
     use spacetimedb::Timestamp;
-    use spacetimedb::table;
-    use spacetimedsl::dsl;
 
     /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
-    #[dsl(plural_name = entities)]
-    #[table(name = entity, public)]
+    #[spacetimedsl::dsl(plural_name = entities)]
+    #[spacetimedb::table(name = entity, public)]
     pub struct Entity {
         /// The unique ID of the Entity.
         #[primary_key]
@@ -23,8 +21,17 @@ pub mod entity {
         created_at: Timestamp,
     }
 
-    #[dsl(plural_name = entity_relationships, unique_index(name = parent_child_entity_id))]
-    #[table(name = entity_relationship, public, index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])))]
+    #[spacetimedsl::dsl(plural_name = tables)]
+    #[spacetimedb::table(name = table, public)]
+    pub struct Table {
+        #[primary_key]
+        #[auto_inc]
+        #[create_wrapper]
+        id: u128,
+    }
+
+    #[spacetimedsl::dsl(plural_name = entity_relationships, unique_index(name = parent_child_entity_id))]
+    #[spacetimedb::table(name = entity_relationship, public, index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])))]
     pub struct EntityRelationship {
         /// The unique ID of the Entity Relationship.
         #[primary_key]
@@ -43,8 +50,8 @@ pub mod entity {
         child_entity_id: u128,
     }
 
-    #[dsl(plural_name = entity_relationships2)]
-    #[table(name = entity_relationship2, public, index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])))]
+    #[spacetimedsl::dsl(plural_name = entity_relationships2)]
+    #[spacetimedb::table(name = entity_relationship2, public, index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])))]
     pub struct EntityRelationship2 {
         /// The unique ID of the Entity Relationship2.
         #[primary_key]
@@ -63,8 +70,8 @@ pub mod entity {
         pub child_entity_id: u128,
     }
 
-    #[dsl(plural_name = entity_relationships3)]
-    #[table(name = entity_relationship3, public)]
+    #[spacetimedsl::dsl(plural_name = entity_relationships3)]
+    #[spacetimedb::table(name = entity_relationship3, public)]
     pub struct EntityRelationship3 {
         /// The unique ID of the Entity Relationship3.
         #[primary_key]
@@ -79,8 +86,8 @@ pub mod entity {
         parent_entity_relationship3_id: u128,
     }
 
-    #[dsl(plural_name = entity_relationships4)]
-    #[table(name = entity_relationship4, public)]
+    #[spacetimedsl::dsl(plural_name = entity_relationships4)]
+    #[spacetimedb::table(name = entity_relationship4, public)]
     pub struct EntityRelationship4 {
         /// The unique ID of the Entity Relationship3.
         #[primary_key]
@@ -98,12 +105,11 @@ pub mod entity {
 
 pub mod component {
     pub mod identifier {
-        use spacetimedb::{Timestamp, table};
-        use spacetimedsl::dsl;
+        use spacetimedb::Timestamp;
 
         /// A Identifier is a developer-friendly String.
-        #[dsl(plural_name = identifiers)]
-        #[table(name = identifier, public)]
+        #[spacetimedsl::dsl(plural_name = identifiers)]
+        #[spacetimedb::table(name = identifier, public)]
         pub struct Identifier {
             /// The unique ID of the Identifier.
             #[primary_key]
@@ -127,8 +133,8 @@ pub mod component {
             modified_at: Timestamp,
         }
 
-        #[dsl(plural_name = identifier_references)]
-        #[table(name = identifier_reference, public)]
+        #[spacetimedsl::dsl(plural_name = identifier_references)]
+        #[spacetimedb::table(name = identifier_reference, public)]
         pub struct IdentifierReference {
             #[primary_key]
             #[use_wrapper(name = IdentifierId)]
@@ -142,8 +148,7 @@ pub mod component {
     }
 
     pub mod position {
-        use spacetimedb::{Timestamp, table};
-        use spacetimedsl::dsl;
+        use spacetimedb::Timestamp;
 
         /// A Position in the World.
         #[spacetimedsl::dsl(plural_name = positions)]
@@ -176,8 +181,8 @@ pub mod component {
         }
 
         /// A unique Position in the World.
-        #[dsl(plural_name = unique_positions, unique_index(name = x_y_z))]
-        #[table(name = unique_position, public, index(name = x_y_z, btree(columns = [x, y, z])))]
+        #[spacetimedsl::dsl(plural_name = unique_positions, unique_index(name = x_y_z))]
+        #[spacetimedb::table(name = unique_position, public, index(name = x_y_z, btree(columns = [x, y, z])))]
         pub struct UniquePosition {
             /// The unique ID of the unique Position.
             #[primary_key]
@@ -204,12 +209,11 @@ pub mod component {
     }
 
     pub mod test {
-        use spacetimedb::{ScheduleAt, Timestamp, table};
-        use spacetimedsl::dsl;
+        use spacetimedb::{ScheduleAt, Timestamp};
 
         /// A Position in the World.
-        #[dsl(plural_name = tests)]
-        #[table(name = test, public)]
+        #[spacetimedsl::dsl(plural_name = tests)]
+        #[spacetimedb::table(name = test, public)]
         pub struct Test {
             /// The unique ID of the World.
             #[primary_key]
@@ -272,8 +276,8 @@ pub mod component {
             scheduled_at: ScheduleAt,
         }
 
-        #[dsl(plural_name = ship_objects, unique_index(name = id_and_sobj))]
-        #[table(name = ship_object, public, index(name = id_and_sobj, btree(columns = [id, sobj_id])))]
+        #[spacetimedsl::dsl(plural_name = ship_objects, unique_index(name = id_and_sobj))]
+        #[spacetimedb::table(name = ship_object, public, index(name = id_and_sobj, btree(columns = [id, sobj_id])))]
         pub struct ShipObject {
             #[primary_key]
             #[auto_inc]
@@ -291,8 +295,8 @@ pub mod component {
             pub entity_id: u128,
         }
 
-        #[dsl(plural_name = space_ship_objects)]
-        #[table(name = space_ship_object, public, index(name = id_and_sobj, btree(columns = [id, sobj_id])))]
+        #[spacetimedsl::dsl(plural_name = space_ship_objects)]
+        #[spacetimedb::table(name = space_ship_object, public, index(name = id_and_sobj, btree(columns = [id, sobj_id])))]
         pub struct SpaceShipObject {
             #[primary_key]
             #[auto_inc]

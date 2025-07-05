@@ -1,7 +1,10 @@
-use crate::api::db::{
-    index::{Index, IndexType},
-    reducer::ScheduledReducer,
-    table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
+use crate::{
+    api::db::{
+        index::{Index, IndexType},
+        reducer::ScheduledReducer,
+        table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
+    },
+    internal::table::rm_rsharp,
 };
 use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::table::{
@@ -11,7 +14,7 @@ use syn::Ident;
 
 impl SpacetimeDBTable {
     pub(in crate::internal) fn map(table: &TableArgs) -> SpacetimeDBTable {
-        let singular_name = table.name.clone();
+        let singular_name = rm_rsharp(table.name.clone());
         let visibility = SpacetimeDBTableVisibility::map(&table.access);
         let indices = table.indices.iter().map(|i| Index::map(i)).collect();
         let scheduled_reducer = table.scheduled.as_ref().map(|s| ScheduledReducer::map(s));
