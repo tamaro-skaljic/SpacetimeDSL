@@ -39,16 +39,12 @@ pub(in crate::internal) enum DSLMethod<'a> {
     GetCount,
     GetMany(&'a Index),
     DeleteMany(&'a Index),
-    GetOneOption(&'a Index),
+    GetOne(&'a Index),
     Update(&'a Index),
     DeleteOne(&'a Index),
 }
 
 // FIXME: Ensure that any panic! / expect() / unwrap() is replaced by proper error handling, either returning spacetimedsl::SpacetimeDSLError during runtime or syn::Error during compilation time
-
-// FIXME: Ensure that struct_name is only used in doc comments, not in generated code
-
-// FIXME: Rename wrap to create_wrapper and wrapped to use_wrapper
 
 #[derive(Debug)]
 pub enum OneOrMultiple {
@@ -154,7 +150,7 @@ impl SpacetimeDSLColumnMethods {
             }
             true => {
                 let get_one_option = for_method(
-                    DSLMethod::GetOneOption(index),
+                    DSLMethod::GetOne(index),
                     rust_struct,
                     spacetimedb_table,
                     spacetimedsl_table,
@@ -344,7 +340,7 @@ impl SpacetimeDSLTableMethods {
                 }
                 true => {
                     let get_one_option = for_method(
-                        DSLMethod::GetOneOption(multi_column_index),
+                        DSLMethod::GetOne(multi_column_index),
                         rust_struct,
                         spacetimedb_table,
                         spacetimedsl_table,
@@ -665,8 +661,12 @@ pub(in crate::internal) fn for_method(
             column_names_and_row_values.push_str(&format!("{singular_table_name} : "));
             column_names_and_row_values.push_str("{:?} }}");
 
-            let multi_column_index_checks =
-                multi_column_index_checks(Action::Create, &singular_table_name, &spacetimedb_table);
+            let multi_column_index_checks = multi_column_index_checks(
+                Action::Create,
+                &singular_table_name,
+                &spacetimedb_table,
+                internal_columns,
+            );
 
             let use_itertools = if multi_column_index_checks.len() > 0 {
                 quote! {
@@ -768,7 +768,7 @@ pub(in crate::internal) fn for_method(
         }
         DSLMethod::GetMany(index)
         | DSLMethod::DeleteMany(index)
-        | DSLMethod::GetOneOption(index)
+        | DSLMethod::GetOne(index)
         | DSLMethod::Update(index)
         | DSLMethod::DeleteOne(index) => {
             let index_name = &index.name;
@@ -862,7 +862,7 @@ pub(in crate::internal) fn for_method(
                 DSLMethod::DeleteMany(_) => format!(
                     "Try to delete all `{struct_name}` rows in the `{singular_table_name}` table whose {value_matches_or_values_match} the {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
                 ),
-                DSLMethod::GetOneOption(_) => format!(
+                DSLMethod::GetOne(_) => format!(
                     "{unique_multi_column_index_hint}\n\nTry to get a `{struct_name}` from the `{singular_table_name}` table whose {value_matches_or_values_match} the unique {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
                 ),
                 DSLMethod::Update(_) => format!(
@@ -883,7 +883,7 @@ pub(in crate::internal) fn for_method(
                 DSLMethod::DeleteMany(_) => format_ident!(
                     "Delete{singular_table_name_pascal_case}RowsBy{index_name_pascal_case}"
                 ),
-                DSLMethod::GetOneOption(_) => format_ident!(
+                DSLMethod::GetOne(_) => format_ident!(
                     "Get{singular_table_name_pascal_case}RowOptionBy{index_name_pascal_case}"
                 ),
                 DSLMethod::Update(_) => format_ident!(
@@ -902,7 +902,7 @@ pub(in crate::internal) fn for_method(
                 DSLMethod::DeleteMany(_) => {
                     format_ident!("delete_{plural_table_name}_by_{index_name}")
                 }
-                DSLMethod::GetOneOption(_) => {
+                DSLMethod::GetOne(_) => {
                     format_ident!("get_{singular_table_name}_by_{index_name}")
                 }
                 DSLMethod::Update(_) => {
@@ -923,7 +923,7 @@ pub(in crate::internal) fn for_method(
                 DSLMethod::DeleteMany(_) => quote! {
                     Result<spacetimedsl::DeletionResult, spacetimedsl::SpacetimeDSLError>
                 },
-                DSLMethod::GetOneOption(_) => quote! {
+                DSLMethod::GetOne(_) => quote! {
                     Result<#struct_name, spacetimedsl::SpacetimeDSLError>
                 },
                 DSLMethod::Update(_) => quote! {
@@ -949,6 +949,7 @@ pub(in crate::internal) fn for_method(
                         Action::Update,
                         &singular_table_name,
                         &spacetimedb_table,
+                        internal_columns,
                     );
 
                     let mut row_value_getters = vec![];
@@ -1074,7 +1075,7 @@ pub(in crate::internal) fn for_method(
                                             };
                                             row_value_getter = quote! { #column_name };
                                         }
-                                        DSLMethod::GetOneOption(_) | DSLMethod::DeleteOne(_) => {
+                                        DSLMethod::GetOne(_) | DSLMethod::DeleteOne(_) => {
                                             method_arg = SpacetimeDSLMethodArg {
                                                 is_mut: false,
                                                 arg_name: column_name.clone(),
@@ -1122,7 +1123,7 @@ pub(in crate::internal) fn for_method(
                                             row_value_getter =
                                                 quote! { #column_name.into().value() };
                                         }
-                                        DSLMethod::GetOneOption(_) | DSLMethod::DeleteOne(_) => {
+                                        DSLMethod::GetOne(_) | DSLMethod::DeleteOne(_) => {
                                             method_arg = SpacetimeDSLMethodArg {
                                                 is_mut: false,
                                                 arg_name: column_name.clone(),
@@ -1168,7 +1169,7 @@ pub(in crate::internal) fn for_method(
 
                                         row_value_getter = quote! { #column_name };
                                     }
-                                    DSLMethod::GetOneOption(_) | DSLMethod::DeleteOne(_) => {
+                                    DSLMethod::GetOne(_) | DSLMethod::DeleteOne(_) => {
                                         method_arg = SpacetimeDSLMethodArg {
                                             is_mut: false,
                                             arg_name: column_name.clone(),
@@ -1419,7 +1420,7 @@ pub(in crate::internal) fn for_method(
                                 };
                             }
                         }
-                        DSLMethod::GetOneOption(_) => match is_multi_column_index {
+                        DSLMethod::GetOne(_) => match is_multi_column_index {
                             true => {
                                 // FIXME: Row Value Getters of Wrapper Types shouldn't be `id.clone().into().value()`, they should be `let id = id.into();` at the method beginning and then `id.value()` anywhere else
                                 let multi_column_index_check = get_unique_multi_column_index_check(
@@ -1929,6 +1930,7 @@ fn multi_column_index_checks(
     action: Action,
     singular_table_name: &Ident,
     spacetimedb_table: &SpacetimeDBTable,
+    internal_columns: &Vec<InternalColumn>,
 ) -> Vec<TokenStream> {
     let mut multi_column_index_checks = vec![];
     let singular_table_name_as_string = singular_table_name.to_string();
@@ -1943,6 +1945,18 @@ fn multi_column_index_checks(
 
         if !multi_column_index.is_unique {
             continue;
+        }
+
+        let mut column_type_by_name = HashMap::new();
+
+        for column in internal_columns {
+            column_type_by_name.insert(
+                column.rust_field_name.to_string(),
+                column
+                    .rust_field_type_name_or_path
+                    .to_token_stream()
+                    .to_string(),
+            );
         }
 
         let index_name = &multi_column_index.name;
@@ -1962,17 +1976,29 @@ fn multi_column_index_checks(
 
         column_names_and_row_values.push_str(&format!("{first_column_name} : "));
         column_names_and_row_values.push_str("{} ");
-        row_value_getters.push(quote! {#singular_table_name.#first_column_name});
+        row_value_getters.push(get_row_value_getter(
+            &column_type_by_name,
+            singular_table_name,
+            &first_column_name,
+        ));
 
         for any_other_column_name in any_other_column_name {
             column_names_and_row_values.push_str(&format!(", {any_other_column_name} : "));
             column_names_and_row_values.push_str("{} ");
-            row_value_getters.push(quote! {#singular_table_name.#any_other_column_name});
+            row_value_getters.push(get_row_value_getter(
+                &column_type_by_name,
+                singular_table_name,
+                &any_other_column_name,
+            ));
         }
 
         column_names_and_row_values.push_str(&format!(", {last_column_name} : "));
         column_names_and_row_values.push_str("{}");
-        row_value_getters.push(quote! {#singular_table_name.#last_column_name});
+        row_value_getters.push(get_row_value_getter(
+            &column_type_by_name,
+            singular_table_name,
+            &last_column_name,
+        ));
 
         let mut multi_column_index_check = get_unique_multi_column_index_check(
             &action,
@@ -2026,6 +2052,22 @@ fn multi_column_index_checks(
     }
 
     multi_column_index_checks
+}
+
+fn get_row_value_getter(
+    column_type_by_name: &HashMap<String, String>,
+    singular_table_name: &Ident,
+    column_name: &Ident,
+) -> TokenStream {
+    if column_type_by_name
+        .get(&column_name.to_string())
+        .expect("Column should exist")
+        .eq("String")
+    {
+        quote! { &#singular_table_name.#column_name }
+    } else {
+        quote! { #singular_table_name.#column_name }
+    }
 }
 
 pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_check(
