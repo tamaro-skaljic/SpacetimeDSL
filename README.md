@@ -1381,7 +1381,7 @@ spacetimedsl = { version = "*" }
 Get started by adding `#[spacetimedsl::dsl]` as well as it's helper attributes `#[create_wrapper]`, `#[use_wrapper]`,\
 `#[foreign_key]` and `#[referenced_by]` to your structs with `#[spacetimedb::table]`!
 
-## Current imitations
+## Current limitations
 
 - The `#[spacetimedsl::dsl]` attribute macro must be above the `#[spacetimedb::table]` attribute macro.
 
