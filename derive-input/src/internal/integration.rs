@@ -1,9 +1,30 @@
 use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
-use syn::{DeriveInput, Error};
+use spacetime_bindings_macro_input::{match_meta, util::check_duplicate};
+use crate::internal::dsl::plural_name;
+use syn::{
+    DeriveInput, Error, Ident,
+    meta::parser,
+    parse::Parser,
+};
 
-pub(crate) fn spacetime_bindings_macro_input<'a>(
+#[cfg(test)]
+pub fn spacetime_bindings_macro_input<'a>(
+    item: &'a DeriveInput,
+    dsl_args: &proc_macro2::TokenStream,
+) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
+    let input = get_table_attribute_macro(item, dsl_args)?;
+
+    let table_args = TableArgs::parse(input, item)?;
+
+    let (table_args, column_args) = ColumnArgs::parse(table_args, item)?;
+
+    Ok((table_args, column_args))
+}
+
+#[cfg(not(test))]
+pub(in crate::internal) fn spacetime_bindings_macro_input<'a>(
     item: &'a DeriveInput,
     dsl_args: &proc_macro2::TokenStream,
 ) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
@@ -17,6 +38,9 @@ pub(crate) fn spacetime_bindings_macro_input<'a>(
 }
 
 fn get_table_attribute_macro(input: &DeriveInput, dsl_args: &proc_macro2::TokenStream) -> syn::Result<TokenStream> {
+    // Parse DSL arguments to extract plural_name
+    let plural_name_value = parse_dsl_args(dsl_args)?;
+    
     // Find all table attributes
     let mut table_attrs = Vec::new();
     for attr in &input.attrs {
@@ -45,57 +69,68 @@ fn get_table_attribute_macro(input: &DeriveInput, dsl_args: &proc_macro2::TokenS
         ));
     }
 
-    // If only one table, return it  
+    // If only one table, return it
     if table_attrs.len() == 1 {
         return Ok(table_attrs[0].clone());
     }
 
-    // For multiple table attributes, match each DSL macro with the appropriate table
-    // based on the naming convention in the DSL arguments (e.g., plural_name)
-    if let Some(plural_name) = extract_plural_name(&dsl_args.to_string()) {
+    // For multiple table attributes, try to match based on plural_name
+    if let Some(plural_name_ident) = plural_name_value {
+        // Convert plural name to singular to match table name
+        let singular_name = plural_to_singular(&plural_name_ident.to_string());
+        
         for table_attr in &table_attrs {
-            let table_str = table_attr.to_string();
-            let base_name = if plural_name.contains("tables") {
-                plural_name.replace("tables", "table")
-            } else if plural_name.ends_with("s") && plural_name.len() > 1 {
-                plural_name[..plural_name.len()-1].to_string()
-            } else {
-                plural_name.clone()
-            };
-            
-            if table_str.contains(&base_name) {
+            if table_contains_name(&table_attr, &singular_name) {
                 return Ok(table_attr.clone());
             }
         }
     }
 
-    // Fallback: use deterministic selection based on dsl args to ensure
-    // different DSL macros select different tables consistently
-    let selection_index = simple_hash(&dsl_args.to_string()) % table_attrs.len();
+    // Fallback: use deterministic selection to ensure consistency
+    let selection_index = deterministic_selection(dsl_args, table_attrs.len());
     Ok(table_attrs[selection_index].clone())
 }
 
-// Extract plural_name from DSL arguments
-fn extract_plural_name(dsl_args: &str) -> Option<String> {
-    // Look for pattern like "plural_name = some_name"
-    if let Some(start) = dsl_args.find("plural_name") {
-        if let Some(equals_pos) = dsl_args[start..].find('=') {
-            let after_equals = &dsl_args[start + equals_pos + 1..];
-            // Find the next word/identifier, more carefully
-            let trimmed = after_equals.trim();
-            // Split by whitespace and commas to find the identifier
-            for part in trimmed.split(|c: char| c.is_whitespace() || c == ',') {
-                let cleaned = part.trim();
-                if !cleaned.is_empty() && cleaned.chars().all(|c| c.is_alphanumeric() || c == '_') {
-                    return Some(cleaned.to_string());
-                }
+// Parse DSL arguments using established parsing patterns
+fn parse_dsl_args(args: &proc_macro2::TokenStream) -> syn::Result<Option<Ident>> {
+    let mut plural_name_value: Option<Ident> = None;
+
+    parser(|meta| {
+        match_meta!(match meta {
+            plural_name => {
+                check_duplicate(&plural_name_value, &meta)?;
+                let value = meta.value()?;
+                plural_name_value = Some(value.parse()?);
             }
-        }
-    }
-    None
+        });
+        Ok(())
+    })
+    .parse2(args.clone())?;
+
+    Ok(plural_name_value)
 }
 
-// Simple hash function to deterministically select table based on dsl args
-fn simple_hash(s: &str) -> usize {
-    s.chars().map(|c| c as usize).sum()
+// Convert plural name to singular (simple heuristic)
+fn plural_to_singular(plural: &str) -> String {
+    if plural.ends_with("ies") {
+        format!("{}y", &plural[..plural.len()-3])
+    } else if plural.ends_with("es") && plural.len() > 2 {
+        plural[..plural.len()-2].to_string()
+    } else if plural.ends_with("s") && plural.len() > 1 {
+        plural[..plural.len()-1].to_string()
+    } else {
+        plural.to_string()
+    }
+}
+
+// Check if table attribute contains the given name
+fn table_contains_name(table_attr: &TokenStream, name: &str) -> bool {
+    table_attr.to_string().contains(name)
+}
+
+// Deterministic selection based on hash of dsl args
+fn deterministic_selection(dsl_args: &proc_macro2::TokenStream, table_count: usize) -> usize {
+    let arg_str = dsl_args.to_string();
+    let hash: usize = arg_str.chars().map(|c| c as usize).sum();
+    hash % table_count
 }
