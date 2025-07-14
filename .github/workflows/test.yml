@@ -69,7 +69,7 @@ jobs:
         cd ..
         cargo test --verbose
 
-    - name: Try SpacetimeDB integration (if example builds)
+    - name: Try SpacetimeDB integration
       run: |
         cd example
 
