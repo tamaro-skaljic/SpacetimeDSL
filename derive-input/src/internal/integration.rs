@@ -1,13 +1,9 @@
+use crate::internal::dsl::plural_name;
 use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use spacetime_bindings_macro_input::{match_meta, util::check_duplicate};
-use crate::internal::dsl::plural_name;
-use syn::{
-    DeriveInput, Error, Ident,
-    meta::parser,
-    parse::Parser,
-};
+use syn::{DeriveInput, Error, Ident, meta::parser, parse::Parser};
 
 #[cfg(test)]
 pub fn spacetime_bindings_macro_input<'a>(
@@ -37,10 +33,13 @@ pub(in crate::internal) fn spacetime_bindings_macro_input<'a>(
     Ok((table_args, column_args))
 }
 
-fn get_table_attribute_macro(input: &DeriveInput, dsl_args: &proc_macro2::TokenStream) -> syn::Result<TokenStream> {
+fn get_table_attribute_macro(
+    input: &DeriveInput,
+    dsl_args: &proc_macro2::TokenStream,
+) -> syn::Result<TokenStream> {
     // Parse DSL arguments to extract plural_name
     let plural_name_value = parse_dsl_args(dsl_args)?;
-    
+
     // Find all table attributes
     let mut table_attrs = Vec::new();
     for attr in &input.attrs {
@@ -78,7 +77,7 @@ fn get_table_attribute_macro(input: &DeriveInput, dsl_args: &proc_macro2::TokenS
     if let Some(plural_name_ident) = plural_name_value {
         // Convert plural name to singular to match table name
         let singular_name = plural_to_singular(&plural_name_ident.to_string());
-        
+
         for table_attr in &table_attrs {
             if table_contains_name(&table_attr, &singular_name) {
                 return Ok(table_attr.clone());
@@ -113,11 +112,11 @@ fn parse_dsl_args(args: &proc_macro2::TokenStream) -> syn::Result<Option<Ident>>
 // Convert plural name to singular (simple heuristic)
 fn plural_to_singular(plural: &str) -> String {
     if plural.ends_with("ies") {
-        format!("{}y", &plural[..plural.len()-3])
+        format!("{}y", &plural[..plural.len() - 3])
     } else if plural.ends_with("es") && plural.len() > 2 {
-        plural[..plural.len()-2].to_string()
+        plural[..plural.len() - 2].to_string()
     } else if plural.ends_with("s") && plural.len() > 1 {
-        plural[..plural.len()-1].to_string()
+        plural[..plural.len() - 1].to_string()
     } else {
         plural.to_string()
     }

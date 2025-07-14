@@ -131,7 +131,7 @@ fn get_wrapper_impl(
         pub struct #wrapper_struct_name {
             value: #wrapped_type,
         }
-        
+
         impl Default for #wrapper_struct_name {
             fn default() -> #wrapper_struct_name {
                 #wrapper_struct_name { value: Default::default() }

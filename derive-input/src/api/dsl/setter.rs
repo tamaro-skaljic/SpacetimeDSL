@@ -3,7 +3,6 @@ use syn::Ident;
 
 use crate::api::rust::visibility::RustVisibility;
 
-
 pub struct Setter {
     pub method_visibility: RustVisibility,
     pub method_name: Ident,

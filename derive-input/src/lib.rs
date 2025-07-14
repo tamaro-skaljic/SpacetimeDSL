@@ -8,7 +8,7 @@ pub mod api {
     /**
      * The representation of a Rust struct with `#[table]` and `#[dsl]` attribute macros and its columns.
      */
-    
+
     pub struct Table {
         pub rust_struct: rust::table::RustStruct,
         pub spacetimedb_table: db::table::SpacetimeDBTable,
@@ -33,7 +33,7 @@ pub mod api {
     /**
      * The representation of a field of a Rust struct with `#[table]` and `#[dsl]` attribute macros.
      */
-    
+
     pub struct Column {
         pub rust_field: rust::column::RustField,
         pub spacetimedb_column: db::column::SpacetimeDBColumn,
@@ -48,8 +48,8 @@ mod internal;
 #[cfg(test)]
 mod tests {
     use super::api::Table;
-    use syn::{parse_quote, DeriveInput};
     use quote::quote;
+    use syn::{DeriveInput, parse_quote};
 
     #[test]
     fn test_multiple_table_attributes_with_name_matching() {
@@ -70,24 +70,39 @@ mod tests {
         // Test first DSL macro should match test_table1
         let dsl_args1 = quote! { plural_name = test_tables1 };
         let result1 = Table::try_parse(dsl_args1, &input);
-        assert!(result1.is_ok(), "First DSL macro should process successfully");
+        assert!(
+            result1.is_ok(),
+            "First DSL macro should process successfully"
+        );
 
-        // Test second DSL macro should match test_table2  
+        // Test second DSL macro should match test_table2
         let dsl_args2 = quote! { plural_name = test_tables2 };
         let result2 = Table::try_parse(dsl_args2, &input);
-        assert!(result2.is_ok(), "Second DSL macro should process successfully");
+        assert!(
+            result2.is_ok(),
+            "Second DSL macro should process successfully"
+        );
 
         // The results should be for different tables
         let table1 = result1.unwrap();
         let table2 = result2.unwrap();
-        
+
         // Extract table names to verify they're different
         let table1_name = table1.spacetimedb_table.singular_name.to_string();
         let table2_name = table2.spacetimedb_table.singular_name.to_string();
-        
-        assert!(table1_name.contains("test_table1"), "First result should be for test_table1");
-        assert!(table2_name.contains("test_table2"), "Second result should be for test_table2");
-        assert_ne!(table1_name, table2_name, "Results should be for different tables");
+
+        assert!(
+            table1_name.contains("test_table1"),
+            "First result should be for test_table1"
+        );
+        assert!(
+            table2_name.contains("test_table2"),
+            "Second result should be for test_table2"
+        );
+        assert_ne!(
+            table1_name, table2_name,
+            "Results should be for different tables"
+        );
     }
 
     #[test]
@@ -109,13 +124,13 @@ mod tests {
         assert!(result.is_ok(), "Single table case should still work");
     }
 
-    #[test] 
+    #[test]
     fn test_fallback_deterministic_selection() {
         // Test the hash-based fallback when name matching doesn't work
         let input: DeriveInput = parse_quote! {
             #[spacetimedsl::dsl(plural_name = things)]
             #[spacetimedb::table(name = table_a, public)]
-            #[spacetimedsl::dsl(plural_name = objects)]  
+            #[spacetimedsl::dsl(plural_name = objects)]
             #[spacetimedb::table(name = table_b, public)]
             pub struct TestStruct {
                 #[primary_key]
@@ -128,22 +143,31 @@ mod tests {
         // Both DSL calls should succeed
         let dsl_args1 = quote! { plural_name = things };
         let result1 = Table::try_parse(dsl_args1.clone(), &input);
-        assert!(result1.is_ok(), "First DSL macro should process successfully");
+        assert!(
+            result1.is_ok(),
+            "First DSL macro should process successfully"
+        );
 
         let dsl_args2 = quote! { plural_name = objects };
         let result2 = Table::try_parse(dsl_args2, &input);
-        assert!(result2.is_ok(), "Second DSL macro should process successfully");
+        assert!(
+            result2.is_ok(),
+            "Second DSL macro should process successfully"
+        );
 
         // Same DSL args should consistently select the same table (deterministic)
         let result1_repeat = Table::try_parse(dsl_args1, &input);
         assert!(result1_repeat.is_ok());
-        
+
         let table1 = result1.unwrap();
         let table1_repeat = result1_repeat.unwrap();
-        
+
         let table1_name = table1.spacetimedb_table.singular_name.to_string();
         let table1_repeat_name = table1_repeat.spacetimedb_table.singular_name.to_string();
-        
-        assert_eq!(table1_name, table1_repeat_name, "Same DSL args should select same table consistently");
+
+        assert_eq!(
+            table1_name, table1_repeat_name,
+            "Same DSL args should select same table consistently"
+        );
     }
 }
