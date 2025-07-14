@@ -25,28 +25,23 @@ fn get_all_table_attributes<'a>(
     // Find all table attributes
     let mut table_attrs = Vec::new();
     for attr in &input.attrs {
-        match attr.meta.require_list() {
-            Ok(list) => {
-                if list.path.to_token_stream().to_string().eq("table")
-                    || list
-                        .path
-                        .to_token_stream()
-                        .to_string()
-                        .eq("spacetimedb :: table")
-                {
-                    table_attrs.push(list.tokens.clone());
-                }
+        if let Ok(list) = attr.meta.require_list() {
+            if list.path.to_token_stream().to_string().eq("table")
+                || list
+                    .path
+                    .to_token_stream()
+                    .to_string()
+                    .eq("spacetimedb :: table")
+            {
+                table_attrs.push(list.tokens.clone());
             }
-            Err(_) => {}
         }
     }
 
     if table_attrs.is_empty() {
         return Err(Error::new(
             Span::call_site(),
-            format!(
-                "Haven't found `#[table]`/`#[spacetimedb::table]` attribute macro! Make sure `#[dsl]`/`#[spacetimedsl::dsl]` is directly above one."
-            ),
+            "Haven't found `#[table]`/`#[spacetimedb::table]` attribute macro! Make sure `#[dsl]`/`#[spacetimedsl::dsl]` is directly above one.".to_string(),
         ));
     }
 
@@ -144,8 +139,8 @@ fn is_plural_match(plural_name: &str, table_name: &str) -> bool {
 
 // Convert plural name to singular (simple heuristic)
 fn plural_to_singular(plural: &str) -> String {
-    if plural.ends_with("ies") {
-        format!("{}y", &plural[..plural.len() - 3])
+    if let Some(stripped) = plural.strip_suffix("ies") {
+        format!("{stripped}y")
     } else if plural.ends_with("es") && plural.len() > 2 {
         plural[..plural.len() - 2].to_string()
     } else if plural.ends_with("s") && plural.len() > 1 {

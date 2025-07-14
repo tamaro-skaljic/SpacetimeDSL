@@ -26,7 +26,7 @@ impl ReferencingTable {
 
             if !is_primary_key {
                 return Err(syn::Error::new_spanned(
-                    &attr,
+                    attr,
                     "`#[referenced_by]` is only allowed in combination with `#[primary_key]`!",
                 ));
             }

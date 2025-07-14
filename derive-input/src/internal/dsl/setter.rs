@@ -13,11 +13,8 @@ impl Setter {
         is_option: bool,
         wrapper_type: &Option<WrapperType>,
     ) -> Option<Setter> {
-        match rust_field.visibility {
-            RustVisibility::Private => {
-                return None;
-            }
-            _ => {}
+        if let RustVisibility::Private = rust_field.visibility {
+            return None;
         };
 
         let column_name = &rust_field.name;
@@ -92,7 +89,7 @@ impl Setter {
                         };
 
                         let into_option = map_wrapper_type_option_to_wrapped_type_option(
-                            &column_name,
+                            column_name,
                             wrapper_type_name_or_path,
                         );
                         method_impl = quote! {

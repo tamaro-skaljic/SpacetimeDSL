@@ -17,14 +17,10 @@ pub(crate) fn output(input: &Table, is_last_dsl_attribute: bool) -> syn::Result<
     // Only generate wrapper types if this is the last DSL attribute to avoid conflicts
     if is_last_dsl_attribute {
         for column in &input.columns {
-            match &column.spacetimedsl_column.wrapper_type {
-                Some(wrapper_type) => match wrapper_type {
-                    WrapperType::Created(wrapper_type) => {
-                        wrapper_types.push(&wrapper_type.wrapper_impl);
-                    }
-                    _ => {}
-                },
-                None => {}
+            if let Some(WrapperType::Created(wrapper_type)) =
+                &column.spacetimedsl_column.wrapper_type
+            {
+                wrapper_types.push(&wrapper_type.wrapper_impl);
             }
         }
     }
@@ -36,24 +32,17 @@ pub(crate) fn output(input: &Table, is_last_dsl_attribute: bool) -> syn::Result<
     dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_all)?);
     dsl_methods.push(build_with_lifetime(&input.spacetimedsl_methods.get_count)?);
 
-    match &input
+    if let Some(method) = &input
         .spacetimedsl_methods
         .execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted
     {
-        Some(method) => {
-            dsl_methods.push(build_internal(method)?);
-        }
-        None => {}
+        dsl_methods.push(build_internal(method)?);
     }
 
-    match &input
+    if let Some(method) = &input
         .spacetimedsl_methods
-        .execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted
-    {
-        Some(method) => {
-            dsl_methods.push(build_internal(method)?);
-        }
-        None => {}
+        .execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted {
+        dsl_methods.push(build_internal(method)?);
     }
 
     for execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted in &input.spacetimedsl_methods.execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted {
@@ -71,14 +60,12 @@ pub(crate) fn output(input: &Table, is_last_dsl_attribute: bool) -> syn::Result<
     for column in &input.columns {
         table_methods.push(getter(&column.spacetimedsl_column.getter)?);
 
-        match &column.spacetimedsl_column.setter {
-            Some(data) => table_methods.push(setter(data)?),
-            None => {}
+        if let Some(data) = &column.spacetimedsl_column.setter {
+            table_methods.push(setter(data)?)
         }
 
-        match &column.spacetimedsl_methods {
-            Some(methods) => dsl_methods.push(get_column_dsl_methods(methods)?),
-            None => {}
+        if let Some(methods) = &column.spacetimedsl_methods {
+            dsl_methods.push(get_column_dsl_methods(methods)?)
         }
     }
 
@@ -100,9 +87,8 @@ fn get_column_dsl_methods(methods: &SpacetimeDSLColumnMethods) -> syn::Result<To
         SpacetimeDSLColumnMethods::ForUniqueIndex(methods) => {
             token_streams.push(build_without_lifetime(&methods.get_one_option)?);
 
-            match &methods.update {
-                Some(method) => token_streams.push(build_without_lifetime(method)?),
-                None => {}
+            if let Some(method) = &methods.update {
+                token_streams.push(build_without_lifetime(method)?)
             };
 
             token_streams.push(build_without_lifetime(&methods.delete_one)?);
@@ -134,12 +120,12 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
     let method_impl = &method.method_impl;
 
     doc_comment = add_impl_doc(
-        &trait_name,
+        trait_name,
         paths_of_traits_to_extend,
-        &method_name,
+        method_name,
         &method_args,
         return_type,
-        &method_impl,
+        method_impl,
         doc_comment,
     );
 
@@ -179,12 +165,12 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
     let method_impl = &method.method_impl;
 
     doc_comment = add_impl_doc(
-        &trait_name,
+        trait_name,
         paths_of_traits_to_extend,
-        &method_name,
+        method_name,
         &method_args,
-        &return_type,
-        &method_impl,
+        return_type,
+        method_impl,
         doc_comment,
     );
 
@@ -223,12 +209,12 @@ pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     let method_impl = &method.method_impl;
 
     doc_comment = add_impl_doc(
-        &trait_name,
+        trait_name,
         paths_of_traits_to_extend,
-        &method_name,
+        method_name,
         &method_args,
-        &return_type,
-        &method_impl,
+        return_type,
+        method_impl,
         doc_comment,
     );
 

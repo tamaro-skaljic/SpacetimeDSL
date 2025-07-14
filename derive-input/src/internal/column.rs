@@ -51,7 +51,7 @@ pub(in crate::internal) fn try_parse(
         let spacetimedb_column = res.1;
 
         let spacetimedsl_column =
-            SpacetimeDSLColumn::try_parse(field, &rust_struct, &rust_field, &spacetimedb_column)?;
+            SpacetimeDSLColumn::try_parse(field, rust_struct, &rust_field, &spacetimedb_column)?;
 
         let internal_column = InternalColumn {
             spacetimedb_table_singular_name: spacetimedb_table.singular_name.clone(),
@@ -79,9 +79,9 @@ pub(in crate::internal) fn try_parse(
         izip!(rust_fields, spacetimedb_columns, spacetimedsl_columns)
     {
         let spacetimedsl_methods = SpacetimeDSLColumnMethods::map(
-            &rust_struct,
+            rust_struct,
             &spacetimedb_table,
-            &spacetimedsl_table,
+            spacetimedsl_table,
             &spacetimedb_column,
             &internal_columns,
             primary_key_column,

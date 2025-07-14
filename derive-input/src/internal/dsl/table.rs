@@ -15,13 +15,10 @@ impl SpacetimeDSLTable {
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
         for unique_index_name in unique_indices {
             for multi_column_index in &mut spacetimedb_table.multi_column_indices {
-                match &multi_column_index.index_type {
-                    IndexType::BTreeMultiColumn { columns: _ } => {
-                        if multi_column_index.name.eq(&unique_index_name) {
-                            multi_column_index.is_unique = true;
-                        }
+                if let IndexType::BTreeMultiColumn { columns: _ } = &multi_column_index.index_type {
+                    if multi_column_index.name.eq(&unique_index_name) {
+                        multi_column_index.is_unique = true;
                     }
-                    _ => {}
                 }
             }
         }
@@ -57,82 +54,79 @@ impl SpacetimeDSLTable {
             }
 
             if !is_mutable {
-                is_mutable = match field.vis {
-                    syn::Visibility::Public(_) => true,
-                    syn::Visibility::Restricted(_) => true,
-                    _ => false,
-                };
+                is_mutable = matches!(
+                    field.vis,
+                    syn::Visibility::Public(_) | syn::Visibility::Restricted(_)
+                );
             }
-            if !has_created_at_column {
-                if field
+            if !has_created_at_column
+                && field
                     .name
                     .as_ref()
                     .expect("should have a name")
                     .eq("created_at")
-                {
-                    let field_type = field.ty.to_token_stream().to_string();
-                    if !field_type.eq("Timestamp") && !field_type.eq("spacetimedb :: Timestamp") {
+            {
+                let field_type = field.ty.to_token_stream().to_string();
+                if !field_type.eq("Timestamp") && !field_type.eq("spacetimedb :: Timestamp") {
+                    return Err(syn::Error::new(
+                        Span::call_site(),
+                        format!(
+                            "A column with name `created_at` should have the type `spacetimedb::Timestamp`! Found: {field_type}"
+                        ),
+                    ));
+                }
+
+                match field.vis {
+                    syn::Visibility::Public(_) => {
                         return Err(syn::Error::new(
                             Span::call_site(),
-                            format!(
-                                "A column with name `created_at` should have the type `spacetimedb::Timestamp`! Found: {field_type}"
-                            ),
+                            "A column with name `created_at` should have `Visibility::Inherited`! Found: Visibility::Public",
                         ));
                     }
-
-                    match field.vis {
-                        syn::Visibility::Public(_) => {
-                            return Err(syn::Error::new(
-                                Span::call_site(),
-                                "A column with name `created_at` should have `Visibility::Inherited`! Found: Visibility::Public",
-                            ));
-                        }
-                        syn::Visibility::Restricted(_) => {
-                            return Err(syn::Error::new(
-                                Span::call_site(),
-                                "A column with name `created_at` should have `Visibility::Inherited`! Found: Visibility::Restricted",
-                            ));
-                        }
-                        syn::Visibility::Inherited => {
-                            has_created_at_column = true;
-                        }
+                    syn::Visibility::Restricted(_) => {
+                        return Err(syn::Error::new(
+                            Span::call_site(),
+                            "A column with name `created_at` should have `Visibility::Inherited`! Found: Visibility::Restricted",
+                        ));
+                    }
+                    syn::Visibility::Inherited => {
+                        has_created_at_column = true;
                     }
                 }
             }
-            if !has_modified_at_column {
-                if field
+            if !has_modified_at_column
+                && field
                     .name
                     .as_ref()
                     .expect("should have a name")
                     .eq("modified_at")
-                {
-                    let field_type = field.ty.to_token_stream().to_string();
-                    // TODO: Allow Option<Timestamp> as modified_at column type
-                    if !field_type.eq("Timestamp") && !field_type.eq("spacetimedb :: Timestamp") {
+            {
+                let field_type = field.ty.to_token_stream().to_string();
+                // TODO: Allow Option<Timestamp> as modified_at column type
+                if !field_type.eq("Timestamp") && !field_type.eq("spacetimedb :: Timestamp") {
+                    return Err(syn::Error::new(
+                        Span::call_site(),
+                        format!(
+                            "A column with name `modified_at` should have the type `spacetimedb::Timestamp`! Found: {field_type}"
+                        ),
+                    ));
+                }
+
+                match field.vis {
+                    syn::Visibility::Public(_) => {
                         return Err(syn::Error::new(
                             Span::call_site(),
-                            format!(
-                                "A column with name `modified_at` should have the type `spacetimedb::Timestamp`! Found: {field_type}"
-                            ),
+                            "A column with name `modified_at` should have `Visibility::Inherited`! Found: Visibility::Public",
                         ));
                     }
-
-                    match field.vis {
-                        syn::Visibility::Public(_) => {
-                            return Err(syn::Error::new(
-                                Span::call_site(),
-                                "A column with name `modified_at` should have `Visibility::Inherited`! Found: Visibility::Public",
-                            ));
-                        }
-                        syn::Visibility::Restricted(_) => {
-                            return Err(syn::Error::new(
-                                Span::call_site(),
-                                "A column with name `modified_at` should have `Visibility::Inherited`! Found: Visibility::Restricted",
-                            ));
-                        }
-                        syn::Visibility::Inherited => {
-                            has_modified_at_column = true;
-                        }
+                    syn::Visibility::Restricted(_) => {
+                        return Err(syn::Error::new(
+                            Span::call_site(),
+                            "A column with name `modified_at` should have `Visibility::Inherited`! Found: Visibility::Restricted",
+                        ));
+                    }
+                    syn::Visibility::Inherited => {
+                        has_modified_at_column = true;
                     }
                 }
             }

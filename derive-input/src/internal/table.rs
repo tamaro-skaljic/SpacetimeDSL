@@ -14,7 +14,7 @@ pub(in crate::internal) fn try_parse(
     plural_name: syn::Ident,
     unique_indices: Vec<syn::Ident>,
 ) -> syn::Result<Table> {
-    let rust_struct = crate::internal::rust::table::map_struct(&input);
+    let rust_struct = crate::internal::rust::table::map_struct(input);
 
     let spacetimedb_table = SpacetimeDBTable::map(table_args);
 
@@ -22,7 +22,7 @@ pub(in crate::internal) fn try_parse(
         SpacetimeDSLTable::try_parse(column_args, spacetimedb_table, plural_name, unique_indices)?;
 
     let (spacetimedb_table, columns, internal_columns) = super::column::try_parse(
-        &column_args,
+        column_args,
         &rust_struct,
         spacetimedb_table,
         &spacetimedsl_table,
