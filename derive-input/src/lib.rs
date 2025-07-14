@@ -47,7 +47,7 @@ mod internal;
 
 #[cfg(test)]
 mod tests {
-    use super::internal::integration::spacetime_bindings_macro_input;
+    use super::api::Table;
     use syn::{parse_quote, DeriveInput};
     use quote::quote;
 
@@ -62,27 +62,28 @@ mod tests {
             pub struct TestStruct {
                 #[primary_key]
                 #[auto_inc]
+                #[create_wrapper]
                 id: u128,
             }
         };
 
         // Test first DSL macro should match test_table1
         let dsl_args1 = quote! { plural_name = test_tables1 };
-        let result1 = spacetime_bindings_macro_input(&input, &dsl_args1);
+        let result1 = Table::try_parse(dsl_args1, &input);
         assert!(result1.is_ok(), "First DSL macro should process successfully");
 
         // Test second DSL macro should match test_table2  
         let dsl_args2 = quote! { plural_name = test_tables2 };
-        let result2 = spacetime_bindings_macro_input(&input, &dsl_args2);
+        let result2 = Table::try_parse(dsl_args2, &input);
         assert!(result2.is_ok(), "Second DSL macro should process successfully");
 
         // The results should be for different tables
-        let (table_args1, _) = result1.unwrap();
-        let (table_args2, _) = result2.unwrap();
+        let table1 = result1.unwrap();
+        let table2 = result2.unwrap();
         
         // Extract table names to verify they're different
-        let table1_name = table_args1.name.to_string();
-        let table2_name = table_args2.name.to_string();
+        let table1_name = table1.spacetimedb_table.singular_name.to_string();
+        let table2_name = table2.spacetimedb_table.singular_name.to_string();
         
         assert!(table1_name.contains("test_table1"), "First result should be for test_table1");
         assert!(table2_name.contains("test_table2"), "Second result should be for test_table2");
@@ -98,12 +99,13 @@ mod tests {
             pub struct Entity {
                 #[primary_key]
                 #[auto_inc]
+                #[create_wrapper]
                 id: u128,
             }
         };
 
         let dsl_args = quote! { plural_name = entities };
-        let result = spacetime_bindings_macro_input(&input, &dsl_args);
+        let result = Table::try_parse(dsl_args, &input);
         assert!(result.is_ok(), "Single table case should still work");
     }
 
@@ -118,28 +120,29 @@ mod tests {
             pub struct TestStruct {
                 #[primary_key]
                 #[auto_inc]
+                #[create_wrapper]
                 id: u128,
             }
         };
 
         // Both DSL calls should succeed
         let dsl_args1 = quote! { plural_name = things };
-        let result1 = spacetime_bindings_macro_input(&input, &dsl_args1);
+        let result1 = Table::try_parse(dsl_args1.clone(), &input);
         assert!(result1.is_ok(), "First DSL macro should process successfully");
 
         let dsl_args2 = quote! { plural_name = objects };
-        let result2 = spacetime_bindings_macro_input(&input, &dsl_args2);
+        let result2 = Table::try_parse(dsl_args2, &input);
         assert!(result2.is_ok(), "Second DSL macro should process successfully");
 
         // Same DSL args should consistently select the same table (deterministic)
-        let result1_repeat = spacetime_bindings_macro_input(&input, &dsl_args1);
+        let result1_repeat = Table::try_parse(dsl_args1, &input);
         assert!(result1_repeat.is_ok());
         
-        let (table_args1, _) = result1.unwrap();
-        let (table_args1_repeat, _) = result1_repeat.unwrap();
+        let table1 = result1.unwrap();
+        let table1_repeat = result1_repeat.unwrap();
         
-        let table1_name = table_args1.name.to_string();
-        let table1_repeat_name = table_args1_repeat.name.to_string();
+        let table1_name = table1.spacetimedb_table.singular_name.to_string();
+        let table1_repeat_name = table1_repeat.spacetimedb_table.singular_name.to_string();
         
         assert_eq!(table1_name, table1_repeat_name, "Same DSL args should select same table consistently");
     }
