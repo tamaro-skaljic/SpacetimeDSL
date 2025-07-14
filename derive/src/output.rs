@@ -28,7 +28,7 @@ pub(crate) fn output(input: &Table, is_last_dsl_attribute: bool) -> syn::Result<
             }
         }
     }
-    
+
     let mut table_methods = vec![];
     let mut dsl_methods = vec![];
 

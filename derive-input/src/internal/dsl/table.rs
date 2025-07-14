@@ -1,39 +1,18 @@
 use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::SpacetimeDSLTable;
-use crate::internal::dsl::unique_index;
 use proc_macro2::Span;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::table::ColumnArgs;
-use spacetime_bindings_macro_input::{match_meta, sym, util::check_duplicate};
-use syn::{
-    Ident,
-    meta::{ParseNestedMeta, parser},
-    parse::Parser,
-};
+use syn::Ident;
 
 impl SpacetimeDSLTable {
     pub(in crate::internal) fn try_parse(
-        args: proc_macro2::TokenStream,
         column_args: &ColumnArgs<'_>,
         mut spacetimedb_table: SpacetimeDBTable,
         name_plural: Ident,
+        unique_indices: Vec<syn::Ident>,
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
-        // Parse unique indices from args - filter out other known arguments
-        let mut unique_indices = vec![];
-
-        // Only parse if there are unique_index arguments
-        let args_str = args.to_string();
-        if args_str.contains("unique_index") {
-            parser(|meta| {
-                match_meta!(match meta {
-                    unique_index => unique_indices.push(parse_unique_index(meta)?),
-                });
-                Ok(())
-            })
-            .parse2(args)?;
-        }
-
         for unique_index_name in unique_indices {
             for multi_column_index in &mut spacetimedb_table.multi_column_indices {
                 match &multi_column_index.index_type {
@@ -170,24 +149,4 @@ impl SpacetimeDSLTable {
             },
         ))
     }
-}
-
-// Parse unique index from meta
-fn parse_unique_index(meta: ParseNestedMeta<'_>) -> syn::Result<Ident> {
-    let mut name: Option<Ident> = None;
-
-    meta.parse_nested_meta(|meta| {
-        match_meta!(match meta {
-            sym::name => {
-                check_duplicate(&name, &meta)?;
-                name = Some(meta.value()?.parse()?);
-            }
-        });
-        Ok(())
-    })?;
-
-    let name = name
-        .ok_or_else(|| meta.error("IndexName must be set in `#[dsl(unique_index(name = IndexName))]`, e.g. `name = my_index`."))?;
-
-    Ok(name)
 }

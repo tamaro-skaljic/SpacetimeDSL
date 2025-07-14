@@ -67,12 +67,9 @@ fn select_table_with_heuristics<'a>(
     plural_name: &syn::Ident,
 ) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
     let all_tables = get_all_table_attributes(input)?;
-    
+
     if all_tables.is_empty() {
-        return Err(Error::new(
-            Span::call_site(),
-            "No table attributes found"
-        ));
+        return Err(Error::new(Span::call_site(), "No table attributes found"));
     }
 
     // If only one table, return it
@@ -97,7 +94,7 @@ fn select_table_with_heuristics<'a>(
     for (i, table_entry) in all_tables.iter().enumerate() {
         let (table_args, _) = table_entry;
         let table_name = table_args.name.to_string();
-        
+
         // Check if the plural name matches the table name with some smart heuristics
         if is_plural_match(&plural_str, &table_name) {
             return Ok(all_tables.into_iter().nth(i).unwrap());
@@ -105,8 +102,9 @@ fn select_table_with_heuristics<'a>(
     }
 
     // Fallback: use deterministic selection based on plural_name
-    let selection_index = deterministic_selection_by_name(&plural_name.to_string(), all_tables.len());
-    
+    let selection_index =
+        deterministic_selection_by_name(&plural_name.to_string(), all_tables.len());
+
     Ok(all_tables.into_iter().nth(selection_index).unwrap())
 }
 
@@ -115,32 +113,32 @@ fn is_plural_match(plural_name: &str, table_name: &str) -> bool {
     // Remove trailing digits/numbers from both
     let plural_base = remove_trailing_digits(plural_name);
     let table_base = remove_trailing_digits(table_name);
-    
+
     // Check if the suffixes (digits) match
     let plural_suffix = &plural_name[plural_base.len()..];
     let table_suffix = &table_name[table_base.len()..];
-    
+
     if plural_suffix != table_suffix {
         return false;
     }
-    
+
     // Now try different pluralization rules
     // 1. Direct conversion: tables -> table
     if plural_base == "tables" && table_base == "table" {
         return true;
     }
-    
+
     // 2. Standard pluralization rules
     let singular = plural_to_singular(&plural_base);
     if singular == table_base {
         return true;
     }
-    
+
     // 3. Check if table is a substring of plural (e.g., "table" in "test_tables")
     if plural_base.contains(&table_base) {
         return true;
     }
-    
+
     false
 }
 
