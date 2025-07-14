@@ -5,33 +5,21 @@ use crate::api::{
 };
 use quote::format_ident;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
-use spacetime_bindings_macro_input::{match_meta, util::check_duplicate};
-use syn::{DeriveInput, Ident, meta::parser, parse::Parser};
+use syn::DeriveInput;
 
 pub(in crate::internal) fn try_parse(
-    args: proc_macro2::TokenStream,
+    _args: proc_macro2::TokenStream,
     input: &DeriveInput,
     table_args: &TableArgs,
     column_args: &ColumnArgs<'_>,
-    plural_name: Option<syn::Ident>,
+    plural_name: syn::Ident,
 ) -> syn::Result<Table> {
     let rust_struct = crate::internal::rust::table::map_struct(&input);
 
     let spacetimedb_table = SpacetimeDBTable::map(table_args);
 
-    // Use provided plural_name or parse it from args if not provided
-    let plural_name = if let Some(name) = plural_name {
-        name
-    } else {
-        parse_plural_name_from_args(&args)?
-            .ok_or_else(|| syn::Error::new(
-                proc_macro2::Span::call_site(),
-                format_args!("PluralName must be set in `#[dsl(plural_name = PluralName)]`, e.g. `plural_name = {}s`.", spacetimedb_table.singular_name),
-            ))?
-    };
-
     let (spacetimedb_table, spacetimedsl_table) =
-        SpacetimeDSLTable::try_parse_with_plural_name(column_args, spacetimedb_table, plural_name)?;
+        SpacetimeDSLTable::try_parse(column_args, spacetimedb_table, plural_name)?;
 
     let (spacetimedb_table, columns, internal_columns) = super::column::try_parse(
         &column_args,
@@ -61,27 +49,6 @@ pub(in crate::internal) fn try_parse(
         columns,
         spacetimedsl_methods,
     })
-}
-
-// Parse plural_name from DSL arguments
-fn parse_plural_name_from_args(args: &proc_macro2::TokenStream) -> syn::Result<Option<Ident>> {
-    use crate::internal::dsl::plural_name;
-    
-    let mut plural_name_value: Option<Ident> = None;
-
-    parser(|meta| {
-        match_meta!(match meta {
-            plural_name => {
-                check_duplicate(&plural_name_value, &meta)?;
-                let value = meta.value()?;
-                plural_name_value = Some(value.parse()?);
-            }
-        });
-        Ok(())
-    })
-    .parse2(args.clone())?;
-
-    Ok(plural_name_value)
 }
 
 pub fn rm_rsharp(ident: syn::Ident) -> syn::Ident {

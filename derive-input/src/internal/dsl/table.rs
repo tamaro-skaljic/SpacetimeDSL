@@ -1,7 +1,7 @@
 use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::SpacetimeDSLTable;
-use crate::internal::dsl::{plural_name, unique_index};
+use crate::internal::dsl::unique_index;
 use proc_macro2::Span;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::table::ColumnArgs;
@@ -13,14 +13,14 @@ use syn::{
 };
 
 impl SpacetimeDSLTable {
-    pub(in crate::internal) fn try_parse_with_plural_name(
+    pub(in crate::internal) fn try_parse(
         column_args: &ColumnArgs<'_>,
         mut spacetimedb_table: SpacetimeDBTable,
         name_plural: Ident,
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
         // Since plural_name is already parsed, we don't need to parse args again
         // But we still need to handle unique_index parsing if present
-        let unique_indices: Vec<Ident> = vec![]; // For now, we'll handle this later if needed
+        let unique_indices: Vec<Ident> = vec![]; // TODO: Parse unique indices from args if needed
 
         for unique_index_name in unique_indices {
             for multi_column_index in &mut spacetimedb_table.multi_column_indices {
@@ -159,43 +159,42 @@ impl SpacetimeDSLTable {
         ))
     }
 
-    // Keep this method for backward compatibility if needed
-    #[allow(dead_code)]
-    pub(in crate::internal) fn try_parse(
+    // Additional method that can parse unique indices from args if needed
+    pub(in crate::internal) fn try_parse_with_args(
         args: proc_macro2::TokenStream,
         column_args: &ColumnArgs<'_>,
         spacetimedb_table: SpacetimeDBTable,
+        name_plural: Ident,
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
-        let mut name_plural: Option<Ident> = None;
         let mut unique_indices = vec![];
 
         parser(|meta| {
             match_meta!(match meta {
-                plural_name => {
-                    check_duplicate(&name_plural, &meta)?;
-                    let value = meta.value()?;
-                    name_plural = Some(value.parse()?);
-                }
                 unique_index => unique_indices.push(parse_unique_index(meta)?),
             });
             Ok(())
         })
         .parse2(args)?;
 
-        let name_plural = name_plural.ok_or_else(|| {
-            syn::Error::new(
-                Span::call_site(),
-                format_args!("PluralName must be set in `#[dsl(plural_name = PluralName)]`, e.g. `plural_name = {}s`.", spacetimedb_table.singular_name),
-            )
-        })?;
+        let mut spacetimedb_table = spacetimedb_table;
+        for unique_index_name in unique_indices {
+            for multi_column_index in &mut spacetimedb_table.multi_column_indices {
+                match &multi_column_index.index_type {
+                    IndexType::BTreeMultiColumn { columns: _ } => {
+                        if multi_column_index.name.eq(&unique_index_name) {
+                            multi_column_index.is_unique = true;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
 
-        // Call the new method with the parsed plural_name
-        Self::try_parse_with_plural_name(column_args, spacetimedb_table, name_plural)
+        Self::try_parse(column_args, spacetimedb_table, name_plural)
     }
 }
 
-// Keep this function for backward compatibility if needed
-#[allow(dead_code)]
+// Parse unique index from meta
 fn parse_unique_index(meta: ParseNestedMeta<'_>) -> syn::Result<Ident> {
     let mut name: Option<Ident> = None;
 
