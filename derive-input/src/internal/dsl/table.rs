@@ -14,13 +14,25 @@ use syn::{
 
 impl SpacetimeDSLTable {
     pub(in crate::internal) fn try_parse(
+        args: proc_macro2::TokenStream,
         column_args: &ColumnArgs<'_>,
         mut spacetimedb_table: SpacetimeDBTable,
         name_plural: Ident,
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
-        // Since plural_name is already parsed, we don't need to parse args again
-        // But we still need to handle unique_index parsing if present
-        let unique_indices: Vec<Ident> = vec![]; // TODO: Parse unique indices from args if needed
+        // Parse unique indices from args - filter out other known arguments
+        let mut unique_indices = vec![];
+
+        // Only parse if there are unique_index arguments
+        let args_str = args.to_string();
+        if args_str.contains("unique_index") {
+            parser(|meta| {
+                match_meta!(match meta {
+                    unique_index => unique_indices.push(parse_unique_index(meta)?),
+                });
+                Ok(())
+            })
+            .parse2(args)?;
+        }
 
         for unique_index_name in unique_indices {
             for multi_column_index in &mut spacetimedb_table.multi_column_indices {
@@ -157,40 +169,6 @@ impl SpacetimeDSLTable {
                 referencing_tables,
             },
         ))
-    }
-
-    // Additional method that can parse unique indices from args if needed
-    pub(in crate::internal) fn try_parse_with_args(
-        args: proc_macro2::TokenStream,
-        column_args: &ColumnArgs<'_>,
-        spacetimedb_table: SpacetimeDBTable,
-        name_plural: Ident,
-    ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
-        let mut unique_indices = vec![];
-
-        parser(|meta| {
-            match_meta!(match meta {
-                unique_index => unique_indices.push(parse_unique_index(meta)?),
-            });
-            Ok(())
-        })
-        .parse2(args)?;
-
-        let mut spacetimedb_table = spacetimedb_table;
-        for unique_index_name in unique_indices {
-            for multi_column_index in &mut spacetimedb_table.multi_column_indices {
-                match &multi_column_index.index_type {
-                    IndexType::BTreeMultiColumn { columns: _ } => {
-                        if multi_column_index.name.eq(&unique_index_name) {
-                            multi_column_index.is_unique = true;
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        }
-
-        Self::try_parse(column_args, spacetimedb_table, name_plural)
     }
 }
 

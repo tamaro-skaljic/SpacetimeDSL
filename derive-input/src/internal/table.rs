@@ -8,7 +8,7 @@ use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::DeriveInput;
 
 pub(in crate::internal) fn try_parse(
-    _args: proc_macro2::TokenStream,
+    args: proc_macro2::TokenStream,
     input: &DeriveInput,
     table_args: &TableArgs,
     column_args: &ColumnArgs<'_>,
@@ -19,7 +19,7 @@ pub(in crate::internal) fn try_parse(
     let spacetimedb_table = SpacetimeDBTable::map(table_args);
 
     let (spacetimedb_table, spacetimedsl_table) =
-        SpacetimeDSLTable::try_parse(column_args, spacetimedb_table, plural_name)?;
+        SpacetimeDSLTable::try_parse(args, column_args, spacetimedb_table, plural_name)?;
 
     let (spacetimedb_table, columns, internal_columns) = super::column::try_parse(
         &column_args,

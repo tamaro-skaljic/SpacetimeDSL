@@ -6,17 +6,17 @@ use syn::{DeriveInput, Error};
 #[cfg(test)]
 pub fn spacetime_bindings_macro_input<'a>(
     item: &'a DeriveInput,
-    plural_name: Option<&syn::Ident>,
+    plural_name: &syn::Ident,
 ) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
-    select_table_with_heuristics(item, plural_name)
+    select_table_with_heuristics(item, Some(plural_name))
 }
 
 #[cfg(not(test))]
 pub(in crate::internal) fn spacetime_bindings_macro_input<'a>(
     item: &'a DeriveInput,
-    plural_name: Option<&syn::Ident>,
+    plural_name: &syn::Ident,
 ) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
-    select_table_with_heuristics(item, plural_name)
+    select_table_with_heuristics(item, Some(plural_name))
 }
 
 fn get_all_table_attributes<'a>(
