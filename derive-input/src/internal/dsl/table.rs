@@ -159,6 +159,8 @@ impl SpacetimeDSLTable {
         ))
     }
 
+    // Keep this method for backward compatibility if needed
+    #[allow(dead_code)]
     pub(in crate::internal) fn try_parse(
         args: proc_macro2::TokenStream,
         column_args: &ColumnArgs<'_>,
@@ -192,6 +194,8 @@ impl SpacetimeDSLTable {
     }
 }
 
+// Keep this function for backward compatibility if needed
+#[allow(dead_code)]
 fn parse_unique_index(meta: ParseNestedMeta<'_>) -> syn::Result<Ident> {
     let mut name: Option<Ident> = None;
 
