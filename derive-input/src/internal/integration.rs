@@ -1,45 +1,25 @@
-use crate::internal::dsl::plural_name;
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::Span;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
-use spacetime_bindings_macro_input::{match_meta, util::check_duplicate};
-use syn::{DeriveInput, Error, Ident, meta::parser, parse::Parser};
+use syn::{DeriveInput, Error};
 
 #[cfg(test)]
 pub fn spacetime_bindings_macro_input<'a>(
     item: &'a DeriveInput,
-    dsl_args: &proc_macro2::TokenStream,
-) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
-    let input = get_table_attribute_macro(item, dsl_args)?;
-
-    let table_args = TableArgs::parse(input, item)?;
-
-    let (table_args, column_args) = ColumnArgs::parse(table_args, item)?;
-
-    Ok((table_args, column_args))
+) -> syn::Result<Vec<(TableArgs, ColumnArgs<'a>)>> {
+    get_all_table_attributes(item)
 }
 
 #[cfg(not(test))]
 pub(in crate::internal) fn spacetime_bindings_macro_input<'a>(
     item: &'a DeriveInput,
-    dsl_args: &proc_macro2::TokenStream,
-) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
-    let input = get_table_attribute_macro(item, dsl_args)?;
-
-    let table_args = TableArgs::parse(input, item)?;
-
-    let (table_args, column_args) = ColumnArgs::parse(table_args, item)?;
-
-    Ok((table_args, column_args))
+) -> syn::Result<Vec<(TableArgs, ColumnArgs<'a>)>> {
+    get_all_table_attributes(item)
 }
 
-fn get_table_attribute_macro(
-    input: &DeriveInput,
-    dsl_args: &proc_macro2::TokenStream,
-) -> syn::Result<TokenStream> {
-    // Parse DSL arguments to extract plural_name
-    let plural_name_value = parse_dsl_args(dsl_args)?;
-
+fn get_all_table_attributes<'a>(
+    input: &'a DeriveInput,
+) -> syn::Result<Vec<(TableArgs, ColumnArgs<'a>)>> {
     // Find all table attributes
     let mut table_attrs = Vec::new();
     for attr in &input.attrs {
@@ -68,68 +48,13 @@ fn get_table_attribute_macro(
         ));
     }
 
-    // If only one table, return it
-    if table_attrs.len() == 1 {
-        return Ok(table_attrs[0].clone());
+    // Parse all table attributes and return them
+    let mut results = Vec::new();
+    for table_attr in table_attrs {
+        let table_args = TableArgs::parse(table_attr, input)?;
+        let (table_args, column_args) = ColumnArgs::parse(table_args, input)?;
+        results.push((table_args, column_args));
     }
 
-    // For multiple table attributes, try to match based on plural_name
-    if let Some(plural_name_ident) = plural_name_value {
-        // Convert plural name to singular to match table name
-        let singular_name = plural_to_singular(&plural_name_ident.to_string());
-
-        for table_attr in &table_attrs {
-            if table_contains_name(&table_attr, &singular_name) {
-                return Ok(table_attr.clone());
-            }
-        }
-    }
-
-    // Fallback: use deterministic selection to ensure consistency
-    let selection_index = deterministic_selection(dsl_args, table_attrs.len());
-    Ok(table_attrs[selection_index].clone())
-}
-
-// Parse DSL arguments using established parsing patterns
-fn parse_dsl_args(args: &proc_macro2::TokenStream) -> syn::Result<Option<Ident>> {
-    let mut plural_name_value: Option<Ident> = None;
-
-    parser(|meta| {
-        match_meta!(match meta {
-            plural_name => {
-                check_duplicate(&plural_name_value, &meta)?;
-                let value = meta.value()?;
-                plural_name_value = Some(value.parse()?);
-            }
-        });
-        Ok(())
-    })
-    .parse2(args.clone())?;
-
-    Ok(plural_name_value)
-}
-
-// Convert plural name to singular (simple heuristic)
-fn plural_to_singular(plural: &str) -> String {
-    if plural.ends_with("ies") {
-        format!("{}y", &plural[..plural.len() - 3])
-    } else if plural.ends_with("es") && plural.len() > 2 {
-        plural[..plural.len() - 2].to_string()
-    } else if plural.ends_with("s") && plural.len() > 1 {
-        plural[..plural.len() - 1].to_string()
-    } else {
-        plural.to_string()
-    }
-}
-
-// Check if table attribute contains the given name
-fn table_contains_name(table_attr: &TokenStream, name: &str) -> bool {
-    table_attr.to_string().contains(name)
-}
-
-// Deterministic selection based on hash of dsl args
-fn deterministic_selection(dsl_args: &proc_macro2::TokenStream, table_count: usize) -> usize {
-    let arg_str = dsl_args.to_string();
-    let hash: usize = arg_str.chars().map(|c| c as usize).sum();
-    hash % table_count
+    Ok(results)
 }

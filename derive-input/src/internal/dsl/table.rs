@@ -13,33 +13,14 @@ use syn::{
 };
 
 impl SpacetimeDSLTable {
-    pub(in crate::internal) fn try_parse(
-        args: proc_macro2::TokenStream,
+    pub(in crate::internal) fn try_parse_with_plural_name(
         column_args: &ColumnArgs<'_>,
         mut spacetimedb_table: SpacetimeDBTable,
+        name_plural: Ident,
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
-        let mut name_plural: Option<Ident> = None;
-        let mut unique_indices = vec![];
-
-        parser(|meta| {
-            match_meta!(match meta {
-                plural_name => {
-                    check_duplicate(&name_plural, &meta)?;
-                    let value = meta.value()?;
-                    name_plural = Some(value.parse()?);
-                }
-                unique_index => unique_indices.push(parse_unique_index(meta)?),
-            });
-            Ok(())
-        })
-        .parse2(args)?;
-
-        let name_plural = name_plural.ok_or_else(|| {
-            syn::Error::new(
-                Span::call_site(),
-                format_args!("PluralName must be set in `#[dsl(plural_name = PluralName)]`, e.g. `plural_name = {}s`.", spacetimedb_table.singular_name),
-            )
-        })?;
+        // Since plural_name is already parsed, we don't need to parse args again
+        // But we still need to handle unique_index parsing if present
+        let unique_indices: Vec<Ident> = vec![]; // For now, we'll handle this later if needed
 
         for unique_index_name in unique_indices {
             for multi_column_index in &mut spacetimedb_table.multi_column_indices {
@@ -176,6 +157,38 @@ impl SpacetimeDSLTable {
                 referencing_tables,
             },
         ))
+    }
+
+    pub(in crate::internal) fn try_parse(
+        args: proc_macro2::TokenStream,
+        column_args: &ColumnArgs<'_>,
+        spacetimedb_table: SpacetimeDBTable,
+    ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
+        let mut name_plural: Option<Ident> = None;
+        let mut unique_indices = vec![];
+
+        parser(|meta| {
+            match_meta!(match meta {
+                plural_name => {
+                    check_duplicate(&name_plural, &meta)?;
+                    let value = meta.value()?;
+                    name_plural = Some(value.parse()?);
+                }
+                unique_index => unique_indices.push(parse_unique_index(meta)?),
+            });
+            Ok(())
+        })
+        .parse2(args)?;
+
+        let name_plural = name_plural.ok_or_else(|| {
+            syn::Error::new(
+                Span::call_site(),
+                format_args!("PluralName must be set in `#[dsl(plural_name = PluralName)]`, e.g. `plural_name = {}s`.", spacetimedb_table.singular_name),
+            )
+        })?;
+
+        // Call the new method with the parsed plural_name
+        Self::try_parse_with_plural_name(column_args, spacetimedb_table, name_plural)
     }
 }
 
