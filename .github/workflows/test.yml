@@ -66,16 +66,11 @@ jobs:
         cd ..
         cargo test --verbose
 
-    - name: Build example (allow failure for now)
-      run: |
-        cd example
-        echo "Attempting to build example..."
-        echo "Note: This may fail due to SpacetimeDB linking requirements, not SpacetimeDSL issues"
-        cargo build --verbose || echo "Example build failed - this is expected due to SpacetimeDB non-rust code linking during cargo build"
-
     - name: Try SpacetimeDB integration (if example builds)
       run: |
         cd example
+
+        spacetime start &
         
         echo "Testing SpacetimeDB integration using spacetime publish..."
         echo "Note: Using spacetime publish instead of cargo build due to SpacetimeDB's WebAssembly linking requirements"
