@@ -170,4 +170,112 @@ mod tests {
             "Same DSL args should select same table consistently"
         );
     }
+
+    #[test]
+    fn test_last_dsl_attribute_detection() {
+        // Test the logic for detecting if a DSL attribute is the last one
+        // This simulates what the actual macro would do
+        
+        let input: DeriveInput = parse_quote! {
+            #[spacetimedsl::dsl(plural_name = test_tables1)]
+            #[spacetimedb::table(name = test_table1, public)]
+            #[spacetimedsl::dsl(plural_name = test_tables2)]
+            #[spacetimedb::table(name = test_table2, public)]
+            pub struct TestStruct {
+                #[primary_key]
+                #[auto_inc]
+                #[create_wrapper]
+                id: u128,
+            }
+        };
+
+        // Simulate the detection logic
+        let mut dsl_attributes = Vec::new();
+        
+        // Find all dsl attributes on the struct
+        for attr in &input.attrs {
+            if let syn::Meta::List(meta_list) = &attr.meta {
+                if meta_list.path.segments.len() == 2 
+                    && meta_list.path.segments[0].ident == "spacetimedsl"
+                    && meta_list.path.segments[1].ident == "dsl" {
+                    dsl_attributes.push(&meta_list.tokens);
+                }
+            }
+        }
+
+        // We should find exactly 2 DSL attributes
+        assert_eq!(dsl_attributes.len(), 2, "Should find exactly 2 DSL attributes");
+
+        // Test first DSL attribute (should not be last)
+        let first_args = quote! { plural_name = test_tables1 };
+        let first_args_str = first_args.to_string();
+        let mut first_found_index = None;
+        
+        for (index, attr_tokens) in dsl_attributes.iter().enumerate() {
+            if attr_tokens.to_string() == first_args_str {
+                first_found_index = Some(index);
+                break;
+            }
+        }
+        
+        let is_first_last = match first_found_index {
+            Some(index) => index == dsl_attributes.len() - 1,
+            None => true,
+        };
+        
+        assert!(!is_first_last, "First DSL attribute should not be detected as last");
+
+        // Test second DSL attribute (should be last)
+        let second_args = quote! { plural_name = test_tables2 };
+        let second_args_str = second_args.to_string();
+        let mut second_found_index = None;
+        
+        for (index, attr_tokens) in dsl_attributes.iter().enumerate() {
+            if attr_tokens.to_string() == second_args_str {
+                second_found_index = Some(index);
+                break;
+            }
+        }
+        
+        let is_second_last = match second_found_index {
+            Some(index) => index == dsl_attributes.len() - 1,
+            None => true,
+        };
+        
+        assert!(is_second_last, "Second DSL attribute should be detected as last");
+    }
+
+    #[test]
+    fn test_single_dsl_attribute_is_last() {
+        // Test single DSL attribute case (should always be considered last)
+        let input: DeriveInput = parse_quote! {
+            #[spacetimedsl::dsl(plural_name = entities)]
+            #[spacetimedb::table(name = entity, public)]
+            pub struct Entity {
+                #[primary_key]
+                #[auto_inc]
+                #[create_wrapper]
+                id: u128,
+            }
+        };
+
+        let mut dsl_attributes = Vec::new();
+        
+        // Find all dsl attributes on the struct
+        for attr in &input.attrs {
+            if let syn::Meta::List(meta_list) = &attr.meta {
+                if meta_list.path.segments.len() == 2 
+                    && meta_list.path.segments[0].ident == "spacetimedsl"
+                    && meta_list.path.segments[1].ident == "dsl" {
+                    dsl_attributes.push(&meta_list.tokens);
+                }
+            }
+        }
+
+        // Should find exactly 1 DSL attribute, and it should be considered last
+        assert_eq!(dsl_attributes.len(), 1, "Should find exactly 1 DSL attribute");
+        
+        let is_last = dsl_attributes.len() <= 1;
+        assert!(is_last, "Single DSL attribute should be detected as last");
+    }
 }

@@ -10,21 +10,25 @@ use spacetimedsl_derive_input::api::{
 };
 use syn::{Ident, Visibility, parse_str};
 
-pub(crate) fn output(input: &Table) -> syn::Result<TokenStream> {
+pub(crate) fn output(input: &Table, is_last_dsl_attribute: bool) -> syn::Result<TokenStream> {
     let struct_name = format_ident!("{}", &input.rust_struct.name.to_string());
     let mut wrapper_types = vec![];
 
-    for column in &input.columns {
-        match &column.spacetimedsl_column.wrapper_type {
-            Some(wrapper_type) => match wrapper_type {
-                WrapperType::Created(wrapper_type) => {
-                    wrapper_types.push(&wrapper_type.wrapper_impl);
-                }
-                _ => {}
-            },
-            None => {}
+    // Only generate wrapper types if this is the last DSL attribute to avoid conflicts
+    if is_last_dsl_attribute {
+        for column in &input.columns {
+            match &column.spacetimedsl_column.wrapper_type {
+                Some(wrapper_type) => match wrapper_type {
+                    WrapperType::Created(wrapper_type) => {
+                        wrapper_types.push(&wrapper_type.wrapper_impl);
+                    }
+                    _ => {}
+                },
+                None => {}
+            }
         }
     }
+    
     let mut table_methods = vec![];
     let mut dsl_methods = vec![];
 
