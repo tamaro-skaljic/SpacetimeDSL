@@ -29,7 +29,7 @@ jobs:
 
     - name: Install SpacetimeDB CLI
       run: |
-        curl -L https://spacetimedb.com/install.sh | bash
+        curl -L https://install.spacetimedb.com | bash
         echo "$HOME/.spacetime/bin" >> $GITHUB_PATH
 
     - name: Build derive libraries
