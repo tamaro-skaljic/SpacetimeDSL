@@ -71,6 +71,9 @@ jobs:
         cd example
 
         spacetime start &
+
+        echo "Waiting for SpacetimeDB to be started using a 5s sleep for now."
+        sleep 5
         
         echo "Testing SpacetimeDB integration using spacetime publish..."
         echo "Note: Using spacetime publish instead of cargo build due to SpacetimeDB's WebAssembly linking requirements"
