@@ -76,13 +76,13 @@ jobs:
         echo "Note: Using spacetime publish instead of cargo build due to SpacetimeDB's WebAssembly linking requirements"
         
         echo "Building and publishing module..."
-        spacetime publish spacetimedsl || echo "Publish failed"
+        spacetime publish spacetimedsl --yes || echo "Publish failed"
         
         echo "Testing module..."
-        spacetime call spacetimedsl tester || echo "Test call failed"
+        spacetime call spacetimedsl tester --yes || echo "Test call failed"
         
         echo "Showing logs..."
-        spacetime logs spacetimedsl || echo "Logs failed"
+        spacetime logs spacetimedsl --yes || echo "Logs failed"
         
         echo "Cleaning up module..."
         spacetime delete spacetimedsl --yes || echo "Delete failed"
