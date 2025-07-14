@@ -29,8 +29,14 @@ jobs:
 
     - name: Install SpacetimeDB CLI
       run: |
-        curl -L https://install.spacetimedb.com | bash
-        echo "$HOME/.spacetime/bin" >> $GITHUB_PATH
+        # Install SpacetimeDB CLI with non-interactive approach
+        printf '\n' | curl -L https://install.spacetimedb.com | bash
+        
+        # Add the correct path based on installation message
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        
+        # Verify installation worked
+        ls -la "$HOME/.local/bin/" || echo "Local bin directory not found"
 
     - name: Build derive libraries
       run: |
