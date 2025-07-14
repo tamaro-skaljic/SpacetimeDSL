@@ -1,6 +1,19 @@
 pub mod entity {
     use spacetimedb::Timestamp;
 
+    // Test struct with multiple dsl/table attribute pairs
+    #[spacetimedsl::dsl(plural_name = test_tables1)]
+    #[spacetimedb::table(name = test_table1, public)]
+    #[spacetimedsl::dsl(plural_name = test_tables2)]
+    #[spacetimedb::table(name = test_table2, public)]
+    pub struct TestMultipleTables {
+        #[primary_key]
+        #[auto_inc]
+        #[create_wrapper]
+        id: u32,
+        name: String,
+    }
+
     /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
     #[spacetimedsl::dsl(plural_name = entities)]
     #[spacetimedb::table(name = entity, public)]
