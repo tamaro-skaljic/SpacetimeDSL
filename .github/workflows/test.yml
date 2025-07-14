@@ -29,8 +29,8 @@ jobs:
 
     - name: Install SpacetimeDB CLI
       run: |
-        # Install SpacetimeDB CLI with non-interactive approach
-        curl -sSf https://install.spacetimedb.com | sh
+        # Install SpacetimeDB CLI with non-interactive approach using --yes flag
+        curl -sSf https://install.spacetimedb.com | sh -s -- --yes
         
         # Add the correct path based on installation message
         echo "$HOME/.local/bin" >> $GITHUB_PATH
