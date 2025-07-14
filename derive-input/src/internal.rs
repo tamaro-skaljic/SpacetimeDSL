@@ -1,4 +1,4 @@
-mod integration;
+pub(crate) mod integration;
 
 mod table;
 

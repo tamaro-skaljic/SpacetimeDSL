@@ -3,7 +3,7 @@ use quote::ToTokens;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::{DeriveInput, Error};
 
-pub(in crate::internal) fn spacetime_bindings_macro_input<'a>(
+pub(crate) fn spacetime_bindings_macro_input<'a>(
     item: &'a DeriveInput,
     dsl_args: &proc_macro2::TokenStream,
 ) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
