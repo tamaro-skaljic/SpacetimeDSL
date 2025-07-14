@@ -8,7 +8,7 @@ pub fn spacetime_bindings_macro_input<'a>(
     item: &'a DeriveInput,
     plural_name: &syn::Ident,
 ) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
-    select_table_with_heuristics(item, Some(plural_name))
+    select_table_with_heuristics(item, plural_name)
 }
 
 #[cfg(not(test))]
@@ -16,7 +16,7 @@ pub(in crate::internal) fn spacetime_bindings_macro_input<'a>(
     item: &'a DeriveInput,
     plural_name: &syn::Ident,
 ) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
-    select_table_with_heuristics(item, Some(plural_name))
+    select_table_with_heuristics(item, plural_name)
 }
 
 fn get_all_table_attributes<'a>(
@@ -51,7 +51,7 @@ fn get_all_table_attributes<'a>(
     }
 
     // Parse all table attributes and return them
-    let mut results = Vec::new();
+    let mut results = vec![];
     for table_attr in table_attrs {
         let table_args = TableArgs::parse(table_attr, input)?;
         let (table_args, column_args) = ColumnArgs::parse(table_args, input)?;
@@ -64,7 +64,7 @@ fn get_all_table_attributes<'a>(
 // Select table using heuristics or index-based fallback
 fn select_table_with_heuristics<'a>(
     input: &'a DeriveInput,
-    plural_name: Option<&syn::Ident>,
+    plural_name: &syn::Ident,
 ) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
     let all_tables = get_all_table_attributes(input)?;
     
@@ -80,38 +80,32 @@ fn select_table_with_heuristics<'a>(
         return Ok(all_tables.into_iter().next().unwrap());
     }
 
-    // Use heuristics if plural_name is provided
-    if let Some(plural_name) = plural_name {
-        let plural_str = plural_name.to_string();
+    // Use heuristics since plural_name is provided
+    let plural_str = plural_name.to_string();
 
-        // Try exact match first
-        for (i, table_entry) in all_tables.iter().enumerate() {
-            let (table_args, _) = table_entry;
-            let table_name = table_args.name.to_string();
-            if table_name == plural_str {
-                return Ok(all_tables.into_iter().nth(i).unwrap());
-            }
-        }
-
-        // Try intelligent matching: find table name that is most similar
-        // This handles cases like test_tables1 -> test_table1
-        for (i, table_entry) in all_tables.iter().enumerate() {
-            let (table_args, _) = table_entry;
-            let table_name = table_args.name.to_string();
-            
-            // Check if the plural name matches the table name with some smart heuristics
-            if is_plural_match(&plural_str, &table_name) {
-                return Ok(all_tables.into_iter().nth(i).unwrap());
-            }
+    // Try exact match first
+    for (i, table_entry) in all_tables.iter().enumerate() {
+        let (table_args, _) = table_entry;
+        let table_name = table_args.name.to_string();
+        if table_name == plural_str {
+            return Ok(all_tables.into_iter().nth(i).unwrap());
         }
     }
 
-    // Fallback: use deterministic selection based on plural_name or first table
-    let selection_index = if let Some(plural_name) = plural_name {
-        deterministic_selection_by_name(&plural_name.to_string(), all_tables.len())
-    } else {
-        0 // Default to first table if no plural_name context
-    };
+    // Try intelligent matching: find table name that is most similar
+    // This handles cases like test_tables1 -> test_table1
+    for (i, table_entry) in all_tables.iter().enumerate() {
+        let (table_args, _) = table_entry;
+        let table_name = table_args.name.to_string();
+        
+        // Check if the plural name matches the table name with some smart heuristics
+        if is_plural_match(&plural_str, &table_name) {
+            return Ok(all_tables.into_iter().nth(i).unwrap());
+        }
+    }
+
+    // Fallback: use deterministic selection based on plural_name
+    let selection_index = deterministic_selection_by_name(&plural_name.to_string(), all_tables.len());
     
     Ok(all_tables.into_iter().nth(selection_index).unwrap())
 }
