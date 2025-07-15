@@ -134,8 +134,9 @@ fn build_with_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> 
         doc_comment,
     );
 
-    // TODO: The trait doc comment should link to the method doc comment
+    let trait_comment = format!("See [`Self::{method_name}`] for details.");
     let method = quote! {
+        #[doc = #trait_comment]
         pub trait #trait_name: #(#paths_of_traits_to_extend)+* {
             #[doc=#doc_comment]
             fn #method_name<'a>(
@@ -179,8 +180,9 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
         doc_comment,
     );
 
-    // TODO: The trait doc comment should link to the method doc comment
+    let trait_comment = format!("See [`Self::{method_name}`] for details.");
     let method = quote! {
+        #[doc = #trait_comment]
         pub trait #trait_name: #(#paths_of_traits_to_extend)+* {
             #[allow(clippy::too_many_arguments)]
             #[doc=#doc_comment]
@@ -224,8 +226,9 @@ pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
         doc_comment,
     );
 
-    // TODO: The trait doc comment should link to the method doc comment
+    let trait_comment = format!("See [`Self::{method_name}`] for details.");
     let method = quote! {
+        #[doc = #trait_comment]
         pub trait #trait_name {
             #[doc=#doc_comment]
             fn #method_name<'a>(
