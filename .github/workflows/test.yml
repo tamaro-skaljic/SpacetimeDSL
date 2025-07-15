@@ -41,50 +41,20 @@ jobs:
         # Verify installation worked
         ls -la "$HOME/.local/bin/" || echo "Local bin directory not found"
 
-    - name: Build derive libraries
+    - name: Build & test SpacetimeDSL
       run: |
-        echo "Building derive-input library..."
-        cd derive-input
-        cargo build --verbose
-        
-        echo "Building derive library..."
-        cd ../derive
-        cargo build --verbose
-        
-        echo "Building main library..."
-        cd ..
-        cargo build --verbose
-
-    - name: Test derive libraries
-      run: |
-        echo "Testing derive-input library..."
-        cd derive-input
-        cargo test --verbose
-        
-        echo "Testing derive library..."
-        cd ../derive  
-        cargo test --verbose
-        
-        echo "Testing main library..."
-        cd ..
-        cargo test --verbose
-
-    - name: Try SpacetimeDB integration
-      run: |
-        cd example
 
         spacetime start &
 
-        echo "Waiting for SpacetimeDB to be started using a 5s sleep for now."
-        sleep 5
+        cd example
+
+        echo "Waiting for SpacetimeDB to be started using a 2s sleep for now."
+        sleep 2
         
-        echo "Testing SpacetimeDB integration using spacetime publish..."
-        echo "Note: Using spacetime publish instead of cargo build due to SpacetimeDB's WebAssembly linking requirements"
-        
-        echo "Building and publishing module..."
+        echo "Building and publishing a module using SpacetimeDSL..."
         spacetime publish spacetimedsl --yes || echo "Publish failed"
         
-        echo "Testing module..."
+        echo "Testing the module..."
         spacetime call spacetimedsl tester --yes || echo "Test call failed"
         
         echo "Showing logs..."

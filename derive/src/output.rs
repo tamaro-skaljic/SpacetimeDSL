@@ -10,12 +10,15 @@ use spacetimedsl_derive_input::api::{
 };
 use syn::{Ident, Visibility, parse_str};
 
-pub(crate) fn output(input: &Table, is_last_dsl_attribute: bool) -> syn::Result<TokenStream> {
+pub(crate) fn output(
+    input: &Table,
+    should_generate_wrapper_types_and_accessors: bool,
+) -> syn::Result<TokenStream> {
     let struct_name = format_ident!("{}", &input.rust_struct.name.to_string());
     let mut wrapper_types = vec![];
 
     // Only generate wrapper types if this is the last DSL attribute to avoid conflicts
-    if is_last_dsl_attribute {
+    if should_generate_wrapper_types_and_accessors {
         for column in &input.columns {
             if let Some(WrapperType::Created(wrapper_type)) =
                 &column.spacetimedsl_column.wrapper_type
@@ -58,10 +61,12 @@ pub(crate) fn output(input: &Table, is_last_dsl_attribute: bool) -> syn::Result<
     }
 
     for column in &input.columns {
-        table_methods.push(getter(&column.spacetimedsl_column.getter)?);
+        if should_generate_wrapper_types_and_accessors {
+            table_methods.push(getter(&column.spacetimedsl_column.getter)?);
 
-        if let Some(data) = &column.spacetimedsl_column.setter {
-            table_methods.push(setter(data)?)
+            if let Some(data) = &column.spacetimedsl_column.setter {
+                table_methods.push(setter(data)?)
+            }
         }
 
         if let Some(methods) = &column.spacetimedsl_methods {

@@ -339,15 +339,23 @@ pub mod component {
             pub entity_id: u128,
         }
 
-        // FIXME: It looks like the DSL is using the order of columns in the table instead of the order of columns in the index for (unique and not unique) multi column indices
         #[spacetimedsl::dsl(
-            plural_name = modules,
+            plural_name = modules1,
             unique_index(name = database_and_parent_id_and_name),
         )]
         #[spacetimedb::table(
-            name = module,
+            name = module1,
             public,
             index(name = database_and_parent_id_and_name, btree(columns = [database_id, parent_id, name])),
+        )]
+        #[spacetimedsl::dsl(
+            plural_name = modules2,
+            unique_index(name = database_and_name_and_parent_id),
+        )]
+        #[spacetimedb::table(
+            name = module2,
+            public,
+            index(name = database_and_name_and_parent_id, btree(columns = [database_id, name, parent_id])),
         )]
         pub struct Module {
             #[primary_key]
@@ -379,8 +387,9 @@ pub mod test {
             },
             test::{
                 CreateShipObjectRow, CreateTestRow, DeleteTestRowsByBtreeIndex,
-                DeleteTestRowsByWrappedIndex, GetModuleRowOptionByDatabaseAndParentIdAndName,
-                GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex,
+                DeleteTestRowsByWrappedIndex, GetModule1RowOptionByDatabaseAndParentIdAndName,
+                GetModule2RowOptionByDatabaseAndNameAndParentId, GetTestRowsByBtreeIndex,
+                GetTestRowsByWrappedIndex,
             },
         },
         entity::{
@@ -926,7 +935,9 @@ pub mod test {
         info!("Test executed successfully!");
 
         // This would produce a compilation error if the column order in unique multi column indices differ from the order in the table
-        dsl.get_module_by_database_and_parent_id_and_name(&0, &0, "")
+        dsl.get_module1_by_database_and_parent_id_and_name(&0, &0, "")
+            .expect_err("The module shouldn't exist");
+        dsl.get_module2_by_database_and_name_and_parent_id(&0, "", &0)
             .expect_err("The module shouldn't exist");
         Ok(())
     }
