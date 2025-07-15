@@ -1050,17 +1050,17 @@ pub(in crate::internal) fn for_method(
                     let mut wrapper_type_option_to_wrapped_type_option_mappers = vec![];
                     let mut row_value_getters = vec![];
 
-                    for column in internal_columns {
-                        let column_name = &column.rust_field_name;
+                    for column_name in &index_columns {
+                        let column = internal_columns
+                            .iter()
+                            .find(|c| c.rust_field_name == *column_name)
+                            .expect("Column should exist in internal columns");
+
                         let column_is_string = column
                             .rust_field_type_name_or_path
                             .to_token_stream()
                             .to_string()
                             .eq(&"String");
-
-                        if !&index_columns.contains(column_name) {
-                            continue;
-                        }
 
                         let wrapper_type_option_to_wrapped_type_option_mapper;
                         let method_arg;

@@ -221,11 +221,11 @@ pub mod component {
             #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
             entity_id: u128,
 
-            pub x: i128,
+            pub z: i128,
 
             pub y: i128,
 
-            pub z: i128,
+            pub x: i128,
 
             created_at: Timestamp,
 
@@ -338,6 +338,29 @@ pub mod component {
             #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
             pub entity_id: u128,
         }
+
+        // FIXME: It looks like the DSL is using the order of columns in the table instead of the order of columns in the index for (unique and not unique) multi column indices
+        #[spacetimedsl::dsl(
+            plural_name = modules,
+            unique_index(name = database_and_parent_id_and_name),
+        )]
+        #[spacetimedb::table(
+            name = module,
+            public,
+            index(name = database_and_parent_id_and_name, btree(columns = [database_id, parent_id, name])),
+        )]
+        pub struct Module {
+            #[primary_key]
+            #[auto_inc]
+            #[create_wrapper]
+            id: u128,
+
+            database_id: u128,
+
+            pub name: String,
+
+            pub parent_id: u128,
+        }
     }
 }
 
@@ -350,13 +373,15 @@ pub mod test {
             },
             position::{
                 CountOfAllPositionRows, CountOfAllUniquePositionRows, CreatePositionRow,
-                CreateUniquePositionRow, GetAllPositionRows, GetAllUniquePositionRows,
-                GetPositionRowOptionById, PositionId, UniquePositionId, UpdatePositionRowById,
-                UpdateUniquePositionRowById,
+                CreateUniquePositionRow, DeleteUniquePositionRowByXYZ, GetAllPositionRows,
+                GetAllUniquePositionRows, GetPositionRowOptionById,
+                GetUniquePositionRowOptionByXYZ, PositionId, UniquePositionId,
+                UpdatePositionRowById, UpdateUniquePositionRowById,
             },
             test::{
                 CreateShipObjectRow, CreateTestRow, DeleteTestRowsByBtreeIndex,
-                DeleteTestRowsByWrappedIndex, GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex,
+                DeleteTestRowsByWrappedIndex, GetModuleRowOptionByDatabaseAndParentIdAndName,
+                GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex,
             },
         },
         entity::{
@@ -730,7 +755,7 @@ pub mod test {
             return Err("The count of Positions should equal!".to_string());
         }
 
-        let _ = match dsl.create_unique_position(&player_reflection, 0, 0, 0) {
+        let _ = match dsl.create_unique_position(&player_reflection, 1, 2, 3) {
             Ok(p) => p,
             Err(_) => {
                 return Err(format!(
@@ -739,7 +764,22 @@ pub mod test {
             }
         };
 
-        if dsl.create_unique_position(&player, 0, 0, 0).is_ok() {
+        if dsl.delete_unique_position_by_x_y_z(&3, &2, &1).is_err() {
+            return Err(format!(
+                "{player_reflection:?}: Should be able to delete an unique Position by x, y, z!"
+            ));
+        }
+
+        let _ = match dsl.create_unique_position(&player_reflection, 3, 4, 1) {
+            Ok(p) => p,
+            Err(_) => {
+                return Err(format!(
+                    "{player_reflection:?}: Should be able to add an newly created unique Position!"
+                ));
+            }
+        };
+
+        if dsl.create_unique_position(&player, 1, 2, 3).is_ok() {
             return Err(format!(
                 "{player_reflection:?}: Shouldn't be able to add an newly created unique Position which does already exist!"
             ));
@@ -754,9 +794,9 @@ pub mod test {
             }
         };
 
-        unique_player_position.set_x(0);
-        unique_player_position.set_y(0);
-        unique_player_position.set_z(0);
+        unique_player_position.set_x(1);
+        unique_player_position.set_y(2);
+        unique_player_position.set_z(3);
 
         if dsl
             .update_unique_position_by_id(unique_player_position)
@@ -886,6 +926,9 @@ pub mod test {
 
         info!("Test executed successfully!");
 
+        // This would produce a compilation error if the column order in unique multi column indices differ from the order in the table
+        dsl.get_module_by_database_and_parent_id_and_name(&0, &0, "")
+            .expect_err("The module shouldn't exist");
         Ok(())
     }
 }
