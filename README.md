@@ -468,6 +468,8 @@ For any column of a table, a public getter is generated. It returns either a ref
 
 For any column in the table **which is not private**, a setter with the visibility of the column is generated. So you can use the visibility of fields to describe that a field value should never change after creating a row.
 
+**Automatic Field Privacy Enforcement**: SpacetimeDSL automatically makes all struct fields private when the last DSL attribute is processed. This ensures that developers cannot access struct members directly and must always use the generated wrapper types, getters, and setters. This prevents unauthorized field modifications after initialization and enforces proper encapsulation.
+
 This is useful for e. g.
 
 - primary- and foreign key columns, which possibly should never change, as well as
