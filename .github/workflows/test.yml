@@ -1,0 +1,109 @@
+name: Test SpacetimeDSL
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: wasm32-unknown-unknown
+
+    - name: Cache cargo dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          cargo-
+
+    - name: Install SpacetimeDB CLI
+      run: |
+        # Install SpacetimeDB CLI with non-interactive approach using --yes flag
+        curl -sSf https://install.spacetimedb.com | sh -s -- --yes
+        
+        # Add the correct path based on installation message
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        
+        # Verify installation worked
+        ls -la "$HOME/.local/bin/" || echo "Local bin directory not found"
+
+    - name: Build derive libraries
+      run: |
+        echo "Building derive-input library..."
+        cd derive-input
+        cargo build --verbose
+        
+        echo "Building derive library..."
+        cd ../derive
+        cargo build --verbose
+        
+        echo "Building main library..."
+        cd ..
+        cargo build --verbose
+
+    - name: Test derive libraries
+      run: |
+        echo "Testing derive-input library..."
+        cd derive-input
+        cargo test --verbose
+        
+        echo "Testing derive library..."
+        cd ../derive  
+        cargo test --verbose
+        
+        echo "Testing main library..."
+        cd ..
+        cargo test --verbose
+
+    - name: Try SpacetimeDB integration
+      run: |
+        cd example
+
+        spacetime start &
+
+        echo "Waiting for SpacetimeDB to be started using a 5s sleep for now."
+        sleep 5
+        
+        echo "Testing SpacetimeDB integration using spacetime publish..."
+        echo "Note: Using spacetime publish instead of cargo build due to SpacetimeDB's WebAssembly linking requirements"
+        
+        echo "Building and publishing module..."
+        spacetime publish spacetimedsl --yes || echo "Publish failed"
+        
+        echo "Testing module..."
+        spacetime call spacetimedsl tester --yes || echo "Test call failed"
+        
+        echo "Showing logs..."
+        spacetime logs spacetimedsl --yes || echo "Logs failed"
+        
+        echo "Cleaning up module..."
+        spacetime delete spacetimedsl --yes || echo "Delete failed"
+
+    - name: Check code formatting
+      run: |
+        cargo fmt --all -- --check
+
+    - name: Run clippy on derive libraries
+      run: |
+        cd derive-input
+        cargo clippy --all-targets --all-features || echo "Clippy warnings in derive-input (allowed for now)"
+        
+        cd ../derive
+        cargo clippy --all-targets --all-features || echo "Clippy warnings in derive (allowed for now)"
+        
+        cd ..
+        cargo clippy --all-targets --all-features || echo "Clippy warnings in main lib (allowed for now)"

@@ -30,14 +30,14 @@ impl ForeignKey {
 
             if !has_index {
                 return Err(syn::Error::new_spanned(
-                    &attr,
+                    attr,
                     "`#[foreign_key]` is only allowed in combination with `#[primary_key]`, `#[unique]` or `#[index]`!",
                 ));
             }
 
             if foreign_key_value.is_some() {
                 return Err(syn::Error::new_spanned(
-                    &attr,
+                    attr,
                     "`#[foreign_key]` is only allowed once per column!",
                 ));
             }
@@ -104,13 +104,13 @@ impl OnDeleteStrategy {
             "Error" => Ok(OnDeleteStrategy::Error),
             "Delete" => Ok(OnDeleteStrategy::Delete),
             "SetNone" => Err(syn::Error::new_spanned(
-                &tokens,
+                tokens,
                 "Because Option is currently not allowed on primary_key and unique/btree indices, `OnDeleteStrategy::SetNone` isn't implemented yet. `OnDeleteStrategy` must be one of `Error`, `Delete`, `SetZero` or `Ignore` in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Delete`.".to_string(),
             )),
             "SetZero" => Ok(OnDeleteStrategy::SetZero),
             "Ignore" => Ok(OnDeleteStrategy::Ignore),
             _ => Err(syn::Error::new_spanned(
-                &tokens,
+                tokens,
                 "`OnDeleteStrategy` must be one of `Error`, `Delete`, `SetNone`, `SetZero` or `Ignore` in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Delete`.".to_string(),
             )),
         }

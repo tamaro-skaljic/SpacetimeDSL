@@ -405,11 +405,8 @@ pub mod test {
             }
         };
 
-        let player2;
-        match dsl.create_entity() {
-            Ok(entity) => {
-                player2 = entity;
-            }
+        let player2 = match dsl.create_entity() {
+            Ok(entity) => entity,
             Err(error) => {
                 return Err(format!("Should be able to create an Entity! Got:\n{error}"));
             }
@@ -572,8 +569,7 @@ pub mod test {
             }
             Err(error) => {
                 return Err(format!(
-                    "{:?}: Should be able to add an newly created Identifier! Got:\n{error}",
-                    player
+                    "{player:?}: Should be able to add an newly created Identifier! Got:\n{error}"
                 ));
             }
         };
@@ -600,15 +596,12 @@ pub mod test {
             );
         }
 
-        match dsl.create_identifier(&player, "PLAYER") {
-            Ok(identifier) => {
-                return Err(format!(
-                    "Entity {} ({}): Shouldn't be able to add an Identifier because it has already one!",
-                    player.get_id().value(),
-                    identifier.get_value()
-                ));
-            }
-            Err(_) => {}
+        if let Ok(identifier) = dsl.create_identifier(&player, "PLAYER") {
+            return Err(format!(
+                "Entity {} ({}): Shouldn't be able to add an Identifier because it has already one!",
+                player.get_id().value(),
+                identifier.get_value()
+            ));
         };
 
         match dsl.get_identifier_by_value("PLAYER") {
@@ -634,10 +627,8 @@ pub mod test {
             Ok(i) => i,
             Err(e) => {
                 return Err(format!(
-                    "Should have been able to update the identifier. Got: {}",
-                    e.to_string()
-                )
-                .into());
+                    "Should have been able to update the identifier. Got: {e}"
+                ));
             }
         };
 
@@ -673,22 +664,19 @@ pub mod test {
                 ));
             }
         }
-        let player_reflection_position_id;
-        match dsl.create_position(&player_reflection, 1, 1, 1, None) {
-            Ok(position) => player_reflection_position_id = position.get_id(),
-            Err(_) => {
-                return Err(format!(
-                    "{:?}: Should be able to add an newly created Position!",
-                    player_reflection
-                ));
-            }
-        }
 
-        let player;
-        match dsl.create_entity() {
-            Ok(entity) => {
-                player = entity;
-            }
+        let player_reflection_position_id =
+            match dsl.create_position(&player_reflection, 1, 1, 1, None) {
+                Ok(position) => position.get_id(),
+                Err(_) => {
+                    return Err(format!(
+                        "{player_reflection:?}: Should be able to add an newly created Position!"
+                    ));
+                }
+            };
+
+        let player = match dsl.create_entity() {
+            Ok(entity) => entity,
             Err(error) => {
                 return Err(format!("Should be able to create an Entity! Got:\n{error}"));
             }
@@ -699,8 +687,7 @@ pub mod test {
                 Ok(p) => p,
                 Err(_) => {
                     return Err(format!(
-                        "{:?}: Should be able to add an newly created Position!",
-                        player
+                        "{player:?}: Should be able to add an newly created Position!"
                     ));
                 }
             };
@@ -712,10 +699,7 @@ pub mod test {
         let _ = match dsl.update_position_by_id(player_position) {
             Ok(p) => p,
             Err(_) => {
-                return Err(format!(
-                    "{:?}: Should be able to update an Position!",
-                    player
-                ));
+                return Err(format!("{player:?}: Should be able to update an Position!"));
             }
         };
 
@@ -730,7 +714,7 @@ pub mod test {
         let mut positions = vec![];
 
         for position in positions_iter {
-            position_count_one = position_count_one + 1;
+            position_count_one += 1;
             position_ids.push(position.get_id());
             positions.push(Some(position));
         }
@@ -750,28 +734,22 @@ pub mod test {
             Ok(p) => p,
             Err(_) => {
                 return Err(format!(
-                    "{:?}: Should be able to add an newly created unique Position!",
-                    player_reflection
+                    "{player_reflection:?}: Should be able to add an newly created unique Position!"
                 ));
             }
         };
 
-        match dsl.create_unique_position(&player, 0, 0, 0) {
-            Ok(_) => {
-                return Err(format!(
-                    "{:?}: Shouldn't be able to add an newly created unique Position which does already exist!",
-                    player_reflection
-                ));
-            }
-            Err(_) => {}
+        if dsl.create_unique_position(&player, 0, 0, 0).is_ok() {
+            return Err(format!(
+                "{player_reflection:?}: Shouldn't be able to add an newly created unique Position which does already exist!"
+            ));
         }
 
         let mut unique_player_position = match dsl.create_unique_position(&player, 1, 1, 1) {
             Ok(p) => p,
             Err(_) => {
                 return Err(format!(
-                    "{:?}: Should be able to add an newly created unique Position!",
-                    player_reflection
+                    "{player_reflection:?}: Should be able to add an newly created unique Position!"
                 ));
             }
         };
@@ -780,14 +758,13 @@ pub mod test {
         unique_player_position.set_y(0);
         unique_player_position.set_z(0);
 
-        match dsl.update_unique_position_by_id(unique_player_position) {
-            Ok(_) => {
-                return Err(format!(
-                    "{:?}: Shouldn't be able to update an unique Position to a value in x_y_z which does already exist!",
-                    player_reflection
-                ));
-            }
-            Err(_) => {}
+        if dsl
+            .update_unique_position_by_id(unique_player_position)
+            .is_ok()
+        {
+            return Err(format!(
+                "{player_reflection:?}: Shouldn't be able to update an unique Position to a value in x_y_z which does already exist!"
+            ));
         }
 
         let unique_positions_iter = dsl.get_all_unique_positions();
@@ -801,7 +778,7 @@ pub mod test {
         let mut unique_positions = vec![];
 
         for unique_position in unique_positions_iter {
-            unique_position_count_one = unique_position_count_one + 1;
+            unique_position_count_one += 1;
             unique_position_ids.push(unique_position.get_id());
             unique_positions.push(Some(unique_position));
         }
@@ -851,7 +828,7 @@ pub mod test {
         world2.set_wrapped_option(None);
         world2.set_wrapped_option(&player);
         world2.set_wrapped_option(player.get_id());
-        world2.set_wrapped_option(&player.get_id());
+        world2.set_wrapped_option(player.get_id());
 
         // TODO: Add commented lines if https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21 is added
         let _ = dsl.get_tests_by_wrapped_index(&player);
@@ -862,8 +839,8 @@ pub mod test {
         //let _ = dsl.get_tests_by_wrapped_index(world2.get_wrapped_index()..);
         let _ = dsl.delete_tests_by_wrapped_index(&player);
         let _ = dsl.delete_tests_by_wrapped_index(player.get_id());
-        let _ = dsl.delete_tests_by_wrapped_index(&player.get_id());
-        let _ = dsl.delete_tests_by_wrapped_index(&world2.get_wrapped_index());
+        let _ = dsl.delete_tests_by_wrapped_index(player.get_id());
+        let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index());
         //let _ = dsl.delete_tests_by_wrapped_index(&player..);
         //let _ = dsl.delete_tests_by_wrapped_index(&player..&player);
         //let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index()..);
@@ -898,13 +875,10 @@ pub mod test {
 
         let _ = dsl.create_ship_object(&player);
 
-        match dsl.delete_entity_by_id(&player) {
-            Ok(success) => {
-                return Err(format!(
-                    "The deletion of the entity player shouldn't have worked because ship_object.entity_id has a foreign key on the entity id with Error strategy Got: {success}",
-                ));
-            }
-            Err(_) => {}
+        if let Ok(success) = dsl.delete_entity_by_id(&player) {
+            return Err(format!(
+                "The deletion of the entity player shouldn't have worked because ship_object.entity_id has a foreign key on the entity id with Error strategy Got: {success}",
+            ));
         };
 
         // FIXME: Add test where two foreign keys match the same primary key - is it tried to delete the same row two times and therefore it fails?

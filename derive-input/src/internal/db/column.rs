@@ -9,7 +9,7 @@ impl SpacetimeDBColumn {
     pub(in crate::internal) fn map(
         rust_field: &RustField,
         mut spacetimedb_table: SpacetimeDBTable,
-        auto_inc_column_names: &Vec<Ident>,
+        auto_inc_column_names: &[Ident],
         primary_key_column_name: &Ident,
     ) -> Result<(SpacetimeDBTable, SpacetimeDBColumn), Error> {
         let column_name = &rust_field.name;
@@ -23,10 +23,9 @@ impl SpacetimeDBColumn {
             ));
         }
 
-        let mut i: usize = 0;
         let mut single_column_index = None;
 
-        for index in &spacetimedb_table.multi_column_indices {
+        for (i, index) in spacetimedb_table.multi_column_indices.iter().enumerate() {
             match &index.index_type {
                 IndexType::BTreeSingleColumn { column } => {
                     if column.eq(column_name) {
@@ -42,8 +41,6 @@ impl SpacetimeDBColumn {
                 }
                 _ => {}
             }
-
-            i = i + 1;
         }
 
         let single_column_index =
@@ -51,8 +48,7 @@ impl SpacetimeDBColumn {
 
         let is_auto_inc = auto_inc_column_names
             .iter()
-            .find(|c| c.eq(&column_name))
-            .is_some();
+            .any(|c| c.to_string().eq(&column_name.to_string()));
 
         Ok((
             spacetimedb_table,

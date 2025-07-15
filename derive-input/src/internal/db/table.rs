@@ -16,8 +16,8 @@ impl SpacetimeDBTable {
     pub(in crate::internal) fn map(table: &TableArgs) -> SpacetimeDBTable {
         let singular_name = rm_rsharp(table.name.clone());
         let visibility = SpacetimeDBTableVisibility::map(&table.access);
-        let indices = table.indices.iter().map(|i| Index::map(i)).collect();
-        let scheduled_reducer = table.scheduled.as_ref().map(|s| ScheduledReducer::map(s));
+        let indices = table.indices.iter().map(Index::map).collect();
+        let scheduled_reducer = table.scheduled.as_ref().map(ScheduledReducer::map);
 
         SpacetimeDBTable {
             singular_name,
@@ -51,11 +51,11 @@ impl Index {
                 IndexType::Direct { column }
             }
             SpacetimeIndexType::BTree { columns } => {
-                let columns: Vec<Ident> = columns.iter().map(|c| c.clone()).collect();
+                let columns: Vec<Ident> = columns.to_vec();
 
                 match columns.len() {
                     1 => IndexType::BTreeSingleColumn {
-                        column: columns.get(0).expect("column 0 should exist").clone(),
+                        column: columns.first().expect("column 0 should exist").clone(),
                     },
                     _ => IndexType::BTreeMultiColumn { columns },
                 }

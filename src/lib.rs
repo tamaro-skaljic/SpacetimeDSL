@@ -15,11 +15,11 @@ pub fn dsl<'a>(ctx: &'a ReducerContext) -> DSL<'a> {
 }
 
 pub trait DSLContext {
-    fn ctx<'a>(&'a self) -> &'a ReducerContext;
+    fn ctx(&self) -> &ReducerContext;
 }
 
 impl DSLContext for DSL<'_> {
-    fn ctx<'a>(&'a self) -> &'a ReducerContext {
+    fn ctx(&self) -> &ReducerContext {
         self.ctx
     }
 }
@@ -27,7 +27,7 @@ impl DSLContext for DSL<'_> {
 pub trait Wrapper<WrappedType: Clone + Default, WrapperType>:
     Default + Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
 {
-    fn new(value: WrappedType) -> WrapperType;
+    fn new(value: WrappedType) -> Self;
     fn value(&self) -> WrappedType;
 }
 
@@ -178,7 +178,7 @@ impl Display for SpacetimeDSLError {
             }
         });
 
-        write!(f, "{}", message)
+        write!(f, "{message}")
     }
 }
 

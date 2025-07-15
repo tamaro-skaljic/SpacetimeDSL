@@ -1,7 +1,6 @@
 use super::{foreign_key::ForeignKey, getter::Getter, setter::Setter, wrapper::WrapperType};
 use crate::api::dsl::method::SpacetimeDSLMethod;
 
-
 pub struct SpacetimeDSLColumn {
     pub is_option: bool,
     // Only `Some(T)` if it has `#[create_wrapper(name = MyTableId)]` or `#[use_wrapper(path = path::to::MyTableId)]`.
@@ -13,19 +12,16 @@ pub struct SpacetimeDSLColumn {
     pub setter: Option<Setter>,
 }
 
-
 pub enum SpacetimeDSLColumnMethods {
     ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex),
     ForIndex(SpacetimeDSLColumnMethodsForIndex),
 }
-
 
 pub struct SpacetimeDSLColumnMethodsForUniqueIndex {
     pub get_one_option: SpacetimeDSLMethod,
     pub update: Option<SpacetimeDSLMethod>,
     pub delete_one: SpacetimeDSLMethod,
 }
-
 
 pub struct SpacetimeDSLColumnMethodsForIndex {
     pub get_many: SpacetimeDSLMethod,

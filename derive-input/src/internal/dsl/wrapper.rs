@@ -25,7 +25,7 @@ impl WrapperType {
 
             if wrapper_type.is_some() {
                 return Err(Error::new_spanned(
-                    &attr,
+                    attr,
                     "Only one of `#[create_wrapper]` or `#[use_wrapper]` is allowed per column!",
                 ));
             }
@@ -35,17 +35,12 @@ impl WrapperType {
             match attr.meta.require_path_only() {
                 Ok(_) => {
                     if attr.meta.path().eq(&create_wrapper) {
-                        wrapper_struct_name_or_path = Some(
-                            format!(
-                                "{}{}",
-                                RenameRule::PascalCase
-                                    .apply_to_field(&rust_struct.name.to_string()),
-                                RenameRule::PascalCase.apply_to_field(
-                                    field.name.as_ref().expect("should have a name")
-                                ),
-                            )
-                            .into(),
-                        );
+                        wrapper_struct_name_or_path = Some(format!(
+                            "{}{}",
+                            RenameRule::PascalCase.apply_to_field(rust_struct.name.to_string()),
+                            RenameRule::PascalCase
+                                .apply_to_field(field.name.as_ref().expect("should have a name")),
+                        ));
                     } else {
                         return Err(syn::Error::new_spanned(
                             &attr.meta,
@@ -84,7 +79,7 @@ impl WrapperType {
                 let wrapper_impl = get_wrapper_impl(
                     &rust_struct.name,
                     &wrapper_struct_name_or_path,
-                    &wrapped_type_name_or_path.clone().into(),
+                    &wrapped_type_name_or_path,
                     &rust_field.name,
                 );
 
@@ -93,7 +88,7 @@ impl WrapperType {
 
                 wrapper_type = Some(WrapperType::Created(CreatedWrapper {
                     wrapper_struct_name: wrapper_struct_name_or_path,
-                    wrapped_type_name_or_path: wrapped_type_name_or_path,
+                    wrapped_type_name_or_path,
                     wrapper_impl,
                 }));
             } else {
@@ -103,8 +98,8 @@ impl WrapperType {
                     parse_str(&wrapped_type_name_or_path).expect("should be parseable");
 
                 wrapper_type = Some(WrapperType::Used(UsedWrapper {
-                    wrapper_struct_name_or_path: wrapper_struct_name_or_path,
-                    wrapped_type_name_or_path: wrapped_type_name_or_path,
+                    wrapper_struct_name_or_path,
+                    wrapped_type_name_or_path,
                 }));
             }
         }
@@ -117,12 +112,12 @@ impl WrapperType {
 fn get_wrapper_impl(
     struct_name: &Ident,
     wrapper_struct_name: &Ident,
-    wrapped_type_name_or_path: &Box<str>,
+    wrapped_type_name_or_path: &str,
     field_name: &Ident,
 ) -> TokenStream {
-    let wrapped_type: Type = parse_str(wrapped_type_name_or_path).expect(&format!(
-        "Expected to parse {wrapped_type_name_or_path} as Type in get_wrapper_impl!"
-    ));
+    let wrapped_type: Type = parse_str(wrapped_type_name_or_path).unwrap_or_else(|_| {
+        panic!("Expected to parse {wrapped_type_name_or_path} as Type in get_wrapper_impl!")
+    });
 
     let wrapper_struct_name_as_str = wrapper_struct_name.to_string();
 
@@ -131,7 +126,7 @@ fn get_wrapper_impl(
         pub struct #wrapper_struct_name {
             value: #wrapped_type,
         }
-        
+
         impl Default for #wrapper_struct_name {
             fn default() -> #wrapper_struct_name {
                 #wrapper_struct_name { value: Default::default() }
@@ -183,25 +178,23 @@ fn get_wrapper_impl(
 
 impl WrapperType {
     pub(in crate::internal) fn map_to_wrapped_type(value: &CreatedWrapper) -> Type {
-        parse2(value.wrapped_type_name_or_path.to_token_stream()).expect(&format!(
-            "Failed to parse {} as Ident in WrapperType::map_to_wrapped_type.",
-            &value
-                .wrapped_type_name_or_path
-                .to_token_stream()
-                .to_string()
-        ))
+        parse2(value.wrapped_type_name_or_path.to_token_stream()).unwrap_or_else(|_| {
+            panic!(
+                "Failed to parse {} as Ident in WrapperType::map_to_wrapped_type.",
+                &value
+                    .wrapped_type_name_or_path
+                    .to_token_stream()
+                    .to_string()
+            )
+        })
     }
 
     pub(in crate::internal) fn map(value: &WrapperType) -> Type {
         match value {
-            WrapperType::Created(w) => parse_str(&w.wrapper_struct_name.to_token_stream().to_string()).expect(&format!(
-                "Failed to parse {} as Ident in WrapperType::map_to_wrapper_type for WrapperType::Wrap.",
-                &w.wrapper_struct_name
-            )),
-            WrapperType::Used(w) => parse_str(&w.wrapper_struct_name_or_path.to_token_stream().to_string()).expect(&format!(
-                "Failed to parse {} as Path in WrapperType::map_to_wrapper_type for WrapperType::Wrapped.",
-                &w.wrapper_struct_name_or_path.to_token_stream().to_string()
-            )),
+            WrapperType::Created(w) => parse_str(&w.wrapper_struct_name.to_token_stream().to_string()).unwrap_or_else(|_| panic!("Failed to parse {} as Ident in WrapperType::map_to_wrapper_type for WrapperType::Wrap.",
+                &w.wrapper_struct_name)),
+            WrapperType::Used(w) => parse_str(&w.wrapper_struct_name_or_path.to_token_stream().to_string()).unwrap_or_else(|_| panic!("Failed to parse {} as Path in WrapperType::map_to_wrapper_type for WrapperType::Wrapped.",
+                &w.wrapper_struct_name_or_path.to_token_stream().to_string())),
         }
     }
 }

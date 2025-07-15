@@ -13,7 +13,7 @@ impl Getter {
     ) -> Getter {
         let column_name = &rust_field.name;
 
-        let method_name = get_getter_method_name(&column_name);
+        let method_name = get_getter_method_name(column_name);
         let return_type;
         let method_impl;
 

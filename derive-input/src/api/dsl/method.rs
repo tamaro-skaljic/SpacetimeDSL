@@ -1,7 +1,6 @@
 use proc_macro2::TokenStream;
 use syn::{Ident, Path};
 
-
 pub struct SpacetimeDSLMethod {
     pub doc_comment: String,
     pub trait_name: Ident,

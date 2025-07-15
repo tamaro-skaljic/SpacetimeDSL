@@ -1,12 +1,10 @@
 use syn::Ident;
 
-
 pub struct Index {
     pub name: Ident,
     pub is_unique: bool,
     pub index_type: IndexType,
 }
-
 
 #[derive(Debug)]
 pub enum IndexType {
