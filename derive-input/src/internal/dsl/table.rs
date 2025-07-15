@@ -102,12 +102,15 @@ impl SpacetimeDSLTable {
                     .eq("modified_at")
             {
                 let field_type = field.ty.to_token_stream().to_string();
-                // TODO: Allow Option<Timestamp> as modified_at column type
-                if !field_type.eq("Timestamp") && !field_type.eq("spacetimedb :: Timestamp") {
+                if !field_type.eq("Timestamp")
+                    && !field_type.eq("spacetimedb :: Timestamp")
+                    && !field_type.eq("Option < Timestamp >")
+                    && !field_type.eq("Option < spacetimedb :: Timestamp >")
+                {
                     return Err(syn::Error::new(
                         Span::call_site(),
                         format!(
-                            "A column with name `modified_at` should have the type `spacetimedb::Timestamp`! Found: {field_type}"
+                            "A column with name `modified_at` should have the type `spacetimedb::Timestamp` or `Option<spacetimedb::Timestamp>`! Found: {field_type}"
                         ),
                     ));
                 }

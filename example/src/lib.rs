@@ -155,7 +155,7 @@ pub mod component {
 
             created_at: Timestamp,
 
-            modified_at: Timestamp,
+            modified_at: Option<Timestamp>,
         }
 
         #[spacetimedsl::dsl(plural_name = identifier_references)]
@@ -168,7 +168,7 @@ pub mod component {
         }
 
         pub(crate) fn update_modified_at(identifier: &mut Identifier, new_value: Timestamp) {
-            identifier.modified_at = new_value;
+            identifier.modified_at = Some(new_value);
         }
     }
 
@@ -618,13 +618,9 @@ pub mod test {
             );
         }
 
-        if player_identifier
-            .get_modified_at()
-            .to_system_time()
-            .ne(&time)
-        {
+        if player_identifier.get_modified_at().is_some() {
             return Err(
-                "The create method should have set the modified_at column of the identifier!"
+                "The create method should have set the modified_at column of the identifier to None!"
                     .to_string(),
             );
         }
@@ -667,6 +663,7 @@ pub mod test {
 
         if player_reflection_identifier
             .get_modified_at()
+            .unwrap()
             .to_system_time()
             .ne(&time)
         {
@@ -698,15 +695,26 @@ pub mod test {
             }
         }
 
-        let player_reflection_position_id =
+        let player_reflection_position =
             match dsl.create_position(&player_reflection, 1, 1, 1, None) {
-                Ok(position) => position.get_id(),
+                Ok(position) => position,
                 Err(_) => {
                     return Err(format!(
                         "{player_reflection:?}: Should be able to add an newly created Position!"
                     ));
                 }
             };
+
+        if player_reflection_position
+            .get_modified_at()
+            .to_system_time()
+            .ne(&time)
+        {
+            return Err(
+                "The create method should have set the modified_at column of the identifier to the current time!"
+                    .to_string(),
+            );
+        }
 
         let player = match dsl.create_entity() {
             Ok(entity) => entity,
@@ -715,15 +723,20 @@ pub mod test {
             }
         };
 
-        let mut player_position =
-            match dsl.create_position(&player, 1, 1, -1, player_reflection_position_id.clone()) {
-                Ok(p) => p,
-                Err(_) => {
-                    return Err(format!(
-                        "{player:?}: Should be able to add an newly created Position!"
-                    ));
-                }
-            };
+        let mut player_position = match dsl.create_position(
+            &player,
+            1,
+            1,
+            -1,
+            player_reflection_position.get_id().clone(),
+        ) {
+            Ok(p) => p,
+            Err(_) => {
+                return Err(format!(
+                    "{player:?}: Should be able to add an newly created Position!"
+                ));
+            }
+        };
 
         player_position.set_x(0);
         player_position.set_y(0);
@@ -912,7 +925,7 @@ pub mod test {
             return Err("The count of Identifiers should be 0 because the player_reflection Entity was deleted and the foreign key has a Delete strategy!".to_string());
         }
         if dsl
-            .get_position_by_id(&player_reflection_position_id)
+            .get_position_by_id(&player_reflection_position.get_id())
             .expect("should exist")
             .get_entity_id()
             .value()
