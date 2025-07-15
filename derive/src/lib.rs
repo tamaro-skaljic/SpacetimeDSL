@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use quote::quote;
+use quote::{ToTokens, quote};
 use spacetimedsl_derive_input::api::Table;
 mod output;
 
@@ -15,22 +15,30 @@ pub fn dsl(args: TokenStream, item: TokenStream) -> TokenStream {
         let args = proc_macro2::TokenStream::from(args);
         let mut derive_input: syn::DeriveInput = syn::parse(item)?;
 
-        let mut should_generate_wrapper_types_and_accessors = true;
         // Add `derive(SpacetimeDSL)` only if it's not already in the attributes of the item.
         // If multiple `#[dsl]` attributes are applied to the same `struct` item,
         // this will ensure that we don't emit multiple conflicting implementations.
-        if !derive_input.attrs.contains(&derive_table_helper) {
+        let first_dsl_attribute = if !derive_input.attrs.contains(&derive_table_helper) {
             derive_input.attrs.push(derive_table_helper);
+            true
         } else {
-            should_generate_wrapper_types_and_accessors = false;
-        }
+            false
+        };
 
         let input = Table::try_parse(args, &derive_input)?;
 
         // Build the output, possibly using quasi-quotation
-        let output = output::output(&input, should_generate_wrapper_types_and_accessors)?;
+        let output = output::output(&input, first_dsl_attribute)?;
 
-        // TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/38
+        // Check if this is the last #[dsl] attribute by counting remaining ones
+        let is_last_dsl_attribute = is_last_dsl_attribute(&derive_input);
+
+        // If this is the last #[dsl] attribute, make all struct fields private
+        // We do this AFTER parsing and generating methods so the setter logic works correctly
+        if is_last_dsl_attribute {
+            make_struct_fields_private(&mut derive_input);
+        }
+
         Ok(proc_macro2::TokenStream::from_iter([
             quote!(#derive_input),
             output,
@@ -64,5 +72,37 @@ fn ok_or_compile_error<Res: Into<proc_macro::TokenStream>>(
     match f() {
         Ok(ok) => ok.into(),
         Err(e) => e.into_compile_error().into(),
+    }
+}
+
+/// Check if this is the last #[dsl] attribute on the struct.
+/// Each attribute removes itself before the macro function runs, so the last one
+/// will see 0 remaining DSL attributes in the attributes list.
+fn is_last_dsl_attribute(derive_input: &syn::DeriveInput) -> bool {
+    // Find all remaining dsl attributes similar to how integration.rs finds table attributes
+    let mut dsl_attr_count = 0;
+
+    for attr in &derive_input.attrs {
+        // Check for #[dsl(...)] attributes with require_list()
+        if let Ok(list) = attr.meta.require_list() {
+            let path_string = list.path.to_token_stream().to_string();
+            if path_string == "dsl" || path_string == "spacetimedsl :: dsl" {
+                dsl_attr_count += 1;
+            }
+        }
+    }
+
+    // If there are 0 dsl attributes left, this is the last one being processed
+    dsl_attr_count == 0
+}
+
+/// Make all struct fields private by setting their visibility to Inherited
+fn make_struct_fields_private(derive_input: &mut syn::DeriveInput) {
+    if let syn::Data::Struct(data_struct) = &mut derive_input.data {
+        if let syn::Fields::Named(fields) = &mut data_struct.fields {
+            for field in &mut fields.named {
+                field.vis = syn::Visibility::Inherited;
+            }
+        }
     }
 }

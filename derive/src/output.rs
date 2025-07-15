@@ -10,15 +10,12 @@ use spacetimedsl_derive_input::api::{
 };
 use syn::{Ident, Visibility, parse_str};
 
-pub(crate) fn output(
-    input: &Table,
-    should_generate_wrapper_types_and_accessors: bool,
-) -> syn::Result<TokenStream> {
+pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<TokenStream> {
     let struct_name = format_ident!("{}", &input.rust_struct.name.to_string());
     let mut wrapper_types = vec![];
 
     // Only generate wrapper types if this is the last DSL attribute to avoid conflicts
-    if should_generate_wrapper_types_and_accessors {
+    if first_dsl_attribute {
         for column in &input.columns {
             if let Some(WrapperType::Created(wrapper_type)) =
                 &column.spacetimedsl_column.wrapper_type
@@ -61,7 +58,7 @@ pub(crate) fn output(
     }
 
     for column in &input.columns {
-        if should_generate_wrapper_types_and_accessors {
+        if first_dsl_attribute {
             table_methods.push(getter(&column.spacetimedsl_column.getter)?);
 
             if let Some(data) = &column.spacetimedsl_column.setter {
