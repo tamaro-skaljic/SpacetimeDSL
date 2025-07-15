@@ -182,6 +182,7 @@ pub fn build_without_lifetime(method: &SpacetimeDSLMethod) -> syn::Result<TokenS
     // TODO: The trait doc comment should link to the method doc comment
     let method = quote! {
         pub trait #trait_name: #(#paths_of_traits_to_extend)+* {
+            #[allow(clippy::too_many_arguments)]
             #[doc=#doc_comment]
             fn #method_name(
                 &self,

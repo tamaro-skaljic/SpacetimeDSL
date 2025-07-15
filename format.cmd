@@ -2,10 +2,13 @@
 cargo fmt --all -- --check
 
 cd derive-input
-cargo clippy --all-targets --all-features || echo "Clippy warnings in derive-input"
+cargo clippy --all-targets --all-features
         
 cd ../derive
-cargo clippy --all-targets --all-features || echo "Clippy warnings in derive"
+cargo clippy --all-targets --all-features
         
 cd ..
-cargo clippy --all-targets --all-features || echo "Clippy warnings in main lib"
+cargo clippy --all-targets --all-features
+
+cd example
+cargo clippy --all-targets --all-features
