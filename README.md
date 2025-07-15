@@ -1383,15 +1383,11 @@ Get started by adding `#[spacetimedsl::dsl]` as well as it's helper attributes `
 
 ## Current limitations
 
-- The `#[spacetimedsl::dsl]` attribute macro must be above the `#[spacetimedb::table]` attribute macro.
+- A `#[spacetimedsl::dsl]` attribute macro must be directly above a `#[spacetimedb::table]` attribute macro.
 
 The following things aren't considered during code generation yet:
 
 - [Using IndexScanRangeBounds / FilterableValue](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21)
-
-The following SpacetimeDB features can't be used:
-
-- [More than one `#[table]` attribute macro on the same struct](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/10) (only the last one is processed)
 
 ## FAQ
 
