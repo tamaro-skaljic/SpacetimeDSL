@@ -374,8 +374,7 @@ pub mod test {
             position::{
                 CountOfAllPositionRows, CountOfAllUniquePositionRows, CreatePositionRow,
                 CreateUniquePositionRow, DeleteUniquePositionRowByXYZ, GetAllPositionRows,
-                GetAllUniquePositionRows, GetPositionRowOptionById,
-                GetUniquePositionRowOptionByXYZ, PositionId, UniquePositionId,
+                GetAllUniquePositionRows, GetPositionRowOptionById, PositionId, UniquePositionId,
                 UpdatePositionRowById, UpdateUniquePositionRowById,
             },
             test::{
@@ -779,7 +778,7 @@ pub mod test {
             }
         };
 
-        if dsl.create_unique_position(&player, 1, 2, 3).is_ok() {
+        if dsl.create_unique_position(&player, 3, 4, 1).is_ok() {
             return Err(format!(
                 "{player_reflection:?}: Shouldn't be able to add an newly created unique Position which does already exist!"
             ));
@@ -795,7 +794,7 @@ pub mod test {
         };
 
         unique_player_position.set_x(1);
-        unique_player_position.set_y(2);
+        unique_player_position.set_y(4);
         unique_player_position.set_z(3);
 
         if dsl
