@@ -156,6 +156,8 @@ The DSL automatically applies default values to them during creation:
 
 - `ctx.timestamp` for the `created_at` column.
 
+For `modified_at` columns, the DSL supports both `spacetimedb::Timestamp` and `Option<spacetimedb::Timestamp>` types, automatically setting the value to `ctx.timestamp` or `Some(ctx.timestamp)` respectively.
+
 SpacetimeDSL wraps a `&spacetimedb::ReducerContext` and provides a more ergonomic API for it, including added capabilities to reduce boilerplate code.
 
 Instances of the DSL can be created through the `spacetimedsl::dsl(ctx: &ReducerContext) -> DSL;` function, but you should do that only once at the beginning of every reducer.

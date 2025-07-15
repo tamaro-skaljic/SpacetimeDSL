@@ -442,9 +442,17 @@ fn process_columns_for_create_and_update_method(
                     .to_string()
                     .eq(&"modified_at")
                 {
-                    // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/37
+                    let column_type_str = internal_column
+                        .rust_field_type_name_or_path
+                        .to_token_stream()
+                        .to_string();
+                    let timestamp_value = if column_type_str.starts_with("Option") {
+                        quote! { None }
+                    } else {
+                        quote! { self.ctx().timestamp }
+                    };
                     constructor_arg = Some(quote! {
-                        let modified_at = self.ctx().timestamp;
+                        let modified_at = #timestamp_value;
                     });
                 }
                 return (
@@ -974,12 +982,27 @@ pub(in crate::internal) fn for_method(
                             };
                         });
 
-                    // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/37
                     let modified_at = match spacetimedsl_table.has_modified_at_column {
                         false => TokenStream::default(),
                         true => {
+                            let modified_at_column = internal_columns
+                                .iter()
+                                .find(|c| c.rust_field_name.to_string().eq("modified_at"))
+                                .expect("modified_at column should exist in internal columns");
+
+                            let column_type_str = modified_at_column
+                                .rust_field_type_name_or_path
+                                .to_token_stream()
+                                .to_string();
+
+                            let timestamp_value = if column_type_str.starts_with("Option") {
+                                quote! { Some(self.ctx().timestamp) }
+                            } else {
+                                quote! { self.ctx().timestamp }
+                            };
+
                             quote! {
-                                #singular_table_name.modified_at = self.ctx().timestamp;
+                                #singular_table_name.modified_at = #timestamp_value;
                             }
                         }
                     };
