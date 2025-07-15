@@ -70,10 +70,10 @@ jobs:
     - name: Run clippy on derive libraries
       run: |
         cd derive-input
-        cargo clippy --all-targets --all-features || echo "Clippy warnings in derive-input (allowed for now)"
+        cargo clippy --all-targets --all-features || echo "Clippy warnings in derive-input"
         
         cd ../derive
-        cargo clippy --all-targets --all-features || echo "Clippy warnings in derive (allowed for now)"
+        cargo clippy --all-targets --all-features || echo "Clippy warnings in derive"
         
         cd ..
-        cargo clippy --all-targets --all-features || echo "Clippy warnings in main lib (allowed for now)"
+        cargo clippy --all-targets --all-features || echo "Clippy warnings in main lib"
