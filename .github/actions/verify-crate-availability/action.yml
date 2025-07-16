@@ -1,0 +1,65 @@
+name: 'Verify Crate Availability'
+description: 'Verifies that a published crate is available on crates.io with retry logic'
+inputs:
+  crate-name:
+    description: 'Name of the crate to verify'
+    required: true
+  version:
+    description: 'Version of the crate to verify (e.g., 0.9.0)'
+    required: true
+  max-attempts:
+    description: 'Maximum number of verification attempts'
+    required: false
+    default: '5'
+  retry-delay:
+    description: 'Delay between retry attempts in seconds'
+    required: false
+    default: '3'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Verify crate availability
+      shell: bash
+      run: |
+        echo "Verifying ${{ inputs.crate-name }} version ${{ inputs.version }} is available..."
+        
+        # Set up variables for better readability
+        CRATE_NAME="${{ inputs.crate-name }}"
+        VERSION="${{ inputs.version }}"
+        MAX_ATTEMPTS="${{ inputs.max-attempts }}"
+        RETRY_DELAY="${{ inputs.retry-delay }}"
+        API_URL="https://crates.io/api/v1/crates/${CRATE_NAME}"
+        USER_AGENT="GitHub Actions (${{ github.server_url }}/${{ github.repository }})"
+        RESPONSE_FILE="/tmp/crate_response.json"
+        
+        # Use bash-native loop for better portability
+        i=1;
+        while [ $i -le $MAX_ATTEMPTS ]; do
+          # Use crates.io HTTP API with proper User-Agent header
+          response=$(curl -s --fail-with-body --max-time 10 -w "%{http_code}" -H "User-Agent: ${USER_AGENT}" \
+            "${API_URL}" -o "${RESPONSE_FILE}")
+          
+          if [ "$response" = "200" ]; then
+            # Check if the specific version exists in the versions array
+            if jq -e --arg version "${VERSION}" '.versions[] | select(.num == $version)' "${RESPONSE_FILE}" > /dev/null; then
+              echo "✅ ${CRATE_NAME} version ${VERSION} is available (attempt $i)"
+              exit 0
+            else
+              echo "⏳ Attempt $i: Crate exists but version ${VERSION} not found, retrying in ${RETRY_DELAY} second(s)..."
+            fi
+          else
+            echo "⏳ Attempt $i: API request failed (HTTP $response), retrying in ${RETRY_DELAY} second(s)..."
+          fi
+          
+          if [ $i -eq $MAX_ATTEMPTS ]; then
+            echo "❌ Failed to verify ${CRATE_NAME} version ${VERSION} availability after ${MAX_ATTEMPTS} attempts"
+            # Show the last response for debugging
+            if [ -f "${RESPONSE_FILE}" ]; then
+              echo "Last API response:"
+              cat "${RESPONSE_FILE}" | jq .
+            fi
+            exit 1
+          fi
+          sleep $RETRY_DELAY
+        done
