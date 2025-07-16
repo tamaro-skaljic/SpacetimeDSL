@@ -1,0 +1,141 @@
+name: Release SpacetimeDSL
+
+on:
+  push:
+    tags: [ 'v*' ]  # Trigger release only on version tags
+
+jobs:
+  # Verify tests passed before release
+  verify-tests:
+    name: Verify tests passed  
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check latest workflow run
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // Get the commit SHA for the tag
+          const tagRef = context.ref;
+          const tagSha = context.sha;
+          
+          console.log(`Checking tests for tag ${tagRef} (${tagSha})`);
+          
+          // Get recent workflow runs for the test workflow
+          const { data: workflows } = await github.rest.actions.listWorkflowRuns({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            workflow_id: 'test.yml',
+            head_sha: tagSha,
+            per_page: 1
+          });
+          
+          if (workflows.total_count === 0) {
+            console.log('⚠️ No test workflow found for this commit');
+            console.log('This might be expected if this is the first run after adding the tag trigger');
+            return;
+          }
+          
+          const latestRun = workflows.workflow_runs[0];
+          console.log(`Latest test run: ${latestRun.status} (${latestRun.conclusion})`);
+          
+          if (latestRun.conclusion !== 'success') {
+            console.log('❌ Tests did not pass - release cannot proceed');
+            process.exit(1);
+          }
+          
+          console.log('✅ Tests passed - release can proceed');
+
+  # Release job - publishes to crates.io when version tags are pushed
+  release:
+    name: Release to crates.io
+    runs-on: ubuntu-latest
+    needs: verify-tests
+    # Use GitHub environment for enhanced security and manual approval if desired
+    environment: release
+    permissions:
+      id-token: write  # Required for OIDC token exchange with crates.io
+      contents: read   # Required to read repository contents
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Extract version from tag
+      id: version
+      run: |
+        # Extract version from tag (e.g., refs/tags/v0.9.0 -> 0.9.0)
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Extracted version: $VERSION"
+        echo "🏷️ Release triggered by tag: ${{ github.ref }}"
+
+    - name: Install Rust toolchain
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+
+    # Authenticate with crates.io using OIDC/Trusted Publishing
+    - name: Authenticate with crates.io
+      id: auth
+      uses: rust-lang/crates-io-auth-action@v1
+
+    - name: Validate crate publishing readiness
+      run: |
+        cd derive-input
+        cargo publish --dry-run
+        cd ../derive
+        cargo publish --dry-run
+        cd ..
+        cargo publish --dry-run
+
+    # Publish derive-input crate first (no dependencies)
+    - name: Publish spacetimedsl_derive-input to crates.io
+      run: |
+        echo "Publishing spacetimedsl_derive-input..."
+        cd derive-input
+        cargo publish
+        echo "✅ spacetimedsl_derive-input published successfully"
+        cd ..
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+    # Verify derive-input crate is available before proceeding
+    - name: Verify spacetimedsl_derive-input availability
+      uses: ./.github/actions/verify-crate-availability
+      with:
+        crate-name: spacetimedsl_derive-input
+        version: ${{ steps.version.outputs.version }}
+
+    # Publish derive crate second (depends on derive-input)
+    - name: Publish spacetimedsl_derive to crates.io
+      run: |
+        echo "Publishing spacetimedsl_derive..."
+        cd derive
+        cargo publish
+        echo "✅ spacetimedsl_derive published successfully"
+        cd ..
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+    # Verify derive crate is available before proceeding
+    - name: Verify spacetimedsl_derive availability
+      uses: ./.github/actions/verify-crate-availability
+      with:
+        crate-name: spacetimedsl_derive
+        version: ${{ steps.version.outputs.version }}
+
+    # Publish main crate last (depends on derive)
+    - name: Publish spacetimedsl to crates.io
+      run: |
+        echo "Publishing spacetimedsl (main crate)..."
+        cargo publish
+        echo "✅ All crates published successfully! 🎉"
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+    # Final verification that main crate is available
+    - name: Verify spacetimedsl availability
+      uses: ./.github/actions/verify-crate-availability
+      with:
+        crate-name: spacetimedsl
+        version: ${{ steps.version.outputs.version }}
