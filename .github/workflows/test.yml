@@ -104,7 +104,7 @@ jobs:
       id: auth
       uses: rust-lang/crates-io-auth-action@v1
 
-    - name: cargo publish --dry-run for every crate to ensure everything is ready
+    - name: Validate crate publishing readiness
       run: |
         cd derive-input
         cargo publish --dry-run
