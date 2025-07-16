@@ -34,7 +34,8 @@ runs:
         RESPONSE_FILE="/tmp/crate_response.json"
         
         # Use bash-native loop for better portability
-        for ((i=1; i<=MAX_ATTEMPTS; i++)); do
+        i=1;
+        while [ $i -le $MAX_ATTEMPTS ]; do
           # Use crates.io HTTP API with proper User-Agent header
           response=$(curl -s -w "%{http_code}" -H "User-Agent: ${USER_AGENT}" \
             "${API_URL}" -o "${RESPONSE_FILE}")
