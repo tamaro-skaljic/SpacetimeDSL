@@ -21,14 +21,52 @@ jobs:
 
     - name: Install SpacetimeDB CLI
       run: |
-        # Install SpacetimeDB CLI with non-interactive approach using --yes flag
-        curl -sSf https://install.spacetimedb.com | sh -s -- --yes
+        # Function to attempt SpacetimeDB CLI installation
+        install_spacetimedb() {
+          echo "Attempting to install SpacetimeDB CLI..."
+          curl -sSf https://install.spacetimedb.com | sh -s -- --yes
+          return $?
+        }
         
-        # Add the correct path based on installation message
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        # Function to verify installation
+        verify_installation() {
+          if [ -f "$HOME/.local/bin/spacetime" ]; then
+            echo "✅ SpacetimeDB CLI installed successfully"
+            echo "$HOME/.local/bin" >> $GITHUB_PATH
+            ls -la "$HOME/.local/bin/" || echo "Local bin directory not found"
+            return 0
+          else
+            echo "❌ SpacetimeDB CLI installation failed - spacetime binary not found"
+            return 1
+          fi
+        }
         
-        # Verify installation worked
-        ls -la "$HOME/.local/bin/" || echo "Local bin directory not found"
+        # Retry logic: attempt installation up to 3 times
+        MAX_ATTEMPTS=3
+        ATTEMPT=1
+        
+        while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+          echo "📦 Installation attempt $ATTEMPT of $MAX_ATTEMPTS"
+          
+          if install_spacetimedb; then
+            echo "🔍 Verifying installation..."
+            if verify_installation; then
+              echo "🎉 SpacetimeDB CLI installation successful on attempt $ATTEMPT"
+              break
+            fi
+          fi
+          
+          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            echo "💥 Failed to install SpacetimeDB CLI after $MAX_ATTEMPTS attempts"
+            echo "Last error details:"
+            curl -v https://install.spacetimedb.com 2>&1 || echo "Could not reach installation server"
+            exit 1
+          fi
+          
+          echo "⏳ Waiting 5 seconds before retry..."
+          sleep 5
+          ATTEMPT=$((ATTEMPT + 1))
+        done
 
     - name: Build & test SpacetimeDSL
       run: |
