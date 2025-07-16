@@ -1,6 +1,4 @@
-# GitHub Actions Trusted Publishing Implementation Summary
-
-## 🚀 How Releases Work
+# 🚀 How Releases Work
 
 Releasing is incredibly simple:
 

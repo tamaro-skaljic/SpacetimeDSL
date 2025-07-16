@@ -4,6 +4,9 @@ inputs:
   crate-name:
     description: 'Name of the crate to verify'
     required: true
+  version:
+    description: 'Version of the crate to verify (e.g., 0.9.0)'
+    required: true
   max-attempts:
     description: 'Maximum number of verification attempts'
     required: false
@@ -11,7 +14,7 @@ inputs:
   retry-delay:
     description: 'Delay between retry attempts in seconds'
     required: false
-    default: '1'
+    default: '3'
 
 runs:
   using: 'composite'
@@ -19,17 +22,32 @@ runs:
     - name: Verify crate availability
       shell: bash
       run: |
-        echo "Verifying ${{ inputs.crate-name }} is available..."
+        echo "Verifying ${{ inputs.crate-name }} version ${{ inputs.version }} is available..."
         for i in $(seq 1 ${{ inputs.max-attempts }}); do
-          if cargo search "${{ inputs.crate-name }}" --limit 1 | grep -q "${{ inputs.crate-name }}"; then
-            echo "✅ ${{ inputs.crate-name }} is available (attempt $i)"
-            exit 0
-          else
-            echo "⏳ Attempt $i failed, retrying in ${{ inputs.retry-delay }} second(s)..."
-            if [ $i -eq ${{ inputs.max-attempts }} ]; then
-              echo "❌ Failed to verify ${{ inputs.crate-name }} availability after ${{ inputs.max-attempts }} attempts"
-              exit 1
+          # Use crates.io HTTP API with proper User-Agent header
+          response=$(curl -s -w "%{http_code}" -H "User-Agent: GitHub Actions (${{ github.server_url }}/${{ github.repository }})" \
+            "https://crates.io/api/v1/crates/${{ inputs.crate-name }}" -o /tmp/crate_response.json)
+          
+          if [ "$response" = "200" ]; then
+            # Check if the specific version exists in the versions array
+            if jq -e --arg version "${{ inputs.version }}" '.versions[] | select(.num == $version)' /tmp/crate_response.json > /dev/null; then
+              echo "✅ ${{ inputs.crate-name }} version ${{ inputs.version }} is available (attempt $i)"
+              exit 0
+            else
+              echo "⏳ Attempt $i: Crate exists but version ${{ inputs.version }} not found, retrying in ${{ inputs.retry-delay }} second(s)..."
             fi
-            sleep ${{ inputs.retry-delay }}
+          else
+            echo "⏳ Attempt $i: API request failed (HTTP $response), retrying in ${{ inputs.retry-delay }} second(s)..."
           fi
+          
+          if [ $i -eq ${{ inputs.max-attempts }} ]; then
+            echo "❌ Failed to verify ${{ inputs.crate-name }} version ${{ inputs.version }} availability after ${{ inputs.max-attempts }} attempts"
+            # Show the last response for debugging
+            if [ -f /tmp/crate_response.json ]; then
+              echo "Last API response:"
+              cat /tmp/crate_response.json | jq .
+            fi
+            exit 1
+          fi
+          sleep ${{ inputs.retry-delay }}
         done
