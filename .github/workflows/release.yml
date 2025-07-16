@@ -5,11 +5,52 @@ on:
     tags: [ 'v*' ]  # Trigger release only on version tags
 
 jobs:
-  # Release job - publishes to crates.io when pushing version tags
+  # Verify tests passed before release
+  verify-tests:
+    name: Verify tests passed  
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check latest workflow run
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // Get the commit SHA for the tag
+          const tagRef = context.ref;
+          const tagSha = context.sha;
+          
+          console.log(`Checking tests for tag ${tagRef} (${tagSha})`);
+          
+          // Get recent workflow runs for the test workflow
+          const { data: workflows } = await github.rest.actions.listWorkflowRuns({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            workflow_id: 'test.yml',
+            head_sha: tagSha,
+            per_page: 1
+          });
+          
+          if (workflows.total_count === 0) {
+            console.log('⚠️ No test workflow found for this commit');
+            console.log('This might be expected if this is the first run after adding the tag trigger');
+            return;
+          }
+          
+          const latestRun = workflows.workflow_runs[0];
+          console.log(`Latest test run: ${latestRun.status} (${latestRun.conclusion})`);
+          
+          if (latestRun.conclusion !== 'success') {
+            console.log('❌ Tests did not pass - release cannot proceed');
+            process.exit(1);
+          }
+          
+          console.log('✅ Tests passed - release can proceed');
+
+  # Release job - publishes to crates.io when version tags are pushed
   release:
     name: Release to crates.io
     runs-on: ubuntu-latest
-    # Use GitHub environment for enhanced security (optional but recommended)
+    needs: verify-tests
+    # Use GitHub environment for enhanced security and manual approval if desired
     environment: release
     permissions:
       id-token: write  # Required for OIDC token exchange with crates.io

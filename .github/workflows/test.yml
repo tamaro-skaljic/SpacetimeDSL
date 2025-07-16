@@ -3,6 +3,7 @@ name: Test SpacetimeDSL
 on:
   push:
     branches: [ main, develop ]
+    tags: [ 'v*' ]  # Also run tests when version tags are pushed
   pull_request:
     branches: [ main, develop ]
 
