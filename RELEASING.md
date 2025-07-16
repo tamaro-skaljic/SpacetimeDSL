@@ -14,5 +14,4 @@ git push origin v0.9.1
 # 3. GitHub Actions automatically:
 # - Runs all tests
 # - If tests pass, publishes all crates in correct order
-# - Sends email notifications when complete
 ```
