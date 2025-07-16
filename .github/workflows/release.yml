@@ -6,32 +6,29 @@ on:
   workflow_run:
     workflows: ["Test SpacetimeDSL"]
     types: [completed]
-    branches: [main]
 
 jobs:
   # Check that tests passed before proceeding with release
   check-tests:
     name: Check tests passed
     runs-on: ubuntu-latest
-    # Only run if this was triggered by a tag push AND tests completed successfully
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && (github.event.workflow_run.conclusion == 'success' || github.event_name == 'push')
+    # Only run for tag pushes OR successful workflow runs from main branch
+    if: |
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     
     steps:
     - name: Check test workflow status
       if: github.event_name == 'workflow_run'
       run: |
-        if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
-          echo "❌ Test workflow failed. Release aborted."
-          exit 1
-        else
-          echo "✅ Test workflow passed. Proceeding with release."
-        fi
+        echo "✅ Test workflow passed on branch: ${{ github.event.workflow_run.head_branch }}"
+        echo "Proceeding with release preparation."
     
     - name: Tag push detected
       if: github.event_name == 'push'
       run: |
         echo "🏷️ Release triggered by tag: ${{ github.ref }}"
-        echo "ℹ️ Tests will be verified by workflow dependency"
+        echo "ℹ️ Release will proceed immediately for tag pushes"
 
   # Release job - publishes to crates.io when pushing version tags
   release:
