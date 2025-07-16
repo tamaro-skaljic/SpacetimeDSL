@@ -1,0 +1,35 @@
+name: 'Verify Crate Availability'
+description: 'Verifies that a published crate is available on crates.io with retry logic'
+inputs:
+  crate-name:
+    description: 'Name of the crate to verify'
+    required: true
+  max-attempts:
+    description: 'Maximum number of verification attempts'
+    required: false
+    default: '5'
+  retry-delay:
+    description: 'Delay between retry attempts in seconds'
+    required: false
+    default: '1'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Verify crate availability
+      shell: bash
+      run: |
+        echo "Verifying ${{ inputs.crate-name }} is available..."
+        for i in $(seq 1 ${{ inputs.max-attempts }}); do
+          if cargo search "${{ inputs.crate-name }}" --limit 1 | grep -q "${{ inputs.crate-name }}"; then
+            echo "✅ ${{ inputs.crate-name }} is available (attempt $i)"
+            exit 0
+          else
+            echo "⏳ Attempt $i failed, retrying in ${{ inputs.retry-delay }} second(s)..."
+            if [ $i -eq ${{ inputs.max-attempts }} ]; then
+              echo "❌ Failed to verify ${{ inputs.crate-name }} availability after ${{ inputs.max-attempts }} attempts"
+              exit 1
+            fi
+            sleep ${{ inputs.retry-delay }}
+          fi
+        done
