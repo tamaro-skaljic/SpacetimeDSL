@@ -27,7 +27,7 @@ jobs:
       matrix:
         include:
         - language: rust
-          build-mode: manual
+          build-mode: none
         # Add other languages if your repository contains them
         # - language: javascript-typescript
         #   build-mode: none
@@ -48,29 +48,13 @@ jobs:
         # For more details on CodeQL's query suites, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
         # queries: security-extended,security-and-quality
 
-    # For Rust, we need to manually build the project since it's a compiled language
+    # For Rust with build-mode: none, CodeQL handles the build automatically
     - name: Install Rust toolchain
       if: matrix.language == 'rust'
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         toolchain: stable
         target: wasm32-unknown-unknown
-
-    - name: Build Rust project
-      if: matrix.language == 'rust'
-      run: |
-        # Build all workspace crates
-        cargo build --release --all-features
-        
-        # Build derive-input crate
-        cd derive-input
-        cargo build --release --all-features
-        cd ..
-        
-        # Build derive crate
-        cd derive
-        cargo build --release --all-features
-        cd ..
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
