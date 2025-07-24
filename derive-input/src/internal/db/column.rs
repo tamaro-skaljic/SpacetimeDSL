@@ -16,10 +16,21 @@ impl SpacetimeDBColumn {
 
         let is_primary_key = column_name.eq(primary_key_column_name);
 
-        if is_primary_key && rust_field.name.to_string().ne(&"id") {
+        if is_primary_key
+            && column_name
+                .to_string()
+                .starts_with(&format!("{}", &spacetimedb_table.singular_name.to_string()))
+        {
             return Err(Error::new(
                 Span::call_site(),
-                "A #[primary_key] column must be named `id`!",
+                format!(
+                    "A #[primary_key] column must not be prefixed with the table's name! Use `{}` instead of `{}`.",
+                    column_name
+                        .to_string()
+                        .strip_prefix(&spacetimedb_table.singular_name.to_string())
+                        .unwrap_or("id"),
+                    column_name.to_string(),
+                ),
             ));
         }
 

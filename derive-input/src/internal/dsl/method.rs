@@ -237,14 +237,14 @@ impl SpacetimeDSLTableMethods {
                 &OneOrMultiple::One,
                 spacetimedb_table,
                 spacetimedsl_table,
-                columns,
+                primary_key_column,
             ));
 
             execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted = Some(for_referenced_by(
                 &OneOrMultiple::Multiple,
                 spacetimedb_table,
                 spacetimedsl_table,
-                columns,
+                primary_key_column,
             ));
         }
 
@@ -595,6 +595,8 @@ pub(in crate::internal) fn for_method(
         RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
     let plural_table_name = &spacetimedsl_table.plural_name;
 
+    let primary_key_column_name = &primary_key_column.rust_field_name;
+    let primary_key_column_name_as_string = &primary_key_column.rust_field_name.to_string();
     let primary_key_column_type = &primary_key_column.rust_field_type_name_or_path;
 
     let one = OneOrMultiple::One;
@@ -668,6 +670,7 @@ pub(in crate::internal) fn for_method(
                 singular_table_name,
                 spacetimedb_table,
                 internal_columns,
+                primary_key_column_name,
             );
 
             let use_itertools = if !multi_column_index_checks.is_empty() {
@@ -685,6 +688,7 @@ pub(in crate::internal) fn for_method(
                 paths_of_traits_to_extend,
                 None,
                 &OneOrMultiple::One,
+                primary_key_column,
             );
             paths_of_traits_to_extend = res.0;
             let reference_integrity_checks = res.1;
@@ -958,6 +962,7 @@ pub(in crate::internal) fn for_method(
                         singular_table_name,
                         spacetimedb_table,
                         internal_columns,
+                        primary_key_column_name,
                     );
 
                     let mut row_value_getters = vec![];
@@ -1027,6 +1032,7 @@ pub(in crate::internal) fn for_method(
                         paths_of_traits_to_extend,
                         Some((&column_names_and_row_values, &index_columns)),
                         &one_or_multiple,
+                        primary_key_column,
                     );
                     paths_of_traits_to_extend = res.0;
                     let reference_integrity_checks = res.1;
@@ -1042,7 +1048,7 @@ pub(in crate::internal) fn for_method(
                     };
 
                     let index_name = match is_multi_column_index {
-                        true => &format_ident!("id"),
+                        true => &format_ident!("{primary_key_column_name}"),
                         false => index_name,
                     };
 
@@ -1283,7 +1289,7 @@ pub(in crate::internal) fn for_method(
 
                                 let primary_key_values_of_rows_to_delete: Vec<#primary_key_column_type> = #method_impl_prefix
                                     .filter(#index_name)
-                                    .map(|row| row.id)
+                                    .map(|row| row.#primary_key_column_name)
                                     .collect();
 
                                 if primary_key_values_of_rows_to_delete.is_empty() {
@@ -1316,7 +1322,7 @@ pub(in crate::internal) fn for_method(
                                         primary_key_value_of_a_row_to_delete,
                                         spacetimedsl::DeletionResultEntry {
                                             table_name: #singular_table_name_as_string.into(),
-                                            column_name: "id".into(),
+                                            column_name: #primary_key_column_name_as_string.into(),
                                             strategy: spacetimedsl::OnDeleteStrategy::Delete,
                                             row_value: format!("{}", #wrapper_type_struct_name_or_path::new(primary_key_value_of_a_row_to_delete.clone())).into(),
                                             child_entries: vec![],
@@ -1533,7 +1539,7 @@ pub(in crate::internal) fn for_method(
                                                     column_names_and_row_values: format!(#column_names_and_row_values, #(#row_value_getters),*).into()
                                                 }
                                             ),
-                                            Some(row_to_delete) => row_to_delete.id,
+                                            Some(row_to_delete) => row_to_delete.#primary_key_column_name,
                                         };
                                     };
                                 }
@@ -1562,7 +1568,7 @@ pub(in crate::internal) fn for_method(
                                                     column_names_and_row_values: format!(#column_names_and_row_values, &#index_name).into()
                                                 }
                                             ),
-                                            Some(row_to_delete) => row_to_delete.id,
+                                            Some(row_to_delete) => row_to_delete.#primary_key_column_name,
                                         };
                                     };
                                 }
@@ -1594,7 +1600,7 @@ pub(in crate::internal) fn for_method(
                             let map_primary_key_value_of_a_row_to_delete_to_deletion_result_entry = quote! {
                                 let mut deletion_result_entry = spacetimedsl::DeletionResultEntry {
                                     table_name: #singular_table_name_as_string.into(),
-                                    column_name: "id".into(),
+                                    column_name: #primary_key_column_name_as_string.into(),
                                     strategy: spacetimedsl::OnDeleteStrategy::Delete,
                                     row_value: format!("{}", #wrapper_type_struct_name_or_path::new(primary_key_value_of_a_row_to_delete.clone())).into(),
                                     child_entries: vec![],
@@ -1606,7 +1612,7 @@ pub(in crate::internal) fn for_method(
                                         .ctx()
                                         .db()
                                         .#singular_table_name()
-                                        .id()
+                                        .#primary_key_column_name()
                                         .delete(primary_key_value_of_a_row_to_delete) {
                                     false => {
                                         return Err(
@@ -1804,6 +1810,7 @@ fn reference_integrity_checks_on_create_or_update(
     mut paths_of_traits_to_extend: Vec<Path>,
     column_names_and_row_values_and_column_names: Option<(&String, &Vec<Ident>)>,
     one_or_multiple: &OneOrMultiple,
+    primary_key_column: &InternalColumn,
 ) -> (Vec<Path>, Vec<TokenStream>) {
     let mut reference_integrity_checks = vec![];
 
@@ -1828,15 +1835,25 @@ fn reference_integrity_checks_on_create_or_update(
             "{}",
             RenameRule::PascalCase.apply_to_field(referenced_table_name.to_string())
         );
-        let get_row_of_referenced_table_by_primary_key_trait_name =
-            format_ident!("Get{referenced_table_name_pascal_case}RowOptionById");
-        let get_row_of_referenced_table_by_primary_key_method_name =
-            format_ident!("get_{referenced_table_name}_by_id");
+
+        let primary_key_column_name_of_referenced_table = &foreign_key.primary_key_column_name;
+        let primary_key_column_name_of_referenced_table_pascal_case = format_ident!(
+            "{}",
+            RenameRule::PascalCase
+                .apply_to_field(primary_key_column_name_of_referenced_table.to_string())
+        );
+        let get_row_of_referenced_table_by_primary_key_trait_name = format_ident!(
+            "Get{referenced_table_name_pascal_case}RowOptionBy{primary_key_column_name_of_referenced_table_pascal_case}"
+        );
+        let get_row_of_referenced_table_by_primary_key_method_name = format_ident!(
+            "get_{referenced_table_name}_by_{primary_key_column_name_of_referenced_table}"
+        );
 
         let referencing_table_name = &spacetimedb_table.singular_name;
         let referencing_table_name_as_string = referencing_table_name.to_string();
         let referencing_table_column_name = &column.rust_field_name;
         let referencing_table_column_name_as_string = referencing_table_column_name.to_string();
+        let primary_key_column_name_of_referencing_table = &primary_key_column.rust_field_name;
         let referencing_table_column_getter_name =
             format_ident!("get_{referencing_table_column_name}");
 
@@ -1900,9 +1917,12 @@ fn reference_integrity_checks_on_create_or_update(
                     },
                 };
 
+                let getter_name =
+                    format_ident!("get_{primary_key_column_name_of_referencing_table}");
+
                 quote! {
                     if #field_name_for_found_value.is_none() {
-                        #field_name_for_found_value = match self.ctx().db().#referencing_table_name().id().find(#referencing_table_name.get_id().value()) {
+                        #field_name_for_found_value = match self.ctx().db().#referencing_table_name().#primary_key_column_name_of_referencing_table().find(#referencing_table_name.#getter_name().value()) {
                             Some(#referencing_table_name) => Some(#referencing_table_name),
                             None => {
                                 return Err(
@@ -1962,6 +1982,7 @@ fn multi_column_index_checks(
     singular_table_name: &Ident,
     spacetimedb_table: &SpacetimeDBTable,
     internal_columns: &Vec<InternalColumn>,
+    primary_key_column_name: &Ident,
 ) -> Vec<TokenStream> {
     let mut multi_column_index_checks = vec![];
     let singular_table_name_as_string = singular_table_name.to_string();
@@ -2063,7 +2084,7 @@ fn multi_column_index_checks(
             }
             Action::Update => {
                 quote! {
-                    if #field_name_for_found_value.id.ne(&#singular_table_name.id) {
+                    if #field_name_for_found_value.#primary_key_column_name.ne(&#singular_table_name.#primary_key_column_name) {
                         #return_unique_constraint_violation_error
                     }
                 }
@@ -2136,7 +2157,7 @@ fn for_referenced_by(
     one_or_multiple: &OneOrMultiple,
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
-    columns: &[Column],
+    primary_key_column: &InternalColumn,
 ) -> SpacetimeDSLMethod {
     let singular_table_name = &spacetimedb_table.singular_name;
     let singular_table_name_pascal_case = format_ident!(
@@ -2144,12 +2165,7 @@ fn for_referenced_by(
         RenameRule::PascalCase.apply_to_field(spacetimedb_table.singular_name.to_string())
     );
 
-    let primary_key_column = columns
-        .iter()
-        .find(|c| c.rust_field.name.to_string().eq(&"id"))
-        .expect("should have a primary key");
-
-    let primary_key_column_type = &primary_key_column.rust_field.type_name_or_path;
+    let primary_key_column_type = &primary_key_column.rust_field_type_name_or_path;
 
     let doc_comment;
     let trait_name =
@@ -2539,6 +2555,8 @@ fn get_on_delete_strategy_implementation(
             .#singular_table_name()
     };
 
+    let primary_key_column_name = &primary_key_column.rust_field_name;
+
     let singular_table_name_as_string = singular_table_name.to_string();
 
     let mut strategy_before_all = TokenStream::default();
@@ -2583,7 +2601,7 @@ fn get_on_delete_strategy_implementation(
                 table_name: #singular_table_name_as_string.into(),
                 column_name: #column_name_as_string.into(),
                 strategy: #on_delete_strategy,
-                row_value: format!("{}", #wrapper_type_struct_name_or_path::new(id.clone())).into(),
+                row_value: format!("{}", #wrapper_type_struct_name_or_path::new(#primary_key_column_name.clone())).into(),
                 child_entries,
             }
         };
@@ -2613,7 +2631,7 @@ fn get_on_delete_strategy_implementation(
                         error = true;
 
                         let child_entries = vec![];
-                        let id = &row.id;
+                        let #primary_key_column_name = &row.#primary_key_column_name;
                         #create_entry_and_add_it_to_entries
                     },
                 ));
@@ -2626,19 +2644,22 @@ fn get_on_delete_strategy_implementation(
                         &row_finder,
                         quote! {
                             let child_entries = vec![];
-                            let id = &row.id;
+                            let #primary_key_column_name = &row.#primary_key_column_name;
                             #create_entry_and_add_it_to_entries
 
                             #spacetimedb_call_prefix
-                                .id()
-                                .delete(row.id);
+                                .#primary_key_column_name()
+                                .delete(row.#primary_key_column_name);
                         },
                     )),
                     true => {
+                        let format_str = format!(
+                            "{primary_key_column_name} should exist in child_entries_by_primary_key_value_of_row_to_delete."
+                        );
                         let create_entries_and_add_them_to_entries = quote! {
                             for (primary_key_value_of_a_row_of_another_table_to_delete, primary_key_values_of_rows_to_delete) in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete {
-                                for id in &primary_key_values_of_rows_to_delete {
-                                    let child_entries = child_entries_by_primary_key_value_of_row_to_delete.remove(&id).expect(&format!("{id} should exist in child_entries_by_primary_key_value_of_row_to_delete."));
+                                for #primary_key_column_name in &primary_key_values_of_rows_to_delete {
+                                    let child_entries = child_entries_by_primary_key_value_of_row_to_delete.remove(&#primary_key_column_name).expect(&#format_str);
                                     #create_entry_and_add_it_to_entries
                                 }
                             }
@@ -2704,17 +2725,17 @@ fn get_on_delete_strategy_implementation(
                         };
 
                         let strategy_for_each_row = quote! {
-                            if !child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.id) {
-                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).expect(&format!("{primary_key_value_of_a_row_of_another_table_to_delete} should exist in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.")).push(row.id);
-                                child_entries_by_primary_key_value_of_row_to_delete.insert(row.id, vec![]);
+                            if !child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.#primary_key_column_name) {
+                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).expect(&format!("{primary_key_value_of_a_row_of_another_table_to_delete} should exist in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.")).push(row.#primary_key_column_name);
+                                child_entries_by_primary_key_value_of_row_to_delete.insert(row.#primary_key_column_name, vec![]);
                             }
                         };
 
                         let delete_many_impl = quote! {
-                            for id in &primary_key_values_of_rows_to_delete {
+                            for #primary_key_column_name in &primary_key_values_of_rows_to_delete {
                                 if !#spacetimedb_call_prefix
-                                    .id()
-                                    .delete(id) {
+                                    .#primary_key_column_name()
+                                    .delete(#primary_key_column_name) {
                                         #on_error_handler
                                     }
                             }
@@ -2756,12 +2777,12 @@ fn get_on_delete_strategy_implementation(
                         row.#column_name = 0;
 
                         let child_entries = vec![];
-                        let id = &row.id;
+                        let #primary_key_column_name = &row.#primary_key_column_name;
                         #create_entry_and_add_it_to_entries
 
                         // FIXME: try_update instead of update
                         // FIXME: on error return Err(spacetimedsl::SpacetimeDSLError);
-                        #spacetimedb_call_prefix.id().update(row);
+                        #spacetimedb_call_prefix.#primary_key_column_name().update(row);
                     },
                 ));
             }
@@ -2772,7 +2793,7 @@ fn get_on_delete_strategy_implementation(
                     &row_finder,
                     quote! {
                         let child_entries = vec![];
-                        let id = &row.id;
+                        let #primary_key_column_name = &row.#primary_key_column_name;
                         #create_entry_and_add_it_to_entries
                     },
                 ));
