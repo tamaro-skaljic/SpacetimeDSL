@@ -19,7 +19,7 @@ impl SpacetimeDBColumn {
         if is_primary_key
             && column_name
                 .to_string()
-                .starts_with(&format!("{}", &spacetimedb_table.singular_name.to_string()))
+                .starts_with(&spacetimedb_table.singular_name.to_string())
         {
             return Err(Error::new(
                 Span::call_site(),
@@ -29,7 +29,7 @@ impl SpacetimeDBColumn {
                         .to_string()
                         .strip_prefix(&spacetimedb_table.singular_name.to_string())
                         .unwrap_or("id"),
-                    column_name.to_string(),
+                    column_name,
                 ),
             ));
         }
