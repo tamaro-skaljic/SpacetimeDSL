@@ -4,6 +4,7 @@ use syn::{Ident, Path};
 pub struct ForeignKey {
     pub path: Path,
     pub table_name: Ident,
+    pub primary_key_column_name: Ident,
     pub on_delete_strategy: OnDeleteStrategy,
 }
 

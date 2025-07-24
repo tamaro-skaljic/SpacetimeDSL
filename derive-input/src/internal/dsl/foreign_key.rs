@@ -3,7 +3,7 @@ use crate::api::dsl::foreign_key::{ForeignKey, OnDeleteStrategy};
 use crate::internal::dsl::{on_delete, path, table};
 use spacetime_bindings_macro_input::match_meta;
 use spacetime_bindings_macro_input::sats::SatsField;
-use spacetime_bindings_macro_input::sym::{index, primary_key, unique};
+use spacetime_bindings_macro_input::sym::{column, index, primary_key, unique};
 use spacetime_bindings_macro_input::util::check_duplicate;
 use syn::meta::ParseNestedMeta;
 use syn::{Ident, Meta, Path};
@@ -44,6 +44,7 @@ impl ForeignKey {
 
             let mut path_value: Option<Path> = None;
             let mut table_name: Option<Ident> = None;
+            let mut primary_key_column_name: Option<Ident> = None;
             let mut on_delete_strategy = None;
 
             attr.parse_nested_meta(|meta| {
@@ -56,6 +57,10 @@ impl ForeignKey {
                         check_duplicate(&table_name, &meta)?;
                         table_name = Some(meta.value()?.parse()?);
                     }
+                    column => {
+                        check_duplicate(&primary_key_column_name, &meta)?;
+                        primary_key_column_name = Some(meta.value()?.parse()?);
+                    }
                     on_delete => {
                         check_duplicate(&on_delete_strategy, &meta)?;
                         on_delete_strategy = Some(OnDeleteStrategy::try_parse(&meta, &attr.meta)?);
@@ -67,13 +72,19 @@ impl ForeignKey {
             let path_value = path_value
             .ok_or_else(|| syn::Error::new_spanned(
                 &attr.meta,
-                "PathToTable must be set in `#[foreign_key(path = PathToTable)]`, e.g. `path = crate::path::to::my::table`.",
+                "PathToTable must be set in `#[foreign_key(path = PathToTable)]`, e.g. `path = crate::path::to::my::table`. Supply the path to the referenced table.",
             ))?;
 
             let table_name = table_name
             .ok_or_else(|| syn::Error::new_spanned(
                 &attr.meta,
-                "TableName must be set in `#[foreign_key(table = TableName)]`, e.g. `table = my_table`.",
+                "TableName must be set in `#[foreign_key(table = TableName)]`, e.g. `table = my_table`. Supply the name of the referenced table.",
+            ))?;
+
+            let primary_key_column_name = primary_key_column_name
+            .ok_or_else(|| syn::Error::new_spanned(
+                &attr.meta,
+                "PrimaryKeyColumnName must be set in `#[foreign_key(column = PrimaryKeyColumnName)]`, e.g. `column = my_column`. Supply the name of the primary key column in the referenced table.",
             ))?;
 
             let on_delete_strategy = on_delete_strategy.ok_or_else(|| {
@@ -86,6 +97,7 @@ impl ForeignKey {
             foreign_key_value = Some(ForeignKey {
                 path: path_value,
                 table_name,
+                primary_key_column_name,
                 on_delete_strategy,
             });
         }
