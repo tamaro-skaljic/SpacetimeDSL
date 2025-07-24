@@ -1,6 +1,6 @@
 @echo off
 
-cd SpacetimeDSL\example
+cd example
 
 echo Expanding example library ...
 echo.
