@@ -5,7 +5,7 @@ inputs:
     description: 'Name of the crate to verify'
     required: true
   version:
-    description: 'Version of the crate to verify (e.g., 0.9.0)'
+    description: 'Version of the crate to verify (e.g., 0.10.0)'
     required: true
   max-attempts:
     description: 'Maximum number of verification attempts'
