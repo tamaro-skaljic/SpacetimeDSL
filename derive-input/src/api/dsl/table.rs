@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use syn::Ident;
 
 use super::reference::ReferencingTable;
@@ -10,6 +12,7 @@ pub struct SpacetimeDSLTable {
     pub has_created_at_column: bool,
     pub has_modified_at_column: bool,
     pub referencing_tables: Vec<ReferencingTable>,
+    pub compile_error_checks: HashSet<Ident>,
 }
 
 #[derive(Debug, Clone)]

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::SpacetimeDSLTable;
@@ -143,6 +145,7 @@ impl SpacetimeDSLTable {
                 has_created_at_column,
                 has_modified_at_column,
                 referencing_tables,
+                compile_error_checks: HashSet::new(),
             },
         ))
     }

@@ -34,10 +34,10 @@ pub(in crate::internal) fn try_parse(
         &spacetimedsl_table,
     )?;
 
-    let spacetimedsl_methods = SpacetimeDSLTableMethods::try_parse(
+    let (spacetimedsl_methods, spacetimedsl_table) = SpacetimeDSLTableMethods::try_parse(
         &rust_struct,
         &spacetimedb_table,
-        &spacetimedsl_table,
+        spacetimedsl_table,
         &columns,
         &internal_columns,
         &internal_primary_key_column,

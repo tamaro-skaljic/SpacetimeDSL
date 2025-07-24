@@ -193,16 +193,16 @@ impl SpacetimeDSLTableMethods {
     pub(in crate::internal) fn try_parse(
         rust_struct: &RustStruct,
         spacetimedb_table: &SpacetimeDBTable,
-        spacetimedsl_table: &SpacetimeDSLTable,
+        mut spacetimedsl_table: SpacetimeDSLTable,
         columns: &[Column],
         internal_columns: &Vec<InternalColumn>,
         primary_key_column: &InternalColumn,
-    ) -> syn::Result<SpacetimeDSLTableMethods> {
+    ) -> syn::Result<(SpacetimeDSLTableMethods, SpacetimeDSLTable)> {
         let create = for_method(
             DSLMethod::Create,
             rust_struct,
             spacetimedb_table,
-            spacetimedsl_table,
+            &spacetimedsl_table,
             internal_columns,
             primary_key_column,
         );
@@ -211,7 +211,7 @@ impl SpacetimeDSLTableMethods {
             DSLMethod::GetAll,
             rust_struct,
             spacetimedb_table,
-            spacetimedsl_table,
+            &spacetimedsl_table,
             internal_columns,
             primary_key_column,
         );
@@ -220,7 +220,7 @@ impl SpacetimeDSLTableMethods {
             DSLMethod::GetCount,
             rust_struct,
             spacetimedb_table,
-            spacetimedsl_table,
+            &spacetimedsl_table,
             internal_columns,
             primary_key_column,
         );
@@ -236,14 +236,14 @@ impl SpacetimeDSLTableMethods {
             execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted = Some(for_referenced_by(
                 &OneOrMultiple::One,
                 spacetimedb_table,
-                spacetimedsl_table,
+                &mut spacetimedsl_table,
                 primary_key_column,
             ));
 
             execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted = Some(for_referenced_by(
                 &OneOrMultiple::Multiple,
                 spacetimedb_table,
-                spacetimedsl_table,
+                &mut spacetimedsl_table,
                 primary_key_column,
             ));
         }
@@ -292,6 +292,7 @@ impl SpacetimeDSLTableMethods {
                             referenced_table_name,
                             &columns_with_foreign_key,
                             primary_key_column,
+                            &mut spacetimedsl_table,
                         )
                     );
                     execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted.push(
@@ -302,6 +303,7 @@ impl SpacetimeDSLTableMethods {
                             referenced_table_name,
                             &columns_with_foreign_key,
                             primary_key_column,
+                            &mut spacetimedsl_table,
                         )
                     );
                 });
@@ -316,7 +318,7 @@ impl SpacetimeDSLTableMethods {
                         DSLMethod::GetMany(multi_column_index),
                         rust_struct,
                         spacetimedb_table,
-                        spacetimedsl_table,
+                        &spacetimedsl_table,
                         internal_columns,
                         primary_key_column,
                     );
@@ -324,7 +326,7 @@ impl SpacetimeDSLTableMethods {
                         DSLMethod::DeleteMany(multi_column_index),
                         rust_struct,
                         spacetimedb_table,
-                        spacetimedsl_table,
+                        &spacetimedsl_table,
                         internal_columns,
                         primary_key_column,
                     );
@@ -341,7 +343,7 @@ impl SpacetimeDSLTableMethods {
                         DSLMethod::GetOne(multi_column_index),
                         rust_struct,
                         spacetimedb_table,
-                        spacetimedsl_table,
+                        &spacetimedsl_table,
                         internal_columns,
                         primary_key_column,
                     );
@@ -352,7 +354,7 @@ impl SpacetimeDSLTableMethods {
                             DSLMethod::Update(multi_column_index),
                             rust_struct,
                             spacetimedb_table,
-                            spacetimedsl_table,
+                            &spacetimedsl_table,
                             internal_columns,
                             primary_key_column,
                         )),
@@ -362,7 +364,7 @@ impl SpacetimeDSLTableMethods {
                         DSLMethod::DeleteOne(multi_column_index),
                         rust_struct,
                         spacetimedb_table,
-                        spacetimedsl_table,
+                        &spacetimedsl_table,
                         internal_columns,
                         primary_key_column,
                     );
@@ -389,7 +391,7 @@ impl SpacetimeDSLTableMethods {
             multi_column_indices,
         };
 
-        Ok(methods)
+        Ok((methods, spacetimedsl_table))
     }
 }
 
@@ -2156,7 +2158,7 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_check(
 fn for_referenced_by(
     one_or_multiple: &OneOrMultiple,
     spacetimedb_table: &SpacetimeDBTable,
-    spacetimedsl_table: &SpacetimeDSLTable,
+    spacetimedsl_table: &mut SpacetimeDSLTable,
     primary_key_column: &InternalColumn,
 ) -> SpacetimeDSLMethod {
     let singular_table_name = &spacetimedb_table.singular_name;
@@ -2242,6 +2244,8 @@ fn for_referenced_by(
         }
     };
 
+    let mut compile_error_check_usages = vec![];
+
     let mut strategy_calls = vec![];
 
     for referencing_table in &spacetimedsl_table.referencing_tables {
@@ -2253,6 +2257,22 @@ fn for_referenced_by(
         );
 
         let referencing_table_path = &referencing_table.path;
+
+        let compile_error_check = get_referenced_table_compile_error_check(
+            &referencing_table_name_pascal_case,
+            &singular_table_name_pascal_case,
+        );
+        spacetimedsl_table
+            .compile_error_checks
+            .insert(compile_error_check.clone());
+
+        let compile_error_check = get_referencing_table_compile_error_check(
+            &referencing_table_name_pascal_case,
+            &singular_table_name_pascal_case,
+        );
+        compile_error_check_usages.push(quote! {
+            use #referencing_table_path::#compile_error_check;
+        });
 
         let referencing_table_trait_name = get_referencing_table_trait_name(
             one_or_multiple,
@@ -2309,6 +2329,7 @@ fn for_referenced_by(
     }
 
     let function_impl = quote! {
+        #(#compile_error_check_usages)*
 
         #create_entries
 
@@ -2340,10 +2361,19 @@ fn for_foreign_key(
     referenced_table_name: &syn::Ident,
     columns_with_foreign_key: &Vec<&&Column>,
     primary_key_column: &InternalColumn,
+    spacetimedsl_table: &mut SpacetimeDSLTable,
 ) -> SpacetimeDSLMethod {
     let first_foreign_key_column = columns_with_foreign_key
         .first()
         .expect("there should be a column with foreign key");
+
+    let referenced_table_path = first_foreign_key_column
+        .spacetimedsl_column
+        .foreign_key
+        .as_ref()
+        .expect("Should have foreign key")
+        .path
+        .to_token_stream();
 
     let referenced_table_primary_key_column_type =
         &first_foreign_key_column.rust_field.type_name_or_path;
@@ -2363,6 +2393,21 @@ fn for_foreign_key(
             // TODO: If Option is supported, the type of the primary key values needs to be without option and it's allowed to have both, option and non-option columns. There is already a function to remove option from the type representation, search for `Option <`` in the code.
             panic!(
                 "All foreign key columns which reference the same primary key of another table should have the same type"
+            );
+        }
+
+        if column_with_foreign_key
+            .spacetimedsl_column
+            .foreign_key
+            .as_ref()
+            .expect("should have a foreign key")
+            .path
+            .to_token_stream()
+            .to_string()
+            .ne(&referenced_table_path.to_string())
+        {
+            panic!(
+                "All foreign key columns which reference the same primary key of another table should have the same path"
             );
         }
 
@@ -2514,7 +2559,27 @@ fn for_foreign_key(
         })
         .collect_vec();
 
+    let compile_error_check = get_referencing_table_compile_error_check(
+        &singular_table_name_pascal_case,
+        &referenced_table_name_pascal_case,
+    );
+
+    spacetimedsl_table
+        .compile_error_checks
+        .insert(compile_error_check.clone());
+
+    let compile_error_check = get_referenced_table_compile_error_check(
+        &singular_table_name_pascal_case,
+        &referenced_table_name_pascal_case,
+    );
+
+    let compile_error_check_usage = quote! {
+        use #referenced_table_path::#compile_error_check;
+    };
+
     let function_impl = quote! {
+        #compile_error_check_usage
+
         use spacetimedsl::itertools::Itertools;
         #create_data_structure_for_child_entries
 
@@ -2877,6 +2942,24 @@ fn get_referenced_table_function_call_for_strategy_implementation(
             }
         };
     }
+}
+
+fn get_referenced_table_compile_error_check(
+    referencing_table_name_pascal_case: &Ident,
+    referenced_table_name_pascal_case: &Ident,
+) -> Ident {
+    format_ident!(
+        "ReferencedByAttributeIsMissingOnTable{referenced_table_name_pascal_case}BecauseOfForeignKeyOnTable{referencing_table_name_pascal_case}"
+    )
+}
+
+fn get_referencing_table_compile_error_check(
+    referencing_table_name_pascal_case: &Ident,
+    referenced_table_name_pascal_case: &Ident,
+) -> Ident {
+    format_ident!(
+        "ForeignKeyAttributeIsMissingOnTable{referencing_table_name_pascal_case}BecauseOfReferencedByOnTable{referenced_table_name_pascal_case}"
+    )
 }
 
 fn get_referenced_table_trait_name(

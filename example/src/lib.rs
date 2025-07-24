@@ -16,6 +16,7 @@ pub mod entity {
         #[referenced_by(path = crate::component::position,   table = unique_position)]
         #[referenced_by(path = crate::component::test,       table = test)]
         #[referenced_by(path = crate::component::test,       table = ship_object)]
+        #[referenced_by(path = crate::component::test,       table = space_ship_object)]
         obj_id: u128,
 
         created_at: Timestamp,

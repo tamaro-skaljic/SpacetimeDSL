@@ -71,7 +71,21 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
         }
     }
 
+    let mut compile_error_checks = vec![];
+
+    input
+        .spacetimedsl_table
+        .compile_error_checks
+        .iter()
+        .for_each(|compile_error_check| {
+            compile_error_checks.push(quote! {
+                pub trait #compile_error_check {}
+            });
+        });
+
     Ok(quote! {
+        #(#compile_error_checks)*
+
         #(#wrapper_types)*
 
         impl #struct_name {
