@@ -1,6 +1,6 @@
 use syn::Path;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum RustVisibility {
     /// `pub`
     Public,

@@ -8,6 +8,7 @@ pub mod api {
     /**
      * The representation of a Rust struct with `#[table]` and `#[dsl]` attribute macros and its columns.
      */
+    #[derive(Debug, Clone)]
     pub struct Table {
         pub rust_struct: rust::table::RustStruct,
         pub spacetimedb_table: db::table::SpacetimeDBTable,
@@ -32,6 +33,7 @@ pub mod api {
     /**
      * The representation of a field of a Rust struct with `#[table]` and `#[dsl]` attribute macros.
      */
+    #[derive(Debug, Clone)]
     pub struct Column {
         pub rust_field: rust::column::RustField,
         pub spacetimedb_column: db::column::SpacetimeDBColumn,

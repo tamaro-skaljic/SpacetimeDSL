@@ -1,6 +1,7 @@
 use proc_macro2::TokenStream;
 use syn::{Ident, Path};
 
+#[derive(Debug, Clone)]
 pub struct SpacetimeDSLMethod {
     pub doc_comment: String,
     pub trait_name: Ident,
@@ -11,6 +12,7 @@ pub struct SpacetimeDSLMethod {
     pub method_impl: TokenStream,
 }
 
+#[derive(Debug, Clone)]
 pub struct SpacetimeDSLMethodArg {
     pub is_mut: bool,
     pub arg_name: Ident,

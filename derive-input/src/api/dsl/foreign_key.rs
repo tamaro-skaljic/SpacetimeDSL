@@ -1,5 +1,6 @@
 use syn::{Ident, Path};
-#[derive(Clone)]
+
+#[derive(Debug, Clone)]
 pub struct ForeignKey {
     pub path: Path,
     pub table_name: Ident,
