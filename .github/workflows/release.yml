@@ -82,10 +82,13 @@ jobs:
     - name: Validate crate publishing readiness
       run: |
         cd derive-input
+        cargo check
         cargo package
         cd ../derive
+        cargo check
         cargo package
         cd ..
+        cargo check
         cargo package
 
     # Publish derive-input crate first (no dependencies)
