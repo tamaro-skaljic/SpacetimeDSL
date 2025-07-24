@@ -1,13 +1,13 @@
 use syn::Ident;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Index {
     pub name: Ident,
     pub is_unique: bool,
     pub index_type: IndexType,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum IndexType {
     /// Available from `SpacetimeDBTable.multi_column_indices`
     BTreeMultiColumn { columns: Vec<Ident> },

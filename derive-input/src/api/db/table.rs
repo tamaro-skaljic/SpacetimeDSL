@@ -1,7 +1,7 @@
 use crate::api::db::{index::Index, reducer::ScheduledReducer};
 use syn::Ident;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SpacetimeDBTable {
     pub singular_name: Ident,
     pub visibility: SpacetimeDBTableVisibility,
@@ -9,7 +9,7 @@ pub struct SpacetimeDBTable {
     pub scheduled_reducer: Option<ScheduledReducer>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum SpacetimeDBTableVisibility {
     Public,
     Private,

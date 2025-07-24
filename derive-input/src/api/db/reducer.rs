@@ -1,6 +1,6 @@
 use syn::Ident;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ScheduledReducer {
     pub reducer_name: Ident,
 }

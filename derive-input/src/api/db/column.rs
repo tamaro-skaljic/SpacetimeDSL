@@ -1,6 +1,6 @@
 use crate::api::db::index::Index;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SpacetimeDBColumn {
     pub is_primary_key: bool,
     pub single_column_index: Option<Index>,
