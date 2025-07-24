@@ -43,7 +43,7 @@ jobs:
         }
         
         # Retry logic: attempt installation up to 3 times
-        MAX_ATTEMPTS=3
+        MAX_ATTEMPTS=4
         ATTEMPT=1
         
         while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
@@ -64,8 +64,8 @@ jobs:
             exit 1
           fi
           
-          echo "⏳ Waiting 5 seconds before retry..."
-          sleep 5
+          echo "⏳ Waiting 15 seconds before retry..."
+          sleep 15
           ATTEMPT=$((ATTEMPT + 1))
         done
 
