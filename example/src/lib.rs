@@ -8,7 +8,7 @@ pub mod entity {
         /// The unique ID of the Entity.
         #[primary_key]
         #[auto_inc]
-        #[create_wrapper]
+        #[create_wrapper(name = EntityId)]
         #[referenced_by(path = crate::entity,                table = entity_relationship)]
         #[referenced_by(path = crate::entity,                table = entity_relationship2)]
         #[referenced_by(path = crate::component::identifier, table = identifier)]
@@ -16,7 +16,8 @@ pub mod entity {
         #[referenced_by(path = crate::component::position,   table = unique_position)]
         #[referenced_by(path = crate::component::test,       table = test)]
         #[referenced_by(path = crate::component::test,       table = ship_object)]
-        id: u128,
+        #[referenced_by(path = crate::component::test,       table = space_ship_object)]
+        obj_id: u128,
 
         created_at: Timestamp,
     }
@@ -66,12 +67,12 @@ pub mod entity {
 
         #[index(btree)]
         #[use_wrapper(name = EntityId)]
-        #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
+        #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Error)]
         parent_entity_id: u128,
 
         #[index(btree)]
         #[use_wrapper(name = EntityId)]
-        #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
+        #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
         child_entity_id: u128,
     }
 
@@ -86,12 +87,12 @@ pub mod entity {
 
         #[index(btree)]
         #[use_wrapper(name = EntityId)]
-        #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
+        #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
         parent_entity_id: u128,
 
         #[index(btree)]
         #[use_wrapper(name = EntityId)]
-        #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
+        #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
         pub child_entity_id: u128,
     }
 
@@ -107,7 +108,7 @@ pub mod entity {
 
         #[index(btree)]
         #[use_wrapper(name = EntityRelationship3Id)]
-        #[foreign_key(path = crate::entity, table = entity_relationship3, on_delete = SetZero)]
+        #[foreign_key(path = crate::entity, table = entity_relationship3, column = id, on_delete = SetZero)]
         parent_entity_relationship3_id: u128,
     }
 
@@ -123,7 +124,7 @@ pub mod entity {
 
         #[index(btree)]
         #[use_wrapper(name = EntityRelationship4Id)]
-        #[foreign_key(path = crate::entity, table = entity_relationship4, on_delete = Ignore)]
+        #[foreign_key(path = crate::entity, table = entity_relationship4, column = id, on_delete = Ignore)]
         pub parent_entity_relationship4_id: u128,
     }
 }
@@ -146,7 +147,7 @@ pub mod component {
             /// The unique ID of the Entity the Identifier belongs to.
             #[unique]
             #[use_wrapper(path = crate::entity::EntityId)]
-            #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
+            #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
             entity_id: u128,
 
             // The unique value of the Identifier.
@@ -163,7 +164,7 @@ pub mod component {
         pub struct IdentifierReference {
             #[primary_key]
             #[use_wrapper(name = IdentifierId)]
-            #[foreign_key(path = crate::component::identifier, table = identifier, on_delete = Delete)]
+            #[foreign_key(path = crate::component::identifier, table = identifier, column = id, on_delete = Delete)]
             id: u128,
         }
 
@@ -188,7 +189,7 @@ pub mod component {
             /// The unique ID of the Entity the Position belongs to.
             #[unique]
             #[use_wrapper(path = crate::entity::EntityId)]
-            #[foreign_key(path = crate::entity, table = entity, on_delete = SetZero)]
+            #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = SetZero)]
             entity_id: u128,
 
             pub x: i128,
@@ -218,7 +219,7 @@ pub mod component {
             /// The unique ID of the Entity the unique Position belongs to.
             #[unique]
             #[use_wrapper(path = crate::entity::EntityId)]
-            #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
+            #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
             entity_id: u128,
 
             pub z: i128,
@@ -263,7 +264,7 @@ pub mod component {
 
             #[index(btree)]
             #[use_wrapper(path = crate::entity::EntityId)]
-            #[foreign_key(path = crate::entity, table = entity, on_delete = Delete)]
+            #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
             pub wrapped_index: u128,
 
             #[index(btree)]
@@ -271,7 +272,7 @@ pub mod component {
 
             #[unique]
             #[use_wrapper(path = crate::entity::EntityId)]
-            #[foreign_key(path = crate::entity, table = entity, on_delete = SetZero)]
+            #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = SetZero)]
             pub unique: u128,
 
             pub string: String,
@@ -316,7 +317,7 @@ pub mod component {
 
             #[unique]
             #[use_wrapper(path = crate::entity::EntityId)]
-            #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
+            #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Error)]
             pub entity_id: u128,
         }
 
@@ -335,7 +336,7 @@ pub mod component {
 
             #[unique]
             #[use_wrapper(path = crate::entity::EntityId)]
-            #[foreign_key(path = crate::entity, table = entity, on_delete = Error)]
+            #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Error)]
             pub entity_id: u128,
         }
 
@@ -396,8 +397,8 @@ pub mod test {
             CountOfAllEntityRelationship2Rows, CountOfAllEntityRelationshipRows,
             CreateEntityRelationship2Row, CreateEntityRelationship4Row,
             CreateEntityRelationshipRow, CreateEntityRow, DeleteEntityRelationship4RowById,
-            DeleteEntityRowById, EntityId, EntityRelationship4Id,
-            GetEntityRelationship4RowOptionById, GetEntityRowOptionById,
+            DeleteEntityRowByObjId, EntityId, EntityRelationship4Id,
+            GetEntityRelationship4RowOptionById, GetEntityRowOptionByObjId,
             UpdateEntityRelationship4RowById,
         },
     };
@@ -427,7 +428,7 @@ pub mod test {
             );
         }
 
-        match dsl.get_entity_by_id(&player) {
+        match dsl.get_entity_by_obj_id(&player) {
             Ok(entity) => {
                 player = entity;
             }
@@ -470,7 +471,7 @@ pub mod test {
             return Err("Count of entity relationships should be 3!".to_string());
         }
 
-        if dsl.delete_entity_by_id(&player).is_ok() {
+        if dsl.delete_entity_by_obj_id(&player).is_ok() {
             return Err("Shouldn't be able to delete 'player' because it's a parent in a entity relationship!".to_string());
         }
 
@@ -478,7 +479,7 @@ pub mod test {
             return Err("Count of entity relationships should be 3!".to_string());
         }
 
-        match dsl.delete_entity_by_id(&player3) {
+        match dsl.delete_entity_by_obj_id(&player3) {
             Ok(_) => {}
             Err(error) => {
                 return Err(format!(
@@ -491,7 +492,7 @@ pub mod test {
             return Err("Count of entity relationships should be 1 because 2 should be deleted through the foreign key / referenced by feature!".to_string());
         }
 
-        match dsl.delete_entity_by_id(&player2) {
+        match dsl.delete_entity_by_obj_id(&player2) {
             Ok(_) => {}
             Err(error) => {
                 return Err(format!(
@@ -505,7 +506,7 @@ pub mod test {
                 "Count of entity relationships should be 0 because the last one should be deleted through the foreign key / referenced by feature!".to_string(),
             );
         }
-        match dsl.delete_entity_by_id(&player) {
+        match dsl.delete_entity_by_obj_id(&player) {
             Ok(_) => {}
             Err(error) => {
                 return Err(format!(
@@ -514,7 +515,7 @@ pub mod test {
             }
         };
 
-        if dsl.get_entity_by_id(&player).is_ok() {
+        if dsl.get_entity_by_obj_id(&player).is_ok() {
             return Err(
                 "Shouldn't be able to get an Entity by an ID which doesn't exist!".to_string(),
             );
@@ -544,7 +545,7 @@ pub mod test {
             return Err("Count of entity relationships 2 should be 3!".to_string());
         }
 
-        match dsl.delete_entity_by_id(&player2) {
+        match dsl.delete_entity_by_obj_id(&player2) {
             Ok(_) => {}
             Err(error) => return Err(format!("Should be able to delete 'player'! Got:\n{error}")),
         };
@@ -628,7 +629,7 @@ pub mod test {
         if let Ok(identifier) = dsl.create_identifier(&player, "PLAYER") {
             return Err(format!(
                 "Entity {} ({}): Shouldn't be able to add an Identifier because it has already one!",
-                player.get_id().value(),
+                player.get_obj_id().value(),
                 identifier.get_value()
             ));
         };
@@ -859,7 +860,7 @@ pub mod test {
             None,
             &player,
             &player,
-            player.get_id().value(),
+            player.get_obj_id().value(),
             &player,
             "string",
             "index_on_string",
@@ -872,9 +873,9 @@ pub mod test {
 
         let mut world2 = dsl.create_test(
             &player,
-            player_reflection.get_id(),
-            player.get_id(),
-            player.get_id().value(),
+            player_reflection.get_obj_id(),
+            player.get_obj_id(),
+            player.get_obj_id().value(),
             &player_reflection,
             "string",
             "index_on_string",
@@ -888,19 +889,19 @@ pub mod test {
         let _: Option<EntityId> = world1.get_wrapped_option();
         world2.set_wrapped_option(None);
         world2.set_wrapped_option(&player);
-        world2.set_wrapped_option(player.get_id());
-        world2.set_wrapped_option(player.get_id());
+        world2.set_wrapped_option(player.get_obj_id());
+        world2.set_wrapped_option(player.get_obj_id());
 
         // TODO: Add commented lines if https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21 is added
         let _ = dsl.get_tests_by_wrapped_index(&player);
-        let _ = dsl.get_tests_by_wrapped_index(player.get_id());
-        let _ = dsl.get_tests_by_wrapped_index(&player.get_id());
+        let _ = dsl.get_tests_by_wrapped_index(player.get_obj_id());
+        let _ = dsl.get_tests_by_wrapped_index(&player.get_obj_id());
         let _ = dsl.get_tests_by_wrapped_index(world2.get_wrapped_index());
         //let _ = dsl.get_tests_by_wrapped_index(&player..);
         //let _ = dsl.get_tests_by_wrapped_index(world2.get_wrapped_index()..);
         let _ = dsl.delete_tests_by_wrapped_index(&player);
-        let _ = dsl.delete_tests_by_wrapped_index(player.get_id());
-        let _ = dsl.delete_tests_by_wrapped_index(player.get_id());
+        let _ = dsl.delete_tests_by_wrapped_index(player.get_obj_id());
+        let _ = dsl.delete_tests_by_wrapped_index(player.get_obj_id());
         let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index());
         //let _ = dsl.delete_tests_by_wrapped_index(&player..);
         //let _ = dsl.delete_tests_by_wrapped_index(&player..&player);
@@ -912,7 +913,7 @@ pub mod test {
         let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index());
         //let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index()..);
 
-        match dsl.delete_entity_by_id(&player_reflection) {
+        match dsl.delete_entity_by_obj_id(&player_reflection) {
             Ok(_) => {}
             Err(error) => {
                 return Err(format!(
@@ -936,7 +937,7 @@ pub mod test {
 
         let _ = dsl.create_ship_object(&player);
 
-        if let Ok(success) = dsl.delete_entity_by_id(&player) {
+        if let Ok(success) = dsl.delete_entity_by_obj_id(&player) {
             return Err(format!(
                 "The deletion of the entity player shouldn't have worked because ship_object.entity_id has a foreign key on the entity id with Error strategy Got: {success}",
             ));

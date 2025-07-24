@@ -609,7 +609,7 @@ pub struct IdentifierReference {
 }
 ```
 
-The `#[referenced_by]` attribute needs values for the `path` and the `table` field and is only allowed on `#[primary_key]` columns (which require `#[create_wrapper]`/`#[use_wrapper]`).
+The `#[referenced_by]` attribute needs values for the `path` and `table` fields and is only allowed on `#[primary_key]` columns (which require `#[create_wrapper]`/`#[use_wrapper]`).
 
 You can add multiple `#[referenced_by]`'s to the same primary key column, but you need one for each table which has a `#[foreign_key]` referencing the table (see the pk column of the entity table).
 
@@ -617,7 +617,7 @@ You can add multiple `#[referenced_by]`'s to the same primary key column, but yo
 
 `#[foreign_key]`'s are only allowed on columns with `#[primary_key]`, `#[index]` or `#[unique]`.
 
-They require the `#[use_wrapper]` attribute and you need a value for the `path`, `table` and `on_delete` fields.
+They require the `#[use_wrapper]` attribute and you need a value for the `path`, `table`, `column` and `on_delete` fields.
 
 Only one `#[foreign_key]` is allowed per column.
 
@@ -1408,20 +1408,6 @@ The following things aren't considered during code generation yet:
   Because all of your columns are private - therefor they have no [setters](#accessors-getters-and-setters) and the row should never change after insertion.
 
   Make the columns which should change `pub`, `pub(self)` or `pub(in <path>)` and an `Update` DSL method is generated for the table!
-
-- **Why must `#[primary_key]` columns be named `id`?**
-
-  Because the creator of the **DSL** thought it's a good standard (which makes his life easier).
-
-  Joking aside, that would disrupt the flow of reading. During development, great importance was attached to naming DSL methods in such a way that they are readable for humans and can also be understood by non-developers.
-
-  So it's intended to make reading and writing code easier.
-
-  For example, if you always put the table name before the ID, DSL methods would be called
-
-  - `delete_stellar_object_by_stellar_object_id` instead of
-
-  - `delete_stellar_object_by_id`.
 
 ## Licensing
 

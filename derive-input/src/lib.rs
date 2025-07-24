@@ -8,11 +8,13 @@ pub mod api {
     /**
      * The representation of a Rust struct with `#[table]` and `#[dsl]` attribute macros and its columns.
      */
+    #[derive(Clone)]
     pub struct Table {
         pub rust_struct: rust::table::RustStruct,
         pub spacetimedb_table: db::table::SpacetimeDBTable,
         pub spacetimedsl_table: dsl::table::SpacetimeDSLTable,
         pub columns: Vec<Column>,
+        pub primary_key_column: Column,
         pub spacetimedsl_methods: dsl::table::SpacetimeDSLTableMethods,
     }
 
@@ -32,6 +34,7 @@ pub mod api {
     /**
      * The representation of a field of a Rust struct with `#[table]` and `#[dsl]` attribute macros.
      */
+    #[derive(Clone)]
     pub struct Column {
         pub rust_field: rust::column::RustField,
         pub spacetimedb_column: db::column::SpacetimeDBColumn,

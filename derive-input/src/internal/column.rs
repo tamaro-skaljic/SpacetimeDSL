@@ -19,13 +19,19 @@ pub(in crate::internal) fn try_parse(
     rust_struct: &RustStruct,
     mut spacetimedb_table: SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
-) -> syn::Result<(SpacetimeDBTable, Vec<Column>, Vec<InternalColumn>)> {
+) -> syn::Result<(
+    SpacetimeDBTable,
+    Vec<Column>,
+    Column,
+    Vec<InternalColumn>,
+    InternalColumn,
+)> {
     let primary_key_column_name = match get_primary_key_column_name(column_args) {
         Some(pk) => pk,
         None => {
             return Err(syn::Error::new(
                 Span::call_site(),
-                "`The table should have a column with `#[primary_key]` helper attribute!",
+                "The table should have a column with `#[primary_key]` helper attribute!",
             ));
         }
     };
@@ -70,10 +76,15 @@ pub(in crate::internal) fn try_parse(
         internal_columns.push(internal_column);
     }
 
-    let primary_key_column = internal_columns
+    let internal_primary_key_column = internal_columns
         .iter()
-        .find(|c| c.rust_field_name.to_string().eq(&"id"))
-        .expect("should have a primary key");
+        .find(|c| {
+            c.rust_field_name
+                .to_string()
+                .eq(&primary_key_column_name.to_string())
+        })
+        .expect("PK column should be present")
+        .clone();
 
     for (rust_field, spacetimedb_column, spacetimedsl_column) in
         izip!(rust_fields, spacetimedb_columns, spacetimedsl_columns)
@@ -84,7 +95,7 @@ pub(in crate::internal) fn try_parse(
             spacetimedsl_table,
             &spacetimedb_column,
             &internal_columns,
-            primary_key_column,
+            &internal_primary_key_column,
         );
 
         columns.push(Column {
@@ -95,9 +106,27 @@ pub(in crate::internal) fn try_parse(
         });
     }
 
-    Ok((spacetimedb_table, columns, internal_columns))
+    let primary_key_column = columns
+        .iter()
+        .find(|c| {
+            c.rust_field
+                .name
+                .to_string()
+                .eq(&primary_key_column_name.to_string())
+        })
+        .expect("PK column should be present")
+        .clone();
+
+    Ok((
+        spacetimedb_table,
+        columns,
+        primary_key_column,
+        internal_columns,
+        internal_primary_key_column,
+    ))
 }
 
+#[derive(Clone)]
 pub(in crate::internal) struct InternalColumn {
     pub spacetimedb_table_singular_name: Ident,
     pub rust_field_visibility: RustVisibility,

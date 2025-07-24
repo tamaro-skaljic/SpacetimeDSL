@@ -1,16 +1,21 @@
+use std::collections::HashSet;
+
 use syn::Ident;
 
 use super::reference::ReferencingTable;
 use crate::api::dsl::{column::SpacetimeDSLColumnMethods, method::SpacetimeDSLMethod};
 
+#[derive(Clone)]
 pub struct SpacetimeDSLTable {
     pub plural_name: Ident,
     pub is_mutable: bool,
     pub has_created_at_column: bool,
     pub has_modified_at_column: bool,
     pub referencing_tables: Vec<ReferencingTable>,
+    pub compile_error_checks: HashSet<Ident>,
 }
 
+#[derive(Clone)]
 pub struct SpacetimeDSLTableMethods {
     pub create: SpacetimeDSLMethod,
     pub get_all: SpacetimeDSLMethod,

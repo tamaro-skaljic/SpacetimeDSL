@@ -9,7 +9,7 @@ git add .
 git commit -m "Release v0.9.1" 
 git tag v0.9.1
 git push origin main
-git push origin v0.9.1
+git push --tags
 
 # 3. GitHub Actions automatically:
 # - Runs all tests
