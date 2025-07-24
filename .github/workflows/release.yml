@@ -81,7 +81,12 @@ jobs:
 
     - name: Validate crate publishing readiness
       run: |
-        cargo build
+        cd derive-input
+        cargo package
+        cd ../derive
+        cargo package
+        cd ..
+        cargo package
 
     # Publish derive-input crate first (no dependencies)
     - name: Publish spacetimedsl_derive-input to crates.io
