@@ -21,17 +21,18 @@ pub(in crate::internal) fn try_parse(
     let (spacetimedb_table, spacetimedsl_table) =
         SpacetimeDSLTable::try_parse(column_args, spacetimedb_table, plural_name, unique_indices)?;
 
-    let (spacetimedb_table, columns, internal_columns) = super::column::try_parse(
+    let (
+        spacetimedb_table,
+        columns,
+        primary_key_column,
+        internal_columns,
+        internal_primary_key_column,
+    ) = super::column::try_parse(
         column_args,
         &rust_struct,
         spacetimedb_table,
         &spacetimedsl_table,
     )?;
-
-    let primary_key_column = internal_columns
-        .iter()
-        .find(|c| c.rust_field_name.to_string().eq(&"id"))
-        .expect("should have a primary key");
 
     let spacetimedsl_methods = SpacetimeDSLTableMethods::try_parse(
         &rust_struct,
@@ -39,7 +40,7 @@ pub(in crate::internal) fn try_parse(
         &spacetimedsl_table,
         &columns,
         &internal_columns,
-        primary_key_column,
+        &internal_primary_key_column,
     )?;
 
     Ok(Table {
@@ -47,6 +48,7 @@ pub(in crate::internal) fn try_parse(
         spacetimedb_table,
         spacetimedsl_table,
         columns,
+        primary_key_column,
         spacetimedsl_methods,
     })
 }

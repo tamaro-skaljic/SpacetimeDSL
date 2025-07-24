@@ -14,6 +14,7 @@ pub mod api {
         pub spacetimedb_table: db::table::SpacetimeDBTable,
         pub spacetimedsl_table: dsl::table::SpacetimeDSLTable,
         pub columns: Vec<Column>,
+        pub primary_key_column: Column,
         pub spacetimedsl_methods: dsl::table::SpacetimeDSLTableMethods,
     }
 
