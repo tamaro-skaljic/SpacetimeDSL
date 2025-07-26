@@ -31,7 +31,7 @@ pub trait Wrapper<WrappedType: Clone + Default, WrapperType>:
     fn value(&self) -> WrappedType;
 }
 
-// TODO: New Feature "Soft Deletion" - if a table has a column "deleted: bool" then there is another dsl method which sets the flag to true instead of deleting the row.
+// TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/59 SoftDelete Feature
 
 // Don't forget to copy + paste this enum into `derive_input::api::dsl::foreign_key` if you change it
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -53,7 +53,8 @@ pub enum OnDeleteStrategy {
     Delete,
 
     /**
-     * TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
+     * TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 SetNone
+     * Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
      * Available only for columns with type `Option<T>`.
      * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
      * ... the value of the foreign key column is set to `None`.

@@ -111,7 +111,7 @@ impl OnDeleteStrategy {
         let action_variant: Ident = meta.value()?.parse()?;
         let action_variant: &str = &action_variant.to_string();
 
-        // TODO: Add Checks (Option for SetNone, Numeric for SetZero (SpacetimeDB has a is_numeric function), ...)
+        // TODO: Add Checks (https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 Option for SetNone, Numeric for SetZero (SpacetimeDB has a is_numeric function), https://github.com/tamaro-skaljic/SpacetimeDSL/issues/59 deleted: bool or deleted_at: Option<Timestamp> for SoftDelete, ...)
         match action_variant {
             "Error" => Ok(OnDeleteStrategy::Error),
             "Delete" => Ok(OnDeleteStrategy::Delete),

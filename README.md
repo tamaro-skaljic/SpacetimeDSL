@@ -12,7 +12,7 @@ spacetimedsl = { version = "*" }
 Get started by adding `#[spacetimedsl::dsl]` as well as it's helper attributes `#[create_wrapper]`, `#[use_wrapper]`,\
 `#[foreign_key]` and `#[referenced_by]` to your structs with `#[spacetimedb::table]`!
 
-If you've questions, consult the [FAQ](#faq) and if it's not answered there, you can find me in the [SpacetimeDSL channel of the SpacetimeDB Discord Server](https://discord.com/channels/1037340874172014652/1362826754259157205).
+If you've questions, consult the [FAQ](#faq) and if it's not answered there, you can find me in the [SpacetimeDSL channel of the SpacetimeDB Discord Server](https://discord.com/channels/1037340874172014652/1395832638966726726).
 
 ## Vanilla SpacetimeDB
 
@@ -358,17 +358,6 @@ pub enum OnDeleteStrategy {
      * If false, the on delete strategies of all affected rows are executed and rows are deleted.
      */
     Delete,
-
-    /**
-     * TODO: Because Option is currently not allowed on primary_key and unique/btree indices this
-     * strategy isn't used and implemented yet.
-     * 
-     * Available only for columns with type `Option<T>`.
-     * 
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys ...
-     * ... of other tables the value of the foreign key column is set to `None`.
-     */
-    //SetNone,
 
     /**
      * Available only for columns with a numeric type.

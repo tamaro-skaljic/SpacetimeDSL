@@ -604,11 +604,10 @@ pub(in crate::internal) fn for_method(
     let one = OneOrMultiple::One;
     let multiple = OneOrMultiple::Multiple;
 
-    // TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/35
+    // TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/35 Doc comments should be influenced by referenced_by and foreign_key attributes.
     let doc_comment;
     let trait_name;
     let method_name;
-    // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/36
     let return_type;
 
     let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
@@ -1066,8 +1065,7 @@ pub(in crate::internal) fn for_method(
 
                         #modified_at
 
-                        // FIXME: try_update instead of update
-                        // FIXME: on error return Err(spacetimedsl::SpacetimeDSLError);
+                        // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(spacetimedsl::SpacetimeDSLError);
                         Ok(self
                             .ctx()
                             .db()
@@ -1414,7 +1412,7 @@ pub(in crate::internal) fn for_method(
                                         &on_error_handler,
                                     );
 
-                                /* TODO
+                                /* TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32
                                 let set_none_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
@@ -1451,7 +1449,7 @@ pub(in crate::internal) fn for_method(
 
                                     #delete_strategy
 
-                                    //TODO #set_none_strategy
+                                    //TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 #set_none_strategy
 
                                     #set_zero_strategy
 
@@ -1687,7 +1685,7 @@ pub(in crate::internal) fn for_method(
                                         &on_error_handler,
                                     );
 
-                                /* TODO
+                                /* TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32
                                 let set_none_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
@@ -1724,7 +1722,7 @@ pub(in crate::internal) fn for_method(
 
                                     #delete_strategy
 
-                                    //TODO #set_none_strategy
+                                    //TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 #set_none_strategy
 
                                     #set_zero_strategy
 
@@ -2390,7 +2388,7 @@ fn for_foreign_key(
                 .to_token_stream()
                 .to_string())
         {
-            // TODO: If Option is supported, the type of the primary key values needs to be without option and it's allowed to have both, option and non-option columns. There is already a function to remove option from the type representation, search for `Option <`` in the code.
+            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 If Option is supported, the type of the primary key values needs to be without option and it's allowed to have both, option and non-option columns. There is already a function to remove option from the type representation, search for `Option <`` in the code.
             panic!(
                 "All foreign key columns which reference the same primary key of another table should have the same type"
             );
@@ -2815,7 +2813,7 @@ fn get_on_delete_strategy_implementation(
 
                             #delete_strategy
 
-                            //TODO #set_none_strategy
+                            //TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 #set_none_strategy
 
                             #set_zero_strategy
 
@@ -2845,8 +2843,7 @@ fn get_on_delete_strategy_implementation(
                         let #primary_key_column_name = &row.#primary_key_column_name;
                         #create_entry_and_add_it_to_entries
 
-                        // FIXME: try_update instead of update
-                        // FIXME: on error return Err(spacetimedsl::SpacetimeDSLError);
+                        // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(spacetimedsl::SpacetimeDSLError);
                         #spacetimedb_call_prefix.#primary_key_column_name().update(row);
                     },
                 ));

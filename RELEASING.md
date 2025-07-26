@@ -13,5 +13,5 @@ git push --tags
 
 # 3. GitHub Actions automatically:
 # - Runs all tests
-# - If tests pass, publishes all crates in correct order
+# - If tests pass, publishes all crates in correct order // FIXME: The Verification doesn't wait on the tests to pass, so it automatically fails.
 ```
