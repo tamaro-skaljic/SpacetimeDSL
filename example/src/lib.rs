@@ -250,11 +250,11 @@ pub mod component {
             #[use_wrapper(path = crate::entity::EntityId)]
             pub wrapped_option: Option<u128>,
 
-            // TODO: Add #[unique] if it's allowed by SpacetimeDB
+            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 Add #[unique] if it's allowed by SpacetimeDB
             // #[unique]
             // pub unique_option: Option<u128>,
 
-            // TODO: Add unique_wrapped_option if it's allowed by SpacetimeDB
+            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 Add unique_wrapped_option if it's allowed by SpacetimeDB
             // #[unique]
             // #[use_wrapper(path = crate::entity::EntityId)]
             // pub unique_wrapped_option: Option<u128>,
@@ -944,7 +944,7 @@ pub mod test {
         };
 
         // FIXME: Add test where two foreign keys match the same primary key - is it tried to delete the same row two times and therefore it fails?
-        // TODO: Add test for SetNone strategy if it's implemented
+        // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32Add test for SetNone strategy if it's implemented
 
         info!("Test executed successfully!");
 

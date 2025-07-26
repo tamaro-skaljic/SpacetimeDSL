@@ -29,7 +29,8 @@ pub enum OnDeleteStrategy {
     Delete,
 
     /**
-     * TODO: Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
+     * TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 SetNone
+     * Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
      * Available only for columns with type `Option<T>`.
      * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
      * ... the value of the foreign key column is set to `None`.
