@@ -4,7 +4,10 @@ use proc_macro2::TokenStream;
 use syn::Ident;
 
 use super::reference::ReferencingTable;
-use crate::api::dsl::{column::SpacetimeDSLColumnMethods, method::{SpacetimeDSLMethod, SpacetimeDSLArg}};
+use crate::api::dsl::{
+    column::SpacetimeDSLColumnMethods,
+    method::{SpacetimeDSLArg, SpacetimeDSLMethod},
+};
 
 #[derive(Clone)]
 pub struct SpacetimeDSLTable {
@@ -14,7 +17,7 @@ pub struct SpacetimeDSLTable {
     pub has_modified_at_column: bool,
     pub referencing_tables: Vec<ReferencingTable>,
     pub compile_error_checks: HashSet<Ident>,
-    pub create_dsl_method_arg: CreateDSLMethodArg,
+    pub create_dsl_method_arg: Option<CreateDSLMethodArg>,
 }
 
 #[derive(Clone)]

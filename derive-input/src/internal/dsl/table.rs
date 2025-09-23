@@ -2,9 +2,9 @@ use std::collections::HashSet;
 
 use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
-use crate::api::dsl::table::{CreateDSLMethodArg, SpacetimeDSLTable};
-use proc_macro2::{Span, TokenStream};
-use quote::{ToTokens, format_ident};
+use crate::api::dsl::table::SpacetimeDSLTable;
+use proc_macro2::Span;
+use quote::ToTokens;
 use spacetime_bindings_macro_input::table::ColumnArgs;
 use syn::Ident;
 
@@ -138,7 +138,6 @@ impl SpacetimeDSLTable {
             }
         }
 
-        let singular_table_name_pascal_case = spacetimedb_table.singular_name.to_string();
         Ok((
             spacetimedb_table,
             SpacetimeDSLTable {
@@ -148,12 +147,8 @@ impl SpacetimeDSLTable {
                 has_modified_at_column,
                 referencing_tables,
                 compile_error_checks: HashSet::new(),
-                // struct_members and struct_impl is set later.
-                create_dsl_method_arg: CreateDSLMethodArg {
-                    struct_name: format_ident!("Create{singular_table_name_pascal_case}"),
-                    struct_members: vec![],
-                    struct_impl: TokenStream::default(),
-                },
+                // is set later in method.rs.
+                create_dsl_method_arg: None,
             },
         ))
     }

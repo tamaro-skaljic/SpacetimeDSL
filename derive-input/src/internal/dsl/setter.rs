@@ -93,6 +93,10 @@ impl Setter {
                             column_name,
                             wrapper_type_name_or_path,
                         );
+                        let into_option = quote! {
+                            let #column_name = #column_name.into();
+                            #into_option
+                        };
                         method_impl = quote! {
                             #into_option
                             self.#column_name = #column_name;

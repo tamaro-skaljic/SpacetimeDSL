@@ -204,7 +204,6 @@ pub(in crate::internal) fn map_wrapper_type_option_to_wrapped_type_option(
 ) -> TokenStream {
     let column_option_name = &format_ident!("{column_name}_option");
     quote! {
-        let #column_name = #column_name.into();
         let mut #column_option_name = None;
         if #column_name.is_some() {
             #column_option_name = Some(Into::<#wrapper_type_name_or_path>::into(#column_name.expect("value should exist")).value());

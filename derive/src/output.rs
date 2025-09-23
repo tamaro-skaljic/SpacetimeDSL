@@ -83,7 +83,10 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
             });
         });
 
-    let create_dsl_method_arg = &input.spacetimedsl_table.create_dsl_method_arg.struct_impl;
+    let create_dsl_method_arg = match &input.spacetimedsl_table.create_dsl_method_arg {
+        Some(arg) => &arg.struct_impl,
+        None => &TokenStream::default(),
+    };
 
     Ok(quote! {
         #(#compile_error_checks)*

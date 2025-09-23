@@ -19,7 +19,7 @@ pub(in crate::internal) fn try_parse(
     column_args: &ColumnArgs,
     rust_struct: &RustStruct,
     mut spacetimedb_table: SpacetimeDBTable,
-    spacetimedsl_table: &SpacetimeDSLTable,
+    spacetimedsl_table: &mut SpacetimeDSLTable,
 ) -> syn::Result<(
     SpacetimeDBTable,
     Vec<Column>,
