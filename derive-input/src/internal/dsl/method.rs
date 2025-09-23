@@ -417,46 +417,38 @@ fn process_columns_for_create_and_update_method(
 
     match create_or_update {
         CreateOrUpdate::Create => {
-            if internal_column.spacetimedb_column_is_auto_inc
-                || internal_column
-                    .rust_field_name
-                    .to_string()
-                    .eq(&"created_at")
-                || internal_column
-                    .rust_field_name
-                    .to_string()
-                    .eq(&"modified_at")
+            if internal_column.spacetimedb_column_is_auto_inc {
+                constructor_arg = Some(quote! {
+                    let #column_name = #column_type::default();
+                });
+            } else if internal_column
+                .rust_field_name
+                .to_string()
+                .eq(&"created_at")
             {
-                if internal_column.spacetimedb_column_is_auto_inc {
-                    constructor_arg = Some(quote! {
-                        let #column_name = #column_type::default();
-                    });
-                } else if internal_column
-                    .rust_field_name
-                    .to_string()
-                    .eq(&"created_at")
-                {
-                    constructor_arg = Some(quote! {
-                        let created_at = self.ctx().timestamp;
-                    });
-                } else if internal_column
-                    .rust_field_name
-                    .to_string()
-                    .eq(&"modified_at")
-                {
-                    let column_type_str = internal_column
-                        .rust_field_type_name_or_path
-                        .to_token_stream()
-                        .to_string();
-                    let timestamp_value = if column_type_str.starts_with("Option") {
-                        quote! { None }
-                    } else {
-                        quote! { self.ctx().timestamp }
-                    };
-                    constructor_arg = Some(quote! {
-                        let modified_at = #timestamp_value;
-                    });
-                }
+                constructor_arg = Some(quote! {
+                    let created_at = self.ctx().timestamp;
+                });
+            } else if internal_column
+                .rust_field_name
+                .to_string()
+                .eq(&"modified_at")
+            {
+                let column_type_str = internal_column
+                    .rust_field_type_name_or_path
+                    .to_token_stream()
+                    .to_string();
+                let timestamp_value = if column_type_str.starts_with("Option") {
+                    quote! { None }
+                } else {
+                    quote! { self.ctx().timestamp }
+                };
+                constructor_arg = Some(quote! {
+                    let modified_at = #timestamp_value;
+                });
+            }
+
+            if constructor_arg.is_some() {
                 return (
                     method_arg,
                     wrapper_type_option_to_wrapped_type_option_mapper,
