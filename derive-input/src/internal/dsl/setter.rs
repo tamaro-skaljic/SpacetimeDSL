@@ -28,7 +28,7 @@ impl Setter {
 
         match wrapper_type {
             Some(wrapper_type) => match wrapper_type {
-                WrapperType::Created(wrap) => {
+                WrapperType::Created(_) => {
                     let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
 
                     if rust_field
@@ -49,7 +49,8 @@ impl Setter {
                             self.#column_name = #column_name.to_string();
                         };
                     } else {
-                        let wrapped_type_name_or_path = &WrapperType::map_to_wrapped_type(wrap);
+                        let wrapped_type_name_or_path =
+                            &WrapperType::map_to_wrapped_type(wrapper_type);
                         method_arg = quote! {
                             #column_name: #wrapped_type_name_or_path
                         };

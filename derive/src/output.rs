@@ -83,6 +83,8 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
             });
         });
 
+    let create_dsl_method_arg = &input.spacetimedsl_table.create_dsl_method_arg.struct_impl;
+
     Ok(quote! {
         #(#compile_error_checks)*
 
@@ -91,6 +93,8 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
         impl #struct_name {
             #(#table_methods)*
         }
+
+        #create_dsl_method_arg
 
         #(#dsl_methods)*
     })
@@ -324,7 +328,16 @@ fn map_method_args(method: &SpacetimeDSLMethod) -> Vec<TokenStream> {
 
     for method_arg in &method.method_args {
         let arg_name = &method_arg.arg_name;
-        let arg_type = &method_arg.arg_type;
+        let arg_type = match &method_arg.arg_type {
+            spacetimedsl_derive_input::api::dsl::method::SpacetimeDSLArgType::Normal(
+                actual_type,
+            ) => actual_type,
+            spacetimedsl_derive_input::api::dsl::method::SpacetimeDSLArgType::Wrapped {
+                wrapped_type: _,
+                actual_type,
+            } => actual_type,
+        };
+
         if method_arg.is_mut {
             method_args.push(quote! {
                 mut #arg_name: #arg_type

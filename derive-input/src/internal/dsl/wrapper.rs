@@ -174,14 +174,16 @@ fn get_wrapper_impl(
 }
 
 impl WrapperType {
-    pub(in crate::internal) fn map_to_wrapped_type(value: &CreatedWrapper) -> Type {
-        parse2(value.wrapped_type_name_or_path.to_token_stream()).unwrap_or_else(|_| {
+    pub(in crate::internal) fn map_to_wrapped_type(value: &WrapperType) -> Type {
+        let wrapped_type_name_or_path = match value {
+            WrapperType::Created(created_wrapper) => &created_wrapper.wrapped_type_name_or_path,
+            WrapperType::Used(used_wrapper) => &used_wrapper.wrapped_type_name_or_path,
+        };
+
+        parse2(wrapped_type_name_or_path.to_token_stream()).unwrap_or_else(|_| {
             panic!(
                 "Failed to parse {} as Ident in WrapperType::map_to_wrapped_type.",
-                &value
-                    .wrapped_type_name_or_path
-                    .to_token_stream()
-                    .to_string()
+                &wrapped_type_name_or_path.to_token_stream().to_string()
             )
         })
     }
