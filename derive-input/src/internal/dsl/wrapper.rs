@@ -49,18 +49,13 @@ impl WrapperType {
                     }
                 }
                 Err(_) => {
-                    // For #[create_wrapper], try to parse a direct identifier first
+                    // For #[create_wrapper], parse as a direct identifier: #[create_wrapper(EntityId)]
                     if attr.meta.path().eq(&create_wrapper) {
-                        if let Ok(list) = attr.meta.require_list() {
-                            // Try to parse as a single Ident: #[create_wrapper(EntityId)]
-                            if let Ok(ident) = list.parse_args::<Ident>() {
-                                wrapper_struct_name_or_path = Some(ident.to_string());
-                            }
-                        }
-                    }
-
-                    // If we didn't get a direct ident (or it's use_wrapper), fall back to nested meta parsing
-                    if wrapper_struct_name_or_path.is_none() {
+                        let list = attr.meta.require_list()?;
+                        let ident: Ident = list.parse_args()?;
+                        wrapper_struct_name_or_path = Some(ident.to_string());
+                    } else {
+                        // For #[use_wrapper], use nested meta parsing for name= or path=
                         attr.parse_nested_meta(|meta| {
                             match_meta!(match meta {
                                 name => {
