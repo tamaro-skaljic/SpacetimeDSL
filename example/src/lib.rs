@@ -611,11 +611,7 @@ pub mod test {
             }
         };
 
-        if player_identifier
-            .created_at()
-            .to_system_time()
-            .ne(&time)
-        {
+        if player_identifier.created_at().to_system_time().ne(&time) {
             return Err(
                 "The create method should have set the created_at column of the identifier!"
                     .to_string(),
@@ -681,10 +677,7 @@ pub mod test {
 
         match dsl.get_identifier_by_entity_id(&player_reflection) {
             Ok(identifier) => {
-                if identifier
-                    .value()
-                    .ne(player_reflection_identifier.value())
-                {
+                if identifier.value().ne(player_reflection_identifier.value()) {
                     return Err(format!(
                         "The Identifier values should equal. Expected: {}, Actual: {}!",
                         player_reflection_identifier.value(),
@@ -727,20 +720,15 @@ pub mod test {
             }
         };
 
-        let mut player_position = match dsl.create_position(
-            &player,
-            1,
-            1,
-            -1,
-            player_reflection_position.id().clone(),
-        ) {
-            Ok(p) => p,
-            Err(_) => {
-                return Err(format!(
-                    "{player:?}: Should be able to add an newly created Position!"
-                ));
-            }
-        };
+        let mut player_position =
+            match dsl.create_position(&player, 1, 1, -1, player_reflection_position.id().clone()) {
+                Ok(p) => p,
+                Err(_) => {
+                    return Err(format!(
+                        "{player:?}: Should be able to add an newly created Position!"
+                    ));
+                }
+            };
 
         player_position.set_x(0);
         player_position.set_y(0);
