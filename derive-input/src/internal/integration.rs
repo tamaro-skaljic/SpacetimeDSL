@@ -16,16 +16,15 @@ fn get_all_table_attributes<'a>(
     // Find all table attributes
     let mut table_attrs = Vec::new();
     for attr in &input.attrs {
-        if let Ok(list) = attr.meta.require_list() {
-            if list.path.to_token_stream().to_string().eq("table")
+        if let Ok(list) = attr.meta.require_list()
+            && (list.path.to_token_stream().to_string().eq("table")
                 || list
                     .path
                     .to_token_stream()
                     .to_string()
-                    .eq("spacetimedb :: table")
-            {
-                table_attrs.push(list.tokens.clone());
-            }
+                    .eq("spacetimedb :: table"))
+        {
+            table_attrs.push(list.tokens.clone());
         }
     }
 

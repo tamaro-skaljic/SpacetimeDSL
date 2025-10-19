@@ -17,10 +17,10 @@ impl SpacetimeDSLTable {
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
         for unique_index_name in unique_indices {
             for multi_column_index in &mut spacetimedb_table.multi_column_indices {
-                if let IndexType::BTreeMultiColumn { columns: _ } = &multi_column_index.index_type {
-                    if multi_column_index.name.eq(&unique_index_name) {
-                        multi_column_index.is_unique = true;
-                    }
+                if let IndexType::BTreeMultiColumn { columns: _ } = &multi_column_index.index_type
+                    && multi_column_index.name.eq(&unique_index_name)
+                {
+                    multi_column_index.is_unique = true;
                 }
             }
         }
