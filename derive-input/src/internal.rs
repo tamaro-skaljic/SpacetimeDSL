@@ -1,4 +1,4 @@
-use crate::internal::dsl::{plural_name, unique_index};
+use crate::internal::dsl::{hook_on, plural_name, unique_index};
 use spacetime_bindings_macro_input::{match_meta, sym, util::check_duplicate};
 use syn::{
     Ident,
@@ -23,7 +23,7 @@ pub(crate) fn try_parse(
     input: &syn::DeriveInput,
 ) -> syn::Result<crate::api::Table> {
     // Parse plural_name from DSL arguments - it's required
-    let (plural_name_value, unique_indices) = try_parse_dsl(args)?;
+    let (plural_name_value, unique_indices, hook_on_insert, hook_on_update, hook_on_delete) = try_parse_dsl(args)?;
 
     // Pass plural_name to integration for intelligent table selection
     let (table_args, column_args) =
@@ -36,13 +36,19 @@ pub(crate) fn try_parse(
         &column_args,
         plural_name_value,
         unique_indices,
+        hook_on_insert,
+        hook_on_update,
+        hook_on_delete,
     )
 }
 
 // Parse plural_name from DSL arguments
-fn try_parse_dsl(args: proc_macro2::TokenStream) -> syn::Result<(Ident, Vec<Ident>)> {
+fn try_parse_dsl(args: proc_macro2::TokenStream) -> syn::Result<(Ident, Vec<Ident>, bool, bool, bool)> {
     let mut name_plural: Option<Ident> = None;
     let mut unique_indices = vec![];
+    let mut hook_on_insert = false;
+    let mut hook_on_update = false;
+    let mut hook_on_delete = false;
 
     parser(|meta| {
         match_meta!(match meta {
@@ -52,6 +58,38 @@ fn try_parse_dsl(args: proc_macro2::TokenStream) -> syn::Result<(Ident, Vec<Iden
                 name_plural = Some(value.parse()?);
             }
             unique_index => unique_indices.push(try_parse_unique_index(meta)?),
+            hook_on => {
+                meta.parse_nested_meta(|nested_meta| {
+                    let hook_type: Ident = nested_meta.path.get_ident()
+                        .ok_or_else(|| nested_meta.error("Expected hook type (insert, update, or delete)"))?
+                        .clone();
+                    
+                    match hook_type.to_string().as_str() {
+                        "insert" => {
+                            if hook_on_insert {
+                                return Err(nested_meta.error("Duplicate hook_on(insert)"));
+                            }
+                            hook_on_insert = true;
+                        }
+                        "update" => {
+                            if hook_on_update {
+                                return Err(nested_meta.error("Duplicate hook_on(update)"));
+                            }
+                            hook_on_update = true;
+                        }
+                        "delete" => {
+                            if hook_on_delete {
+                                return Err(nested_meta.error("Duplicate hook_on(delete)"));
+                            }
+                            hook_on_delete = true;
+                        }
+                        _ => {
+                            return Err(nested_meta.error("Invalid hook type. Expected insert, update, or delete"));
+                        }
+                    }
+                    Ok(())
+                })?;
+            }
         });
         Ok(())
     })
@@ -65,6 +103,9 @@ fn try_parse_dsl(args: proc_macro2::TokenStream) -> syn::Result<(Ident, Vec<Iden
             )
         })?,
         unique_indices,
+        hook_on_insert,
+        hook_on_update,
+        hook_on_delete,
     ))
 }
 

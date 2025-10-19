@@ -13,13 +13,21 @@ pub(in crate::internal) fn try_parse(
     column_args: &ColumnArgs<'_>,
     plural_name: syn::Ident,
     unique_indices: Vec<syn::Ident>,
+    hook_on_insert: bool,
+    hook_on_update: bool,
+    hook_on_delete: bool,
 ) -> syn::Result<Table> {
     let rust_struct = crate::internal::rust::table::map_struct(input);
 
     let spacetimedb_table = SpacetimeDBTable::map(table_args);
 
+<<<<<<< HEAD
     let (spacetimedb_table, mut spacetimedsl_table) =
         SpacetimeDSLTable::try_parse(column_args, spacetimedb_table, plural_name, unique_indices)?;
+=======
+    let (spacetimedb_table, spacetimedsl_table) =
+        SpacetimeDSLTable::try_parse(column_args, spacetimedb_table, plural_name, unique_indices, hook_on_insert, hook_on_update, hook_on_delete)?;
+>>>>>>> 0215bab (Add hook_on property parsing and hook calls to DSL methods)
 
     let (
         spacetimedb_table,

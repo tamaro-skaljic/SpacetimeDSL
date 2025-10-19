@@ -19,6 +19,7 @@ pub mod method;
 symbol!(table);
 symbol!(plural_name);
 symbol!(unique_index);
+symbol!(hook_on);
 symbol!(foreign_key);
 symbol!(referenced_by);
 symbol!(path);

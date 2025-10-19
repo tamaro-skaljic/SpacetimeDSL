@@ -14,6 +14,9 @@ impl SpacetimeDSLTable {
         mut spacetimedb_table: SpacetimeDBTable,
         name_plural: Ident,
         unique_indices: Vec<syn::Ident>,
+        hook_on_insert: bool,
+        hook_on_update: bool,
+        hook_on_delete: bool,
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
         for unique_index_name in unique_indices {
             for multi_column_index in &mut spacetimedb_table.multi_column_indices {
@@ -147,8 +150,14 @@ impl SpacetimeDSLTable {
                 has_modified_at_column,
                 referencing_tables,
                 compile_error_checks: HashSet::new(),
+<<<<<<< HEAD
                 // is set later in method.rs.
                 create_dsl_method_arg: None,
+=======
+                hook_on_insert,
+                hook_on_update,
+                hook_on_delete,
+>>>>>>> 0215bab (Add hook_on property parsing and hook calls to DSL methods)
             },
         ))
     }

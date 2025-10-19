@@ -762,6 +762,17 @@ pub(in crate::internal) fn for_method(
                     }
                 };
 
+            let hook_call = if spacetimedsl_table.hook_on_insert {
+                let hook_fn_name = format_ident!("on_{}_insert", singular_table_name);
+                quote! {
+                    if let Err(error_msg) = #hook_fn_name(self, &entity) {
+                        return Err(spacetimedsl::SpacetimeDSLError::Error(error_msg));
+                    }
+                }
+            } else {
+                TokenStream::default()
+            };
+
             method_impl = quote! {
                 #use_itertools
 
@@ -782,7 +793,10 @@ pub(in crate::internal) fn for_method(
                     .db()
                     .#singular_table_name()
                     .try_insert(#singular_table_name.clone()) { // FIXME: No clone?
-                    Ok(entity) => Ok(entity),
+                    Ok(entity) => {
+                        #hook_call
+                        Ok(entity)
+                    },
                     Err(error) => match error {
                         spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
                             Err(spacetimedsl::SpacetimeDSLError::UniqueConstraintViolation {
@@ -1113,6 +1127,24 @@ pub(in crate::internal) fn for_method(
                         false => index_name,
                     };
 
+                    let (hook_call_before_update, hook_call_after_update) = if spacetimedsl_table.hook_on_update {
+                        let hook_fn_name = format_ident!("on_{}_update", singular_table_name);
+                        (
+                            quote! {
+                                let old_row = self.ctx().db().#singular_table_name().#primary_key_column_name()
+                                    .find(#singular_table_name.#primary_key_column_name)
+                                    .expect("Row should exist for update");
+                            },
+                            quote! {
+                                if let Err(error_msg) = #hook_fn_name(self, &old_row, &#singular_table_name) {
+                                    return Err(spacetimedsl::SpacetimeDSLError::Error(error_msg));
+                                }
+                            }
+                        )
+                    } else {
+                        (TokenStream::default(), TokenStream::default())
+                    };
+
                     method_impl = quote! {
                         #use_itertools
 
@@ -1125,14 +1157,19 @@ pub(in crate::internal) fn for_method(
 
                         #modified_at
 
+                        #hook_call_before_update
+
                         // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(spacetimedsl::SpacetimeDSLError);
-                        Ok(self
+                        let updated_row = self
                             .ctx()
                             .db()
                             .#singular_table_name()
                             .#index_name()
-                            .update(#singular_table_name)
-                        )
+                            .update(#singular_table_name);
+
+                        #hook_call_after_update
+
+                        Ok(updated_row)
                     };
                 }
                 dsl_method => {
@@ -1453,11 +1490,28 @@ pub(in crate::internal) fn for_method(
                                 });
                             };
 
+                            let hook_call = if spacetimedsl_table.hook_on_delete {
+                                let hook_fn_name = format_ident!("on_{}_delete", singular_table_name);
+                                quote! {
+                                    for primary_key_value in &primary_key_values_of_rows_to_delete {
+                                        if let Some(row) = self.ctx().db().#singular_table_name().#primary_key_column_name().find(*primary_key_value) {
+                                            if let Err(error_msg) = #hook_fn_name(self, &row) {
+                                                return Err(spacetimedsl::SpacetimeDSLError::Error(error_msg));
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                TokenStream::default()
+                            };
+
                             if spacetimedsl_table.referencing_tables.is_empty() {
                                 method_impl = quote! {
                                     #impl_until_return_ok_on_is_empty
 
                                     #map_primary_key_values_of_rows_to_delete_to_deletion_result_entries
+
+                                    #hook_call
 
                                     #delete_many_impl
                                     #return_result_impl
@@ -1537,6 +1591,8 @@ pub(in crate::internal) fn for_method(
                                     #map_primary_key_values_of_rows_to_delete_to_deletion_result_entries
 
                                     #error_strategy
+
+                                    #hook_call
 
                                     #delete_many_impl
 
@@ -1718,6 +1774,19 @@ pub(in crate::internal) fn for_method(
                                 };
                             };
 
+                            let hook_call = if spacetimedsl_table.hook_on_delete {
+                                let hook_fn_name = format_ident!("on_{}_delete", singular_table_name);
+                                quote! {
+                                    if let Some(ref deleted_row) = row_to_delete {
+                                        if let Err(error_msg) = #hook_fn_name(self, deleted_row) {
+                                            return Err(spacetimedsl::SpacetimeDSLError::Error(error_msg));
+                                        }
+                                    }
+                                }
+                            } else {
+                                TokenStream::default()
+                            };
+
                             let return_result_impl = quote! {
                                 return Ok(spacetimedsl::DeletionResult {
                                     table_name: #singular_table_name_as_string.into(),
@@ -1731,6 +1800,8 @@ pub(in crate::internal) fn for_method(
                                     #impl_until_return_err_on_is_none
 
                                     #map_primary_key_value_of_a_row_to_delete_to_deletion_result_entry
+
+                                    #hook_call
 
                                     #delete_one_impl
                                     #return_result_impl
@@ -1810,6 +1881,8 @@ pub(in crate::internal) fn for_method(
                                     #map_primary_key_value_of_a_row_to_delete_to_deletion_result_entry
 
                                     #error_strategy
+
+                                    #hook_call
 
                                     #delete_one_impl
 
