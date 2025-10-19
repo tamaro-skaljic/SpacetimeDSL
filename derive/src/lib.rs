@@ -98,11 +98,11 @@ fn is_last_dsl_attribute(derive_input: &syn::DeriveInput) -> bool {
 
 /// Make all struct fields private by setting their visibility to Inherited
 fn make_struct_fields_private(derive_input: &mut syn::DeriveInput) {
-    if let syn::Data::Struct(data_struct) = &mut derive_input.data {
-        if let syn::Fields::Named(fields) = &mut data_struct.fields {
-            for field in &mut fields.named {
-                field.vis = syn::Visibility::Inherited;
-            }
+    if let syn::Data::Struct(data_struct) = &mut derive_input.data
+        && let syn::Fields::Named(fields) = &mut data_struct.fields
+    {
+        for field in &mut fields.named {
+            field.vis = syn::Visibility::Inherited;
         }
     }
 }

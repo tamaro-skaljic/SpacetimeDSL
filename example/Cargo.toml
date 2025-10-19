@@ -1,6 +1,6 @@
 [package]
 name = "spacetimedsl_test"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2024"
 publish = false
 
@@ -12,17 +12,17 @@ crate-type = ["cdylib"]
 proc-macro2 = { version = "1", features = ["span-locations"] }
 
 # https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
-spacetimedb = "1.2.0"
+spacetimedb = "1.6.0"
 
 # https://crates.io/crates/syn Parser for Rust source code
 syn = { default-features = false, features = [
     "extra-traits",
     "full",
     "parsing",
-], version = "2.0.103" }
+], version = "2" }
 
 # https://crates.io/crates/spacetimedsl Ergonomic DSL for SpacetimeDB
-spacetimedsl = { version = "0.10.0", path = "../" }
+spacetimedsl = { version = "0.11.0", path = "../" }
 
 # https://crates.io/crates/log A lightweight logging facade for Rust
 log = "0.4"

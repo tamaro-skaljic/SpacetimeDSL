@@ -14,6 +14,7 @@ use proc_macro2::Span;
 use spacetime_bindings_macro_input::table::ColumnArgs;
 use syn::{Ident, Path};
 
+#[allow(clippy::type_complexity)]
 pub(in crate::internal) fn try_parse(
     column_args: &ColumnArgs,
     rust_struct: &RustStruct,
