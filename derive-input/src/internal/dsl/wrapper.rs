@@ -51,7 +51,7 @@ impl WrapperType {
                         let ident: Ident = attr.meta.require_list()?.parse_args()
                             .map_err(|_| syn::Error::new_spanned(
                                     &attr.meta,
-                                    "Failed to parse NameForWrapperType in `#[use_wrapper(NameForWrapperType)]`. Expected a valid Rust ident like `EntityId`.",
+                                    "Failed to parse NameForWrapperType in `#[create_wrapper(NameForWrapperType)]`. Expected a valid Rust ident like `EntityId`.",
                                 ))?;
                         wrapper_struct_name_or_path = Some(ident.to_string());
                     } else {
