@@ -410,7 +410,7 @@ fn process_columns_for_create_and_update_method(
 
     let singular_table_name = &internal_column.spacetimedb_table_singular_name;
     let column_name = &internal_column.rust_field_name;
-    let getter_name = column_name.clone();
+    let getter_name = column_name;
     let constructor_arg_name = quote! { #column_name };
 
     let column_type = &internal_column.rust_field_type_name_or_path;
@@ -1854,7 +1854,7 @@ fn reference_integrity_checks_on_create_or_update(
         let referencing_table_column_name = &column.rust_field_name;
         let referencing_table_column_name_as_string = referencing_table_column_name.to_string();
         let primary_key_column_name_of_referencing_table = &primary_key_column.rust_field_name;
-        let referencing_table_column_getter_name = referencing_table_column_name.clone();
+        let referencing_table_column_getter_name = referencing_table_column_name;
 
         let referencing_table_column_type = column
             .rust_field_type_name_or_path
@@ -1916,7 +1916,7 @@ fn reference_integrity_checks_on_create_or_update(
                     },
                 };
 
-                let getter_name = primary_key_column_name_of_referencing_table.clone();
+                let getter_name = primary_key_column_name_of_referencing_table;
 
                 quote! {
                     if #field_name_for_found_value.is_none() {

@@ -3,7 +3,6 @@ use crate::api::{
     rust::column::RustField,
 };
 use quote::quote;
-use syn::Ident;
 
 impl Getter {
     pub(in crate::internal) fn map(
@@ -13,7 +12,7 @@ impl Getter {
     ) -> Getter {
         let column_name = &rust_field.name;
 
-        let method_name = get_getter_method_name(column_name);
+        let method_name = column_name;
         let return_type;
         let method_impl;
 
@@ -67,13 +66,9 @@ impl Getter {
         };
 
         Getter {
-            method_name,
+            method_name: method_name.clone(),
             return_type,
             method_impl,
         }
     }
-}
-
-pub(in crate::internal) fn get_getter_method_name(column_name: &Ident) -> Ident {
-    column_name.clone()
 }
