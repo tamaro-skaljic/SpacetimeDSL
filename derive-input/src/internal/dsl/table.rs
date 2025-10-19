@@ -27,6 +27,7 @@ impl SpacetimeDSLTable {
 
         match column_args
             .primary_key_column
+            .as_ref()
             .expect("The table should have a `#[primary_key]` column!")
             .vis
         {

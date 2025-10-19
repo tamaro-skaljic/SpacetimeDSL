@@ -369,6 +369,9 @@ pub mod component {
             pub name: String,
 
             pub parent_id: u128,
+
+            #[default(0u128)]
+            pub test: u128,
         }
     }
 }

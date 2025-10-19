@@ -13,4 +13,4 @@ syn = { default-features = false, features = [
     "extra-traits",
     "full",
     "parsing",
-], version = "2.0.103" } # https://crates.io/crates/syn
+], version = "2" } # https://crates.io/crates/syn
