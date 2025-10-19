@@ -49,23 +49,36 @@ impl WrapperType {
                     }
                 }
                 Err(_) => {
-                    attr.parse_nested_meta(|meta| {
-                        match_meta!(match meta {
-                            name => {
-                                check_duplicate(&wrapper_struct_name_or_path, &meta)?;
-                                let wrapper_struct_name: Ident = meta.value()?.parse()?;
-                                wrapper_struct_name_or_path = Some(wrapper_struct_name.to_string());
+                    // For #[create_wrapper], try to parse a direct identifier first
+                    if attr.meta.path().eq(&create_wrapper) {
+                        if let Ok(list) = attr.meta.require_list() {
+                            // Try to parse as a single Ident: #[create_wrapper(EntityId)]
+                            if let Ok(ident) = list.parse_args::<Ident>() {
+                                wrapper_struct_name_or_path = Some(ident.to_string());
                             }
-                            path => {
-                                check_duplicate(&wrapper_struct_name_or_path, &meta)?;
-                                let wrapper_struct_path: Path = meta.value()?.parse()?;
+                        }
+                    }
 
-                                wrapper_struct_name_or_path =
-                                    Some(wrapper_struct_path.to_token_stream().to_string());
-                            }
-                        });
-                        Ok(())
-                    })?;
+                    // If we didn't get a direct ident (or it's use_wrapper), fall back to nested meta parsing
+                    if wrapper_struct_name_or_path.is_none() {
+                        attr.parse_nested_meta(|meta| {
+                            match_meta!(match meta {
+                                name => {
+                                    check_duplicate(&wrapper_struct_name_or_path, &meta)?;
+                                    let wrapper_struct_name: Ident = meta.value()?.parse()?;
+                                    wrapper_struct_name_or_path = Some(wrapper_struct_name.to_string());
+                                }
+                                path => {
+                                    check_duplicate(&wrapper_struct_name_or_path, &meta)?;
+                                    let wrapper_struct_path: Path = meta.value()?.parse()?;
+
+                                    wrapper_struct_name_or_path =
+                                        Some(wrapper_struct_path.to_token_stream().to_string());
+                                }
+                            });
+                            Ok(())
+                        })?;
+                    }
                 }
             }
 

@@ -8,7 +8,7 @@ pub mod entity {
         /// The unique ID of the Entity.
         #[primary_key]
         #[auto_inc]
-        #[create_wrapper(name = EntityId)]
+        #[create_wrapper(EntityId)]
         #[referenced_by(path = crate::entity,                table = entity_relationship)]
         #[referenced_by(path = crate::entity,                table = entity_relationship2)]
         #[referenced_by(path = crate::component::identifier, table = identifier)]
