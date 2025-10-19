@@ -1031,3 +1031,38 @@ pub mod test {
         Ok(())
     }
 }
+
+// Test module for hooks functionality
+pub mod hook_test {
+    use spacetimedb::Timestamp;
+
+    #[spacetimedsl::dsl(plural_name = hook_test_entities, hook_on(insert), hook_on(update), hook_on(delete))]
+    #[spacetimedb::table(name = hook_test_entity, public)]
+    pub struct HookTestEntity {
+        #[primary_key]
+        #[auto_inc]
+        #[create_wrapper]
+        id: u128,
+
+        pub value: String,
+
+        created_at: Timestamp,
+        modified_at: Option<Timestamp>,
+    }
+
+    // Hook functions that will be called by DSL methods
+    pub fn on_hook_test_entity_insert<T: spacetimedsl::DSLContext + ?Sized>(_dsl: &T, row: &HookTestEntity) -> Result<(), String> {
+        spacetimedb::log::info!("Hook: Inserted row with id={}, value={}", row.id, row.value);
+        Ok(())
+    }
+
+    pub fn on_hook_test_entity_update<T: spacetimedsl::DSLContext + ?Sized>(_dsl: &T, old_row: &HookTestEntity, new_row: &HookTestEntity) -> Result<(), String> {
+        spacetimedb::log::info!("Hook: Updated row id={} from value={} to value={}", old_row.id, old_row.value, new_row.value);
+        Ok(())
+    }
+
+    pub fn on_hook_test_entity_delete<T: spacetimedsl::DSLContext + ?Sized>(_dsl: &T, row: &HookTestEntity) -> Result<(), String> {
+        spacetimedb::log::info!("Hook: Deleting row with id={}, value={}", row.id, row.value);
+        Ok(())
+    }
+}
