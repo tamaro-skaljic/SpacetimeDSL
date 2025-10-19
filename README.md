@@ -425,7 +425,7 @@ pub struct Entity {
     #[create_wrapper]
 
     //  Custom Name Strategy: EntityID
-    #[create_wrapper(name = EntityID)]
+    #[create_wrapper(EntityID)]
 
     id: u128,
 

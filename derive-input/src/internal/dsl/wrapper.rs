@@ -49,23 +49,31 @@ impl WrapperType {
                     }
                 }
                 Err(_) => {
-                    attr.parse_nested_meta(|meta| {
-                        match_meta!(match meta {
-                            name => {
-                                check_duplicate(&wrapper_struct_name_or_path, &meta)?;
-                                let wrapper_struct_name: Ident = meta.value()?.parse()?;
-                                wrapper_struct_name_or_path = Some(wrapper_struct_name.to_string());
-                            }
-                            path => {
-                                check_duplicate(&wrapper_struct_name_or_path, &meta)?;
-                                let wrapper_struct_path: Path = meta.value()?.parse()?;
+                    // For #[create_wrapper], parse as a direct identifier: #[create_wrapper(EntityId)]
+                    if attr.meta.path().eq(&create_wrapper) {
+                        let list = attr.meta.require_list()?;
+                        let ident: Ident = list.parse_args()?;
+                        wrapper_struct_name_or_path = Some(ident.to_string());
+                    } else {
+                        // For #[use_wrapper], use nested meta parsing for name= or path=
+                        attr.parse_nested_meta(|meta| {
+                            match_meta!(match meta {
+                                name => {
+                                    check_duplicate(&wrapper_struct_name_or_path, &meta)?;
+                                    let wrapper_struct_name: Ident = meta.value()?.parse()?;
+                                    wrapper_struct_name_or_path = Some(wrapper_struct_name.to_string());
+                                }
+                                path => {
+                                    check_duplicate(&wrapper_struct_name_or_path, &meta)?;
+                                    let wrapper_struct_path: Path = meta.value()?.parse()?;
 
-                                wrapper_struct_name_or_path =
-                                    Some(wrapper_struct_path.to_token_stream().to_string());
-                            }
-                        });
-                        Ok(())
-                    })?;
+                                    wrapper_struct_name_or_path =
+                                        Some(wrapper_struct_path.to_token_stream().to_string());
+                                }
+                            });
+                            Ok(())
+                        })?;
+                    }
                 }
             }
 
