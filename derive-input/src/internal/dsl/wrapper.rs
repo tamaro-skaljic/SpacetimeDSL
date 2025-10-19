@@ -47,47 +47,12 @@ impl WrapperType {
                     }
                 }
                 Err(_) => {
-                    // Parse the tokens inside the parentheses
-                    let list = match &attr.meta {
-                        syn::Meta::List(list) => list,
-                        _ => {
-                            return Err(syn::Error::new_spanned(
-                                &attr.meta,
-                                "Expected attribute arguments",
-                            ));
-                        }
-                    };
-                    
-                    let tokens_str = list.tokens.to_string();
-                    
+                    // For #[create_wrapper], parse as a direct identifier: #[create_wrapper(EntityId)]
                     if attr.meta.path().eq(&create_wrapper) {
-                        // For create_wrapper, check if it uses `name =` syntax
-                        if tokens_str.contains('=') {
-                            // Parse as named argument: #[create_wrapper(name = EntityId)]
-                            use spacetime_bindings_macro_input::{match_meta, sym::name, util::check_duplicate};
-                            attr.parse_nested_meta(|meta| {
-                                match_meta!(match meta {
-                                    name => {
-                                        check_duplicate(&wrapper_struct_name_or_path, &meta)?;
-                                        let wrapper_struct_name: Ident = meta.value()?.parse()?;
-                                        wrapper_struct_name_or_path = Some(wrapper_struct_name.to_string());
-                                    }
-                                });
-                                Ok(())
-                            })?;
-                        } else {
-                            // Parse as identifier: #[create_wrapper(EntityId)]
-                            let wrapper_struct_name: Ident = syn::parse2(list.tokens.clone())
-                                .map_err(|_| syn::Error::new_spanned(
-                                    &attr.meta,
-                                    "Failed to parse wrapper name in `#[create_wrapper(WrapperName)]`. Expected a valid identifier.",
-                                ))?;
-                            wrapper_struct_name_or_path = Some(wrapper_struct_name.to_string());
-                        }
+                        let list = attr.meta.require_list()?;
+                        let ident: Ident = list.parse_args()?;
+                        wrapper_struct_name_or_path = Some(ident.to_string());
                     } else {
-                        // For use_wrapper, always parse as a path
-                        // Works for both simple identifiers and complex paths
-                        // e.g. EntityId or crate::entity::EntityId
                         let wrapper_struct_path: Path = syn::parse2(list.tokens.clone())
                             .map_err(|_| syn::Error::new_spanned(
                                 &attr.meta,
