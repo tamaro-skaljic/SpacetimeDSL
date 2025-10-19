@@ -1,13 +1,11 @@
-use super::{create_wrapper, path, use_wrapper};
+use super::{create_wrapper, use_wrapper};
 use crate::api::dsl::wrapper::{CreatedWrapper, UsedWrapper, WrapperType};
 use crate::api::rust::{column::RustField, table::RustStruct};
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::quote;
 use quote::{ToTokens, format_ident};
-use spacetime_bindings_macro_input::{
-    match_meta, sats::SatsField, sym::name, util::check_duplicate,
-};
+use spacetime_bindings_macro_input::sats::SatsField;
 use syn::{Error, Ident, Path, Type, parse_str, parse2};
 
 impl WrapperType {
@@ -30,7 +28,7 @@ impl WrapperType {
                 ));
             }
 
-            let mut wrapper_struct_name_or_path = None;
+            let wrapper_struct_name_or_path;
 
             match attr.meta.require_path_only() {
                 Ok(_) => {
@@ -44,35 +42,26 @@ impl WrapperType {
                     } else {
                         return Err(syn::Error::new_spanned(
                             &attr.meta,
-                            "PathToWrapperType must be set in `#[use_wrapper(path = PathToWrapperType)]`, e.g. `path = path::to::my::WrapperType`.",
+                            "PathToWrapperType must be set in `#[use_wrapper(PathToWrapperType)]`, e.g. `EntityId` or `crate::entity::EntityId`.",
                         ));
                     }
                 }
                 Err(_) => {
-                    // For #[create_wrapper], parse as a direct identifier: #[create_wrapper(EntityId)]
                     if attr.meta.path().eq(&create_wrapper) {
-                        let list = attr.meta.require_list()?;
-                        let ident: Ident = list.parse_args()?;
+                        let ident: Ident = attr.meta.require_list()?.parse_args()
+                            .map_err(|_| syn::Error::new_spanned(
+                                    &attr.meta,
+                                    "Failed to parse NameForWrapperType in `#[create_wrapper(NameForWrapperType)]`. Expected a valid Rust ident like `EntityId`.",
+                                ))?;
                         wrapper_struct_name_or_path = Some(ident.to_string());
                     } else {
-                        // For #[use_wrapper], use nested meta parsing for name= or path=
-                        attr.parse_nested_meta(|meta| {
-                            match_meta!(match meta {
-                                name => {
-                                    check_duplicate(&wrapper_struct_name_or_path, &meta)?;
-                                    let wrapper_struct_name: Ident = meta.value()?.parse()?;
-                                    wrapper_struct_name_or_path = Some(wrapper_struct_name.to_string());
-                                }
-                                path => {
-                                    check_duplicate(&wrapper_struct_name_or_path, &meta)?;
-                                    let wrapper_struct_path: Path = meta.value()?.parse()?;
-
-                                    wrapper_struct_name_or_path =
-                                        Some(wrapper_struct_path.to_token_stream().to_string());
-                                }
-                            });
-                            Ok(())
-                        })?;
+                        let wrapper_struct_path: Path = attr.meta.require_list()?.parse_args()
+                            .map_err(|_| syn::Error::new_spanned(
+                                &attr.meta,
+                                "Failed to parse PathToWrapperType in `#[use_wrapper(PathToWrapperType)]`. Expected a valid Rust path like `EntityId` or `crate::entity::EntityId`.",
+                            ))?;
+                        wrapper_struct_name_or_path =
+                            Some(wrapper_struct_path.to_token_stream().to_string());
                     }
                 }
             }
