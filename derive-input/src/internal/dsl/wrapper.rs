@@ -28,7 +28,7 @@ impl WrapperType {
                 ));
             }
 
-            let mut wrapper_struct_name_or_path = None;
+            let wrapper_struct_name_or_path;
 
             match attr.meta.require_path_only() {
                 Ok(_) => {
@@ -47,18 +47,21 @@ impl WrapperType {
                     }
                 }
                 Err(_) => {
-                    // For #[create_wrapper], parse as a direct identifier: #[create_wrapper(EntityId)]
                     if attr.meta.path().eq(&create_wrapper) {
-                        let list = attr.meta.require_list()?;
-                        let ident: Ident = list.parse_args()?;
+                        let ident: Ident = attr.meta.require_list()?.parse_args()
+                            .map_err(|_| syn::Error::new_spanned(
+                                    &attr.meta,
+                                    "Failed to parse NameForWrapperType in `#[use_wrapper(NameForWrapperType)]`. Expected a valid Rust ident like `EntityId`.",
+                                ))?;
                         wrapper_struct_name_or_path = Some(ident.to_string());
                     } else {
-                        let wrapper_struct_path: Path = syn::parse2(list.tokens.clone())
+                        let wrapper_struct_path: Path = attr.meta.require_list()?.parse_args()
                             .map_err(|_| syn::Error::new_spanned(
                                 &attr.meta,
                                 "Failed to parse PathToWrapperType in `#[use_wrapper(PathToWrapperType)]`. Expected a valid Rust path like `EntityId` or `crate::entity::EntityId`.",
                             ))?;
-                        wrapper_struct_name_or_path = Some(wrapper_struct_path.to_token_stream().to_string());
+                        wrapper_struct_name_or_path =
+                            Some(wrapper_struct_path.to_token_stream().to_string());
                     }
                 }
             }
