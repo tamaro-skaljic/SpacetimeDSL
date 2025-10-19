@@ -66,12 +66,12 @@ pub mod entity {
         id: u128,
 
         #[index(btree)]
-        #[use_wrapper(name = EntityId)]
+        #[use_wrapper(EntityId)]
         #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Error)]
         parent_entity_id: u128,
 
         #[index(btree)]
-        #[use_wrapper(name = EntityId)]
+        #[use_wrapper(EntityId)]
         #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
         child_entity_id: u128,
     }
@@ -86,12 +86,12 @@ pub mod entity {
         id: u128,
 
         #[index(btree)]
-        #[use_wrapper(name = EntityId)]
+        #[use_wrapper(EntityId)]
         #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
         parent_entity_id: u128,
 
         #[index(btree)]
-        #[use_wrapper(name = EntityId)]
+        #[use_wrapper(EntityId)]
         #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
         pub child_entity_id: u128,
     }
@@ -107,7 +107,7 @@ pub mod entity {
         id: u128,
 
         #[index(btree)]
-        #[use_wrapper(name = EntityRelationship3Id)]
+        #[use_wrapper(EntityRelationship3Id)]
         #[foreign_key(path = crate::entity, table = entity_relationship3, column = id, on_delete = SetZero)]
         parent_entity_relationship3_id: u128,
     }
@@ -123,7 +123,7 @@ pub mod entity {
         id: u128,
 
         #[index(btree)]
-        #[use_wrapper(name = EntityRelationship4Id)]
+        #[use_wrapper(EntityRelationship4Id)]
         #[foreign_key(path = crate::entity, table = entity_relationship4, column = id, on_delete = Ignore)]
         pub parent_entity_relationship4_id: u128,
     }
@@ -146,7 +146,7 @@ pub mod component {
 
             /// The unique ID of the Entity the Identifier belongs to.
             #[unique]
-            #[use_wrapper(path = crate::entity::EntityId)]
+            #[use_wrapper(crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
             entity_id: u128,
 
@@ -163,7 +163,7 @@ pub mod component {
         #[spacetimedb::table(name = identifier_reference, public)]
         pub struct IdentifierReference {
             #[primary_key]
-            #[use_wrapper(name = IdentifierId)]
+            #[use_wrapper(IdentifierId)]
             #[foreign_key(path = crate::component::identifier, table = identifier, column = id, on_delete = Delete)]
             id: u128,
         }
@@ -188,7 +188,7 @@ pub mod component {
 
             /// The unique ID of the Entity the Position belongs to.
             #[unique]
-            #[use_wrapper(path = crate::entity::EntityId)]
+            #[use_wrapper(crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = SetZero)]
             entity_id: u128,
 
@@ -198,7 +198,7 @@ pub mod component {
 
             pub z: i128,
 
-            #[use_wrapper(path = crate::component::position::PositionId)]
+            #[use_wrapper(crate::component::position::PositionId)]
             mirrored_position_id: Option<u128>,
 
             created_at: Timestamp,
@@ -218,7 +218,7 @@ pub mod component {
 
             /// The unique ID of the Entity the unique Position belongs to.
             #[unique]
-            #[use_wrapper(path = crate::entity::EntityId)]
+            #[use_wrapper(crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
             entity_id: u128,
 
@@ -247,7 +247,7 @@ pub mod component {
             #[create_wrapper]
             id: u128,
 
-            #[use_wrapper(path = crate::entity::EntityId)]
+            #[use_wrapper(crate::entity::EntityId)]
             pub wrapped_option: Option<u128>,
 
             // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 Add #[unique] if it's allowed by SpacetimeDB
@@ -256,14 +256,14 @@ pub mod component {
 
             // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 Add unique_wrapped_option if it's allowed by SpacetimeDB
             // #[unique]
-            // #[use_wrapper(path = crate::entity::EntityId)]
+            // #[use_wrapper(crate::entity::EntityId)]
             // pub unique_wrapped_option: Option<u128>,
             #[unique]
-            #[use_wrapper(path = crate::entity::EntityId)]
+            #[use_wrapper(crate::entity::EntityId)]
             pub wrapped_unique: u128,
 
             #[index(btree)]
-            #[use_wrapper(path = crate::entity::EntityId)]
+            #[use_wrapper(crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
             pub wrapped_index: u128,
 
@@ -271,7 +271,7 @@ pub mod component {
             pub btree_index: u128,
 
             #[unique]
-            #[use_wrapper(path = crate::entity::EntityId)]
+            #[use_wrapper(crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = SetZero)]
             pub unique: u128,
 
@@ -316,7 +316,7 @@ pub mod component {
             pub sobj_id: u64,
 
             #[unique]
-            #[use_wrapper(path = crate::entity::EntityId)]
+            #[use_wrapper(crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Error)]
             pub entity_id: u128,
         }
@@ -335,7 +335,7 @@ pub mod component {
             pub sobj_id: u64,
 
             #[unique]
-            #[use_wrapper(path = crate::entity::EntityId)]
+            #[use_wrapper(crate::entity::EntityId)]
             #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Error)]
             pub entity_id: u128,
         }

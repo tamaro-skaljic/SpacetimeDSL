@@ -97,7 +97,7 @@ pub struct Position {
     id: u128,
 
     #[unique]
-    #[use_wrapper(name = EntityId)]                                                        // Added
+    #[use_wrapper(EntityId)]
     #[foreign_key(path = crate, table = entity, on_delete = Delete)]                       // Added
     entity_id: u128,
 
@@ -429,11 +429,11 @@ pub struct Entity {
 
     id: u128,
 
-    // Provide the name of the wrapper type if you're     in the same module
-    #[use_wrapper(name = EntityId)]
+    // Use a wrapper type from the same module
+    #[use_wrapper(EntityId)]
 
-     // Provide the path of the wrapper type if you're not in the same module
-    #[use_wrapper(path = crate::entity::EntityId)]
+    // Use a wrapper type from another module
+    #[use_wrapper(crate::entity::EntityId)]
 
     parent_entity_id: u128,
 }
@@ -560,7 +560,7 @@ pub mod identifier {
         id: u128
 
         #[unique]
-        #[use_wrapper(path = crate::EntityId)]
+        #[use_wrapper(crate::EntityId)]
         #[foreign_key(path = crate, table = entity, on_delete = Delete)] // Added
         entity_id: u128
 
@@ -577,22 +577,22 @@ pub mod identifier {
 #[table(name = identifier_reference, public)]
 pub struct IdentifierReference {
     #[primary_key]
-    #[use_wrapper(name = IdentifierId)]
+    #[use_wrapper(IdentifierId)]
     #[foreign_key(path = crate, table = identifier, on_delete = Error)]   // Added
     id: u128,
 
     #[unique]
-    #[use_wrapper(name = IdentifierId)]
+    #[use_wrapper(IdentifierId)]
     #[foreign_key(path = crate, table = identifier, on_delete = Delete)]  // Added
     id2: u128,
 
     #[unique]
-    #[use_wrapper(name = IdentifierId)]
+    #[use_wrapper(IdentifierId)]
     #[foreign_key(path = crate, table = identifier, on_delete = SetZero)] // Added
     id3: u128,
 
     #[unique]
-    #[use_wrapper(name = IdentifierId)]
+    #[use_wrapper(IdentifierId)]
     #[foreign_key(path = crate, table = identifier, on_delete = Ignore)]  // Added
     id4: u128,
 }
