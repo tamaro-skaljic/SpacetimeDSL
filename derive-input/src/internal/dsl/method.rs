@@ -1127,21 +1127,18 @@ pub(in crate::internal) fn for_method(
                         false => index_name,
                     };
 
-                    let (hook_call_before_update, _hook_call_after_update) = if spacetimedsl_table.hook_on_update {
+                    let hook_call_before_update = if spacetimedsl_table.hook_on_update {
                         let hook_fn_name = format_ident!("on_{}_update", singular_table_name);
-                        (
-                            quote! {
-                                let old_row = self.ctx().db().#singular_table_name().#primary_key_column_name()
-                                    .find(#singular_table_name.#primary_key_column_name)
-                                    .expect("Row should exist for update");
-                                if let Err(error_msg) = #hook_fn_name(self, &old_row, &#singular_table_name) {
-                                    return Err(spacetimedsl::SpacetimeDSLError::Error(error_msg));
-                                }
-                            },
-                            quote! {}
-                        )
+                        quote! {
+                            let old_row = self.ctx().db().#singular_table_name().#primary_key_column_name()
+                                .find(#singular_table_name.#primary_key_column_name)
+                                .expect("Row should exist for update");
+                            if let Err(error_msg) = #hook_fn_name(self, &old_row, &#singular_table_name) {
+                                return Err(spacetimedsl::SpacetimeDSLError::Error(error_msg));
+                            }
+                        }
                     } else {
-                        (TokenStream::default(), TokenStream::default())
+                        TokenStream::default()
                     };
 
                     method_impl = quote! {
@@ -1489,6 +1486,9 @@ pub(in crate::internal) fn for_method(
                             let hook_call = if spacetimedsl_table.hook_on_delete {
                                 let hook_fn_name = format_ident!("on_{}_delete", singular_table_name);
                                 quote! {
+                                    // Collect rows before deletion to call hooks on them
+                                    // We need to collect because filter_map would consume the rows,
+                                    // but we need to keep them to call hooks before actual deletion
                                     let rows_to_delete: Vec<_> = primary_key_values_of_rows_to_delete.iter().filter_map(|pk| {
                                         self.ctx().db().#singular_table_name().#primary_key_column_name().find(*pk)
                                     }).collect();

@@ -1051,16 +1051,45 @@ pub mod hook_test {
     }
 
     // Hook functions that will be called by DSL methods
+    
+    /// Hook called after successfully inserting a row into the hook_test_entity table.
+    /// 
+    /// # Arguments
+    /// * `dsl` - Reference to the DSL context
+    /// * `row` - Reference to the newly inserted row
+    ///
+    /// # Returns
+    /// * `Ok(())` - If the hook executes successfully
+    /// * `Err(String)` - If an error occurs, the error message will be wrapped in SpacetimeDSLError::Error
     pub fn on_hook_test_entity_insert<T: spacetimedsl::DSLContext + ?Sized>(_dsl: &T, row: &HookTestEntity) -> Result<(), String> {
         spacetimedb::log::info!("Hook: Inserted row with id={}, value={}", row.id, row.value);
         Ok(())
     }
 
+    /// Hook called before updating a row in the hook_test_entity table.
+    /// 
+    /// # Arguments
+    /// * `dsl` - Reference to the DSL context
+    /// * `old_row` - Reference to the row before the update
+    /// * `new_row` - Reference to the row after the update (with new values)
+    ///
+    /// # Returns
+    /// * `Ok(())` - If the hook executes successfully and the update should proceed
+    /// * `Err(String)` - If an error occurs, the update will be aborted and the error message will be wrapped in SpacetimeDSLError::Error
     pub fn on_hook_test_entity_update<T: spacetimedsl::DSLContext + ?Sized>(_dsl: &T, old_row: &HookTestEntity, new_row: &HookTestEntity) -> Result<(), String> {
         spacetimedb::log::info!("Hook: Updated row id={} from value={} to value={}", old_row.id, old_row.value, new_row.value);
         Ok(())
     }
 
+    /// Hook called before deleting a row from the hook_test_entity table.
+    /// 
+    /// # Arguments
+    /// * `dsl` - Reference to the DSL context
+    /// * `row` - Reference to the row that will be deleted
+    ///
+    /// # Returns
+    /// * `Ok(())` - If the hook executes successfully and the deletion should proceed
+    /// * `Err(String)` - If an error occurs, the deletion will be aborted and the error message will be wrapped in SpacetimeDSLError::Error
     pub fn on_hook_test_entity_delete<T: spacetimedsl::DSLContext + ?Sized>(_dsl: &T, row: &HookTestEntity) -> Result<(), String> {
         spacetimedb::log::info!("Hook: Deleting row with id={}, value={}", row.id, row.value);
         Ok(())
