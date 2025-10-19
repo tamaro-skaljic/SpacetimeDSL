@@ -2,7 +2,7 @@ use crate::api::{
     dsl::{getter::Getter, wrapper::WrapperType},
     rust::column::RustField,
 };
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::Ident;
 
 impl Getter {
@@ -75,5 +75,5 @@ impl Getter {
 }
 
 pub(in crate::internal) fn get_getter_method_name(column_name: &Ident) -> Ident {
-    format_ident!("get_{column_name}")
+    column_name.clone()
 }
