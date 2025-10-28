@@ -6,6 +6,7 @@ use syn::Ident;
 use super::reference::ReferencingTable;
 use crate::api::dsl::{
     column::SpacetimeDSLColumnMethods,
+    hook::SpacetimeDSLMethodHooks,
     method::{SpacetimeDSLArg, SpacetimeDSLMethod},
 };
 
@@ -18,9 +19,7 @@ pub struct SpacetimeDSLTable {
     pub referencing_tables: Vec<ReferencingTable>,
     pub compile_error_checks: HashSet<Ident>,
     pub create_dsl_method_arg: Option<CreateDSLMethodArg>,
-    pub hook_on_insert: bool,
-    pub hook_on_update: bool,
-    pub hook_on_delete: bool,
+    pub hooks: SpacetimeDSLMethodHooks,
 }
 
 #[derive(Clone)]

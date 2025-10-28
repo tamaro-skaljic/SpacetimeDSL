@@ -10,6 +10,8 @@ pub struct DSL<'a> {
     pub(crate) ctx: &'a ReducerContext,
 }
 
+pub struct DSLMethodHooks {}
+
 pub fn dsl<'a>(ctx: &'a ReducerContext) -> DSL<'a> {
     DSL { ctx }
 }

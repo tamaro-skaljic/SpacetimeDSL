@@ -8,21 +8,18 @@ use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::DeriveInput;
 
 pub(in crate::internal) fn try_parse(
+    args: proc_macro2::TokenStream,
     input: &DeriveInput,
     table_args: &TableArgs,
     column_args: &ColumnArgs<'_>,
     plural_name: syn::Ident,
-    unique_indices: Vec<syn::Ident>,
-    hook_on_insert: bool,
-    hook_on_update: bool,
-    hook_on_delete: bool,
 ) -> syn::Result<Table> {
     let rust_struct = crate::internal::rust::table::map_struct(input);
 
     let spacetimedb_table = SpacetimeDBTable::map(table_args);
 
     let (spacetimedb_table, mut spacetimedsl_table) =
-        SpacetimeDSLTable::try_parse(column_args, spacetimedb_table, plural_name, unique_indices, hook_on_insert, hook_on_update, hook_on_delete)?;
+        SpacetimeDSLTable::try_parse(args, column_args, spacetimedb_table, plural_name)?;
 
     let (
         spacetimedb_table,
