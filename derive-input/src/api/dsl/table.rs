@@ -1,9 +1,13 @@
 use std::collections::HashSet;
 
+use proc_macro2::TokenStream;
 use syn::Ident;
 
 use super::reference::ReferencingTable;
-use crate::api::dsl::{column::SpacetimeDSLColumnMethods, method::SpacetimeDSLMethod};
+use crate::api::dsl::{
+    column::SpacetimeDSLColumnMethods,
+    method::{SpacetimeDSLArg, SpacetimeDSLMethod},
+};
 
 #[derive(Clone)]
 pub struct SpacetimeDSLTable {
@@ -13,6 +17,14 @@ pub struct SpacetimeDSLTable {
     pub has_modified_at_column: bool,
     pub referencing_tables: Vec<ReferencingTable>,
     pub compile_error_checks: HashSet<Ident>,
+    pub create_dsl_method_arg: Option<CreateDSLMethodArg>,
+}
+
+#[derive(Clone)]
+pub struct CreateDSLMethodArg {
+    pub struct_name: Ident,
+    pub struct_members: Vec<SpacetimeDSLArg>,
+    pub struct_impl: TokenStream,
 }
 
 #[derive(Clone)]

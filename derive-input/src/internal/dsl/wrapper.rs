@@ -174,14 +174,16 @@ fn get_wrapper_impl(
 }
 
 impl WrapperType {
-    pub(in crate::internal) fn map_to_wrapped_type(value: &CreatedWrapper) -> Type {
-        parse2(value.wrapped_type_name_or_path.to_token_stream()).unwrap_or_else(|_| {
+    pub(in crate::internal) fn map_to_wrapped_type(value: &WrapperType) -> Type {
+        let wrapped_type_name_or_path = match value {
+            WrapperType::Created(created_wrapper) => &created_wrapper.wrapped_type_name_or_path,
+            WrapperType::Used(used_wrapper) => &used_wrapper.wrapped_type_name_or_path,
+        };
+
+        parse2(wrapped_type_name_or_path.to_token_stream()).unwrap_or_else(|_| {
             panic!(
                 "Failed to parse {} as Ident in WrapperType::map_to_wrapped_type.",
-                &value
-                    .wrapped_type_name_or_path
-                    .to_token_stream()
-                    .to_string()
+                &wrapped_type_name_or_path.to_token_stream().to_string()
             )
         })
     }
@@ -202,7 +204,6 @@ pub(in crate::internal) fn map_wrapper_type_option_to_wrapped_type_option(
 ) -> TokenStream {
     let column_option_name = &format_ident!("{column_name}_option");
     quote! {
-        let #column_name = #column_name.into();
         let mut #column_option_name = None;
         if #column_name.is_some() {
             #column_option_name = Some(Into::<#wrapper_type_name_or_path>::into(#column_name.expect("value should exist")).value());

@@ -18,7 +18,7 @@ pub(in crate::internal) fn try_parse(
 
     let spacetimedb_table = SpacetimeDBTable::map(table_args);
 
-    let (spacetimedb_table, spacetimedsl_table) =
+    let (spacetimedb_table, mut spacetimedsl_table) =
         SpacetimeDSLTable::try_parse(column_args, spacetimedb_table, plural_name, unique_indices)?;
 
     let (
@@ -31,7 +31,7 @@ pub(in crate::internal) fn try_parse(
         column_args,
         &rust_struct,
         spacetimedb_table,
-        &spacetimedsl_table,
+        &mut spacetimedsl_table,
     )?;
 
     let (spacetimedsl_methods, spacetimedsl_table) = SpacetimeDSLTableMethods::try_parse(

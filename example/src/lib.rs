@@ -377,6 +377,13 @@ pub mod component {
 }
 
 pub mod test {
+    use crate::component::identifier::CreateIdentifier;
+    use crate::component::position::{CreatePosition, CreateUniquePosition};
+    use crate::component::test::CreateShipObject;
+    use crate::component::test::CreateTest;
+    use crate::entity::{
+        CreateEntityRelationship, CreateEntityRelationship2, CreateEntityRelationship4,
+    };
     use crate::{
         component::{
             identifier::{
@@ -449,7 +456,10 @@ pub mod test {
             }
         };
 
-        match dsl.create_identifier(&player, "cool") {
+        match dsl.create_identifier(CreateIdentifier {
+            entity_id: player.obj_id(),
+            value: "cool".to_string(),
+        }) {
             Ok(_) => {}
             Err(error) => {
                 return Err(format!(
@@ -462,13 +472,28 @@ pub mod test {
             return Err("Count of identifiers should be 1!".to_string());
         }
 
-        dsl.create_entity_relationship(&player, &player2)?;
-        if dsl.create_entity_relationship(&player, &player2).is_ok() {
+        dsl.create_entity_relationship(CreateEntityRelationship {
+            parent_entity_id: player.obj_id(),
+            child_entity_id: player2.obj_id(),
+        })?;
+        if dsl
+            .create_entity_relationship(CreateEntityRelationship {
+                parent_entity_id: player.obj_id(),
+                child_entity_id: player2.obj_id(),
+            })
+            .is_ok()
+        {
             return Err("Shouldn't be able to create the same entity relationship because of the unique multi column index `parent_child_entity_id`".to_string());
         }
         let player3 = dsl.create_entity()?;
-        dsl.create_entity_relationship(&player, &player3)?;
-        dsl.create_entity_relationship(&player2, &player3)?;
+        dsl.create_entity_relationship(CreateEntityRelationship {
+            parent_entity_id: player.obj_id(),
+            child_entity_id: player3.obj_id(),
+        })?;
+        dsl.create_entity_relationship(CreateEntityRelationship {
+            parent_entity_id: player2.obj_id(),
+            child_entity_id: player3.obj_id(),
+        })?;
 
         if dsl.count_of_all_entity_relationships().ne(&3) {
             return Err("Count of entity relationships should be 3!".to_string());
@@ -492,7 +517,7 @@ pub mod test {
         };
 
         if dsl.count_of_all_entity_relationships().ne(&1) {
-            return Err("Count of entity relationships should be 1 because 2 should be deleted through the foreign key / referenced by feature!".to_string());
+            return Err("Count of entity relationships should be 1 because 2 should be deleted through the foreign key / referenced by feature! (1)".to_string());
         }
 
         match dsl.delete_entity_by_obj_id(&player2) {
@@ -540,9 +565,18 @@ pub mod test {
         let player2 = dsl.create_entity()?;
         let player3 = dsl.create_entity()?;
 
-        dsl.create_entity_relationship2(&player, &player2)?;
-        dsl.create_entity_relationship2(&player2, &player3)?;
-        dsl.create_entity_relationship2(&player3, &player)?;
+        dsl.create_entity_relationship2(CreateEntityRelationship2 {
+            parent_entity_id: player.obj_id(),
+            child_entity_id: player2.obj_id(),
+        })?;
+        dsl.create_entity_relationship2(CreateEntityRelationship2 {
+            parent_entity_id: player2.obj_id(),
+            child_entity_id: player3.obj_id(),
+        })?;
+        dsl.create_entity_relationship2(CreateEntityRelationship2 {
+            parent_entity_id: player3.obj_id(),
+            child_entity_id: player.obj_id(),
+        })?;
 
         if dsl.count_of_all_entity_relationships2().ne(&3) {
             return Err("Count of entity relationships 2 should be 3!".to_string());
@@ -554,11 +588,15 @@ pub mod test {
         };
 
         if dsl.count_of_all_entity_relationships2().ne(&1) {
-            return Err("Count of entity relationships should be 1 because 2 should be deleted through the foreign key / referenced by feature!".to_string());
+            return Err("Count of entity relationships should be 1 because 2 should be deleted through the foreign key / referenced by feature! (2)".to_string());
         }
 
-        let er4_1 = dsl.create_entity_relationship4(EntityRelationship4Id::new(0))?;
-        let mut er4_2 = dsl.create_entity_relationship4(&er4_1)?;
+        let er4_1 = dsl.create_entity_relationship4(CreateEntityRelationship4 {
+            parent_entity_relationship4_id: EntityRelationship4Id::new(0),
+        })?;
+        let mut er4_2 = dsl.create_entity_relationship4(CreateEntityRelationship4 {
+            parent_entity_relationship4_id: er4_1.parent_entity_relationship4_id(),
+        })?;
 
         match dsl.delete_entity_relationship4_by_id(&er4_1) {
             Ok(success) => {
@@ -595,12 +633,20 @@ pub mod test {
             return Err("Shouldn't be able to set `parent_entity_relationship4_id` of `er4_2` to id of previously deleted `er4_1`".to_string());
         }
 
-        if dsl.create_entity_relationship4(&er4_1).is_ok() {
+        if dsl
+            .create_entity_relationship4(CreateEntityRelationship4 {
+                parent_entity_relationship4_id: er4_1.id(),
+            })
+            .is_ok()
+        {
             return Err("Shouldn't be able to create a `entity_relationship4` with `er4_1` as `parent_entity_relationship4_id`".to_string());
         }
 
         let mut player_identifier;
-        match dsl.create_identifier(&player, "PLAYER") {
+        match dsl.create_identifier(CreateIdentifier {
+            entity_id: player.obj_id(),
+            value: "PLAYER".to_string(),
+        }) {
             Ok(identifier) => {
                 player_identifier = identifier;
             }
@@ -625,7 +671,10 @@ pub mod test {
             );
         }
 
-        if let Ok(identifier) = dsl.create_identifier(&player, "PLAYER") {
+        if let Ok(identifier) = dsl.create_identifier(CreateIdentifier {
+            entity_id: player.obj_id(),
+            value: "PLAYER".to_string(),
+        }) {
             return Err(format!(
                 "Entity {} ({}): Shouldn't be able to add an Identifier because it has already one!",
                 player.obj_id().value(),
@@ -692,15 +741,20 @@ pub mod test {
             }
         }
 
-        let player_reflection_position =
-            match dsl.create_position(&player_reflection, 1, 1, 1, None) {
-                Ok(position) => position,
-                Err(_) => {
-                    return Err(format!(
-                        "{player_reflection:?}: Should be able to add an newly created Position!"
-                    ));
-                }
-            };
+        let player_reflection_position = match dsl.create_position(CreatePosition {
+            entity_id: player_reflection.obj_id(),
+            x: 1,
+            y: 1,
+            z: 1,
+            mirrored_position_id: None,
+        }) {
+            Ok(position) => position,
+            Err(_) => {
+                return Err(format!(
+                    "{player_reflection:?}: Should be able to add an newly created Position!"
+                ));
+            }
+        };
 
         if player_reflection_position
             .modified_at()
@@ -720,15 +774,20 @@ pub mod test {
             }
         };
 
-        let mut player_position =
-            match dsl.create_position(&player, 1, 1, -1, player_reflection_position.id().clone()) {
-                Ok(p) => p,
-                Err(_) => {
-                    return Err(format!(
-                        "{player:?}: Should be able to add an newly created Position!"
-                    ));
-                }
-            };
+        let mut player_position = match dsl.create_position(CreatePosition {
+            entity_id: player.obj_id(),
+            x: 1,
+            y: 1,
+            z: -1,
+            mirrored_position_id: Some(player_reflection_position.id().clone()),
+        }) {
+            Ok(p) => p,
+            Err(_) => {
+                return Err(format!(
+                    "{player:?}: Should be able to add an newly created Position!"
+                ));
+            }
+        };
 
         player_position.set_x(0);
         player_position.set_y(0);
@@ -768,7 +827,12 @@ pub mod test {
             return Err("The count of Positions should equal!".to_string());
         }
 
-        let _ = match dsl.create_unique_position(&player_reflection, 1, 2, 3) {
+        let _ = match dsl.create_unique_position(CreateUniquePosition {
+            entity_id: player_reflection.obj_id(),
+            z: 1,
+            y: 2,
+            x: 3,
+        }) {
             Ok(p) => p,
             Err(_) => {
                 return Err(format!(
@@ -783,7 +847,12 @@ pub mod test {
             ));
         }
 
-        let _ = match dsl.create_unique_position(&player_reflection, 3, 4, 1) {
+        let _ = match dsl.create_unique_position(CreateUniquePosition {
+            entity_id: player_reflection.obj_id(),
+            z: 3,
+            y: 4,
+            x: 1,
+        }) {
             Ok(p) => p,
             Err(_) => {
                 return Err(format!(
@@ -792,13 +861,26 @@ pub mod test {
             }
         };
 
-        if dsl.create_unique_position(&player, 3, 4, 1).is_ok() {
+        if dsl
+            .create_unique_position(CreateUniquePosition {
+                entity_id: player.obj_id(),
+                z: 3,
+                y: 4,
+                x: 1,
+            })
+            .is_ok()
+        {
             return Err(format!(
                 "{player_reflection:?}: Shouldn't be able to add an newly created unique Position which does already exist!"
             ));
         }
 
-        let mut unique_player_position = match dsl.create_unique_position(&player, 1, 1, 1) {
+        let mut unique_player_position = match dsl.create_unique_position(CreateUniquePosition {
+            entity_id: player.obj_id(),
+            z: 1,
+            y: 1,
+            x: 1,
+        }) {
             Ok(p) => p,
             Err(_) => {
                 return Err(format!(
@@ -847,35 +929,35 @@ pub mod test {
             return Err("The count of unique Positions should equal!".to_string());
         }
 
-        let world1 = dsl.create_test(
-            None,
-            &player,
-            &player,
-            player.obj_id().value(),
-            &player,
-            "string",
-            "index_on_string",
-            "index_on_wrapped_string",
-            "unique_on_wrapped_string1",
-            Some("wrapped_string_option".to_string()),
-            0,
-            spacetimedb::ScheduleAt::Time(ctx.timestamp),
-        )?;
+        let world1 = dsl.create_test(CreateTest {
+            wrapped_option: None,
+            wrapped_unique: player.obj_id(),
+            wrapped_index: player.obj_id(),
+            btree_index: player.obj_id().value(),
+            unique: player.obj_id(),
+            string: "string".to_string(),
+            index_on_string: "index_on_string".to_string(),
+            index_on_wrapped_string: "index_on_wrapped_string".to_string(),
+            unique_on_wrapped_string: "unique_on_wrapped_string".to_string(),
+            wrapped_string_option: Some("wrapped_string_option".to_string()),
+            direct_index: 0,
+            scheduled_at: spacetimedb::ScheduleAt::Time(ctx.timestamp),
+        })?;
 
-        let mut world2 = dsl.create_test(
-            &player,
-            player_reflection.obj_id(),
-            player.obj_id(),
-            player.obj_id().value(),
-            &player_reflection,
-            "string",
-            "index_on_string",
-            "index_on_wrapped_string",
-            "unique_on_wrapped_string2",
-            Some("wrapped_string_option".to_string()),
-            1,
-            spacetimedb::ScheduleAt::Time(ctx.timestamp),
-        )?;
+        let mut world2 = dsl.create_test(CreateTest {
+            wrapped_option: Some(player.obj_id()),
+            wrapped_unique: player_reflection.obj_id(),
+            wrapped_index: player.obj_id(),
+            btree_index: player.obj_id().value(),
+            unique: player_reflection.obj_id(),
+            string: "string".to_string(),
+            index_on_string: "index_on_string".to_string(),
+            index_on_wrapped_string: "index_on_wrapped_string".to_string(),
+            unique_on_wrapped_string: "unique_on_wrapped_string2".to_string(),
+            wrapped_string_option: Some("wrapped_string_option".to_string()),
+            direct_index: 1,
+            scheduled_at: spacetimedb::ScheduleAt::Time(ctx.timestamp),
+        })?;
 
         let _: Option<EntityId> = world1.wrapped_option();
         world2.set_wrapped_option(None);
@@ -926,7 +1008,9 @@ pub mod test {
             return Err("The entity_id of the position which was previously for the player_reflection entity should be 0 because the entity was deleted and the foreign key has a SetZero strategy!".to_string());
         }
 
-        let _ = dsl.create_ship_object(&player);
+        let _ = dsl.create_ship_object(CreateShipObject {
+            entity_id: player.obj_id(),
+        });
 
         if let Ok(success) = dsl.delete_entity_by_obj_id(&player) {
             return Err(format!(

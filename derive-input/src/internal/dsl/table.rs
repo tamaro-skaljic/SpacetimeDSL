@@ -147,6 +147,8 @@ impl SpacetimeDSLTable {
                 has_modified_at_column,
                 referencing_tables,
                 compile_error_checks: HashSet::new(),
+                // is set later in method.rs.
+                create_dsl_method_arg: None,
             },
         ))
     }
