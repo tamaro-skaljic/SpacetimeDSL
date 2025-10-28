@@ -150,14 +150,11 @@ impl SpacetimeDSLTable {
                 has_modified_at_column,
                 referencing_tables,
                 compile_error_checks: HashSet::new(),
-<<<<<<< HEAD
                 // is set later in method.rs.
                 create_dsl_method_arg: None,
-=======
                 hook_on_insert,
                 hook_on_update,
                 hook_on_delete,
->>>>>>> 0215bab (Add hook_on property parsing and hook calls to DSL methods)
             },
         ))
     }
