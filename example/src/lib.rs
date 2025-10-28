@@ -457,7 +457,7 @@ pub mod test {
         };
 
         match dsl.create_identifier(CreateIdentifier {
-            entity_id: player.get_obj_id(),
+            entity_id: player.obj_id(),
             value: "cool".to_string(),
         }) {
             Ok(_) => {}
@@ -473,13 +473,13 @@ pub mod test {
         }
 
         dsl.create_entity_relationship(CreateEntityRelationship {
-            parent_entity_id: player.get_obj_id(),
-            child_entity_id: player2.get_obj_id(),
+            parent_entity_id: player.obj_id(),
+            child_entity_id: player2.obj_id(),
         })?;
         if dsl
             .create_entity_relationship(CreateEntityRelationship {
-                parent_entity_id: player.get_obj_id(),
-                child_entity_id: player2.get_obj_id(),
+                parent_entity_id: player.obj_id(),
+                child_entity_id: player2.obj_id(),
             })
             .is_ok()
         {
@@ -487,12 +487,12 @@ pub mod test {
         }
         let player3 = dsl.create_entity()?;
         dsl.create_entity_relationship(CreateEntityRelationship {
-            parent_entity_id: player.get_obj_id(),
-            child_entity_id: player3.get_obj_id(),
+            parent_entity_id: player.obj_id(),
+            child_entity_id: player3.obj_id(),
         })?;
         dsl.create_entity_relationship(CreateEntityRelationship {
-            parent_entity_id: player2.get_obj_id(),
-            child_entity_id: player3.get_obj_id(),
+            parent_entity_id: player2.obj_id(),
+            child_entity_id: player3.obj_id(),
         })?;
 
         if dsl.count_of_all_entity_relationships().ne(&3) {
@@ -566,16 +566,16 @@ pub mod test {
         let player3 = dsl.create_entity()?;
 
         dsl.create_entity_relationship2(CreateEntityRelationship2 {
-            parent_entity_id: player.get_obj_id(),
-            child_entity_id: player2.get_obj_id(),
+            parent_entity_id: player.obj_id(),
+            child_entity_id: player2.obj_id(),
         })?;
         dsl.create_entity_relationship2(CreateEntityRelationship2 {
-            parent_entity_id: player2.get_obj_id(),
-            child_entity_id: player3.get_obj_id(),
+            parent_entity_id: player2.obj_id(),
+            child_entity_id: player3.obj_id(),
         })?;
         dsl.create_entity_relationship2(CreateEntityRelationship2 {
-            parent_entity_id: player3.get_obj_id(),
-            child_entity_id: player.get_obj_id(),
+            parent_entity_id: player3.obj_id(),
+            child_entity_id: player.obj_id(),
         })?;
 
         if dsl.count_of_all_entity_relationships2().ne(&3) {
@@ -595,7 +595,7 @@ pub mod test {
             parent_entity_relationship4_id: EntityRelationship4Id::new(0),
         })?;
         let mut er4_2 = dsl.create_entity_relationship4(CreateEntityRelationship4 {
-            parent_entity_relationship4_id: er4_1.get_parent_entity_relationship4_id(),
+            parent_entity_relationship4_id: er4_1.parent_entity_relationship4_id(),
         })?;
 
         match dsl.delete_entity_relationship4_by_id(&er4_1) {
@@ -635,7 +635,7 @@ pub mod test {
 
         if dsl
             .create_entity_relationship4(CreateEntityRelationship4 {
-                parent_entity_relationship4_id: er4_1.get_id(),
+                parent_entity_relationship4_id: er4_1.id(),
             })
             .is_ok()
         {
@@ -644,7 +644,7 @@ pub mod test {
 
         let mut player_identifier;
         match dsl.create_identifier(CreateIdentifier {
-            entity_id: player.get_obj_id(),
+            entity_id: player.obj_id(),
             value: "PLAYER".to_string(),
         }) {
             Ok(identifier) => {
@@ -672,7 +672,7 @@ pub mod test {
         }
 
         if let Ok(identifier) = dsl.create_identifier(CreateIdentifier {
-            entity_id: player.get_obj_id(),
+            entity_id: player.obj_id(),
             value: "PLAYER".to_string(),
         }) {
             return Err(format!(
@@ -742,7 +742,7 @@ pub mod test {
         }
 
         let player_reflection_position = match dsl.create_position(CreatePosition {
-            entity_id: player_reflection.get_obj_id(),
+            entity_id: player_reflection.obj_id(),
             x: 1,
             y: 1,
             z: 1,
@@ -775,11 +775,11 @@ pub mod test {
         };
 
         let mut player_position = match dsl.create_position(CreatePosition {
-            entity_id: player.get_obj_id(),
+            entity_id: player.obj_id(),
             x: 1,
             y: 1,
             z: -1,
-            mirrored_position_id: Some(player_reflection_position.get_id().clone()),
+            mirrored_position_id: Some(player_reflection_position.id().clone()),
         }) {
             Ok(p) => p,
             Err(_) => {
@@ -828,7 +828,7 @@ pub mod test {
         }
 
         let _ = match dsl.create_unique_position(CreateUniquePosition {
-            entity_id: player_reflection.get_obj_id(),
+            entity_id: player_reflection.obj_id(),
             z: 1,
             y: 2,
             x: 3,
@@ -848,7 +848,7 @@ pub mod test {
         }
 
         let _ = match dsl.create_unique_position(CreateUniquePosition {
-            entity_id: player_reflection.get_obj_id(),
+            entity_id: player_reflection.obj_id(),
             z: 3,
             y: 4,
             x: 1,
@@ -863,7 +863,7 @@ pub mod test {
 
         if dsl
             .create_unique_position(CreateUniquePosition {
-                entity_id: player.get_obj_id(),
+                entity_id: player.obj_id(),
                 z: 3,
                 y: 4,
                 x: 1,
@@ -876,7 +876,7 @@ pub mod test {
         }
 
         let mut unique_player_position = match dsl.create_unique_position(CreateUniquePosition {
-            entity_id: player.get_obj_id(),
+            entity_id: player.obj_id(),
             z: 1,
             y: 1,
             x: 1,
@@ -931,10 +931,10 @@ pub mod test {
 
         let world1 = dsl.create_test(CreateTest {
             wrapped_option: None,
-            wrapped_unique: player.get_obj_id(),
-            wrapped_index: player.get_obj_id(),
-            btree_index: player.get_obj_id().value(),
-            unique: player.get_obj_id(),
+            wrapped_unique: player.obj_id(),
+            wrapped_index: player.obj_id(),
+            btree_index: player.obj_id().value(),
+            unique: player.obj_id(),
             string: "string".to_string(),
             index_on_string: "index_on_string".to_string(),
             index_on_wrapped_string: "index_on_wrapped_string".to_string(),
@@ -945,11 +945,11 @@ pub mod test {
         })?;
 
         let mut world2 = dsl.create_test(CreateTest {
-            wrapped_option: Some(player.get_obj_id()),
-            wrapped_unique: player_reflection.get_obj_id(),
-            wrapped_index: player.get_obj_id(),
-            btree_index: player.get_obj_id().value(),
-            unique: player_reflection.get_obj_id(),
+            wrapped_option: Some(player.obj_id()),
+            wrapped_unique: player_reflection.obj_id(),
+            wrapped_index: player.obj_id(),
+            btree_index: player.obj_id().value(),
+            unique: player_reflection.obj_id(),
             string: "string".to_string(),
             index_on_string: "index_on_string".to_string(),
             index_on_wrapped_string: "index_on_wrapped_string".to_string(),
@@ -1009,7 +1009,7 @@ pub mod test {
         }
 
         let _ = dsl.create_ship_object(CreateShipObject {
-            entity_id: player.get_obj_id(),
+            entity_id: player.obj_id(),
         });
 
         if let Ok(success) = dsl.delete_entity_by_obj_id(&player) {
