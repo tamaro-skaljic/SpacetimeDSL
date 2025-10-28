@@ -89,11 +89,11 @@ impl Setter {
                             }
                         };
 
-                        let into_option = map_wrapper_type_option_to_wrapped_type_option(
+                        let mut into_option = map_wrapper_type_option_to_wrapped_type_option(
                             column_name,
                             wrapper_type_name_or_path,
                         );
-                        let into_option = quote! {
+                        into_option = quote! {
                             let #column_name = #column_name.into();
                             #into_option
                         };
