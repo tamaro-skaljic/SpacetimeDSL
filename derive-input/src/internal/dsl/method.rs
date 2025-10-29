@@ -762,15 +762,30 @@ pub(in crate::internal) fn for_method(
                     }
                 };
 
-            let hook_call = if spacetimedsl_table.hook_on_insert {
-                let hook_fn_name = format_ident!("on_{}_insert", singular_table_name);
-                quote! {
-                    if let Err(error_msg) = #hook_fn_name(self, &entity) {
-                        return Err(spacetimedsl::SpacetimeDSLError::Error(error_msg));
+            let before_insert_hook = match &spacetimedsl_table.hooks.before_insert {
+                None => TokenStream::default(),
+                Some(before_insert_hook) => {
+                    let hook_trait_name = &before_insert_hook.trait_name;
+                    let hook_function_name = &before_insert_hook.function_name;
+
+                    quote! {
+                        use self::#hook_trait_name;
+                        spacetimedsl::DSLMethodHooks::#hook_function_name(&self, &#singular_table_name)?;
                     }
                 }
-            } else {
-                TokenStream::default()
+            };
+
+            let after_insert_hook = match &spacetimedsl_table.hooks.after_insert {
+                None => TokenStream::default(),
+                Some(after_insert_hook) => {
+                    let hook_trait_name = &after_insert_hook.trait_name;
+                    let hook_function_name = &after_insert_hook.function_name;
+
+                    quote! {
+                        use self::#hook_trait_name;
+                        spacetimedsl::DSLMethodHooks::#hook_function_name(&self, &entity)?;
+                    }
+                }
             };
 
             method_impl = quote! {
@@ -788,13 +803,16 @@ pub(in crate::internal) fn for_method(
 
                 #(#reference_integrity_checks)*
 
+                #before_insert_hook
+
                 match self
                     .ctx()
                     .db()
                     .#singular_table_name()
                     .try_insert(#singular_table_name.clone()) { // FIXME: No clone?
                     Ok(entity) => {
-                        #hook_call
+                        #after_insert_hook
+
                         Ok(entity)
                     },
                     Err(error) => match error {
@@ -1114,6 +1132,8 @@ pub(in crate::internal) fn for_method(
 
                     let let_field_name_for_found_value = if multi_column_index_checks.is_empty()
                         && reference_integrity_checks.is_empty()
+                        && spacetimedsl_table.hooks.before_update.is_none()
+                        && spacetimedsl_table.hooks.after_update.is_none()
                     {
                         TokenStream::default()
                     } else {
@@ -1127,18 +1147,46 @@ pub(in crate::internal) fn for_method(
                         false => index_name,
                     };
 
-                    let hook_call_before_update = if spacetimedsl_table.hook_on_update {
-                        let hook_fn_name = format_ident!("on_{}_update", singular_table_name);
-                        quote! {
-                            let old_row = self.ctx().db().#singular_table_name().#primary_key_column_name()
-                                .find(#singular_table_name.#primary_key_column_name)
-                                .expect("Row should exist for update");
-                            if let Err(error_msg) = #hook_fn_name(self, &old_row, &#singular_table_name) {
-                                return Err(spacetimedsl::SpacetimeDSLError::Error(error_msg));
+                    let before_update_hook = match &spacetimedsl_table.hooks.before_update {
+                        None => TokenStream::default(),
+                        Some(before_update_hook) => {
+                            let hook_trait_name = &before_update_hook.trait_name;
+                            let hook_function_name = &before_update_hook.function_name;
+
+                            quote! {
+                                if #field_name_for_found_value.is_none() {
+                                    #field_name_for_found_value = Some(
+                                        self.ctx().db().#singular_table_name().#primary_key_column_name()
+                                            .find(#singular_table_name.#primary_key_column_name)
+                                            .expect("Row should exist for update")
+                                    )
+                                }
+
+                                use self::#hook_trait_name;
+                                spacetimedsl::DSLMethodHooks::#hook_function_name(
+                                    &self,
+                                    #field_name_for_found_value.as_ref().unwrap(),
+                                    &#singular_table_name
+                                )?;
                             }
                         }
-                    } else {
-                        TokenStream::default()
+                    };
+
+                    let after_update_hook = match &spacetimedsl_table.hooks.after_update {
+                        None => TokenStream::default(),
+                        Some(after_update_hook) => {
+                            let hook_trait_name = &after_update_hook.trait_name;
+                            let hook_function_name = &after_update_hook.function_name;
+
+                            quote! {
+                                use self::#hook_trait_name;
+                                spacetimedsl::DSLMethodHooks::#hook_function_name(
+                                    &self,
+                                    #field_name_for_found_value.as_ref().unwrap(),
+                                    &#singular_table_name
+                                )?;
+                            }
+                        }
                     };
 
                     method_impl = quote! {
@@ -1153,16 +1201,19 @@ pub(in crate::internal) fn for_method(
 
                         #modified_at
 
-                        #hook_call_before_update
+                        #before_update_hook
 
                         // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(spacetimedsl::SpacetimeDSLError);
-                        Ok(self
+                        let #singular_table_name = self
                             .ctx()
                             .db()
                             .#singular_table_name()
                             .#index_name()
-                            .update(#singular_table_name)
-                        )
+                            .update(#singular_table_name);
+
+                        #after_update_hook
+
+                        Ok(#singular_table_name)
                     };
                 }
                 dsl_method => {
@@ -1454,6 +1505,48 @@ pub(in crate::internal) fn for_method(
                                 }
                             };
 
+                            let get_all_rows = if spacetimedsl_table.hooks.before_delete.is_some()
+                                || spacetimedsl_table.hooks.after_delete.is_some()
+                            {
+                                quote! {
+                                    let rows_to_delete: Vec<#singular_table_name_pascal_case> = primary_key_values_of_rows_to_delete.iter().filter_map(|pk| {
+                                        self.ctx().db().#singular_table_name().#primary_key_column_name().find(*pk)
+                                    }).collect();
+                                }
+                            } else {
+                                TokenStream::default()
+                            };
+
+                            let before_delete_hook = match &spacetimedsl_table.hooks.before_delete {
+                                None => TokenStream::default(),
+                                Some(before_delete_hook) => {
+                                    let hook_trait_name = &before_delete_hook.trait_name;
+                                    let hook_function_name = &before_delete_hook.function_name;
+
+                                    quote! {
+                                        use self::#hook_trait_name;
+                                        for row in &rows_to_delete {
+                                            spacetimedsl::DSLMethodHooks::#hook_function_name(&self, &row)?;
+                                        }
+                                    }
+                                }
+                            };
+
+                            let after_delete_hook = match &spacetimedsl_table.hooks.after_delete {
+                                None => TokenStream::default(),
+                                Some(after_delete_hook) => {
+                                    let hook_trait_name = &after_delete_hook.trait_name;
+                                    let hook_function_name = &after_delete_hook.function_name;
+
+                                    quote! {
+                                        use self::#hook_trait_name;
+                                        for row in &rows_to_delete {
+                                            spacetimedsl::DSLMethodHooks::#hook_function_name(&self, &row)?;
+                                        }
+                                    }
+                                }
+                            };
+
                             let delete_many_impl = quote! {
                                 let count_of_rows_to_delete: u64 = primary_key_values_of_rows_to_delete
                                     .len()
@@ -1483,35 +1576,20 @@ pub(in crate::internal) fn for_method(
                                 });
                             };
 
-                            let hook_call = if spacetimedsl_table.hook_on_delete {
-                                let hook_fn_name = format_ident!("on_{}_delete", singular_table_name);
-                                quote! {
-                                    // Collect rows before deletion to call hooks on them
-                                    // We need to collect because filter_map would consume the rows,
-                                    // but we need to keep them to call hooks before actual deletion
-                                    let rows_to_delete: Vec<_> = primary_key_values_of_rows_to_delete.iter().filter_map(|pk| {
-                                        self.ctx().db().#singular_table_name().#primary_key_column_name().find(*pk)
-                                    }).collect();
-                                    
-                                    for row in &rows_to_delete {
-                                        if let Err(error_msg) = #hook_fn_name(self, row) {
-                                            return Err(spacetimedsl::SpacetimeDSLError::Error(error_msg));
-                                        }
-                                    }
-                                }
-                            } else {
-                                TokenStream::default()
-                            };
-
                             if spacetimedsl_table.referencing_tables.is_empty() {
                                 method_impl = quote! {
                                     #impl_until_return_ok_on_is_empty
 
                                     #map_primary_key_values_of_rows_to_delete_to_deletion_result_entries
 
-                                    #hook_call
+                                    #get_all_rows
+
+                                    #before_delete_hook
 
                                     #delete_many_impl
+
+                                    #after_delete_hook
+
                                     #return_result_impl
                                 };
                             } else {
@@ -1590,9 +1668,13 @@ pub(in crate::internal) fn for_method(
 
                                     #error_strategy
 
-                                    #hook_call
+                                    #get_all_rows
+
+                                    #before_delete_hook
 
                                     #delete_many_impl
+
+                                    #after_delete_hook
 
                                     #delete_strategy
 
@@ -1772,17 +1854,42 @@ pub(in crate::internal) fn for_method(
                                 };
                             };
 
-                            let hook_call = if spacetimedsl_table.hook_on_delete {
-                                let hook_fn_name = format_ident!("on_{}_delete", singular_table_name);
+                            let get_all_rows = if spacetimedsl_table.hooks.before_delete.is_some()
+                                || spacetimedsl_table.hooks.after_delete.is_some()
+                            {
                                 quote! {
-                                    if let Some(deleted_row) = &row_to_delete {
-                                        if let Err(error_msg) = #hook_fn_name(self, deleted_row) {
-                                            return Err(spacetimedsl::SpacetimeDSLError::Error(error_msg));
-                                        }
-                                    }
+                                    let rows_to_delete: Vec<#singular_table_name_pascal_case> = primary_key_values_of_rows_to_delete.iter().filter_map(|pk| {
+                                        self.ctx().db().#singular_table_name().#primary_key_column_name().find(*pk)
+                                    }).collect();
                                 }
                             } else {
                                 TokenStream::default()
+                            };
+
+                            let before_delete_hook = match &spacetimedsl_table.hooks.before_delete {
+                                None => TokenStream::default(),
+                                Some(before_delete_hook) => {
+                                    let hook_trait_name = &before_delete_hook.trait_name;
+                                    let hook_function_name = &before_delete_hook.function_name;
+
+                                    quote! {
+                                        use self::#hook_trait_name;
+                                        spacetimedsl::DSLMethodHooks::#hook_function_name(&self, row_to_delete.as_ref().unwrap())?;
+                                    }
+                                }
+                            };
+
+                            let after_delete_hook = match &spacetimedsl_table.hooks.after_delete {
+                                None => TokenStream::default(),
+                                Some(after_delete_hook) => {
+                                    let hook_trait_name = &after_delete_hook.trait_name;
+                                    let hook_function_name = &after_delete_hook.function_name;
+
+                                    quote! {
+                                        use self::#hook_trait_name;
+                                        spacetimedsl::DSLMethodHooks::#hook_function_name(&self, row_to_delete.as_ref().unwrap())?;
+                                    }
+                                }
                             };
 
                             let return_result_impl = quote! {
@@ -1799,9 +1906,12 @@ pub(in crate::internal) fn for_method(
 
                                     #map_primary_key_value_of_a_row_to_delete_to_deletion_result_entry
 
-                                    #hook_call
+                                    #before_delete_hook
 
                                     #delete_one_impl
+
+                                    #after_delete_hook
+
                                     #return_result_impl
                                 };
                             } else {
@@ -1880,9 +1990,11 @@ pub(in crate::internal) fn for_method(
 
                                     #error_strategy
 
-                                    #hook_call
+                                    #before_delete_hook
 
                                     #delete_one_impl
+
+                                    #after_delete_hook
 
                                     #delete_strategy
 
@@ -2422,18 +2534,13 @@ fn for_referenced_by(
 
         let referencing_table_path = &referencing_table.path;
 
-        let compile_error_check = get_referenced_table_compile_error_check(
-            &referencing_table_name_pascal_case,
-            &singular_table_name_pascal_case,
-        );
+        let compile_error_check = get_referenced_table_compile_error_check(singular_table_name);
         spacetimedsl_table
             .compile_error_checks
             .insert(compile_error_check.clone());
 
-        let compile_error_check = get_referencing_table_compile_error_check(
-            &referencing_table_name_pascal_case,
-            &singular_table_name_pascal_case,
-        );
+        let compile_error_check =
+            get_referencing_table_compile_error_check(referencing_table_name);
         compile_error_check_usages.push(quote! {
             use #referencing_table_path::#compile_error_check;
         });
@@ -2729,19 +2836,13 @@ fn for_foreign_key(
         })
         .collect_vec();
 
-    let compile_error_check = get_referencing_table_compile_error_check(
-        &singular_table_name_pascal_case,
-        &referenced_table_name_pascal_case,
-    );
+    let compile_error_check = get_referencing_table_compile_error_check(singular_table_name);
 
     spacetimedsl_table
         .compile_error_checks
         .insert(compile_error_check.clone());
 
-    let compile_error_check = get_referenced_table_compile_error_check(
-        &singular_table_name_pascal_case,
-        &referenced_table_name_pascal_case,
-    );
+    let compile_error_check = get_referenced_table_compile_error_check(&referenced_table_name);
 
     let compile_error_check_usage = quote! {
         use #referenced_table_path::#compile_error_check;
@@ -3113,21 +3214,15 @@ fn get_referenced_table_function_call_for_strategy_implementation(
     }
 }
 
-fn get_referenced_table_compile_error_check(
-    referencing_table_name_pascal_case: &Ident,
-    referenced_table_name_pascal_case: &Ident,
-) -> Ident {
+fn get_referenced_table_compile_error_check(referenced_table_name: &Ident) -> Ident {
     format_ident!(
-        "ReferencedByAttributeIsMissingOnTable{referenced_table_name_pascal_case}BecauseOfForeignKeyOnTable{referencing_table_name_pascal_case}"
+        "this_compilation_error_occurs_because_the_{referenced_table_name}_table_has_no_referenced_by_attribute_referencing_this_table"
     )
 }
 
-fn get_referencing_table_compile_error_check(
-    referencing_table_name_pascal_case: &Ident,
-    referenced_table_name_pascal_case: &Ident,
-) -> Ident {
+fn get_referencing_table_compile_error_check(referencing_table_name: &Ident) -> Ident {
     format_ident!(
-        "ForeignKeyAttributeIsMissingOnTable{referencing_table_name_pascal_case}BecauseOfReferencedByOnTable{referenced_table_name_pascal_case}"
+        "this_compilation_error_occurs_because_the_{referencing_table_name}_table_has_no_foreign_key_attribute_referencing_this_table"
     )
 }
 
