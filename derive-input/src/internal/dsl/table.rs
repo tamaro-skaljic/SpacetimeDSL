@@ -3,21 +3,19 @@ use std::collections::HashSet;
 use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::SpacetimeDSLTable;
+use crate::internal::DSLData;
 use proc_macro2::Span;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::table::ColumnArgs;
-use syn::Ident;
 
 impl SpacetimeDSLTable {
     pub(in crate::internal) fn try_parse(
+        dsl_data: DSLData,
         column_args: &ColumnArgs<'_>,
         mut spacetimedb_table: SpacetimeDBTable,
-        name_plural: Ident,
-        unique_indices: Vec<syn::Ident>,
-        hook_on_insert: bool,
-        hook_on_update: bool,
-        hook_on_delete: bool,
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
+        let unique_indices = dsl_data.unique_indices;
+
         for unique_index_name in unique_indices {
             for multi_column_index in &mut spacetimedb_table.multi_column_indices {
                 if let IndexType::BTreeMultiColumn { columns: _ } = &multi_column_index.index_type
@@ -27,6 +25,16 @@ impl SpacetimeDSLTable {
                 }
             }
         }
+
+        let hooks = super::hook::build(
+            &spacetimedb_table.singular_name,
+            dsl_data.before_insert_hook,
+            dsl_data.before_update_hook,
+            dsl_data.before_delete_hook,
+            dsl_data.after_insert_hook,
+            dsl_data.after_update_hook,
+            dsl_data.after_delete_hook,
+        );
 
         match column_args
             .primary_key_column
@@ -144,7 +152,7 @@ impl SpacetimeDSLTable {
         Ok((
             spacetimedb_table,
             SpacetimeDSLTable {
-                plural_name: name_plural,
+                plural_name: dsl_data.plural_name,
                 is_mutable,
                 has_created_at_column,
                 has_modified_at_column,
@@ -152,9 +160,7 @@ impl SpacetimeDSLTable {
                 compile_error_checks: HashSet::new(),
                 // is set later in method.rs.
                 create_dsl_method_arg: None,
-                hook_on_insert,
-                hook_on_update,
-                hook_on_delete,
+                hooks,
             },
         ))
     }

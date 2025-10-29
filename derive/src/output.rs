@@ -8,6 +8,7 @@ use spacetimedsl_derive_input::api::{
 mod accessor;
 mod create_method_arg;
 mod function;
+mod hook;
 
 pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<TokenStream> {
     let struct_name = format_ident!("{}", &input.rust_struct.name.to_string());
@@ -93,6 +94,15 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
         None => TokenStream::default(),
     };
 
+    let hooks = vec![
+        hook::build(&input.spacetimedsl_table.hooks.before_insert)?,
+        hook::build(&input.spacetimedsl_table.hooks.before_update)?,
+        hook::build(&input.spacetimedsl_table.hooks.before_delete)?,
+        hook::build(&input.spacetimedsl_table.hooks.after_insert)?,
+        hook::build(&input.spacetimedsl_table.hooks.after_update)?,
+        hook::build(&input.spacetimedsl_table.hooks.after_delete)?,
+    ];
+
     Ok(quote! {
         #(#compile_error_checks)*
 
@@ -103,6 +113,8 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
         }
 
         #create_dsl_method_arg
+
+        #(#hooks)*
 
         #(#dsl_methods)*
     })

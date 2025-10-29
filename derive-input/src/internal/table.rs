@@ -1,25 +1,27 @@
-use crate::api::{
-    Table,
-    db::table::SpacetimeDBTable,
-    dsl::table::{SpacetimeDSLTable, SpacetimeDSLTableMethods},
+use crate::{
+    api::{
+        Table,
+        db::table::SpacetimeDBTable,
+        dsl::table::{SpacetimeDSLTable, SpacetimeDSLTableMethods},
+    },
+    internal::DSLData,
 };
 use quote::format_ident;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::DeriveInput;
 
 pub(in crate::internal) fn try_parse(
-    args: proc_macro2::TokenStream,
     input: &DeriveInput,
+    dsl_data: DSLData,
     table_args: &TableArgs,
     column_args: &ColumnArgs<'_>,
-    plural_name: syn::Ident,
 ) -> syn::Result<Table> {
     let rust_struct = crate::internal::rust::table::map_struct(input);
 
     let spacetimedb_table = SpacetimeDBTable::map(table_args);
 
     let (spacetimedb_table, mut spacetimedsl_table) =
-        SpacetimeDSLTable::try_parse(args, column_args, spacetimedb_table, plural_name)?;
+        SpacetimeDSLTable::try_parse(dsl_data, column_args, spacetimedb_table)?;
 
     let (
         spacetimedb_table,
