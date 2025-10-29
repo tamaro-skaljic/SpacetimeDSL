@@ -770,7 +770,7 @@ pub(in crate::internal) fn for_method(
 
                     quote! {
                         use self::#hook_trait_name;
-                        spacetimedsl::DSLMethodHooks::#hook_function_name(&self.dsl(), &#singular_table_name)?;
+                        let #singular_table_name = spacetimedsl::DSLMethodHooks::#hook_function_name(&self.dsl(), #singular_table_name)?;
                     }
                 }
             };
@@ -1163,10 +1163,10 @@ pub(in crate::internal) fn for_method(
                                 }
 
                                 use self::#hook_trait_name;
-                                spacetimedsl::DSLMethodHooks::#hook_function_name(
+                                let #singular_table_name = spacetimedsl::DSLMethodHooks::#hook_function_name(
                                     &self.dsl(),
                                     #field_name_for_found_value.as_ref().unwrap(),
-                                    &#singular_table_name
+                                    #singular_table_name
                                 )?;
                             }
                         }

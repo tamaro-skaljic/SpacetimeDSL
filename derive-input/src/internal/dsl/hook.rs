@@ -72,25 +72,30 @@ fn build_any(
     if !should_exist {
         return None;
     }
-    
+
     let singular_table_name_pascal_case =
-        RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
+        format_ident!("{}", RenameRule::PascalCase.apply_to_field(singular_table_name.to_string()));
 
     Some(SpacetimeDSLMethodHook {
         trait_name: get_trait_name(&timing, &singular_table_name_pascal_case, &operation),
         function_name: get_function_name(&timing, singular_table_name, &operation),
-        function_args: get_function_args(&timing, singular_table_name, &singular_table_name_pascal_case, &operation),
-        return_type: quote! {
-            Result<(), spacetimedsl::SpacetimeDSLError>
-        },
+        function_args: get_function_args(
+            &timing,
+            singular_table_name,
+            &singular_table_name_pascal_case,
+            &operation,
+        ),
+        return_type: get_return_type(&timing, &operation, &singular_table_name_pascal_case),
     })
 }
 
+#[derive(PartialEq)]
 enum Timing {
     Before,
     After,
 }
 
+#[derive(PartialEq)]
 enum Operation {
     Insert,
     Update,
@@ -99,7 +104,7 @@ enum Operation {
 
 fn get_trait_name(
     timing: &Timing,
-    singular_table_name_pascal_case: &str,
+    singular_table_name_pascal_case: &syn::Ident,
     operation: &Operation,
 ) -> syn::Ident {
     let timing = match timing {
@@ -113,7 +118,12 @@ fn get_trait_name(
         Operation::Delete => "Delete",
     };
 
-    format_ident!("{}{}{}Hook", timing, singular_table_name_pascal_case, operation,)
+    format_ident!(
+        "{}{}{}Hook",
+        timing,
+        singular_table_name_pascal_case,
+        operation,
+    )
 }
 
 fn get_function_name(
@@ -138,11 +148,9 @@ fn get_function_name(
 fn get_function_args(
     timing: &Timing,
     singular_table_name: &syn::Ident,
-    singular_table_name_pascal_case: &str,
+    singular_table_name_pascal_case: &syn::Ident,
     operation: &Operation,
 ) -> Vec<SpacetimeDSLArg> {
-    let table_type = format_ident!("{singular_table_name_pascal_case}");
-
     match (timing, operation) {
         (Timing::Before, Operation::Insert) => {
             // FIXME: Single Source of Truth Violation for arg type name
@@ -152,7 +160,7 @@ fn get_function_args(
                 build_dsl_function_arg(),
                 build_function_arg(
                     format_ident!("create_{singular_table_name}_request"),
-                    quote! { &#arg_type },
+                    quote! { #arg_type },
                 ),
             ]
         }
@@ -160,27 +168,59 @@ fn get_function_args(
             build_dsl_function_arg(),
             build_function_arg(
                 format_ident!("new_{singular_table_name}"),
-                quote! { &#table_type },
+                quote! { &#singular_table_name_pascal_case },
             ),
         ],
-        (_, Operation::Update) => vec![
+        (Timing::Before, Operation::Update) => vec![
             build_dsl_function_arg(),
             build_function_arg(
                 format_ident!("old_{singular_table_name}"),
-                quote! { &#table_type },
+                quote! { &#singular_table_name_pascal_case },
             ),
             build_function_arg(
                 format_ident!("new_{singular_table_name}"),
-                quote! { &#table_type },
+                quote! { #singular_table_name_pascal_case },
+            ),
+        ],
+        (Timing::After, Operation::Update) => vec![
+            build_dsl_function_arg(),
+            build_function_arg(
+                format_ident!("old_{singular_table_name}"),
+                quote! { &#singular_table_name_pascal_case },
+            ),
+            build_function_arg(
+                format_ident!("new_{singular_table_name}"),
+                quote! { &#singular_table_name_pascal_case },
             ),
         ],
         (_, Operation::Delete) => vec![
             build_dsl_function_arg(),
             build_function_arg(
                 format_ident!("old_{singular_table_name}"),
-                quote! { &#table_type },
+                quote! { &#singular_table_name_pascal_case },
             ),
         ],
+    }
+}
+
+fn get_return_type(
+    timing: &Timing,
+    operation: &Operation,
+    singular_table_name_pascal_case: &syn::Ident,
+) -> TokenStream {
+    match (timing, operation) {
+        (Timing::Before, Operation::Insert) => {
+            let arg_type = format_ident!("Create{singular_table_name_pascal_case}");
+            quote! {
+                Result<#arg_type, spacetimedsl::SpacetimeDSLError>
+            }
+        }
+        (Timing::Before, Operation::Update) => quote! {
+            Result<#singular_table_name_pascal_case, spacetimedsl::SpacetimeDSLError>
+        },
+        _ => quote! {
+            Result<(), spacetimedsl::SpacetimeDSLError>
+        },
     }
 }
 
