@@ -1052,4 +1052,60 @@ pub mod hook_test {
 
         pub value: String,
     }
+
+    impl BeforeHookerInsertHook for spacetimedsl::DSLMethodHooks {
+        fn before_hooker_insert(
+            dsl: &spacetimedsl::DSL,
+            create_hooker_request: &CreateHooker,
+        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+            todo!()
+        }
+    }
+
+    impl AfterHookerInsertHook for spacetimedsl::DSLMethodHooks {
+        fn after_hooker_insert(
+            dsl: &spacetimedsl::DSL,
+            new_hooker: &Hooker,
+        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+            todo!()
+        }
+    }
+
+    impl BeforeHookerUpdateHook for spacetimedsl::DSLMethodHooks {
+        fn before_hooker_update(
+            dsl: &spacetimedsl::DSL,
+            old_hooker: &Hooker,
+            new_hooker: &Hooker,
+        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+            todo!()
+        }
+    }
+
+    impl AfterHookerUpdateHook for spacetimedsl::DSLMethodHooks {
+        fn after_hooker_update(
+            dsl: &spacetimedsl::DSL,
+            old_hooker: &Hooker,
+            new_hooker: &Hooker,
+        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+            todo!()
+        }
+    }
+
+    impl BeforeHookerDeleteHook for spacetimedsl::DSLMethodHooks {
+        fn before_hooker_delete(
+            dsl: &spacetimedsl::DSL,
+            old_hooker: &Hooker,
+        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+            todo!()
+        }
+    }
+
+    impl AfterHookerDeleteHook for spacetimedsl::DSLMethodHooks {
+        fn after_hooker_delete(
+            dsl: &spacetimedsl::DSL,
+            old_hooker: &Hooker,
+        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+            todo!()
+        }
+    }
 }

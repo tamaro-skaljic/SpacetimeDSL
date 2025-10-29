@@ -18,7 +18,7 @@ pub fn build(hook: &Option<SpacetimeDSLMethodHook>) -> syn::Result<TokenStream> 
 
     let method = quote! {
         pub trait #trait_name {
-            fn #function_name<'a>(
+            fn #function_name(
                 #(#function_args),*
             ) -> #return_type;
         }
