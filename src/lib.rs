@@ -18,7 +18,7 @@ pub fn dsl<'a>(ctx: &'a ReducerContext) -> DSL<'a> {
 
 pub trait DSLContext {
     fn dsl(&self) -> &DSL<'_>;
-    
+
     fn ctx(&self) -> &ReducerContext;
 }
 

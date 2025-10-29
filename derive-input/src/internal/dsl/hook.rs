@@ -73,8 +73,10 @@ fn build_any(
         return None;
     }
 
-    let singular_table_name_pascal_case =
-        format_ident!("{}", RenameRule::PascalCase.apply_to_field(singular_table_name.to_string()));
+    let singular_table_name_pascal_case = format_ident!(
+        "{}",
+        RenameRule::PascalCase.apply_to_field(singular_table_name.to_string())
+    );
 
     Some(SpacetimeDSLMethodHook {
         trait_name: get_trait_name(&timing, &singular_table_name_pascal_case, &operation),
