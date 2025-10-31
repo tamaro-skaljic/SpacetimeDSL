@@ -2031,7 +2031,7 @@ fn get_referenced_table_function_call_for_dsl_method(
                 get_referenced_table_function_name(&OneOrMultiple::One, singular_table_name);
 
             quote! {
-                match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), #on_delete_strategy, &primary_key_value_of_a_row_to_delete) {
+                match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.dsl(), #on_delete_strategy, &primary_key_value_of_a_row_to_delete) {
                     Err(mut child_entries) => {
                         deletion_result_entry.child_entries.append(&mut child_entries);
 
@@ -2048,7 +2048,7 @@ fn get_referenced_table_function_call_for_dsl_method(
                 get_referenced_table_function_name(&OneOrMultiple::Multiple, singular_table_name);
 
             quote! {
-                match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), #on_delete_strategy, &primary_key_values_of_rows_to_delete[..]) {
+                match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.dsl(), #on_delete_strategy, &primary_key_values_of_rows_to_delete[..]) {
                     Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                         for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
                             deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries.")).child_entries.append(&mut child_entries);
@@ -2439,8 +2439,8 @@ fn for_referenced_by(
         SpacetimeDSLArg {
             is_mut: false,
             is_option: false,
-            arg_name: format_ident!("ctx"),
-            arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedb::ReducerContext }),
+            arg_name: format_ident!("dsl"),
+            arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedsl::DSL<'_> }),
         },
         SpacetimeDSLArg {
             is_mut: false,
@@ -2550,7 +2550,7 @@ fn for_referenced_by(
                     quote! {
                         use #referencing_table_path::#referencing_table_trait_name;
 
-                        match spacetimedsl::internal::DSLInternals::#referencing_table_function_name(ctx, &strategy, #arg_name) {
+                        match spacetimedsl::internal::DSLInternals::#referencing_table_function_name(dsl, &strategy, #arg_name) {
                             Err(mut child_entries) => {
                                 entries.append(&mut child_entries);
 
@@ -2566,7 +2566,7 @@ fn for_referenced_by(
                     quote! {
                         use #referencing_table_path::#referencing_table_trait_name;
 
-                        match spacetimedsl::internal::DSLInternals::#referencing_table_function_name(ctx, &strategy, #arg_name) {
+                        match spacetimedsl::internal::DSLInternals::#referencing_table_function_name(dsl, &strategy, #arg_name) {
                             Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
                                     entries.get_mut(&primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in entries.")).append(&mut child_entries);
@@ -2721,8 +2721,8 @@ fn for_foreign_key(
         SpacetimeDSLArg {
             is_mut: false,
             is_option: false,
-            arg_name: format_ident!("ctx"),
-            arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedb::ReducerContext }),
+            arg_name: format_ident!("dsl"),
+            arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedsl::DSL<'_> }),
         },
         SpacetimeDSLArg {
             is_mut: false,
@@ -2802,6 +2802,7 @@ fn for_foreign_key(
         strategy_implementations.insert(
             on_delete_strategy.clone(),
             get_on_delete_strategy_implementation(
+                spacetimedsl_table,
                 has_referenced_bys,
                 singular_table_name,
                 on_delete_strategy,
@@ -2865,6 +2866,7 @@ fn for_foreign_key(
 }
 
 fn get_on_delete_strategy_implementation(
+    spacetimedsl_table: &SpacetimeDSLTable,
     has_referenced_bys: bool,
     singular_table_name: &Ident,
     on_delete_strategy: &OnDeleteStrategy,
@@ -2873,7 +2875,8 @@ fn get_on_delete_strategy_implementation(
     primary_key_column: &InternalColumn,
 ) -> TokenStream {
     let spacetimedb_call_prefix = quote! {
-        ctx
+        dsl
+            .ctx()
             .db()
             .#singular_table_name()
     };
@@ -2882,7 +2885,9 @@ fn get_on_delete_strategy_implementation(
 
     let singular_table_name_as_string = singular_table_name.to_string();
 
-    let mut strategy_before_all = TokenStream::default();
+    let mut strategy_before_all = quote! {
+        use spacetimedsl::DSLContext;
+    };
     let mut strategy_by_column = vec![];
     let mut strategy_after_all = TokenStream::default();
 
@@ -2960,6 +2965,38 @@ fn get_on_delete_strategy_implementation(
                 ));
             }
             OnDeleteStrategy::Delete => {
+                let before_delete_hook = match &spacetimedsl_table.hooks.before_delete {
+                    None => TokenStream::default(),
+                    Some(before_delete_hook) => {
+                        let hook_trait_name = &before_delete_hook.trait_name;
+                        let hook_function_name = &before_delete_hook.function_name;
+
+                        strategy_before_all.append_all(quote! {
+                            use self::#hook_trait_name;
+                        });
+
+                        quote! {
+                            spacetimedsl::DSLMethodHooks::#hook_function_name(&self.dsl(), &row)?;
+                        }
+                    }
+                };
+
+                let after_delete_hook = match &spacetimedsl_table.hooks.after_delete {
+                    None => TokenStream::default(),
+                    Some(after_delete_hook) => {
+                        let hook_trait_name = &after_delete_hook.trait_name;
+                        let hook_function_name = &after_delete_hook.function_name;
+
+                        strategy_before_all.append_all(quote! {
+                            use self::#hook_trait_name;
+                        });
+
+                        quote! {
+                            spacetimedsl::DSLMethodHooks::#hook_function_name(&self.dsl(), &row)?;
+                        }
+                    }
+                };
+
                 match has_referenced_bys {
                     false => strategy_by_column.push(strategy_by_row(
                         false,
@@ -2970,9 +3007,13 @@ fn get_on_delete_strategy_implementation(
                             let #primary_key_column_name = &row.#primary_key_column_name;
                             #create_entry_and_add_it_to_entries
 
+                            #before_delete_hook
+
                             #spacetimedb_call_prefix
                                 .#primary_key_column_name()
                                 .delete(row.#primary_key_column_name);
+
+                            #after_delete_hook
                         },
                     )),
                     true => {
@@ -3031,10 +3072,10 @@ fn get_on_delete_strategy_implementation(
                                 &on_error_handler,
                             );
 
-                        strategy_before_all = quote! {
+                        strategy_before_all.append_all(quote! {
                             let mut child_entries_by_primary_key_value_of_row_to_delete = std::collections::HashMap::new();
                             let mut primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete = std::collections::HashMap::new();
-                        };
+                        });
 
                         match one_or_multiple {
                             OneOrMultiple::One => strategy_before_all.append_all(quote! {
@@ -3184,7 +3225,7 @@ fn get_referenced_table_function_call_for_strategy_implementation(
         get_referenced_table_function_name(&OneOrMultiple::Multiple, singular_table_name);
 
     quote! {
-        match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(ctx, #on_delete_strategy, &primary_key_values_of_rows_to_delete[..]) {
+        match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(dsl, #on_delete_strategy, &primary_key_values_of_rows_to_delete[..]) {
             Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
                     child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in child_entries_by_primary_key_value_of_row_to_delete.")).append(&mut child_entries);
