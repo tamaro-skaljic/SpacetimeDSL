@@ -556,8 +556,8 @@ pub mod component {
 
             dsl.create_potion(CreatePotion {
                 value: format!("PERMANENT_{}_INCREASE", new_attribute.value),
-                attribute_id: new_attribute.id(),
-                unique_attribute_id: new_attribute.id(),
+                attribute_id: new_attribute.get_id(),
+                unique_attribute_id: new_attribute.get_id(),
             })?;
 
             Ok(())
@@ -573,7 +573,7 @@ pub mod component {
                 value: "BEFORE_ATTRIBUTE_UPDATE".to_string(),
             })?;
 
-            new_attribute.set_value(&format!("{}_ATTRIBUTE", new_attribute.value()));
+            new_attribute.set_value(&format!("{}_ATTRIBUTE", new_attribute.get_value()));
 
             Ok(new_attribute)
         }
@@ -590,10 +590,10 @@ pub mod component {
 
             let mut potion = dsl.get_potion_by_value(&format!(
                 "PERMANENT_{}_INCREASE_POTION",
-                old_attribute.value()
+                old_attribute.get_value()
             ))?;
 
-            potion.set_value(&format!("PERMANENT_{}_INCREASE", new_attribute.value()));
+            potion.set_value(&format!("PERMANENT_{}_INCREASE", new_attribute.get_value()));
 
             dsl.update_potion_by_id(potion)?;
 
@@ -648,13 +648,13 @@ pub mod component {
             })?;
 
             dsl.create_recipe(CreateRecipe {
-                value: format!("FIRST_PERMANENT_{}_INCREASE", new_potion.value()),
-                potion_id: new_potion.id(),
+                value: format!("FIRST_PERMANENT_{}_INCREASE", new_potion.get_value()),
+                potion_id: new_potion.get_id(),
             })?;
 
             dsl.create_recipe(CreateRecipe {
-                value: format!("SECOND_PERMANENT_{}_INCREASE", new_potion.value()),
-                potion_id: new_potion.id(),
+                value: format!("SECOND_PERMANENT_{}_INCREASE", new_potion.get_value()),
+                potion_id: new_potion.get_id(),
             })?;
 
             Ok(())
@@ -925,7 +925,7 @@ pub mod test {
         };
 
         let time = ctx.timestamp.to_system_time();
-        if player.created_at().to_system_time().ne(&time) {
+        if player.get_created_at().to_system_time().ne(&time) {
             return Err(
                 "The create method should have set the created_at column of the entity!"
                     .to_string(),
@@ -951,7 +951,7 @@ pub mod test {
         };
 
         match dsl.create_identifier(CreateIdentifier {
-            entity_id: player.obj_id(),
+            entity_id: player.get_obj_id(),
             value: "cool".to_string(),
         }) {
             Ok(_) => {}
@@ -967,13 +967,13 @@ pub mod test {
         }
 
         dsl.create_entity_relationship(CreateEntityRelationship {
-            parent_entity_id: player.obj_id(),
-            child_entity_id: player2.obj_id(),
+            parent_entity_id: player.get_obj_id(),
+            child_entity_id: player2.get_obj_id(),
         })?;
         if dsl
             .create_entity_relationship(CreateEntityRelationship {
-                parent_entity_id: player.obj_id(),
-                child_entity_id: player2.obj_id(),
+                parent_entity_id: player.get_obj_id(),
+                child_entity_id: player2.get_obj_id(),
             })
             .is_ok()
         {
@@ -981,12 +981,12 @@ pub mod test {
         }
         let player3 = dsl.create_entity()?;
         dsl.create_entity_relationship(CreateEntityRelationship {
-            parent_entity_id: player.obj_id(),
-            child_entity_id: player3.obj_id(),
+            parent_entity_id: player.get_obj_id(),
+            child_entity_id: player3.get_obj_id(),
         })?;
         dsl.create_entity_relationship(CreateEntityRelationship {
-            parent_entity_id: player2.obj_id(),
-            child_entity_id: player3.obj_id(),
+            parent_entity_id: player2.get_obj_id(),
+            child_entity_id: player3.get_obj_id(),
         })?;
 
         if dsl.count_of_all_entity_relationships().ne(&3) {
@@ -1060,16 +1060,16 @@ pub mod test {
         let player3 = dsl.create_entity()?;
 
         dsl.create_entity_relationship2(CreateEntityRelationship2 {
-            parent_entity_id: player.obj_id(),
-            child_entity_id: player2.obj_id(),
+            parent_entity_id: player.get_obj_id(),
+            child_entity_id: player2.get_obj_id(),
         })?;
         dsl.create_entity_relationship2(CreateEntityRelationship2 {
-            parent_entity_id: player2.obj_id(),
-            child_entity_id: player3.obj_id(),
+            parent_entity_id: player2.get_obj_id(),
+            child_entity_id: player3.get_obj_id(),
         })?;
         dsl.create_entity_relationship2(CreateEntityRelationship2 {
-            parent_entity_id: player3.obj_id(),
-            child_entity_id: player.obj_id(),
+            parent_entity_id: player3.get_obj_id(),
+            child_entity_id: player.get_obj_id(),
         })?;
 
         if dsl.count_of_all_entity_relationships2().ne(&3) {
@@ -1089,19 +1089,19 @@ pub mod test {
             parent_entity_relationship4_id: EntityRelationship4Id::new(0),
         })?;
         let mut er4_2 = dsl.create_entity_relationship4(CreateEntityRelationship4 {
-            parent_entity_relationship4_id: er4_1.parent_entity_relationship4_id(),
+            parent_entity_relationship4_id: er4_1.get_parent_entity_relationship4_id(),
         })?;
 
         match dsl.delete_entity_relationship4_by_id(&er4_1) {
             Ok(success) => {
                 if success.entries[0]
                     .row_value
-                    .ne(&er4_1.id().to_string().into())
+                    .ne(&er4_1.get_id().to_string().into())
                 {
                     return Err(format!(
                         "Should be able to delete 'er4_1'! Got: {} and {}\n{success}",
                         success.entries[0].row_value,
-                        er4_1.id()
+                        er4_1.get_id()
                     ));
                 }
             }
@@ -1110,10 +1110,10 @@ pub mod test {
             }
         }
 
-        if er4_2.parent_entity_relationship4_id().ne(&dsl
+        if er4_2.get_parent_entity_relationship4_id().ne(&dsl
             .get_entity_relationship4_by_id(&er4_2)
             .expect("shouldn't be deleted")
-            .parent_entity_relationship4_id())
+            .get_parent_entity_relationship4_id())
         {
             return Err(
                 "`parent_entity_relationship4_id` of `er4_2` shouldn't have changed.".to_string(),
@@ -1129,7 +1129,7 @@ pub mod test {
 
         if dsl
             .create_entity_relationship4(CreateEntityRelationship4 {
-                parent_entity_relationship4_id: er4_1.id(),
+                parent_entity_relationship4_id: er4_1.get_id(),
             })
             .is_ok()
         {
@@ -1138,7 +1138,7 @@ pub mod test {
 
         let mut player_identifier;
         match dsl.create_identifier(CreateIdentifier {
-            entity_id: player.obj_id(),
+            entity_id: player.get_obj_id(),
             value: "PLAYER".to_string(),
         }) {
             Ok(identifier) => {
@@ -1151,14 +1151,18 @@ pub mod test {
             }
         };
 
-        if player_identifier.created_at().to_system_time().ne(&time) {
+        if player_identifier
+            .get_created_at()
+            .to_system_time()
+            .ne(&time)
+        {
             return Err(
                 "The create method should have set the created_at column of the identifier!"
                     .to_string(),
             );
         }
 
-        if player_identifier.modified_at().is_some() {
+        if player_identifier.get_modified_at().is_some() {
             return Err(
                 "The create method should have set the modified_at column of the identifier to None!"
                     .to_string(),
@@ -1166,13 +1170,13 @@ pub mod test {
         }
 
         if let Ok(identifier) = dsl.create_identifier(CreateIdentifier {
-            entity_id: player.obj_id(),
+            entity_id: player.get_obj_id(),
             value: "PLAYER".to_string(),
         }) {
             return Err(format!(
                 "Entity {} ({}): Shouldn't be able to add an Identifier because it has already one!",
-                player.obj_id().value(),
-                identifier.value()
+                player.get_obj_id().value(),
+                identifier.get_value()
             ));
         };
 
@@ -1205,7 +1209,7 @@ pub mod test {
         };
 
         if player_reflection_identifier
-            .modified_at()
+            .get_modified_at()
             .unwrap()
             .to_system_time()
             .ne(&time)
@@ -1220,11 +1224,14 @@ pub mod test {
 
         match dsl.get_identifier_by_entity_id(&player_reflection) {
             Ok(identifier) => {
-                if identifier.value().ne(player_reflection_identifier.value()) {
+                if identifier
+                    .get_value()
+                    .ne(player_reflection_identifier.get_value())
+                {
                     return Err(format!(
                         "The Identifier values should equal. Expected: {}, Actual: {}!",
-                        player_reflection_identifier.value(),
-                        identifier.value()
+                        player_reflection_identifier.get_value(),
+                        identifier.get_value()
                     ));
                 }
             }
@@ -1236,7 +1243,7 @@ pub mod test {
         }
 
         let player_reflection_position = match dsl.create_position(CreatePosition {
-            entity_id: player_reflection.obj_id(),
+            entity_id: player_reflection.get_obj_id(),
             x: 1,
             y: 1,
             z: 1,
@@ -1251,7 +1258,7 @@ pub mod test {
         };
 
         if player_reflection_position
-            .modified_at()
+            .get_modified_at()
             .to_system_time()
             .ne(&time)
         {
@@ -1269,11 +1276,11 @@ pub mod test {
         };
 
         let mut player_position = match dsl.create_position(CreatePosition {
-            entity_id: player.obj_id(),
+            entity_id: player.get_obj_id(),
             x: 1,
             y: 1,
             z: -1,
-            mirrored_position_id: Some(player_reflection_position.id().clone()),
+            mirrored_position_id: Some(player_reflection_position.get_id().clone()),
         }) {
             Ok(p) => p,
             Err(_) => {
@@ -1306,7 +1313,7 @@ pub mod test {
 
         for position in positions_iter {
             position_count_one += 1;
-            position_ids.push(position.id());
+            position_ids.push(position.get_id());
             positions.push(Some(position));
         }
         position_ids.push(PositionId::new(
@@ -1322,7 +1329,7 @@ pub mod test {
         }
 
         let _ = match dsl.create_unique_position(CreateUniquePosition {
-            entity_id: player_reflection.obj_id(),
+            entity_id: player_reflection.get_obj_id(),
             z: 1,
             y: 2,
             x: 3,
@@ -1342,7 +1349,7 @@ pub mod test {
         }
 
         let _ = match dsl.create_unique_position(CreateUniquePosition {
-            entity_id: player_reflection.obj_id(),
+            entity_id: player_reflection.get_obj_id(),
             z: 3,
             y: 4,
             x: 1,
@@ -1357,7 +1364,7 @@ pub mod test {
 
         if dsl
             .create_unique_position(CreateUniquePosition {
-                entity_id: player.obj_id(),
+                entity_id: player.get_obj_id(),
                 z: 3,
                 y: 4,
                 x: 1,
@@ -1370,7 +1377,7 @@ pub mod test {
         }
 
         let mut unique_player_position = match dsl.create_unique_position(CreateUniquePosition {
-            entity_id: player.obj_id(),
+            entity_id: player.get_obj_id(),
             z: 1,
             y: 1,
             x: 1,
@@ -1408,7 +1415,7 @@ pub mod test {
 
         for unique_position in unique_positions_iter {
             unique_position_count_one += 1;
-            unique_position_ids.push(unique_position.id());
+            unique_position_ids.push(unique_position.get_id());
             unique_positions.push(Some(unique_position));
         }
         unique_position_ids.push(UniquePositionId::new(
@@ -1425,10 +1432,10 @@ pub mod test {
 
         let world1 = dsl.create_test(CreateTest {
             wrapped_option: None,
-            wrapped_unique: player.obj_id(),
-            wrapped_index: player.obj_id(),
-            btree_index: player.obj_id().value(),
-            unique: player.obj_id(),
+            wrapped_unique: player.get_obj_id(),
+            wrapped_index: player.get_obj_id(),
+            btree_index: player.get_obj_id().value(),
+            unique: player.get_obj_id(),
             string: "string".to_string(),
             index_on_string: "index_on_string".to_string(),
             index_on_wrapped_string: "index_on_wrapped_string".to_string(),
@@ -1439,11 +1446,11 @@ pub mod test {
         })?;
 
         let mut world2 = dsl.create_test(CreateTest {
-            wrapped_option: Some(player.obj_id()),
-            wrapped_unique: player_reflection.obj_id(),
-            wrapped_index: player.obj_id(),
-            btree_index: player.obj_id().value(),
-            unique: player_reflection.obj_id(),
+            wrapped_option: Some(player.get_obj_id()),
+            wrapped_unique: player_reflection.get_obj_id(),
+            wrapped_index: player.get_obj_id(),
+            btree_index: player.get_obj_id().value(),
+            unique: player_reflection.get_obj_id(),
             string: "string".to_string(),
             index_on_string: "index_on_string".to_string(),
             index_on_wrapped_string: "index_on_wrapped_string".to_string(),
@@ -1453,32 +1460,32 @@ pub mod test {
             scheduled_at: spacetimedb::ScheduleAt::Time(ctx.timestamp),
         })?;
 
-        let _: Option<EntityId> = world1.wrapped_option();
+        let _: Option<EntityId> = world1.get_wrapped_option();
         world2.set_wrapped_option(None);
         world2.set_wrapped_option(&player);
-        world2.set_wrapped_option(player.obj_id());
-        world2.set_wrapped_option(player.obj_id());
+        world2.set_wrapped_option(player.get_obj_id());
+        world2.set_wrapped_option(player.get_obj_id());
 
         // TODO: Add commented lines if https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21 is added
         let _ = dsl.get_tests_by_wrapped_index(&player);
-        let _ = dsl.get_tests_by_wrapped_index(player.obj_id());
-        let _ = dsl.get_tests_by_wrapped_index(&player.obj_id());
-        let _ = dsl.get_tests_by_wrapped_index(world2.wrapped_index());
+        let _ = dsl.get_tests_by_wrapped_index(player.get_obj_id());
+        let _ = dsl.get_tests_by_wrapped_index(&player.get_obj_id());
+        let _ = dsl.get_tests_by_wrapped_index(world2.get_wrapped_index());
         //let _ = dsl.get_tests_by_wrapped_index(&player..);
-        //let _ = dsl.get_tests_by_wrapped_index(world2.wrapped_index()..);
+        //let _ = dsl.get_tests_by_wrapped_index(world2.get_wrapped_index()..);
         let _ = dsl.delete_tests_by_wrapped_index(&player);
-        let _ = dsl.delete_tests_by_wrapped_index(player.obj_id());
-        let _ = dsl.delete_tests_by_wrapped_index(player.obj_id());
-        let _ = dsl.delete_tests_by_wrapped_index(world2.wrapped_index());
+        let _ = dsl.delete_tests_by_wrapped_index(player.get_obj_id());
+        let _ = dsl.delete_tests_by_wrapped_index(player.get_obj_id());
+        let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index());
         //let _ = dsl.delete_tests_by_wrapped_index(&player..);
         //let _ = dsl.delete_tests_by_wrapped_index(&player..&player);
-        //let _ = dsl.delete_tests_by_wrapped_index(world2.wrapped_index()..);
-        //let _ = dsl.delete_tests_by_wrapped_index(world2.wrapped_index()..world2.wrapped_index());
+        //let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index()..);
+        //let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index()..world2.get_wrapped_index());
 
-        let _ = dsl.get_tests_by_btree_index(world2.btree_index());
-        //let _ = dsl.get_tests_by_btree_index(world2.btree_index()..);
-        let _ = dsl.delete_tests_by_btree_index(world2.btree_index());
-        //let _ = dsl.delete_tests_by_btree_index(world2.btree_index()..);
+        let _ = dsl.get_tests_by_btree_index(world2.get_btree_index());
+        //let _ = dsl.get_tests_by_btree_index(world2.get_btree_index()..);
+        let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index());
+        //let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index()..);
 
         match dsl.delete_entity_by_obj_id(&player_reflection) {
             Ok(_) => {}
@@ -1493,9 +1500,9 @@ pub mod test {
             return Err("The count of Identifiers should be 0 because the player_reflection Entity was deleted and the foreign key has a Delete strategy!".to_string());
         }
         if dsl
-            .get_position_by_id(&player_reflection_position.id())
+            .get_position_by_id(&player_reflection_position.get_id())
             .expect("should exist")
-            .entity_id()
+            .get_entity_id()
             .value()
             .ne(&0)
         {
@@ -1503,7 +1510,7 @@ pub mod test {
         }
 
         let _ = dsl.create_ship_object(CreateShipObject {
-            entity_id: player.obj_id(),
+            entity_id: player.get_obj_id(),
         });
 
         if let Ok(success) = dsl.delete_entity_by_obj_id(&player) {
@@ -1524,7 +1531,7 @@ pub mod test {
             value: "STRENGTH".to_string(),
         })?;
 
-        if strength.value().ne("STRENGTH_ATTRIBUTE") {
+        if strength.get_value().ne("STRENGTH_ATTRIBUTE") {
             return Err("Attribute value should be 'STRENGTH_ATTRIBUTE'".to_string());
         }
 
@@ -1535,18 +1542,18 @@ pub mod test {
 
         let power = dsl.update_attribute_by_id(strength)?;
 
-        if power.value().ne("POWER_ATTRIBUTE") {
+        if power.get_value().ne("POWER_ATTRIBUTE") {
             return Err(format!(
                 "Attribute value should be 'POWER_ATTRIBUTE'. Got: {}",
-                power.value()
+                power.get_value()
             ));
         }
 
         let permanent_power_attribute_increase_potion =
-            dsl.get_potion_by_id(permanent_strength_attribute_increase_potion.id())?;
+            dsl.get_potion_by_id(permanent_strength_attribute_increase_potion.get_id())?;
 
         if permanent_power_attribute_increase_potion
-            .value()
+            .get_value()
             .ne("PERMANENT_POWER_ATTRIBUTE_INCREASE_POTION")
         {
             return Err(
@@ -1576,7 +1583,7 @@ pub mod test {
 
         let hook_calls: Vec<_> = dsl
             .get_all_hook_calls()
-            .map(|hc| hc.value().to_string())
+            .map(|hc| hc.get_value().to_string())
             .collect();
 
         let expected_hook_call_values = vec![
