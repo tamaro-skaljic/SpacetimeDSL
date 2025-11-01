@@ -1108,12 +1108,18 @@ pub mod test {
 pub mod hook_test {
     #[spacetimedsl::dsl(
         plural_name = attributes,
-        before_insert_hook,
-        before_update_hook,
-        before_delete_hook,
-        after_insert_hook,
-        after_update_hook,
-        after_delete_hook,
+        hook(
+            before(
+                insert,
+                update,
+                delete
+            ),
+            after(
+                insert,
+                update,
+                delete
+            )
+        ),
     )]
     #[spacetimedb::table(name = attribute, public)]
     pub struct Attribute {
@@ -1128,12 +1134,18 @@ pub mod hook_test {
 
     #[spacetimedsl::dsl(
         plural_name = potions,
-        before_insert_hook,
-        after_insert_hook,
-        before_update_hook,
-        after_update_hook,
-        before_delete_hook,
-        after_delete_hook,
+        hook(
+            before(
+                insert,
+                update,
+                delete
+            ),
+            after(
+                insert,
+                update,
+                delete
+            )
+        ),
     )]
     #[spacetimedb::table(name = potion, public)]
     pub struct Potion {

@@ -1,6 +1,5 @@
 use crate::internal::dsl::{
-    after_delete_hook, after_insert_hook, after_update_hook, before_delete_hook,
-    before_insert_hook, before_update_hook, plural_name, unique_index,
+    after, before, delete, hook, insert, plural_name, unique_index, update,
 };
 use spacetime_bindings_macro_input::{match_meta, sym, util::check_duplicate};
 use syn::{
@@ -42,12 +41,16 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
 
     let mut unique_indices = vec![];
 
-    let mut before_insert = None;
-    let mut before_update = None;
-    let mut before_delete = None;
-    let mut after_insert = None;
-    let mut after_update = None;
-    let mut after_delete = None;
+    let mut hooks = None;
+    let mut before_hooks = None;
+    let mut after_hooks = None;
+
+    let mut before_insert_hook = None;
+    let mut before_update_hook = None;
+    let mut before_delete_hook = None;
+    let mut after_insert_hook = None;
+    let mut after_update_hook = None;
+    let mut after_delete_hook = None;
 
     parser(|meta| {
         match_meta!(match meta {
@@ -57,29 +60,59 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
                 name_plural = Some(value.parse()?);
             }
             unique_index => unique_indices.push(try_parse_unique_index(meta)?),
-            before_insert_hook => {
-                check_duplicate(&before_insert, &meta)?;
-                before_insert = Some(());
-            }
-            before_update_hook => {
-                check_duplicate(&before_update, &meta)?;
-                before_update = Some(());
-            }
-            before_delete_hook => {
-                check_duplicate(&before_delete, &meta)?;
-                before_delete = Some(());
-            }
-            after_insert_hook => {
-                check_duplicate(&after_insert, &meta)?;
-                after_insert = Some(());
-            }
-            after_update_hook => {
-                check_duplicate(&after_update, &meta)?;
-                after_update = Some(());
-            }
-            after_delete_hook => {
-                check_duplicate(&after_delete, &meta)?;
-                after_delete = Some(());
+            hook => {
+                check_duplicate(&hooks, &meta)?;
+                hooks = Some(());
+
+                meta.parse_nested_meta(|meta| {
+                    match_meta!(match meta {
+                        before => {
+                            check_duplicate(&before_hooks, &meta)?;
+                            before_hooks = Some(());
+
+                            meta.parse_nested_meta(|meta| {
+                                match_meta!(match meta {
+                                    insert => {
+                                        check_duplicate(&before_insert_hook, &meta)?;
+                                        before_insert_hook = Some(());
+                                    }
+                                    update => {
+                                        check_duplicate(&before_update_hook, &meta)?;
+                                        before_update_hook = Some(());
+                                    }
+                                    delete => {
+                                        check_duplicate(&before_delete_hook, &meta)?;
+                                        before_delete_hook = Some(());
+                                    }
+                                });
+                                Ok(())
+                            })?;
+                        }
+                        after => {
+                            check_duplicate(&after_hooks, &meta)?;
+                            after_hooks = Some(());
+
+                            meta.parse_nested_meta(|meta| {
+                                match_meta!(match meta {
+                                    insert => {
+                                        check_duplicate(&after_insert_hook, &meta)?;
+                                        after_insert_hook = Some(());
+                                    }
+                                    update => {
+                                        check_duplicate(&after_update_hook, &meta)?;
+                                        after_update_hook = Some(());
+                                    }
+                                    delete => {
+                                        check_duplicate(&after_delete_hook, &meta)?;
+                                        after_delete_hook = Some(());
+                                    }
+                                });
+                                Ok(())
+                            })?;
+                        }
+                    });
+                    Ok(())
+                })?;
             }
         });
         Ok(())
@@ -94,12 +127,12 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
             )
         })?,
         unique_indices,
-        before_insert_hook: before_insert.is_some(),
-        before_update_hook: before_update.is_some(),
-        before_delete_hook: before_delete.is_some(),
-        after_insert_hook: after_insert.is_some(),
-        after_update_hook: after_update.is_some(),
-        after_delete_hook: after_delete.is_some(),
+        before_insert_hook: before_insert_hook.is_some(),
+        before_update_hook: before_update_hook.is_some(),
+        before_delete_hook: before_delete_hook.is_some(),
+        after_insert_hook: after_insert_hook.is_some(),
+        after_update_hook: after_update_hook.is_some(),
+        after_delete_hook: after_delete_hook.is_some(),
     })
 }
 
