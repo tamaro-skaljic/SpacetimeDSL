@@ -492,7 +492,6 @@ pub mod component {
             #[create_wrapper]
             id: u128,
 
-            #[unique]
             value: String,
 
             created_at: Timestamp,
