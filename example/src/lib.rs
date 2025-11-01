@@ -80,6 +80,9 @@ pub mod entity {
         #[use_wrapper(EntityId)]
         #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
         child_entity_id: u128,
+
+        inserted_at: Timestamp,
+        updated_at: Option<Timestamp>,
     }
 
     #[spacetimedsl::dsl(plural_name = entity_relationships2)]
@@ -100,6 +103,10 @@ pub mod entity {
         #[use_wrapper(EntityId)]
         #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
         pub child_entity_id: u128,
+
+        inserted_at: Timestamp,
+
+        updated_at: Timestamp,
     }
 
     #[spacetimedsl::dsl(plural_name = entity_relationships3)]
