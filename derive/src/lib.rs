@@ -1,5 +1,6 @@
+use ident_case::RenameRule;
 use proc_macro::TokenStream;
-use quote::{ToTokens, quote};
+use quote::{ToTokens, format_ident, quote};
 use spacetimedsl_derive_input::api::Table;
 mod output;
 
@@ -106,3 +107,26 @@ fn make_struct_fields_private(derive_input: &mut syn::DeriveInput) {
         }
     }
 }
+
+//region Hooks
+
+/// Add `#[hook]` to your functions to add the trait implementation line required for SpacetimeDSL hooks to work.
+#[proc_macro_attribute]
+pub fn hook(_args: TokenStream, item: TokenStream) -> TokenStream {
+    ok_or_compile_error(|| {
+        let function_input: syn::ItemFn = syn::parse(item)?;
+
+        let trait_name = format_ident!(
+            "{}Hook",
+            RenameRule::PascalCase.apply_to_field(function_input.sig.ident.to_string())
+        );
+
+        Ok(quote! {
+            impl #trait_name for spacetimedsl::DSLMethodHooks {
+                #function_input
+            }
+        })
+    })
+}
+
+//endregion Hooks

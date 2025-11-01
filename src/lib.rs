@@ -1,6 +1,6 @@
 pub use itertools;
 use spacetimedb::ReducerContext;
-pub use spacetimedsl_derive::{SpacetimeDSL, dsl};
+pub use spacetimedsl_derive::{SpacetimeDSL, dsl, hook};
 use std::{
     error::Error,
     fmt::{self, Display},
