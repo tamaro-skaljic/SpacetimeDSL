@@ -1080,31 +1080,34 @@ pub(in crate::internal) fn for_method(
                             };
                         });
 
-                    let on_update_set_current_timestamp =
-                        match &spacetimedsl_table.on_update_set_current_timestamp_column_name {
-                            None => TokenStream::default(),
-                            Some(column_name) => {
-                                let on_update_set_current_timestamp_column = internal_columns
-                                    .iter()
-                                    .find(|c| c.rust_field_name.eq(column_name))
-                                    .unwrap_or_else(|| panic!("{column_name} column should exist in internal columns"));
+                    let on_update_set_current_timestamp = match &spacetimedsl_table
+                        .on_update_set_current_timestamp_column_name
+                    {
+                        None => TokenStream::default(),
+                        Some(column_name) => {
+                            let on_update_set_current_timestamp_column = internal_columns
+                                .iter()
+                                .find(|c| c.rust_field_name.eq(column_name))
+                                .unwrap_or_else(|| {
+                                    panic!("{column_name} column should exist in internal columns")
+                                });
 
-                                let column_type_str = on_update_set_current_timestamp_column
-                                    .rust_field_type_name_or_path
-                                    .to_token_stream()
-                                    .to_string();
+                            let column_type_str = on_update_set_current_timestamp_column
+                                .rust_field_type_name_or_path
+                                .to_token_stream()
+                                .to_string();
 
-                                let timestamp_value = if column_type_str.starts_with("Option") {
-                                    quote! { Some(self.ctx().timestamp) }
-                                } else {
-                                    quote! { self.ctx().timestamp }
-                                };
+                            let timestamp_value = if column_type_str.starts_with("Option") {
+                                quote! { Some(self.ctx().timestamp) }
+                            } else {
+                                quote! { self.ctx().timestamp }
+                            };
 
-                                quote! {
-                                    #singular_table_name.#column_name = #timestamp_value;
-                                }
+                            quote! {
+                                #singular_table_name.#column_name = #timestamp_value;
                             }
-                        };
+                        }
+                    };
 
                     let use_itertools = if !multi_column_index_checks.is_empty() {
                         quote! {
