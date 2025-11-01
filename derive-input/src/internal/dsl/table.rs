@@ -109,7 +109,8 @@ impl SpacetimeDSLTable {
                         ));
                     }
                     syn::Visibility::Inherited => {
-                        on_insert_set_current_timestamp_column_name = Some(column_name.clone());
+                        on_insert_set_current_timestamp_column_name =
+                            Some(format_ident!("{column_name}"));
                     }
                 }
             }
@@ -152,7 +153,8 @@ impl SpacetimeDSLTable {
                         ));
                     }
                     syn::Visibility::Inherited => {
-                        on_update_set_current_timestamp_column_name = Some(column_name.clone());
+                        on_update_set_current_timestamp_column_name =
+                            Some(format_ident!("{column_name}"));
                     }
                 }
             }
