@@ -573,7 +573,7 @@ pub mod component {
                 value: "BEFORE_ATTRIBUTE_UPDATE".to_string(),
             })?;
 
-            new_attribute.set_value(&format!("{}_ATTRIBUTE", new_attribute.get_value()));
+            new_attribute.set_value(format!("{}_ATTRIBUTE", new_attribute.get_value()));
 
             Ok(new_attribute)
         }
@@ -593,7 +593,7 @@ pub mod component {
                 old_attribute.get_value()
             ))?;
 
-            potion.set_value(&format!("PERMANENT_{}_INCREASE", new_attribute.get_value()));
+            potion.set_value(format!("PERMANENT_{}_INCREASE", new_attribute.get_value()));
 
             dsl.update_potion_by_id(potion)?;
 
@@ -1191,7 +1191,7 @@ pub mod test {
             }
         }
 
-        player_identifier.set_value("PLAYER_REFLECTION");
+        player_identifier.set_value("PLAYER_REFLECTION".to_string());
         update_modified_at(
             &mut player_identifier,
             ctx.timestamp
@@ -1538,7 +1538,7 @@ pub mod test {
         let permanent_strength_attribute_increase_potion =
             dsl.get_potion_by_value("PERMANENT_STRENGTH_ATTRIBUTE_INCREASE_POTION")?;
 
-        strength.set_value("POWER");
+        strength.set_value("POWER".to_string());
 
         let power = dsl.update_attribute_by_id(strength)?;
 

@@ -5,7 +5,7 @@ use crate::{
     },
     internal::dsl::wrapper::map_wrapper_type_option_to_wrapped_type_option,
 };
-use quote::{ToTokens, format_ident, quote};
+use quote::{format_ident, quote};
 
 impl Setter {
     pub(in crate::internal) fn map(
@@ -24,45 +24,23 @@ impl Setter {
         let method_arg;
         let return_type;
         let return_expr;
-        let method_impl;
+        let mut method_impl = quote! {
+            let old_value = std::mem::replace(&mut self.#column_name, #column_name);
+        };
 
         match wrapper_type {
             Some(wrapper_type) => match wrapper_type {
                 WrapperType::Created(_) => {
                     let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
 
-                    if rust_field
-                        .type_name_or_path
-                        .to_token_stream()
-                        .to_string()
-                        .eq(&"String")
-                    {
-                        method_arg = quote! {
-                            #column_name: &str
-                        };
+                    let wrapped_type_name_or_path = &WrapperType::map_to_wrapped_type(wrapper_type);
+                    method_arg = quote! {
+                        #column_name: #wrapped_type_name_or_path
+                    };
 
-                        return_expr = quote! {
-                            #wrapper_type_name_or_path::new(old_value)
-                        };
-
-                        method_impl = quote! {
-                            self.#column_name = #column_name.to_string();
-                        };
-                    } else {
-                        let wrapped_type_name_or_path =
-                            &WrapperType::map_to_wrapped_type(wrapper_type);
-                        method_arg = quote! {
-                            #column_name: #wrapped_type_name_or_path
-                        };
-
-                        return_expr = quote! {
-                            #wrapper_type_name_or_path::new(old_value)
-                        };
-
-                        method_impl = quote! {
-                            self.#column_name = #column_name;
-                        };
-                    }
+                    return_expr = quote! {
+                        #wrapper_type_name_or_path::new(old_value)
+                    };
 
                     return_type = quote! {
                         #wrapper_type_name_or_path
@@ -89,17 +67,14 @@ impl Setter {
                             }
                         };
 
-                        let mut into_option = map_wrapper_type_option_to_wrapped_type_option(
+                        let into_option = map_wrapper_type_option_to_wrapped_type_option(
                             column_name,
                             wrapper_type_name_or_path,
                         );
-                        into_option = quote! {
+                        method_impl = quote! {
                             let #column_name = #column_name.into();
                             #into_option
-                        };
-                        method_impl = quote! {
-                            #into_option
-                            self.#column_name = #column_name;
+                            #method_impl
                         };
                     } else {
                         method_arg = quote! { #column_name: impl Into<#wrapper_type_name_or_path> };
@@ -112,7 +87,7 @@ impl Setter {
                         };
 
                         method_impl = quote! {
-                            self.#column_name = #column_name.into().value();
+                            let old_value = std::mem::replace(&mut self.#column_name, #column_name.into().value());
                         };
                     }
                 }
@@ -120,49 +95,21 @@ impl Setter {
             None => {
                 let rt = &rust_field.type_name_or_path;
 
-                if rust_field
-                    .type_name_or_path
-                    .to_token_stream()
-                    .to_string()
-                    .eq(&"String")
-                {
-                    method_arg = quote! {
-                        #column_name: &str
-                    };
+                method_arg = quote! { #column_name: #rt };
 
-                    return_type = quote! {
-                        #rt
-                    };
-                    return_expr = quote! {
-                        old_value.clone()
-                    };
-
-                    method_impl = quote! {
-                        self.#column_name = #column_name.to_string();
-                    };
-                } else {
-                    method_arg = quote! { #column_name: #rt };
-
-                    return_type = quote! {
-                        #rt
-                    };
-                    return_expr = quote! {
-                        old_value
-                    };
-
-                    method_impl = quote! {
-                        self.#column_name = #column_name;
-                    };
-                }
+                return_type = quote! {
+                    #rt
+                };
+                return_expr = quote! {
+                    old_value
+                };
             }
         };
 
         let method_impl = quote! {
-            let old_value = self.#column_name.clone();
             #method_impl
             #return_expr
         };
-        let method_impl = method_impl;
 
         Some(Setter {
             method_visibility,
