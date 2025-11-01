@@ -2969,7 +2969,7 @@ fn get_on_delete_strategy_implementation(
                         });
 
                         quote! {
-                            spacetimedsl::DSLMethodHooks::#hook_function_name(&self.dsl(), &row)?;
+                            spacetimedsl::DSLMethodHooks::#hook_function_name(&dsl, &row)?;
                         }
                     }
                 };
@@ -2985,7 +2985,7 @@ fn get_on_delete_strategy_implementation(
                         });
 
                         quote! {
-                            spacetimedsl::DSLMethodHooks::#hook_function_name(&self.dsl(), &row)?;
+                            spacetimedsl::DSLMethodHooks::#hook_function_name(&dsl, &row)?;
                         }
                     }
                 };
