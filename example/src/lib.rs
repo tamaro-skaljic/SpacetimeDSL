@@ -1081,11 +1081,15 @@ pub mod test {
             "BEFORE_ATTRIBUTE_INSERT",
             "AFTER_ATTRIBUTE_INSERT",
             "BEFORE_POTION_INSERT",
+            "AFTER_POTION_INSERT",
             "BEFORE_ATTRIBUTE_UPDATE",
             "AFTER_ATTRIBUTE_UPDATE",
             "BEFORE_POTION_UPDATE",
+            "AFTER_POTION_UPDATE",
             "BEFORE_ATTRIBUTE_DELETE",
             "AFTER_ATTRIBUTE_DELETE",
+            "BEFORE_POTION_DELETE",
+            "AFTER_POTION_DELETE",
         ];
 
         if hook_calls.ne(&expected_hook_call_values) {
@@ -1116,6 +1120,7 @@ pub mod hook_test {
         #[primary_key]
         #[auto_inc]
         #[create_wrapper]
+        #[referenced_by(path = self, table = potion)]
         id: u128,
 
         pub value: String,
@@ -1124,7 +1129,11 @@ pub mod hook_test {
     #[spacetimedsl::dsl(
         plural_name = potions,
         before_insert_hook,
+        after_insert_hook,
         before_update_hook,
+        after_update_hook,
+        before_delete_hook,
+        after_delete_hook,
     )]
     #[spacetimedb::table(name = potion, public)]
     pub struct Potion {
@@ -1135,6 +1144,11 @@ pub mod hook_test {
 
         #[unique]
         pub value: String,
+
+        #[index(btree)]
+        #[use_wrapper(AttributeId)]
+        #[foreign_key(path = self, table = attribute, column = id, on_delete = Delete)]
+        attribute_id: u128,
     }
 
     impl BeforeAttributeInsertHook for spacetimedsl::DSLMethodHooks {
@@ -1164,6 +1178,7 @@ pub mod hook_test {
 
             dsl.create_potion(CreatePotion {
                 value: format!("PERMANENT_{}_INCREASE", new_attribute.value),
+                attribute_id: new_attribute.id(),
             })?;
 
             Ok(())
@@ -1225,16 +1240,11 @@ pub mod hook_test {
     impl AfterAttributeDeleteHook for spacetimedsl::DSLMethodHooks {
         fn after_attribute_delete(
             dsl: &spacetimedsl::DSL,
-            old_attribute: &Attribute,
+            _old_attribute: &Attribute,
         ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "AFTER_ATTRIBUTE_DELETE".to_string(),
             })?;
-
-            dsl.delete_potion_by_value(&format!(
-                "PERMANENT_{}_INCREASE_POTION",
-                old_attribute.value()
-            ))?;
 
             Ok(())
         }
@@ -1267,6 +1277,19 @@ pub mod hook_test {
         }
     }
 
+    impl AfterPotionInsertHook for spacetimedsl::DSLMethodHooks {
+        fn after_potion_insert(
+            dsl: &spacetimedsl::DSL,
+            _new_potion: &Potion,
+        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+            dsl.create_hook_call(CreateHookCall {
+                value: "AFTER_POTION_INSERT".to_string(),
+            })?;
+
+            Ok(())
+        }
+    }
+
     impl BeforePotionUpdateHook for spacetimedsl::DSLMethodHooks {
         fn before_potion_update(
             dsl: &spacetimedsl::DSL,
@@ -1280,6 +1303,46 @@ pub mod hook_test {
             new_potion.value = format!("{}_POTION", new_potion.value);
 
             Ok(new_potion)
+        }
+    }
+
+    impl AfterPotionUpdateHook for spacetimedsl::DSLMethodHooks {
+        fn after_potion_update(
+            dsl: &spacetimedsl::DSL,
+            _old_potion: &Potion,
+            _new_potion: &Potion,
+        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+            dsl.create_hook_call(CreateHookCall {
+                value: "AFTER_POTION_UPDATE".to_string(),
+            })?;
+
+            Ok(())
+        }
+    }
+
+    impl BeforePotionDeleteHook for spacetimedsl::DSLMethodHooks {
+        fn before_potion_delete(
+            dsl: &spacetimedsl::DSL,
+            _old_potion: &Potion,
+        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+            dsl.create_hook_call(CreateHookCall {
+                value: "BEFORE_POTION_DELETE".to_string(),
+            })?;
+
+            Ok(())
+        }
+    }
+
+    impl AfterPotionDeleteHook for spacetimedsl::DSLMethodHooks {
+        fn after_potion_delete(
+            dsl: &spacetimedsl::DSL,
+            _old_potion: &Potion,
+        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+            dsl.create_hook_call(CreateHookCall {
+                value: "AFTER_POTION_DELETE".to_string(),
+            })?;
+
+            Ok(())
         }
     }
 }
