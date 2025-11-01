@@ -4,6 +4,8 @@ use rust_format::{Formatter, PrettyPlease};
 use spacetimedsl_derive_input::api::dsl::method::SpacetimeDSLMethod;
 use syn::Ident;
 
+use crate::output::{malformed_code_generation_result, map_args};
+
 pub mod associated;
 
 // Execute On Delete Strategies Of [ Referencing Tables | This Table ] After [ One Row | Multiple Rows ] Of [ This | The Referenced ] Table [ Was | Were ] Deleted
@@ -15,7 +17,7 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     let paths_of_traits_to_extend = &method.paths_of_traits_to_extend;
     let method_name = &method.method_name;
 
-    let method_args = map_method_args(method);
+    let method_args = map_args(&method.method_args);
 
     let return_type = &method.return_type;
     let method_impl = &method.method_impl;
@@ -75,40 +77,16 @@ fn add_impl_doc(
 
     let implementation_docs = pretty_please
         .format_tokens(implementation_docs.clone())
-        .unwrap_or_else(|_| panic!("implementation doc formatting should work - got:\n\n```no_run\n{implementation_docs}\n```"));
+        .unwrap_or_else(|_| {
+            panic!(
+                "{}",
+                malformed_code_generation_result(implementation_docs.to_string())
+            )
+        });
 
     doc_comment.push_str(&format!(
         "\n\nImplementation:\n\n```no_run\n{implementation_docs}\n```",
     ));
 
     doc_comment
-}
-
-fn map_method_args(method: &SpacetimeDSLMethod) -> Vec<TokenStream> {
-    let mut method_args = vec![];
-
-    for method_arg in &method.method_args {
-        let arg_name = &method_arg.arg_name;
-        let arg_type = match &method_arg.arg_type {
-            spacetimedsl_derive_input::api::dsl::method::SpacetimeDSLArgType::Normal(
-                actual_type,
-            ) => actual_type,
-            spacetimedsl_derive_input::api::dsl::method::SpacetimeDSLArgType::Wrapped {
-                wrapped_type: _,
-                actual_type,
-            } => actual_type,
-        };
-
-        if method_arg.is_mut {
-            method_args.push(quote! {
-                mut #arg_name: #arg_type
-            });
-        } else {
-            method_args.push(quote! {
-                #arg_name: #arg_type
-            });
-        }
-    }
-
-    method_args
 }

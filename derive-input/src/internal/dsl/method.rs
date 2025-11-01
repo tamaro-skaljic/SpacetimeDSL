@@ -618,7 +618,6 @@ pub(in crate::internal) fn for_method(
 
     let primary_key_column_name = &primary_key_column.rust_field_name;
     let primary_key_column_name_as_string = &primary_key_column.rust_field_name.to_string();
-    let primary_key_column_type = &primary_key_column.rust_field_type_name_or_path;
 
     let one = OneOrMultiple::One;
     let multiple = OneOrMultiple::Multiple;
@@ -762,8 +761,36 @@ pub(in crate::internal) fn for_method(
                     }
                 };
 
+            let before_insert_hook = match &spacetimedsl_table.hooks.before_insert {
+                None => TokenStream::default(),
+                Some(before_insert_hook) => {
+                    let hook_trait_name = &before_insert_hook.trait_name;
+                    let hook_function_name = &before_insert_hook.function_name;
+
+                    quote! {
+                        use self::#hook_trait_name;
+                        let #singular_table_name = spacetimedsl::DSLMethodHooks::#hook_function_name(&self.dsl(), #singular_table_name)?;
+                    }
+                }
+            };
+
+            let after_insert_hook = match &spacetimedsl_table.hooks.after_insert {
+                None => TokenStream::default(),
+                Some(after_insert_hook) => {
+                    let hook_trait_name = &after_insert_hook.trait_name;
+                    let hook_function_name = &after_insert_hook.function_name;
+
+                    quote! {
+                        use self::#hook_trait_name;
+                        spacetimedsl::DSLMethodHooks::#hook_function_name(&self.dsl(), &entity)?;
+                    }
+                }
+            };
+
             method_impl = quote! {
                 #use_itertools
+
+                #before_insert_hook
 
                 #(#constructor_args)*
                 #(#wrapper_type_option_to_wrapped_type_option_mappers)*
@@ -782,7 +809,11 @@ pub(in crate::internal) fn for_method(
                     .db()
                     .#singular_table_name()
                     .try_insert(#singular_table_name.clone()) { // FIXME: No clone?
-                    Ok(entity) => Ok(entity),
+                    Ok(entity) => {
+                        #after_insert_hook
+
+                        Ok(entity)
+                    },
                     Err(error) => match error {
                         spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
                             Err(spacetimedsl::SpacetimeDSLError::UniqueConstraintViolation {
@@ -1100,6 +1131,8 @@ pub(in crate::internal) fn for_method(
 
                     let let_field_name_for_found_value = if multi_column_index_checks.is_empty()
                         && reference_integrity_checks.is_empty()
+                        && spacetimedsl_table.hooks.before_update.is_none()
+                        && spacetimedsl_table.hooks.after_update.is_none()
                     {
                         TokenStream::default()
                     } else {
@@ -1111,6 +1144,48 @@ pub(in crate::internal) fn for_method(
                     let index_name = match is_multi_column_index {
                         true => &format_ident!("{primary_key_column_name}"),
                         false => index_name,
+                    };
+
+                    let before_update_hook = match &spacetimedsl_table.hooks.before_update {
+                        None => TokenStream::default(),
+                        Some(before_update_hook) => {
+                            let hook_trait_name = &before_update_hook.trait_name;
+                            let hook_function_name = &before_update_hook.function_name;
+
+                            quote! {
+                                if #field_name_for_found_value.is_none() {
+                                    #field_name_for_found_value = Some(
+                                        self.ctx().db().#singular_table_name().#primary_key_column_name()
+                                            .find(#singular_table_name.#primary_key_column_name)
+                                            .expect("Row should exist for update")
+                                    )
+                                }
+
+                                use self::#hook_trait_name;
+                                let #singular_table_name = spacetimedsl::DSLMethodHooks::#hook_function_name(
+                                    &self.dsl(),
+                                    #field_name_for_found_value.as_ref().unwrap(),
+                                    #singular_table_name
+                                )?;
+                            }
+                        }
+                    };
+
+                    let after_update_hook = match &spacetimedsl_table.hooks.after_update {
+                        None => TokenStream::default(),
+                        Some(after_update_hook) => {
+                            let hook_trait_name = &after_update_hook.trait_name;
+                            let hook_function_name = &after_update_hook.function_name;
+
+                            quote! {
+                                use self::#hook_trait_name;
+                                spacetimedsl::DSLMethodHooks::#hook_function_name(
+                                    &self.dsl(),
+                                    #field_name_for_found_value.as_ref().unwrap(),
+                                    &#singular_table_name
+                                )?;
+                            }
+                        }
                     };
 
                     method_impl = quote! {
@@ -1125,14 +1200,19 @@ pub(in crate::internal) fn for_method(
 
                         #modified_at
 
+                        #before_update_hook
+
                         // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(spacetimedsl::SpacetimeDSLError);
-                        Ok(self
+                        let #singular_table_name = self
                             .ctx()
                             .db()
                             .#singular_table_name()
                             .#index_name()
-                            .update(#singular_table_name)
-                        )
+                            .update(#singular_table_name);
+
+                        #after_update_hook
+
+                        Ok(#singular_table_name)
                     };
                 }
                 dsl_method => {
@@ -1380,12 +1460,11 @@ pub(in crate::internal) fn for_method(
 
                                 #let_index_name
 
-                                let primary_key_values_of_rows_to_delete: Vec<#primary_key_column_type> = #method_impl_prefix
+                                let rows_to_delete: Vec<#struct_name> = #method_impl_prefix
                                     .filter(#index_name)
-                                    .map(|row| row.#primary_key_column_name)
                                     .collect();
 
-                                if primary_key_values_of_rows_to_delete.is_empty() {
+                                if rows_to_delete.is_empty() {
                                     return Ok(spacetimedsl::DeletionResult {
                                         table_name: #singular_table_name_as_string.into(),
                                         one_or_multiple: #multiple,
@@ -1407,25 +1486,55 @@ pub(in crate::internal) fn for_method(
                                 }
                             };
 
-                            let map_primary_key_values_of_rows_to_delete_to_deletion_result_entries = quote! {
+                            let map_rows_to_delete_to_deletion_result_entries = quote! {
                                 let mut deletion_result_entries = std::collections::HashMap::new();
 
-                                for primary_key_value_of_a_row_to_delete in &primary_key_values_of_rows_to_delete {
+                                for row_to_delete in &rows_to_delete {
                                     deletion_result_entries.insert(
-                                        primary_key_value_of_a_row_to_delete,
+                                        &row_to_delete.#primary_key_column_name,
                                         spacetimedsl::DeletionResultEntry {
                                             table_name: #singular_table_name_as_string.into(),
                                             column_name: #primary_key_column_name_as_string.into(),
                                             strategy: spacetimedsl::OnDeleteStrategy::Delete,
-                                            row_value: format!("{}", #wrapper_type_struct_name_or_path::new(primary_key_value_of_a_row_to_delete.clone())).into(),
+                                            row_value: format!("{}", #wrapper_type_struct_name_or_path::new(row_to_delete.#primary_key_column_name.clone())).into(),
                                             child_entries: vec![],
                                         }
                                     );
                                 }
                             };
 
+                            let before_delete_hook = match &spacetimedsl_table.hooks.before_delete {
+                                None => TokenStream::default(),
+                                Some(before_delete_hook) => {
+                                    let hook_trait_name = &before_delete_hook.trait_name;
+                                    let hook_function_name = &before_delete_hook.function_name;
+
+                                    quote! {
+                                        use self::#hook_trait_name;
+                                        for row_to_delete in &rows_to_delete {
+                                            spacetimedsl::DSLMethodHooks::#hook_function_name(&self.dsl(), &row_to_delete)?;
+                                        }
+                                    }
+                                }
+                            };
+
+                            let after_delete_hook = match &spacetimedsl_table.hooks.after_delete {
+                                None => TokenStream::default(),
+                                Some(after_delete_hook) => {
+                                    let hook_trait_name = &after_delete_hook.trait_name;
+                                    let hook_function_name = &after_delete_hook.function_name;
+
+                                    quote! {
+                                        use self::#hook_trait_name;
+                                        for row_to_delete in &rows_to_delete {
+                                            spacetimedsl::DSLMethodHooks::#hook_function_name(&self.dsl(), &row_to_delete)?;
+                                        }
+                                    }
+                                }
+                            };
+
                             let delete_many_impl = quote! {
-                                let count_of_rows_to_delete: u64 = primary_key_values_of_rows_to_delete
+                                let count_of_rows_to_delete: u64 = rows_to_delete
                                     .len()
                                     .try_into()
                                     .unwrap_or(u64::MAX);
@@ -1457,9 +1566,14 @@ pub(in crate::internal) fn for_method(
                                 method_impl = quote! {
                                     #impl_until_return_ok_on_is_empty
 
-                                    #map_primary_key_values_of_rows_to_delete_to_deletion_result_entries
+                                    #map_rows_to_delete_to_deletion_result_entries
+
+                                    #before_delete_hook
 
                                     #delete_many_impl
+
+                                    #after_delete_hook
+
                                     #return_result_impl
                                 };
                             } else {
@@ -1480,6 +1594,7 @@ pub(in crate::internal) fn for_method(
                                 let error_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
+                                        primary_key_column_name,
                                         OnDeleteStrategy::Error,
                                         OneOrMultiple::Multiple,
                                         &quote! {
@@ -1500,6 +1615,7 @@ pub(in crate::internal) fn for_method(
                                 let delete_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
+                                        primary_key_column_name,
                                         OnDeleteStrategy::Delete,
                                         OneOrMultiple::Multiple,
                                         &on_error_handler,
@@ -1509,6 +1625,7 @@ pub(in crate::internal) fn for_method(
                                 let set_none_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
+                                        primary_key_column_name,
                                         OnDeleteStrategy::SetNone,
                                         OneOrMultiple::Multiple,
                                         &on_error_handler,
@@ -1518,6 +1635,7 @@ pub(in crate::internal) fn for_method(
                                 let set_zero_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
+                                        primary_key_column_name,
                                         OnDeleteStrategy::SetZero,
                                         OneOrMultiple::Multiple,
                                         &on_error_handler,
@@ -1526,6 +1644,7 @@ pub(in crate::internal) fn for_method(
                                 let ignore_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
+                                        primary_key_column_name,
                                         OnDeleteStrategy::Ignore,
                                         OneOrMultiple::Multiple,
                                         &on_error_handler,
@@ -1534,11 +1653,15 @@ pub(in crate::internal) fn for_method(
                                 method_impl = quote! {
                                     #impl_until_return_ok_on_is_empty
 
-                                    #map_primary_key_values_of_rows_to_delete_to_deletion_result_entries
+                                    #map_rows_to_delete_to_deletion_result_entries
 
                                     #error_strategy
 
+                                    #before_delete_hook
+
                                     #delete_many_impl
+
+                                    #after_delete_hook
 
                                     #delete_strategy
 
@@ -1602,8 +1725,8 @@ pub(in crate::internal) fn for_method(
                             }
                         },
                         DSLMethod::DeleteOne(_) => {
-                            let get_primary_key_value_of_row_to_delete;
                             let get_row_to_delete;
+                            let return_error_on_is_none;
 
                             match is_multi_column_index {
                                 true => {
@@ -1624,15 +1747,15 @@ pub(in crate::internal) fn for_method(
                                         let row_to_delete = #field_name_for_found_value;
                                     };
 
-                                    get_primary_key_value_of_row_to_delete = quote! {
-                                        let primary_key_value_of_a_row_to_delete = match row_to_delete {
+                                    return_error_on_is_none = quote! {
+                                        let row_to_delete = match row_to_delete {
                                             None => return Err(
                                                 spacetimedsl::SpacetimeDSLError::NotFoundError {
                                                     table_name: #singular_table_name_as_string.into(),
                                                     column_names_and_row_values: format!(#column_names_and_row_values, #(#row_value_getters),*).into()
                                                 }
                                             ),
-                                            Some(row_to_delete) => row_to_delete.#primary_key_column_name,
+                                            Some(row_to_delete) => row_to_delete,
                                         };
                                     };
                                 }
@@ -1653,15 +1776,15 @@ pub(in crate::internal) fn for_method(
                                         }
                                     }
 
-                                    get_primary_key_value_of_row_to_delete = quote! {
-                                        let primary_key_value_of_a_row_to_delete = match row_to_delete {
+                                    return_error_on_is_none = quote! {
+                                        let row_to_delete = match row_to_delete {
                                             None => return Err(
                                                 spacetimedsl::SpacetimeDSLError::NotFoundError {
                                                     table_name: #singular_table_name_as_string.into(),
                                                     column_names_and_row_values: format!(#column_names_and_row_values, &#index_name).into()
                                                 }
                                             ),
-                                            Some(row_to_delete) => row_to_delete.#primary_key_column_name,
+                                            Some(row_to_delete) => row_to_delete,
                                         };
                                     };
                                 }
@@ -1674,7 +1797,7 @@ pub(in crate::internal) fn for_method(
 
                                 #get_row_to_delete
 
-                                #get_primary_key_value_of_row_to_delete
+                                #return_error_on_is_none
                             };
 
                             let wrapper_type_struct_name_or_path = match primary_key_column
@@ -1690,12 +1813,12 @@ pub(in crate::internal) fn for_method(
                                 }
                             };
 
-                            let map_primary_key_value_of_a_row_to_delete_to_deletion_result_entry = quote! {
+                            let map_row_to_delete_to_deletion_result_entry = quote! {
                                 let mut deletion_result_entry = spacetimedsl::DeletionResultEntry {
                                     table_name: #singular_table_name_as_string.into(),
                                     column_name: #primary_key_column_name_as_string.into(),
                                     strategy: spacetimedsl::OnDeleteStrategy::Delete,
-                                    row_value: format!("{}", #wrapper_type_struct_name_or_path::new(primary_key_value_of_a_row_to_delete.clone())).into(),
+                                    row_value: format!("{}", #wrapper_type_struct_name_or_path::new(row_to_delete.#primary_key_column_name.clone())).into(),
                                     child_entries: vec![],
                                 };
                             };
@@ -1706,7 +1829,7 @@ pub(in crate::internal) fn for_method(
                                         .db()
                                         .#singular_table_name()
                                         .#primary_key_column_name()
-                                        .delete(primary_key_value_of_a_row_to_delete) {
+                                        .delete(&row_to_delete.#primary_key_column_name) {
                                     false => {
                                         return Err(
                                             spacetimedsl::SpacetimeDSLError::Error(
@@ -1716,6 +1839,32 @@ pub(in crate::internal) fn for_method(
                                     },
                                     true => {},
                                 };
+                            };
+
+                            let before_delete_hook = match &spacetimedsl_table.hooks.before_delete {
+                                None => TokenStream::default(),
+                                Some(before_delete_hook) => {
+                                    let hook_trait_name = &before_delete_hook.trait_name;
+                                    let hook_function_name = &before_delete_hook.function_name;
+
+                                    quote! {
+                                        use self::#hook_trait_name;
+                                        spacetimedsl::DSLMethodHooks::#hook_function_name(&self.dsl(), &row_to_delete)?;
+                                    }
+                                }
+                            };
+
+                            let after_delete_hook = match &spacetimedsl_table.hooks.after_delete {
+                                None => TokenStream::default(),
+                                Some(after_delete_hook) => {
+                                    let hook_trait_name = &after_delete_hook.trait_name;
+                                    let hook_function_name = &after_delete_hook.function_name;
+
+                                    quote! {
+                                        use self::#hook_trait_name;
+                                        spacetimedsl::DSLMethodHooks::#hook_function_name(&self.dsl(), &row_to_delete)?;
+                                    }
+                                }
                             };
 
                             let return_result_impl = quote! {
@@ -1730,9 +1879,14 @@ pub(in crate::internal) fn for_method(
                                 method_impl = quote! {
                                     #impl_until_return_err_on_is_none
 
-                                    #map_primary_key_value_of_a_row_to_delete_to_deletion_result_entry
+                                    #map_row_to_delete_to_deletion_result_entry
+
+                                    #before_delete_hook
 
                                     #delete_one_impl
+
+                                    #after_delete_hook
+
                                     #return_result_impl
                                 };
                             } else {
@@ -1753,6 +1907,7 @@ pub(in crate::internal) fn for_method(
                                 let error_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
+                                        primary_key_column_name,
                                         OnDeleteStrategy::Error,
                                         OneOrMultiple::One,
                                         &quote! {
@@ -1773,6 +1928,7 @@ pub(in crate::internal) fn for_method(
                                 let delete_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
+                                        primary_key_column_name,
                                         OnDeleteStrategy::Delete,
                                         OneOrMultiple::One,
                                         &on_error_handler,
@@ -1791,6 +1947,7 @@ pub(in crate::internal) fn for_method(
                                 let set_zero_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
+                                        primary_key_column_name,
                                         OnDeleteStrategy::SetZero,
                                         OneOrMultiple::One,
                                         &on_error_handler,
@@ -1799,6 +1956,7 @@ pub(in crate::internal) fn for_method(
                                 let ignore_strategy =
                                     get_referenced_table_function_call_for_dsl_method(
                                         singular_table_name,
+                                        primary_key_column_name,
                                         OnDeleteStrategy::Ignore,
                                         OneOrMultiple::One,
                                         &on_error_handler,
@@ -1807,11 +1965,15 @@ pub(in crate::internal) fn for_method(
                                 method_impl = quote! {
                                     #impl_until_return_err_on_is_none
 
-                                    #map_primary_key_value_of_a_row_to_delete_to_deletion_result_entry
+                                    #map_row_to_delete_to_deletion_result_entry
 
                                     #error_strategy
 
+                                    #before_delete_hook
+
                                     #delete_one_impl
+
+                                    #after_delete_hook
 
                                     #delete_strategy
 
@@ -1850,6 +2012,7 @@ pub(in crate::internal) fn for_method(
 
 fn get_referenced_table_function_call_for_dsl_method(
     singular_table_name: &Ident,
+    primary_key_column_name: &Ident,
     on_delete_strategy: OnDeleteStrategy,
     one_or_multiple: OneOrMultiple,
     on_error_handler: &TokenStream,
@@ -1860,7 +2023,7 @@ fn get_referenced_table_function_call_for_dsl_method(
                 get_referenced_table_function_name(&OneOrMultiple::One, singular_table_name);
 
             quote! {
-                match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), #on_delete_strategy, &primary_key_value_of_a_row_to_delete) {
+                match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.dsl(), #on_delete_strategy, &row_to_delete.#primary_key_column_name) {
                     Err(mut child_entries) => {
                         deletion_result_entry.child_entries.append(&mut child_entries);
 
@@ -1877,7 +2040,7 @@ fn get_referenced_table_function_call_for_dsl_method(
                 get_referenced_table_function_name(&OneOrMultiple::Multiple, singular_table_name);
 
             quote! {
-                match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.ctx(), #on_delete_strategy, &primary_key_values_of_rows_to_delete[..]) {
+                match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(self.dsl(), #on_delete_strategy, &rows_to_delete.iter().map(|row| row.#primary_key_column_name).collect_vec()[..]) {
                     Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                         for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
                             deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries.")).child_entries.append(&mut child_entries);
@@ -2268,8 +2431,8 @@ fn for_referenced_by(
         SpacetimeDSLArg {
             is_mut: false,
             is_option: false,
-            arg_name: format_ident!("ctx"),
-            arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedb::ReducerContext }),
+            arg_name: format_ident!("dsl"),
+            arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedsl::DSL<'_> }),
         },
         SpacetimeDSLArg {
             is_mut: false,
@@ -2351,18 +2514,12 @@ fn for_referenced_by(
 
         let referencing_table_path = &referencing_table.path;
 
-        let compile_error_check = get_referenced_table_compile_error_check(
-            &referencing_table_name_pascal_case,
-            &singular_table_name_pascal_case,
-        );
+        let compile_error_check = get_referenced_table_compile_error_check(singular_table_name);
         spacetimedsl_table
             .compile_error_checks
             .insert(compile_error_check.clone());
 
-        let compile_error_check = get_referencing_table_compile_error_check(
-            &referencing_table_name_pascal_case,
-            &singular_table_name_pascal_case,
-        );
+        let compile_error_check = get_referencing_table_compile_error_check(referencing_table_name);
         compile_error_check_usages.push(quote! {
             use #referencing_table_path::#compile_error_check;
         });
@@ -2385,7 +2542,7 @@ fn for_referenced_by(
                     quote! {
                         use #referencing_table_path::#referencing_table_trait_name;
 
-                        match spacetimedsl::internal::DSLInternals::#referencing_table_function_name(ctx, &strategy, #arg_name) {
+                        match spacetimedsl::internal::DSLInternals::#referencing_table_function_name(dsl, &strategy, #arg_name) {
                             Err(mut child_entries) => {
                                 entries.append(&mut child_entries);
 
@@ -2401,7 +2558,7 @@ fn for_referenced_by(
                     quote! {
                         use #referencing_table_path::#referencing_table_trait_name;
 
-                        match spacetimedsl::internal::DSLInternals::#referencing_table_function_name(ctx, &strategy, #arg_name) {
+                        match spacetimedsl::internal::DSLInternals::#referencing_table_function_name(dsl, &strategy, #arg_name) {
                             Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
                                     entries.get_mut(&primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in entries.")).append(&mut child_entries);
@@ -2556,8 +2713,8 @@ fn for_foreign_key(
         SpacetimeDSLArg {
             is_mut: false,
             is_option: false,
-            arg_name: format_ident!("ctx"),
-            arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedb::ReducerContext }),
+            arg_name: format_ident!("dsl"),
+            arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedsl::DSL<'_> }),
         },
         SpacetimeDSLArg {
             is_mut: false,
@@ -2637,6 +2794,7 @@ fn for_foreign_key(
         strategy_implementations.insert(
             on_delete_strategy.clone(),
             get_on_delete_strategy_implementation(
+                spacetimedsl_table,
                 has_referenced_bys,
                 singular_table_name,
                 on_delete_strategy,
@@ -2658,19 +2816,13 @@ fn for_foreign_key(
         })
         .collect_vec();
 
-    let compile_error_check = get_referencing_table_compile_error_check(
-        &singular_table_name_pascal_case,
-        &referenced_table_name_pascal_case,
-    );
+    let compile_error_check = get_referencing_table_compile_error_check(singular_table_name);
 
     spacetimedsl_table
         .compile_error_checks
         .insert(compile_error_check.clone());
 
-    let compile_error_check = get_referenced_table_compile_error_check(
-        &singular_table_name_pascal_case,
-        &referenced_table_name_pascal_case,
-    );
+    let compile_error_check = get_referenced_table_compile_error_check(&referenced_table_name);
 
     let compile_error_check_usage = quote! {
         use #referenced_table_path::#compile_error_check;
@@ -2706,6 +2858,7 @@ fn for_foreign_key(
 }
 
 fn get_on_delete_strategy_implementation(
+    spacetimedsl_table: &SpacetimeDSLTable,
     has_referenced_bys: bool,
     singular_table_name: &Ident,
     on_delete_strategy: &OnDeleteStrategy,
@@ -2714,7 +2867,8 @@ fn get_on_delete_strategy_implementation(
     primary_key_column: &InternalColumn,
 ) -> TokenStream {
     let spacetimedb_call_prefix = quote! {
-        ctx
+        dsl
+            .ctx()
             .db()
             .#singular_table_name()
     };
@@ -2723,7 +2877,14 @@ fn get_on_delete_strategy_implementation(
 
     let singular_table_name_as_string = singular_table_name.to_string();
 
-    let mut strategy_before_all = TokenStream::default();
+    let strategy_before_all = quote! {
+        use spacetimedsl::DSLContext;
+    };
+    let mut strategy_for_before_hook = TokenStream::default();
+    let mut strategy_for_after_hook = TokenStream::default();
+
+    let mut strategy_for_referenced_by = TokenStream::default();
+
     let mut strategy_by_column = vec![];
     let mut strategy_after_all = TokenStream::default();
 
@@ -2801,6 +2962,46 @@ fn get_on_delete_strategy_implementation(
                 ));
             }
             OnDeleteStrategy::Delete => {
+                let before_delete_hook = match &spacetimedsl_table.hooks.before_delete {
+                    None => TokenStream::default(),
+                    Some(before_delete_hook) => {
+                        let hook_trait_name = &before_delete_hook.trait_name;
+                        let hook_function_name = &before_delete_hook.function_name;
+
+                        strategy_for_before_hook = quote! {
+                            use self::#hook_trait_name;
+                        };
+
+                        quote! {
+                            if spacetimedsl::DSLMethodHooks::#hook_function_name(&dsl, &row).is_err() {
+                                error = true;
+                                // FIXME: This results in the error supplied by the hook being ignored, we should propagate it back to the caller but that requires changing the function signature.
+                                break;
+                            }
+                        }
+                    }
+                };
+
+                let after_delete_hook = match &spacetimedsl_table.hooks.after_delete {
+                    None => TokenStream::default(),
+                    Some(after_delete_hook) => {
+                        let hook_trait_name = &after_delete_hook.trait_name;
+                        let hook_function_name = &after_delete_hook.function_name;
+
+                        strategy_for_after_hook = quote! {
+                            use self::#hook_trait_name;
+                        };
+
+                        quote! {
+                            if spacetimedsl::DSLMethodHooks::#hook_function_name(&dsl, &row).is_err() {
+                                error = true;
+                                // FIXME: This results in the error supplied by the hook being ignored, we should propagate it back to the caller but that requires changing the function signature.
+                                break;
+                            }
+                        }
+                    }
+                };
+
                 match has_referenced_bys {
                     false => strategy_by_column.push(strategy_by_row(
                         false,
@@ -2811,9 +3012,13 @@ fn get_on_delete_strategy_implementation(
                             let #primary_key_column_name = &row.#primary_key_column_name;
                             #create_entry_and_add_it_to_entries
 
+                            #before_delete_hook
+
                             #spacetimedb_call_prefix
                                 .#primary_key_column_name()
                                 .delete(row.#primary_key_column_name);
+
+                            #after_delete_hook
                         },
                     )),
                     true => {
@@ -2872,16 +3077,17 @@ fn get_on_delete_strategy_implementation(
                                 &on_error_handler,
                             );
 
-                        strategy_before_all = quote! {
+                        strategy_for_referenced_by = quote! {
                             let mut child_entries_by_primary_key_value_of_row_to_delete = std::collections::HashMap::new();
+                            let mut row_to_delete_by_primary_key_value = std::collections::HashMap::new();
                             let mut primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete = std::collections::HashMap::new();
                         };
 
                         match one_or_multiple {
-                            OneOrMultiple::One => strategy_before_all.append_all(quote! {
+                            OneOrMultiple::One => strategy_for_referenced_by.append_all(quote! {
                                 primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.insert(primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
                             }),
-                            OneOrMultiple::Multiple => strategy_before_all.append_all(quote! {
+                            OneOrMultiple::Multiple => strategy_for_referenced_by.append_all(quote! {
                                 for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
                                     primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.insert(primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
                                 }
@@ -2892,16 +3098,25 @@ fn get_on_delete_strategy_implementation(
                             if !child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.#primary_key_column_name) {
                                 primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).expect(&format!("{primary_key_value_of_a_row_of_another_table_to_delete} should exist in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.")).push(row.#primary_key_column_name);
                                 child_entries_by_primary_key_value_of_row_to_delete.insert(row.#primary_key_column_name, vec![]);
+                            row_to_delete_by_primary_key_value.insert(row.#primary_key_column_name, row);
                             }
                         };
 
                         let delete_many_impl = quote! {
                             for #primary_key_column_name in &primary_key_values_of_rows_to_delete {
+                                let row = row_to_delete_by_primary_key_value
+                                    .get(#primary_key_column_name)
+                                    .expect("Should exist");
+
+                                #before_delete_hook
+
                                 if !#spacetimedb_call_prefix
                                     .#primary_key_column_name()
                                     .delete(#primary_key_column_name) {
                                         #on_error_handler
                                     }
+
+                                #after_delete_hook
                             }
                         };
 
@@ -2967,6 +3182,9 @@ fn get_on_delete_strategy_implementation(
     match one_or_multiple {
         OneOrMultiple::One => quote! {
             #strategy_before_all
+            #strategy_for_before_hook
+            #strategy_for_after_hook
+            #strategy_for_referenced_by
 
             #(#strategy_by_column)*
 
@@ -2974,6 +3192,9 @@ fn get_on_delete_strategy_implementation(
         },
         OneOrMultiple::Multiple => quote! {
             #strategy_before_all
+            #strategy_for_before_hook
+            #strategy_for_after_hook
+            #strategy_for_referenced_by
 
             for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
                 #(#strategy_by_column)*
@@ -3025,7 +3246,7 @@ fn get_referenced_table_function_call_for_strategy_implementation(
         get_referenced_table_function_name(&OneOrMultiple::Multiple, singular_table_name);
 
     quote! {
-        match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(ctx, #on_delete_strategy, &primary_key_values_of_rows_to_delete[..]) {
+        match spacetimedsl::internal::DSLInternals::#referenced_table_function_name(dsl, #on_delete_strategy, &primary_key_values_of_rows_to_delete[..]) {
             Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
                     child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in child_entries_by_primary_key_value_of_row_to_delete.")).append(&mut child_entries);
@@ -3042,21 +3263,15 @@ fn get_referenced_table_function_call_for_strategy_implementation(
     }
 }
 
-fn get_referenced_table_compile_error_check(
-    referencing_table_name_pascal_case: &Ident,
-    referenced_table_name_pascal_case: &Ident,
-) -> Ident {
+fn get_referenced_table_compile_error_check(referenced_table_name: &Ident) -> Ident {
     format_ident!(
-        "ReferencedByAttributeIsMissingOnTable{referenced_table_name_pascal_case}BecauseOfForeignKeyOnTable{referencing_table_name_pascal_case}"
+        "this_compilation_error_occurs_because_the_{referenced_table_name}_table_has_no_referenced_by_attribute_referencing_this_table"
     )
 }
 
-fn get_referencing_table_compile_error_check(
-    referencing_table_name_pascal_case: &Ident,
-    referenced_table_name_pascal_case: &Ident,
-) -> Ident {
+fn get_referencing_table_compile_error_check(referencing_table_name: &Ident) -> Ident {
     format_ident!(
-        "ForeignKeyAttributeIsMissingOnTable{referencing_table_name_pascal_case}BecauseOfReferencedByOnTable{referenced_table_name_pascal_case}"
+        "this_compilation_error_occurs_because_the_{referencing_table_name}_table_has_no_foreign_key_attribute_referencing_this_table"
     )
 }
 

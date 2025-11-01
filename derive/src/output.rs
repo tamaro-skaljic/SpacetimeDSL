@@ -2,12 +2,13 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use spacetimedsl_derive_input::api::{
     Table,
-    dsl::{column::SpacetimeDSLColumnMethods, wrapper::WrapperType},
+    dsl::{column::SpacetimeDSLColumnMethods, method::SpacetimeDSLArg, wrapper::WrapperType},
 };
 
 mod accessor;
 mod create_method_arg;
 mod function;
+mod hook;
 
 pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<TokenStream> {
     let struct_name = format_ident!("{}", &input.rust_struct.name.to_string());
@@ -93,6 +94,15 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
         None => TokenStream::default(),
     };
 
+    let hooks = vec![
+        hook::build(&input.spacetimedsl_table.hooks.before_insert)?,
+        hook::build(&input.spacetimedsl_table.hooks.before_update)?,
+        hook::build(&input.spacetimedsl_table.hooks.before_delete)?,
+        hook::build(&input.spacetimedsl_table.hooks.after_insert)?,
+        hook::build(&input.spacetimedsl_table.hooks.after_update)?,
+        hook::build(&input.spacetimedsl_table.hooks.after_delete)?,
+    ];
+
     Ok(quote! {
         #(#compile_error_checks)*
 
@@ -103,6 +113,8 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
         }
 
         #create_dsl_method_arg
+
+        #(#hooks)*
 
         #(#dsl_methods)*
     })
@@ -139,4 +151,53 @@ fn get_column_dsl_methods(methods: &SpacetimeDSLColumnMethods) -> syn::Result<To
     Ok(quote! {
         #(#token_streams)*
     })
+}
+
+pub fn malformed_code_generation_result(result: String) -> String {
+    let mut result = result.replace("\n", " ");
+
+    while result.contains("  ") {
+        result = result.replace("  ", " ");
+    }
+
+    format!("
+
+Congratulations, you have found a bug in SpacetimeDSL!
+
+We would be very pleased if you can create an issue in our GitHub repository: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/new
+
+Please include your table definition as well as the following, malformed, code generation result - thank you very much!
+
+{result}
+
+")
+}
+
+fn map_args(args: &Vec<SpacetimeDSLArg>) -> Vec<TokenStream> {
+    let mut function_args = vec![];
+
+    for arg in args {
+        let arg_name = &arg.arg_name;
+        let arg_type = match &arg.arg_type {
+            spacetimedsl_derive_input::api::dsl::method::SpacetimeDSLArgType::Normal(
+                actual_type,
+            ) => actual_type,
+            spacetimedsl_derive_input::api::dsl::method::SpacetimeDSLArgType::Wrapped {
+                wrapped_type: _,
+                actual_type,
+            } => actual_type,
+        };
+
+        if arg.is_mut {
+            function_args.push(quote! {
+                mut #arg_name: #arg_type
+            });
+        } else {
+            function_args.push(quote! {
+                #arg_name: #arg_type
+            });
+        }
+    }
+
+    function_args
 }

@@ -1,5 +1,7 @@
 pub mod table;
 
+pub mod hook;
+
 pub mod column;
 
 pub mod wrapper;

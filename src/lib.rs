@@ -1,6 +1,6 @@
 pub use itertools;
 use spacetimedb::ReducerContext;
-pub use spacetimedsl_derive::{SpacetimeDSL, dsl};
+pub use spacetimedsl_derive::{SpacetimeDSL, dsl, hook};
 use std::{
     error::Error,
     fmt::{self, Display},
@@ -10,15 +10,23 @@ pub struct DSL<'a> {
     pub(crate) ctx: &'a ReducerContext,
 }
 
+pub struct DSLMethodHooks {}
+
 pub fn dsl<'a>(ctx: &'a ReducerContext) -> DSL<'a> {
     DSL { ctx }
 }
 
 pub trait DSLContext {
+    fn dsl(&self) -> &DSL<'_>;
+
     fn ctx(&self) -> &ReducerContext;
 }
 
 impl DSLContext for DSL<'_> {
+    fn dsl(&self) -> &DSL<'_> {
+        self
+    }
+
     fn ctx(&self) -> &ReducerContext {
         self.ctx
     }

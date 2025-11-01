@@ -4,6 +4,8 @@ use rust_format::{Formatter, PrettyPlease};
 use spacetimedsl_derive_input::api::dsl::{getter::Getter, setter::Setter};
 use syn::{Ident, Visibility, parse_str, token};
 
+use crate::output::malformed_code_generation_result;
+
 pub fn getter(getter: &Getter) -> syn::Result<TokenStream> {
     let method_name = &getter.method_name;
     let return_type = &getter.return_type;
@@ -65,7 +67,12 @@ fn add_impl_doc(
 
     let implementation_docs = pretty_please
         .format_tokens(implementation_docs.clone())
-        .unwrap_or_else(|_| panic!("implementation doc formatting should work - got:\n\n```no_run\n{implementation_docs}\n```"));
+        .unwrap_or_else(|_| {
+            panic!(
+                "{}",
+                malformed_code_generation_result(implementation_docs.to_string())
+            )
+        });
 
     let doc_comment = format!("\n\nImplementation:\n\n```no_run\n{implementation_docs}\n```",);
 

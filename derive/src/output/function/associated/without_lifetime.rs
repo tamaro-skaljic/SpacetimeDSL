@@ -12,7 +12,7 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     let paths_of_traits_to_extend = &method.paths_of_traits_to_extend;
     let method_name = &method.method_name;
 
-    let method_args = crate::output::function::map_method_args(method);
+    let method_args = crate::output::map_args(&method.method_args);
 
     let return_type = &method.return_type;
     let method_impl = &method.method_impl;
