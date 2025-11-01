@@ -1286,7 +1286,7 @@ pub mod hook_test {
         #[unique]
         value: String,
 
-        created_at: Timestamp
+        created_at: Timestamp,
     }
 
     impl BeforePotionInsertHook for spacetimedsl::DSLMethodHooks {
