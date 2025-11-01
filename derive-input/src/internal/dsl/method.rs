@@ -3079,6 +3079,7 @@ fn get_on_delete_strategy_implementation(
 
                         strategy_for_referenced_by = quote! {
                             let mut child_entries_by_primary_key_value_of_row_to_delete = std::collections::HashMap::new();
+                            let mut row_to_delete_by_primary_key_value = std::collections::HashMap::new();
                             let mut primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete = std::collections::HashMap::new();
                         };
 
@@ -3097,11 +3098,16 @@ fn get_on_delete_strategy_implementation(
                             if !child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.#primary_key_column_name) {
                                 primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).expect(&format!("{primary_key_value_of_a_row_of_another_table_to_delete} should exist in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.")).push(row.#primary_key_column_name);
                                 child_entries_by_primary_key_value_of_row_to_delete.insert(row.#primary_key_column_name, vec![]);
+                            row_to_delete_by_primary_key_value.insert(row.#primary_key_column_name, row);
                             }
                         };
 
                         let delete_many_impl = quote! {
                             for #primary_key_column_name in &primary_key_values_of_rows_to_delete {
+                                let row = row_to_delete_by_primary_key_value
+                                    .get(#primary_key_column_name)
+                                    .expect("Should exist");
+
                                 #before_delete_hook
 
                                 if !#spacetimedb_call_prefix
