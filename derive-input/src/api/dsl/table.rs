@@ -14,8 +14,8 @@ use crate::api::dsl::{
 pub struct SpacetimeDSLTable {
     pub plural_name: Ident,
     pub is_mutable: bool,
-    pub has_created_at_column: bool,
-    pub has_modified_at_column: bool,
+    pub on_insert_set_current_timestamp_column_name: Option<Ident>,
+    pub on_update_set_current_timestamp_column_name: Option<Ident>,
     pub referencing_tables: Vec<ReferencingTable>,
     pub compile_error_checks: HashSet<Ident>,
     pub create_dsl_method_arg: Option<CreateDSLMethodArg>,

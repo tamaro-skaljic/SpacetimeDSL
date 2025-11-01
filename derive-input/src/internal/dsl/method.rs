@@ -396,6 +396,7 @@ impl SpacetimeDSLTableMethods {
 }
 
 fn process_columns_for_create_and_update_method(
+    spacetimedsl_table: &SpacetimeDSLTable,
     create_or_update: CreateOrUpdate,
     internal_column: &InternalColumn,
 ) -> (
@@ -421,18 +422,16 @@ fn process_columns_for_create_and_update_method(
                 constructor_arg = Some(quote! {
                     let #column_name = #column_type::default();
                 });
-            } else if internal_column
-                .rust_field_name
-                .to_string()
-                .eq(&"created_at")
+            } else if let Some(column_name) =
+                &spacetimedsl_table.on_insert_set_current_timestamp_column_name
+                && { internal_column.rust_field_name.eq(column_name) }
             {
                 constructor_arg = Some(quote! {
-                    let created_at = self.ctx().timestamp;
+                    let #column_name = self.ctx().timestamp;
                 });
-            } else if internal_column
-                .rust_field_name
-                .to_string()
-                .eq(&"modified_at")
+            } else if let Some(column_name) =
+                &spacetimedsl_table.on_update_set_current_timestamp_column_name
+                && { internal_column.rust_field_name.eq(column_name) }
             {
                 let column_type_str = internal_column
                     .rust_field_type_name_or_path
@@ -444,7 +443,7 @@ fn process_columns_for_create_and_update_method(
                     quote! { self.ctx().timestamp }
                 };
                 constructor_arg = Some(quote! {
-                    let modified_at = #timestamp_value;
+                    let #column_name = #timestamp_value;
                 });
             }
 
@@ -660,6 +659,7 @@ pub(in crate::internal) fn for_method(
                     constructor_arg,
                     constructor_arg_name,
                 ) = process_columns_for_create_and_update_method(
+                    spacetimedsl_table,
                     CreateOrUpdate::Create,
                     internal_column,
                 );
@@ -1071,6 +1071,7 @@ pub(in crate::internal) fn for_method(
                         .for_each(|internal_column| {
                             let (_, _, column_getter, _) =
                                 process_columns_for_create_and_update_method(
+                                    spacetimedsl_table,
                                     CreateOrUpdate::Update,
                                     internal_column,
                                 );
@@ -1079,15 +1080,19 @@ pub(in crate::internal) fn for_method(
                             };
                         });
 
-                    let modified_at = match spacetimedsl_table.has_modified_at_column {
-                        false => TokenStream::default(),
-                        true => {
-                            let modified_at_column = internal_columns
+                    let on_update_set_current_timestamp = match &spacetimedsl_table
+                        .on_update_set_current_timestamp_column_name
+                    {
+                        None => TokenStream::default(),
+                        Some(column_name) => {
+                            let on_update_set_current_timestamp_column = internal_columns
                                 .iter()
-                                .find(|c| c.rust_field_name.to_string().eq("modified_at"))
-                                .expect("modified_at column should exist in internal columns");
+                                .find(|c| c.rust_field_name.eq(column_name))
+                                .unwrap_or_else(|| {
+                                    panic!("{column_name} column should exist in internal columns")
+                                });
 
-                            let column_type_str = modified_at_column
+                            let column_type_str = on_update_set_current_timestamp_column
                                 .rust_field_type_name_or_path
                                 .to_token_stream()
                                 .to_string();
@@ -1099,7 +1104,7 @@ pub(in crate::internal) fn for_method(
                             };
 
                             quote! {
-                                #singular_table_name.modified_at = #timestamp_value;
+                                #singular_table_name.#column_name = #timestamp_value;
                             }
                         }
                     };
@@ -1198,7 +1203,7 @@ pub(in crate::internal) fn for_method(
                         #(#row_value_getters)*
                         #(#reference_integrity_checks)*
 
-                        #modified_at
+                        #on_update_set_current_timestamp
 
                         #before_update_hook
 
