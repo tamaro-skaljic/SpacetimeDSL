@@ -110,7 +110,7 @@ impl SpacetimeDSLTable {
                     }
                     syn::Visibility::Inherited => {
                         on_insert_set_current_timestamp_column_name =
-                            Some(format_ident!("{column_name}"));
+                            Some(column_name.clone());
                     }
                 }
             }
