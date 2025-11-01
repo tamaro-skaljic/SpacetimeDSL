@@ -1829,7 +1829,7 @@ pub(in crate::internal) fn for_method(
                                         .db()
                                         .#singular_table_name()
                                         .#primary_key_column_name()
-                                        .delete(&row_to_delete.#primary_key_column_name) { // FIXME: Maybe clone instead of reference
+                                        .delete(&row_to_delete.#primary_key_column_name) {
                                     false => {
                                         return Err(
                                             spacetimedsl::SpacetimeDSLError::Error(
@@ -3087,8 +3087,6 @@ fn get_on_delete_strategy_implementation(
                                 }
                             }),
                         };
-
-                        // FIXME: Instead of extracting all primary keys and iterating over them in the delete_many_impl, we need to save all rows in the vec and in delete_many_impl we need to call the before_delete and after_delete hook for each
 
                         let strategy_for_each_row = quote! {
                             if !child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.#primary_key_column_name) {
