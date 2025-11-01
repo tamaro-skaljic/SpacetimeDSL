@@ -156,7 +156,7 @@ fn get_column_dsl_methods(methods: &SpacetimeDSLColumnMethods) -> syn::Result<To
 pub fn malformed_code_generation_result(result: String) -> String {
     let mut result = result.replace("\n", "");
 
-    for _ in 0..20 {
+    while result.contains("  ") {
         result = result.replace("  ", " ");
     }
 
