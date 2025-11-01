@@ -618,7 +618,6 @@ pub(in crate::internal) fn for_method(
 
     let primary_key_column_name = &primary_key_column.rust_field_name;
     let primary_key_column_name_as_string = &primary_key_column.rust_field_name.to_string();
-    let primary_key_column_type = &primary_key_column.rust_field_type_name_or_path;
 
     let one = OneOrMultiple::One;
     let multiple = OneOrMultiple::Multiple;
@@ -2969,7 +2968,11 @@ fn get_on_delete_strategy_implementation(
                         });
 
                         quote! {
-                            spacetimedsl::DSLMethodHooks::#hook_function_name(&dsl, &row)?;
+                            if spacetimedsl::DSLMethodHooks::#hook_function_name(&dsl, &row).is_err() {
+                                error = true;
+                                // FIXME: This results in the error supplied by the hook being ignored, we should propagate it back to the caller but that requires changing the function signature.
+                                break;
+                            }
                         }
                     }
                 };
@@ -2985,7 +2988,11 @@ fn get_on_delete_strategy_implementation(
                         });
 
                         quote! {
-                            spacetimedsl::DSLMethodHooks::#hook_function_name(&dsl, &row)?;
+                            if spacetimedsl::DSLMethodHooks::#hook_function_name(&dsl, &row).is_err() {
+                                error = true;
+                                // FIXME: This results in the error supplied by the hook being ignored, we should propagate it back to the caller but that requires changing the function signature.
+                                break;
+                            }
                         }
                     }
                 };
@@ -3099,7 +3106,7 @@ fn get_on_delete_strategy_implementation(
                                     .delete(#primary_key_column_name) {
                                         #on_error_handler
                                     }
-                                
+
                                 #after_delete_hook
                             }
                         };
