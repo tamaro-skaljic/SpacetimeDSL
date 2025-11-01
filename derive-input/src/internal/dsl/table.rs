@@ -26,7 +26,7 @@ impl SpacetimeDSLTable {
             }
         }
 
-        let hooks = super::hook::build(
+        let hooks = super::hooks::build(
             &spacetimedb_table.singular_name,
             dsl_data.before_insert_hook,
             dsl_data.before_update_hook,

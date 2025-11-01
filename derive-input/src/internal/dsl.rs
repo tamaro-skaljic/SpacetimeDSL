@@ -2,7 +2,7 @@ use spacetime_bindings_macro_input::{sym::Symbol, symbol};
 
 pub mod table;
 
-pub mod hook;
+pub mod hooks;
 
 pub mod column;
 
