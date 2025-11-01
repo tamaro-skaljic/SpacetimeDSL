@@ -2,7 +2,12 @@ pub mod entity {
     use spacetimedb::Timestamp;
 
     /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
-    #[spacetimedsl::dsl(plural_name = entities)]
+    #[spacetimedsl::dsl(
+        plural_name = entities,
+        method(
+            update = true,
+        )
+    )]
     #[spacetimedb::table(name = entity, public)]
     pub struct Entity {
         /// The unique ID of the Entity.
@@ -20,6 +25,7 @@ pub mod entity {
         obj_id: u128,
 
         created_at: Timestamp,
+        modified_at: Option<Timestamp>,
     }
 
     #[spacetimedsl::dsl(
@@ -1106,6 +1112,8 @@ pub mod test {
 
 // FIXME: Needs one test with multi column index check and/or foreign key check, one without
 pub mod hook_test {
+    use spacetimedb::Timestamp;
+
     #[spacetimedsl::dsl(
         plural_name = attributes,
         hook(
@@ -1262,7 +1270,12 @@ pub mod hook_test {
         }
     }
 
-    #[spacetimedsl::dsl(plural_name = hook_calls)]
+    #[spacetimedsl::dsl(
+        plural_name = hook_calls,
+        method(
+            delete = false,
+        ),
+    )]
     #[spacetimedb::table(name = hook_call, public)]
     pub struct HookCall {
         #[primary_key]
@@ -1272,6 +1285,8 @@ pub mod hook_test {
 
         #[unique]
         value: String,
+
+        created_at: Timestamp
     }
 
     impl BeforePotionInsertHook for spacetimedsl::DSLMethodHooks {

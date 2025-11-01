@@ -1,5 +1,5 @@
 use crate::internal::dsl::{
-    after, before, delete, hook, insert, plural_name, unique_index, update,
+    after, before, delete, hook, insert, method, plural_name, unique_index, update,
 };
 use spacetime_bindings_macro_input::{match_meta, sym, util::check_duplicate};
 use syn::{
@@ -51,6 +51,10 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     let mut after_insert_hook = None;
     let mut after_update_hook = None;
     let mut after_delete_hook = None;
+
+    let mut methods = None;
+    let mut update_method = None;
+    let mut delete_method = None;
 
     parser(|meta| {
         match_meta!(match meta {
@@ -109,6 +113,24 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
                                 });
                                 Ok(())
                             })?;
+                        }
+                    });
+                    Ok(())
+                })?;
+            }
+            method => {
+                check_duplicate(&methods, &meta)?;
+                methods = Some(());
+
+                meta.parse_nested_meta(|meta| {
+                    match_meta!(match meta {
+                        update => {
+                            check_duplicate(&update_method, &meta)?;
+                            update_method = Some(meta.value()?.parse::<syn::LitBool>()?.value);
+                        }
+                        delete => {
+                            check_duplicate(&delete_method, &meta)?;
+                            delete_method = Some(meta.value()?.parse::<syn::LitBool>()?.value);
                         }
                     });
                     Ok(())
