@@ -8,11 +8,13 @@ use crate::output::malformed_code_generation_result;
 
 pub fn getter(getter: &Getter) -> syn::Result<TokenStream> {
     let method_name = &getter.method_name;
+    let self_token = quote! { &self };
     let return_type = &getter.return_type;
     let method_impl = &getter.method_impl;
     let doc_comment = add_impl_doc(
         &Visibility::Public(token::Pub::default()),
         method_name,
+        &self_token,
         &TokenStream::default(),
         return_type,
         method_impl,
@@ -20,7 +22,7 @@ pub fn getter(getter: &Getter) -> syn::Result<TokenStream> {
 
     Ok(quote! {
         #[doc=#doc_comment]
-        pub fn #method_name(&self) -> #return_type {
+        pub fn #method_name(#self_token) -> #return_type {
             use spacetimedsl::Wrapper;
             #method_impl
         }
@@ -30,12 +32,14 @@ pub fn getter(getter: &Getter) -> syn::Result<TokenStream> {
 pub fn setter(setter: &Setter) -> syn::Result<TokenStream> {
     let method_visibility: Visibility = parse_str(&setter.method_visibility.to_string())?;
     let method_name = &setter.method_name;
+    let self_token = quote! { &mut self };
     let method_arg = &setter.method_arg;
     let return_type = &setter.return_type;
     let method_impl = &setter.method_impl;
     let doc_comment = add_impl_doc(
         &method_visibility,
         method_name,
+        &self_token,
         method_arg,
         return_type,
         method_impl,
@@ -43,7 +47,7 @@ pub fn setter(setter: &Setter) -> syn::Result<TokenStream> {
 
     Ok(quote! {
         #[doc=#doc_comment]
-        #method_visibility fn #method_name(&mut self, #method_arg) -> #return_type {
+        #method_visibility fn #method_name(#self_token, #method_arg) -> #return_type {
             use spacetimedsl::Wrapper;
             #method_impl
         }
@@ -53,13 +57,14 @@ pub fn setter(setter: &Setter) -> syn::Result<TokenStream> {
 fn add_impl_doc(
     method_visibility: &Visibility,
     method_name: &Ident,
+    self_token: &TokenStream,
     method_arg: &TokenStream,
     return_type: &TokenStream,
     method_impl: &TokenStream,
 ) -> String {
     let pretty_please = PrettyPlease::default();
     let implementation_docs = quote! {
-        #method_visibility fn #method_name(&mut self, #method_arg) -> #return_type {
+        #method_visibility fn #method_name(#self_token, #method_arg) -> #return_type {
             use spacetimedsl::Wrapper;
             #method_impl
         }
