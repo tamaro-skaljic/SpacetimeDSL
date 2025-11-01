@@ -2877,9 +2877,14 @@ fn get_on_delete_strategy_implementation(
 
     let singular_table_name_as_string = singular_table_name.to_string();
 
-    let mut strategy_before_all = quote! {
+    let strategy_before_all = quote! {
         use spacetimedsl::DSLContext;
     };
+    let mut strategy_for_before_hook = TokenStream::default();
+    let mut strategy_for_after_hook = TokenStream::default();
+
+    let mut strategy_for_referenced_by = TokenStream::default();
+
     let mut strategy_by_column = vec![];
     let mut strategy_after_all = TokenStream::default();
 
@@ -2963,9 +2968,9 @@ fn get_on_delete_strategy_implementation(
                         let hook_trait_name = &before_delete_hook.trait_name;
                         let hook_function_name = &before_delete_hook.function_name;
 
-                        strategy_before_all.append_all(quote! {
+                        strategy_for_before_hook = quote! {
                             use self::#hook_trait_name;
-                        });
+                        };
 
                         quote! {
                             if spacetimedsl::DSLMethodHooks::#hook_function_name(&dsl, &row).is_err() {
@@ -2983,9 +2988,9 @@ fn get_on_delete_strategy_implementation(
                         let hook_trait_name = &after_delete_hook.trait_name;
                         let hook_function_name = &after_delete_hook.function_name;
 
-                        strategy_before_all.append_all(quote! {
+                        strategy_for_after_hook = quote! {
                             use self::#hook_trait_name;
-                        });
+                        };
 
                         quote! {
                             if spacetimedsl::DSLMethodHooks::#hook_function_name(&dsl, &row).is_err() {
@@ -3072,16 +3077,16 @@ fn get_on_delete_strategy_implementation(
                                 &on_error_handler,
                             );
 
-                        strategy_before_all.append_all(quote! {
+                        strategy_for_referenced_by = quote! {
                             let mut child_entries_by_primary_key_value_of_row_to_delete = std::collections::HashMap::new();
                             let mut primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete = std::collections::HashMap::new();
-                        });
+                        };
 
                         match one_or_multiple {
-                            OneOrMultiple::One => strategy_before_all.append_all(quote! {
+                            OneOrMultiple::One => strategy_for_referenced_by.append_all(quote! {
                                 primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.insert(primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
                             }),
-                            OneOrMultiple::Multiple => strategy_before_all.append_all(quote! {
+                            OneOrMultiple::Multiple => strategy_for_referenced_by.append_all(quote! {
                                 for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
                                     primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.insert(primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
                                 }
@@ -3171,6 +3176,9 @@ fn get_on_delete_strategy_implementation(
     match one_or_multiple {
         OneOrMultiple::One => quote! {
             #strategy_before_all
+            #strategy_for_before_hook
+            #strategy_for_after_hook
+            #strategy_for_referenced_by
 
             #(#strategy_by_column)*
 
@@ -3178,6 +3186,9 @@ fn get_on_delete_strategy_implementation(
         },
         OneOrMultiple::Multiple => quote! {
             #strategy_before_all
+            #strategy_for_before_hook
+            #strategy_for_after_hook
+            #strategy_for_referenced_by
 
             for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
                 #(#strategy_by_column)*
