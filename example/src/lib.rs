@@ -381,7 +381,6 @@ pub mod component {
         }
     }
 
-    // FIXME: Needs one test with multi column index check and/or foreign key check, one without
     pub mod hook_test {
         use spacetimedb::Timestamp;
 
@@ -477,6 +476,40 @@ pub mod component {
             #[use_wrapper(PotionId)]
             #[foreign_key(path = self, table = potion, column = id, on_delete = Delete)]
             potion_id: u128,
+        }
+
+        #[spacetimedsl::dsl(
+            plural_name = multi_column_index_with_hook_tests,
+            hook(
+                before(
+                    insert,
+                    update,
+                    delete,
+                ),
+                after(
+                    insert,
+                    update,
+                    delete,
+                ),
+            ),
+        )]
+        #[spacetimedb::table(
+            name = multi_column_index_with_hook_test,
+            index(
+                name = value_1_and_2,
+                btree(columns = [value_1, value_2])
+            ),
+            public
+        )]
+        pub struct MultiColumnIndexWithHookTest {
+            #[primary_key]
+            #[auto_inc]
+            #[create_wrapper]
+            id: u128,
+
+            pub value_1: bool,
+
+            pub value_2: bool,
         }
 
         #[spacetimedsl::dsl(
@@ -756,6 +789,80 @@ pub mod component {
 
             Ok(())
         }
+
+        #[spacetimedsl::hook]
+        fn before_multi_column_index_with_hook_test_insert(
+            dsl: &spacetimedsl::DSL,
+            create_multi_column_index_with_hook_test_request: CreateMultiColumnIndexWithHookTest,
+        ) -> Result<CreateMultiColumnIndexWithHookTest, spacetimedsl::SpacetimeDSLError> {
+            dsl.create_hook_call(CreateHookCall {
+                value: "BEFORE_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_INSERT".to_string(),
+            })?;
+
+            Ok(create_multi_column_index_with_hook_test_request)
+        }
+
+        #[spacetimedsl::hook]
+        fn after_multi_column_index_with_hook_test_insert(
+            dsl: &spacetimedsl::DSL,
+            _new_multi_column_index_with_hook_test: &MultiColumnIndexWithHookTest,
+        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+            dsl.create_hook_call(CreateHookCall {
+                value: "AFTER_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_INSERT".to_string(),
+            })?;
+
+            Ok(())
+        }
+
+        #[spacetimedsl::hook]
+        fn before_multi_column_index_with_hook_test_update(
+            dsl: &spacetimedsl::DSL,
+            _old_multi_column_index_with_hook_test: &MultiColumnIndexWithHookTest,
+            new_multi_column_index_with_hook_test: MultiColumnIndexWithHookTest,
+        ) -> Result<MultiColumnIndexWithHookTest, spacetimedsl::SpacetimeDSLError> {
+            dsl.create_hook_call(CreateHookCall {
+                value: "BEFORE_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_UPDATE".to_string(),
+            })?;
+
+            Ok(new_multi_column_index_with_hook_test)
+        }
+
+        #[spacetimedsl::hook]
+        fn after_multi_column_index_with_hook_test_update(
+            dsl: &spacetimedsl::DSL,
+            _old_multi_column_index_with_hook_test: &MultiColumnIndexWithHookTest,
+            _new_multi_column_index_with_hook_test: &MultiColumnIndexWithHookTest,
+        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+            dsl.create_hook_call(CreateHookCall {
+                value: "AFTER_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_UPDATE".to_string(),
+            })?;
+
+            Ok(())
+        }
+
+        #[spacetimedsl::hook]
+        fn before_multi_column_index_with_hook_test_delete(
+            dsl: &spacetimedsl::DSL,
+            _old_multi_column_index_with_hook_test: &MultiColumnIndexWithHookTest,
+        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+            dsl.create_hook_call(CreateHookCall {
+                value: "BEFORE_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_DELETE".to_string(),
+            })?;
+
+            Ok(())
+        }
+
+        #[spacetimedsl::hook]
+        fn after_multi_column_index_with_hook_test_delete(
+            dsl: &spacetimedsl::DSL,
+            _old_multi_column_index_with_hook_test: &MultiColumnIndexWithHookTest,
+        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+            dsl.create_hook_call(CreateHookCall {
+                value: "AFTER_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_DELETE".to_string(),
+            })?;
+
+            Ok(())
+        }
     }
 }
 
@@ -763,9 +870,11 @@ pub mod test {
     use crate::{
         component::{
             hook_test::{
-                CountOfAllPotionRows, CreateAttribute, CreateAttributeRow, DeleteAttributeRowById,
+                CountOfAllPotionRows, CreateAttribute, CreateAttributeRow,
+                CreateMultiColumnIndexWithHookTest, CreateMultiColumnIndexWithHookTestRow,
+                DeleteAttributeRowById, DeleteMultiColumnIndexWithHookTestRowById,
                 GetAllHookCallRows, GetPotionRowOptionById, GetPotionRowOptionByValue,
-                UpdateAttributeRowById,
+                UpdateAttributeRowById, UpdateMultiColumnIndexWithHookTestRowById,
             },
             identifier::{
                 CountOfAllIdentifierRows, CreateIdentifier, CreateIdentifierRow,
@@ -1403,7 +1512,6 @@ pub mod test {
             ));
         };
 
-        // FIXME: Add test where two foreign keys match the same primary key - is it tried to delete the same row two times and therefore it fails?
         // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32Add test for SetNone strategy if it's implemented
 
         // This would produce a compilation error if the column order in unique multi column indices differ from the order in the table
@@ -1452,6 +1560,20 @@ pub mod test {
             return Err("There should be 0 potions because the attribute was deleted and the potion should be deleted in the after delete hook of the attribute table.".to_string());
         }
 
+        let mut multi_column_index_with_hook_test =
+            dsl.create_multi_column_index_with_hook_test(CreateMultiColumnIndexWithHookTest {
+                value_1: false,
+                value_2: false,
+            })?;
+
+        multi_column_index_with_hook_test.set_value_1(true);
+        multi_column_index_with_hook_test.set_value_2(true);
+
+        multi_column_index_with_hook_test =
+            dsl.update_multi_column_index_with_hook_test_by_id(multi_column_index_with_hook_test)?;
+
+        dsl.delete_multi_column_index_with_hook_test_by_id(&multi_column_index_with_hook_test)?;
+
         let hook_calls: Vec<_> = dsl
             .get_all_hook_calls()
             .map(|hc| hc.value().to_string())
@@ -1478,6 +1600,12 @@ pub mod test {
             "AFTER_RECIPE_DELETE",
             "BEFORE_RECIPE_DELETE",
             "AFTER_RECIPE_DELETE",
+            "BEFORE_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_INSERT",
+            "AFTER_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_INSERT",
+            "BEFORE_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_UPDATE",
+            "AFTER_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_UPDATE",
+            "BEFORE_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_DELETE",
+            "AFTER_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_DELETE",
         ];
 
         if hook_calls.ne(&expected_hook_call_values) {
