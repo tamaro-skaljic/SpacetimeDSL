@@ -1,6 +1,6 @@
 use spacetimedb::SpacetimeType;
 
-#[derive(SpacetimeType, Debug, Clone, Copy)]
+#[derive(SpacetimeType, Debug, Clone, Copy, PartialEq)]
 pub struct DbVector2 {
     pub x: f32,
     pub y: f32,
