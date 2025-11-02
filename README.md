@@ -3,6 +3,8 @@
 
 *SpacetimeDSL* provides you a high-level [*D*omain *S*pecific *L*anguage (DSL)](https://en.wikipedia.org/wiki/Domain-specific_language) in Rust to interact in an ergonomic, more developer-friendly and type-safe way with the data in your [*SpacetimeDB*](https://spacetimedb.com/) instances.
 
+> 🤖 **For LLMs and AI-Assisted Development:** See [`llms.txt`](llms.txt) for a concise, LLM-optimized reference with all key features, examples, and important rules in one place.
+
 🚀 **Try SpacetimeDSL for yourself**, by adding it to your server modules `Cargo.toml`:
 
 ```toml
@@ -10,13 +12,44 @@
 spacetimedsl = { version = "*" }
 ```
 
-📖 **Get started** by adding `#[spacetimedsl::dsl]` as well as it's helper attributes `#[create_wrapper]`, `#[use_wrapper]`,\
+📖 **Get started** by adding `#[spacetimedsl::dsl]` with required `method()` configuration, plus helper attributes `#[create_wrapper]`, `#[use_wrapper]`,\
 `#[foreign_key]` and `#[referenced_by]` to your structs with `#[spacetimedb::table]`!
 
 💬 **Need help?**
 
 - Consult the [FAQ](#-faq)
 - Join the [SpacetimeDSL channel of the SpacetimeDB Discord Server](https://discord.com/channels/1037340874172014652/1395832638966726726)
+
+## 📑 Table of Contents
+
+### Core Unique Features
+
+- [🔗 Foreign Keys / Referential Integrity](#-foreign-keys--referential-integrity) - Enforce relationships between tables with automatic cascade operations
+- [🏷️ Wrapper Types](#️-the-create_wrapper-and-use_wrapper-attributes---aka-wrapper-types) - Type-safe column identifiers that eliminate primitive obsession
+- [🎲 Unique Multi-Column Indices](#-unique-multi-column-indices) - Enforce uniqueness across multiple columns (before SpacetimeDB native support)
+- [🪝 Hooks System](#-hooks-system) - Execute custom logic automatically before/after insert, update, and delete operations
+- [🎯 Complete Method Coverage](#-other-dsl-methods) - DSL equivalents for all SpacetimeDB operations
+
+### Enhanced Developer Experience
+
+- [🎨 Ergonomic DSL Methods](#-the-create-dsl-method) - Cleaner syntax with smart defaults for creating, updating, and deleting rows
+- [🎛️ Method Configuration](#️-method-configuration) - Explicit control over which operations are allowed on your tables
+- [🚨 Rich Error Types](#-the-spacetimedslerror-type) - Detailed error information beyond what SpacetimeDB provides
+- [📊 Deletion Results](#-the-deletionresultentry-type) - Complete audit trails for delete operations with cascade tracking
+- [🔄 Automatic Accessors](#-accessors-getters-and-setters) - Generated getters and setters with visibility controls
+
+### Implementation Details
+
+- [🎯 OnDelete Strategies](#-the-ondeletestrategy-type) - Control deletion behavior: Error, Delete, SetZero, or Ignore
+- [📝 Plural Name Configuration](#-the-plural-name-dsl-attribute-field) - Customize generated method names
+
+### Additional Information
+
+- [⚠️ Current Limitations](#️-current-limitations)
+- [❓ FAQ](#-faq)
+- [📜 Licensing](#-licensing)
+
+---
 
 ## 🔧 Vanilla SpacetimeDB
 
@@ -87,7 +120,7 @@ Even with this small data model, there are fundamental issues:
 Let's see what happens when adding **SpacetimeDSL**:
 
 ```rust
-#[spacetimedsl::dsl(plural_name = entities, method(update = false))] // Added
+#[spacetimedsl::dsl(plural_name = entities, method(update = false, delete = true))] // Added
 #[spacetimedb::table(name = entity, public)]
 pub struct Entity {
     #[primary_key]
@@ -99,7 +132,7 @@ pub struct Entity {
     created_at: spacetimedb::Timestamp,
 }
 
-#[spacetimedsl::dsl(plural_name = positions, method(update = false), unique_index(name = x_y))] // Added
+#[spacetimedsl::dsl(plural_name = positions, method(update = false, delete = true), unique_index(name = x_y))] // Added
 #[spacetimedb::table(name = position, public, index(name = x_y, btree(columns = [x, y])))]
 pub struct Position {
     #[primary_key]
@@ -704,6 +737,68 @@ pub struct IdentifierReference {
 
 - Referential integrity checks on create/update
 - Executes `OnDeleteStrategy` when referenced row deleted
+
+**⚠️ Compatibility Requirements:**
+
+Foreign key strategies must be compatible with the table's method configuration and column visibility:
+
+- 🔄 `on_delete = Delete` requires the referencing table to have `method(delete = true)`
+  - The table must support delete operations to allow cascading deletes
+  - Compilation will fail if delete methods are not enabled
+
+- 0️⃣ `on_delete = SetZero` requires:
+  - The referencing table to have `method(update = true)`
+  - The foreign key column to be **non-private** (public or pub(in path))
+  - Both conditions are necessary because setting to zero is an update operation
+  - Compilation will fail if either requirement is not met
+
+- ⚠️ `on_delete = Error` and `on_delete = Ignore` have no special requirements
+
+**Example:**
+
+```rust
+// ✅ Valid: table has delete methods enabled
+#[dsl(plural_name = children, method(update = true, delete = true))]
+#[table(name = child, public)]
+pub struct Child {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u128,
+    
+    #[use_wrapper(ParentId)]
+    #[foreign_key(path = crate, table = parent, on_delete = Delete)]
+    parent_id: u128,  // Can use Delete strategy
+}
+
+// ✅ Valid: table has update methods and column is public
+#[dsl(plural_name = items, method(update = true, delete = false))]
+#[table(name = item, public)]
+pub struct Item {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u128,
+    
+    #[use_wrapper(OwnerId)]
+    #[foreign_key(path = crate, table = owner, on_delete = SetZero)]
+    pub owner_id: u128,  // Must be public for SetZero
+}
+
+// ❌ Invalid: delete = false but using Delete strategy
+#[dsl(plural_name = invalid, method(update = true, delete = false))]
+pub struct Invalid {
+    #[foreign_key(path = crate, table = parent, on_delete = Delete)]
+    parent_id: u128,  // Compile error!
+}
+
+// ❌ Invalid: private column with SetZero strategy
+#[dsl(plural_name = invalid, method(update = true, delete = true))]
+pub struct Invalid {
+    #[foreign_key(path = crate, table = owner, on_delete = SetZero)]
+    owner_id: u128,  // Compile error! Must be public
+}
+```
 
 **⚠️ Important:**
 
@@ -1434,6 +1529,234 @@ Every DB method has an equivalent DSL method! 🎉
 ![DSL methods generated by the example project](example_dsl_methods.png)
 
 ![Example usage of the generated dsl methods](example_dsl_usage.png)
+
+### 🪝 Hooks System
+
+**Execute custom logic automatically during database operations!**
+
+SpacetimeDSL supports hooks that run before and after insert, update, and delete operations. This enables:
+
+- ✅ Custom validation beyond basic constraints
+- 📊 Audit logging and tracking
+- 🔔 Triggering side effects (notifications, related table updates)
+- 🎯 Enforcing business rules across multiple tables
+
+**Syntax:**
+
+Add `hook()` configuration to your `#[spacetimedsl::dsl]` attribute:
+
+```rust
+#[spacetimedsl::dsl(
+    plural_name = entities,
+    method(update = true, delete = true),
+    hook(before(update, delete), after(insert))
+)]
+#[spacetimedb::table(name = entity, public)]
+pub struct Entity {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u128,
+    
+    pub value: String,
+    created_at: Timestamp,
+    modified_at: Option<Timestamp>,
+}
+```
+
+**Hook Types:**
+
+- 🔜 `before(insert)` - Called before inserting a row
+- 🔜 `before(update)` - Called before updating a row  
+- 🔜 `before(delete)` - Called before deleting a row
+- ✅ `after(insert)` - Called after successfully inserting a row
+- ✅ `after(update)` - Called after successfully updating a row
+- ✅ `after(delete)` - Called after successfully deleting a row
+
+**Implementing Hook Functions:**
+
+Mark your hook functions with `#[spacetimedsl::hook]`:
+
+```rust
+use spacetimedsl::hook;
+
+// After insert hook
+#[hook]
+pub fn after_entity_insert(dsl: &impl spacetimedsl::DSLContext, row: &Entity) -> Result<(), String> {
+    log::info!("Inserted entity with id={}", row.id());
+    Ok(())
+}
+
+// Before update hook - has access to both old and new values
+#[hook]
+pub fn before_entity_update(
+    dsl: &impl spacetimedsl::DSLContext,
+    old_row: &Entity,
+    new_row: &Entity
+) -> Result<(), String> {
+    if new_row.value().is_empty() {
+        return Err("Value cannot be empty".to_string());
+    }
+    log::info!("Updating entity {} from '{}' to '{}'", 
+        old_row.id(), old_row.value(), new_row.value());
+    Ok(())
+}
+
+// Before delete hook
+#[hook]
+pub fn before_entity_delete(dsl: &impl spacetimedsl::DSLContext, row: &Entity) -> Result<(), String> {
+    log::info!("Deleting entity with id={}", row.id());
+    Ok(())
+}
+```
+
+**Hook Execution Timing:**
+
+- ⏰ `before` hooks run **before** the database operation
+- ⏰ `after` hooks run **after** the database operation completes successfully
+- 🚫 If a hook returns `Err(SpacetimeDSLError)`, the operation is aborted and propagated
+- 🔄 For `update` hooks, both the old row (current state) and new row (updated values) are provided
+
+**Error Handling:**
+
+When a hook returns an error:
+
+- ❌ The error message is wrapped in `SpacetimeDSLError::Error`
+- 🔙 For `before` hooks: the database operation is cancelled before any changes
+- ⚠️ For `after` hooks: the row is already in the database, but the error is returned to the caller
+
+**Hook Naming Convention:**
+
+SpacetimeDSL expects hook functions to follow this naming pattern:
+
+- `{before|after}_{table_name}_{insert|update|delete}`
+
+For a table named `Entity`, the expected function names are:
+
+- `before_entity_insert`, `after_entity_insert`
+- `before_entity_update`, `after_entity_update`  
+- `before_entity_delete`, `after_entity_delete`
+
+**⚠️ Important Notes:**
+
+- Hook functions must be in the same module as the table definition
+- Use the `#[spacetimedsl::hook]` attribute to mark hook implementations
+- Hooks work seamlessly with foreign keys and `OnDeleteStrategy`
+- For cascading deletes, delete hooks are called for each affected row
+
+**🔒 Hook-Method Compatibility:**
+
+Hooks require compatible method configuration:
+
+- ❌ `hook(before(update))` or `hook(after(update))` requires `method(update = true)`
+- ❌ `hook(before(delete))` or `hook(after(delete))` requires `method(delete = true)`
+- ✅ Insert hooks always work (create methods are always generated)
+
+```rust
+// ❌ Invalid: update hook without update method
+#[spacetimedsl::dsl(
+    plural_name = entities,
+    method(update = false, delete = true),
+    hook(after(update))  // Compile error!
+)]
+pub struct Entity { /* ... */ }
+
+// ✅ Valid: update hook with update method enabled
+#[spacetimedsl::dsl(
+    plural_name = entities,
+    method(update = true, delete = true),
+    hook(after(update))  // OK!
+)]
+pub struct Entity { /* ... */ }
+```
+
+See [Method Configuration](#️-method-configuration) for details on enabling update/delete methods.
+
+### 🎛️ Method Configuration
+
+**Explicit control over generated methods:**
+
+SpacetimeDSL requires you to explicitly specify which DSL methods to generate using the `method()` configuration:
+
+```rust
+#[spacetimedsl::dsl(
+    plural_name = entities,
+    method(update = true, delete = false)  // Generate update methods, but not delete methods
+)]
+#[spacetimedb::table(name = entity, public)]
+pub struct Entity {
+    // ... fields
+}
+```
+
+**Configuration Options:**
+
+- 🔄 `update = true|false` - Generate/skip update DSL methods
+- 🗑️ `delete = true|false` - Generate/skip delete DSL methods
+- ✨ Create and Get methods are **always** generated
+
+**Why Explicit Configuration?**
+
+Making these decisions explicit helps you:
+
+- 🎯 **Express intent clearly** - Your code documents whether entities should be mutable
+- 🔒 **Prevent accidents** - No accidental updates/deletes on immutable data
+- 📊 **Design better schemas** - Think carefully about data lifecycle
+
+**Automatic Restrictions:**
+
+SpacetimeDSL validates your configuration and ensures consistency:
+
+**For `update = true`:**
+
+- ✅ Requires at least one non-private, updatable column **OR**
+- ✅ A timestamp column named `modified_at` or `updated_at` (even if all other columns are private)
+- 🔄 This allows updates that only refresh timestamps
+
+**For `delete = true`:**
+
+- ✅ Compatible with all table configurations
+- ⚠️ Must be enabled if any foreign key uses `on_delete = Delete` strategy
+
+**Hook Constraints:**
+
+- ❌ `hook(before(update))` or `hook(after(update))` requires `method(update = true)`
+- ❌ `hook(before(delete))` or `hook(after(delete))` requires `method(delete = true)`
+- 🎯 This ensures hooks are never orphaned
+
+**Foreign Key Constraints:**
+
+- ❌ `#[foreign_key(on_delete = Delete)]` requires the table to have `method(delete = true)`
+- ❌ `#[foreign_key(on_delete = SetZero)]` requires:
+  - The table to have `method(update = true)`
+  - The foreign key column to be **non-private** (public or pub(crate))
+
+See [Foreign Keys / Referential Integrity](#-foreign-keys--referential-integrity) for detailed examples.
+
+**Example Patterns:**
+
+```rust
+// Immutable audit log - never changes after creation
+#[spacetimedsl::dsl(
+    plural_name = audit_logs,
+    method(update = false, delete = false)
+)]
+pub struct AuditLog { /* ... */ }
+
+// User profiles - can be updated but never deleted
+#[spacetimedsl::dsl(
+    plural_name = user_profiles,
+    method(update = true, delete = false)
+)]
+pub struct UserProfile { /* ... */ }
+
+// Temporary cache entries - can be both updated and deleted
+#[spacetimedsl::dsl(
+    plural_name = cache_entries,
+    method(update = true, delete = true)
+)]
+pub struct CacheEntry { /* ... */ }
+```
 
 **Ready to try?** 🚀
 
