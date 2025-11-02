@@ -27,7 +27,7 @@ impl SpacetimeDBColumn {
                     "A #[primary_key] column must not be prefixed with the table's name! Use `{}` instead of `{}`.",
                     column_name
                         .to_string()
-                        .strip_prefix(&spacetimedb_table.singular_name.to_string())
+                        .strip_prefix(&format!("{}_", spacetimedb_table.singular_name))
                         .unwrap_or("id"),
                     column_name,
                 ),

@@ -578,6 +578,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "spacetimedsl_blackholio"
+version = "0.12.0"
+dependencies = [
+ "log",
+ "spacetimedb",
+ "spacetimedsl",
+]
+
+[[package]]
 name = "spacetimedsl_debug"
 version = "1.0.0"
 dependencies = [

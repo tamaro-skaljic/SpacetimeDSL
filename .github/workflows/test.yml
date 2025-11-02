@@ -74,7 +74,7 @@ jobs:
 
         spacetime start &
 
-        cd example
+        cd examples/test
 
         echo "Waiting for SpacetimeDB to be started using a 2s sleep for now."
         sleep 2
