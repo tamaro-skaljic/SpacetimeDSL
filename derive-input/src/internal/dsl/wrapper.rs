@@ -119,7 +119,7 @@ fn get_wrapper_impl(
     let wrapper_struct_name_as_str = wrapper_struct_name.to_string();
 
     quote! {
-        #[derive(Clone, Debug, PartialEq, PartialOrd, spacetimedb::SpacetimeType)]
+        #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
         pub struct #wrapper_struct_name {
             value: #wrapped_type,
         }
