@@ -195,8 +195,8 @@ impl SpacetimeDSLTable {
         }
 
         if all_columns_are_private
-            && has_update_method.unwrap()
-            && on_update_set_current_timestamp_column_name.is_none()
+            && !has_update_method.unwrap()
+            && on_update_set_current_timestamp_column_name.is_some()
         {
             return Err(syn::Error::new(
                 Span::call_site(),
