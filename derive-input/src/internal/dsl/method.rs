@@ -156,7 +156,7 @@ impl SpacetimeDSLColumnMethods {
                     primary_key_column,
                 );
 
-                let update = match spacetimedsl_table.is_mutable {
+                let update = match spacetimedsl_table.has_update_method {
                     false => None,
                     true => Some(for_method(
                         DSLMethod::Update(index),
@@ -348,7 +348,7 @@ impl SpacetimeDSLTableMethods {
                         primary_key_column,
                     );
 
-                    let update = match spacetimedsl_table.is_mutable {
+                    let update = match spacetimedsl_table.has_update_method {
                         false => None,
                         true => Some(for_method(
                             DSLMethod::Update(multi_column_index),

@@ -45,44 +45,74 @@ impl SpacetimeDSLTable {
             syn::Visibility::Public(_) => {
                 return Err(syn::Error::new(
                     Span::call_site(),
-                    "A `#[primary_key]` column should have `Visibility::Inherited`! Found: Visibility::Public",
+                    "A `#[primary_key]` column should have `Visibility::Inherited` (private)! Found: Visibility::Public",
                 ));
             }
             syn::Visibility::Restricted(_) => {
                 return Err(syn::Error::new(
                     Span::call_site(),
-                    "A `#[primary_key]` column should have `Visibility::Inherited`! Found: Visibility::Restricted",
+                    "A `#[primary_key]` column should have `Visibility::Inherited` (private)! Found: Visibility::Restricted",
                 ));
             }
             syn::Visibility::Inherited => {}
         }
 
-        let mut is_mutable = false;
+        let has_update_method = &dsl_data.update_method;
+        let has_delete_method = &dsl_data.delete_method;
+        let mut all_columns_are_private = true;
+
+        if has_update_method.is_none() {
+            for field in &column_args.fields {
+                if matches!(
+                    field.vis,
+                    syn::Visibility::Public(_) | syn::Visibility::Restricted(_)
+                ) {
+                    return Err(syn::Error::new(
+                        Span::call_site(),
+                        "HasUpdateMethod must be set in `#[dsl(method(update = HasUpdateMethod))]`\nBecause you have at least one column which is not private, you should set `#[dsl(method(update = true))]`.\nIf, instead, you want immutable rows in this table which don't have setters and can't be updated, all columns must be private and you must specify `#[dsl(method(update = false))]`.".to_string(),
+                    ));
+                }
+            }
+            return Err(syn::Error::new(
+                Span::call_site(),
+                "HasUpdateMethod must be set in `#[dsl(method(update = HasUpdateMethod))]`, e.g. `update = false`.\nBecause all your columns are private, you should set `#[dsl(method(update = false))]`.\nIf, instead, you want mutable rows in this table which have setters and can be updated, at least one column must be non-private or named `modified_at`/`updated_at` and you must specify `#[dsl(method(update = true))]`.",
+            ));
+        }
+
         let mut on_insert_set_current_timestamp_column_name = None;
         let mut on_update_set_current_timestamp_column_name = None;
+
         let mut referencing_tables = vec![];
+
         for field in &column_args.fields {
             let refs = ReferencingTable::try_parse(field)?;
             if referencing_tables.is_empty() {
                 referencing_tables = refs;
             }
 
-            if !is_mutable {
-                is_mutable = matches!(
-                    field.vis,
-                    syn::Visibility::Public(_) | syn::Visibility::Restricted(_)
-                );
-            }
-            let column_name = field.name.as_ref().expect("should have a name");
-
-            if column_name.eq("created_at") || column_name.eq("inserted_at") {
-                if let Some(existing_column_name) = on_insert_set_current_timestamp_column_name {
+            if matches!(
+                field.vis,
+                syn::Visibility::Public(_) | syn::Visibility::Restricted(_)
+            ) {
+                if !has_update_method.unwrap() {
                     return Err(syn::Error::new(
                         Span::call_site(),
                         format!(
-                            "Multiple columns for `on_insert_set_current_timestamp`: `{}` and `{}`! Only one column is allowed.",
-                            existing_column_name, column_name
+                            "All columns in a table with disabled `update` DSL method should be private! Found: {:?}",
+                            field.vis.to_token_stream().to_string()
                         ),
+                    ));
+                }
+                all_columns_are_private = false;
+            }
+
+            let column_name = field.name.as_ref().expect("should have a name");
+
+            if column_name.eq("created_at") || column_name.eq("inserted_at") {
+                if on_insert_set_current_timestamp_column_name.is_some() {
+                    return Err(syn::Error::new(
+                        Span::call_site(),
+                        "Multiple columns for `on_insert_set_current_timestamp`: `created_at` and `inserted_at`! Only one column is allowed.".to_string(),
                     ));
                 };
                 let field_type = field.ty.to_token_stream().to_string();
@@ -115,15 +145,19 @@ impl SpacetimeDSLTable {
                 }
             }
             if column_name.eq("modified_at") || column_name.eq("updated_at") {
-                if let Some(existing_column_name) = on_update_set_current_timestamp_column_name {
+                if on_update_set_current_timestamp_column_name.is_some() {
                     return Err(syn::Error::new(
                         Span::call_site(),
-                        format!(
-                            "Multiple columns for `on_update_set_current_timestamp`: `{}` and `{}`! Only one column is allowed.",
-                            existing_column_name, column_name
-                        ),
+                        "Multiple columns for `on_update_set_current_timestamp`: `modified_at` and `updated_at`! Only one column is allowed.".to_string(),
                     ));
                 };
+
+                if !has_update_method.unwrap() {
+                    return Err(syn::Error::new(
+                        Span::call_site(),
+                        "A column with name `modified_at` or `updated_at` requires the `update` method to be enabled in `#[dsl(method(update = true))]`!".to_string(),
+                    ));
+                }
 
                 let field_type = field.ty.to_token_stream().to_string();
                 if !field_type.eq("Timestamp")
@@ -160,11 +194,22 @@ impl SpacetimeDSLTable {
             }
         }
 
+        if all_columns_are_private
+            && has_update_method.unwrap()
+            && on_update_set_current_timestamp_column_name.is_none()
+        {
+            return Err(syn::Error::new(
+                Span::call_site(),
+                "Because you have a column named `modified_at`/`updated_at`, you must specify `#[dsl(method(update = true))]\nIf, instead, you want immutable rows in this table which don't have setters and can't be updated, all columns must be private, you must remove the `modified_at`/`updated_at` column and you must specify `#[dsl(method(update = false))]`.",
+            ));
+        }
+
         Ok((
             spacetimedb_table,
             SpacetimeDSLTable {
                 plural_name: dsl_data.plural_name,
-                is_mutable,
+                has_update_method: has_update_method.unwrap(),
+                has_delete_method: has_delete_method.unwrap_or(true),
                 on_insert_set_current_timestamp_column_name,
                 on_update_set_current_timestamp_column_name,
                 referencing_tables,

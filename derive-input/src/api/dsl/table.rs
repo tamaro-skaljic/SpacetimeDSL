@@ -13,7 +13,8 @@ use crate::api::dsl::{
 #[derive(Clone)]
 pub struct SpacetimeDSLTable {
     pub plural_name: Ident,
-    pub is_mutable: bool,
+    pub has_update_method: bool,
+    pub has_delete_method: bool,
     pub on_insert_set_current_timestamp_column_name: Option<Ident>,
     pub on_update_set_current_timestamp_column_name: Option<Ident>,
     pub referencing_tables: Vec<ReferencingTable>,

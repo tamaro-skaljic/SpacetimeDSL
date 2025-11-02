@@ -13,6 +13,7 @@ use syn::Error;
 
 impl SpacetimeDSLColumn {
     pub(in crate::internal) fn try_parse(
+        has_delete_method: &bool,
         field: &SatsField<'_>,
         rust_struct: &RustStruct,
         rust_field: &RustField,
@@ -33,7 +34,7 @@ impl SpacetimeDSLColumn {
             ));
         }
 
-        let foreign_key = ForeignKey::try_parse(field)?;
+        let foreign_key = ForeignKey::try_parse(has_delete_method, field)?;
 
         if foreign_key.is_some() {
             match &wrapper_type {

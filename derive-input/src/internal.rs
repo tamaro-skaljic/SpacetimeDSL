@@ -141,6 +141,37 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     })
     .parse2(args.clone())?;
 
+    if !update_method.unwrap_or(true) {
+        if before_update_hook.is_some() {
+            return Err(syn::Error::new(
+                proc_macro2::Span::call_site(),
+                "Cannot have a `before_update` hook when the `update` method is disabled in `#[dsl(method(update = false))]`",
+            ));
+        }
+        if after_update_hook.is_some() {
+            return Err(syn::Error::new(
+                proc_macro2::Span::call_site(),
+                "Cannot have a `after_update` hook when the `update` method is disabled in `#[dsl(method(update = false))]`",
+            ));
+        }
+    }
+
+    if !delete_method.unwrap_or(true) {
+        if before_delete_hook.is_some() {
+            return Err(syn::Error::new(
+                proc_macro2::Span::call_site(),
+                "Cannot have a `before_delete` hook when the `delete` method is disabled in `#[dsl(method(delete = false))]`",
+            ));
+        }
+
+        if after_delete_hook.is_some() {
+            return Err(syn::Error::new(
+                proc_macro2::Span::call_site(),
+                "Cannot have a `after_delete` hook when the `delete` method is disabled in `#[dsl(method(delete = false))]`",
+            ));
+        }
+    }
+
     Ok(DSLData {
         plural_name: name_plural.ok_or_else(|| {
             syn::Error::new(
@@ -155,6 +186,8 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         after_insert_hook: after_insert_hook.is_some(),
         after_update_hook: after_update_hook.is_some(),
         after_delete_hook: after_delete_hook.is_some(),
+        update_method,
+        delete_method,
     })
 }
 
@@ -167,6 +200,8 @@ struct DSLData {
     after_insert_hook: bool,
     after_update_hook: bool,
     after_delete_hook: bool,
+    update_method: Option<bool>,
+    delete_method: Option<bool>,
 }
 
 // Parse unique index from meta
