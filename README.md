@@ -1540,6 +1540,7 @@ SpacetimeDSL supports hooks that run before and after insert, update, and delete
 - 📊 Audit logging and tracking
 - 🔔 Triggering side effects (notifications, related table updates)
 - 🎯 Enforcing business rules across multiple tables
+- Setting defaults before insert/update by mutating the row
 
 **Syntax:**
 
@@ -1582,29 +1583,29 @@ use spacetimedsl::hook;
 
 // After insert hook
 #[hook]
-pub fn after_entity_insert(dsl: &impl spacetimedsl::DSLContext, row: &Entity) -> Result<(), String> {
+pub fn after_entity_insert(dsl: &impl spacetimedsl::DSLContext, row: &Entity) -> Result<(), SpacetimeDSLError> {
     log::info!("Inserted entity with id={}", row.id());
     Ok(())
 }
 
-// Before update hook - has access to both old and new values
+// Before update hook - has access to both old and new values and can Mutate the new row before the update occurs
 #[hook]
 pub fn before_entity_update(
     dsl: &impl spacetimedsl::DSLContext,
     old_row: &Entity,
-    new_row: &Entity
-) -> Result<(), String> {
-    if new_row.value().is_empty() {
-        return Err("Value cannot be empty".to_string());
+    mut new_row: Entity
+) -> Result<Entity, SpacetimeDSLError> {
+    if new_row.get_value().is_empty() {
+        return Err(SpacetimeDSLError::Error("Value cannot be empty".to_string()));
     }
     log::info!("Updating entity {} from '{}' to '{}'", 
-        old_row.id(), old_row.value(), new_row.value());
-    Ok(())
+        old_row.get_id(), old_row.get_value(), new_row.get_value());
+    Ok(new_row)
 }
 
 // Before delete hook
 #[hook]
-pub fn before_entity_delete(dsl: &impl spacetimedsl::DSLContext, row: &Entity) -> Result<(), String> {
+pub fn before_entity_delete(dsl: &impl spacetimedsl::DSLContext, row: &Entity) -> Result<(), SpacetimeDSLError> {
     log::info!("Deleting entity with id={}", row.id());
     Ok(())
 }
@@ -1621,7 +1622,6 @@ pub fn before_entity_delete(dsl: &impl spacetimedsl::DSLContext, row: &Entity) -
 
 When a hook returns an error:
 
-- ❌ The error message is wrapped in `SpacetimeDSLError::Error`
 - 🔙 For `before` hooks: the database operation is cancelled before any changes
 - ⚠️ For `after` hooks: the row is already in the database, but the error is returned to the caller
 
