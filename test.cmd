@@ -2,7 +2,7 @@
 
 echo Building module...
 echo.
-cd example
+cd examples\test
 spacetime publish spacetimedsl
 echo.
 
