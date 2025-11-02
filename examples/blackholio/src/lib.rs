@@ -3,9 +3,7 @@ pub mod math;
 use math::DbVector2;
 use spacetimedb::SpacetimeType;
 use spacetimedb::rand::Rng;
-use spacetimedb::{
-    Identity, ReducerContext, Table, TimeDuration, Timestamp, spacetimedb_lib::ScheduleAt,
-};
+use spacetimedb::{Identity, ReducerContext, TimeDuration, Timestamp, spacetimedb_lib::ScheduleAt};
 use spacetimedsl::itertools::Itertools;
 use spacetimedsl::{DSL, DSLContext, SpacetimeDSLError, Wrapper, dsl, hook};
 use std::{collections::HashMap, time::Duration};
@@ -311,7 +309,7 @@ fn spawn_player_initial_circle(dsl: &DSL, player: &Player) -> Result<Entity, Spa
 
     let entity = spawn_circle_at(
         dsl,
-        &player,
+        player,
         START_PLAYER_MASS,
         DbVector2 { x, y },
         dsl.ctx().timestamp,
@@ -469,8 +467,7 @@ pub fn move_all_players(
         }
 
         // Gravitate circles towards other circles before they recombine
-        for i in 0..count {
-            let circle_i = &circles[i];
+        for (i, circle_i) in circles.iter().enumerate().take(count) {
             let time_since_split = ctx
                 .timestamp
                 .duration_since(*circle_i.get_last_split_time())
@@ -510,8 +507,7 @@ pub fn move_all_players(
             for i in 0..count {
                 let (slice1, slice2) = entities.split_at_mut(i + 1);
                 let entity_i = &mut slice1[i];
-                for j in 0..slice2.len() {
-                    let entity_j = &mut slice2[j];
+                for entity_j in slice2 {
                     let mut diff = *entity_i.get_position() - entity_j.get_position();
                     let mut squared_distance = diff.sqr_magnitude();
                     if squared_distance <= 0.0001 {
@@ -553,7 +549,7 @@ pub fn move_all_players(
         let min = circle_radius;
         let max = world_size as f32 - circle_radius;
 
-        let mut position = entity.get_position().clone();
+        let mut position = *entity.get_position();
         position.x = new_pos.x.clamp(min, max);
         position.y = new_pos.y.clamp(min, max);
         entity.set_position(position);
@@ -566,12 +562,12 @@ pub fn move_all_players(
     for circle in circle_by_entity_id.values() {
         // let span = spacetimedb::time_span::Span::start("collisions");
         let circle_entity = entity_by_id.get(&circle.get_entity_id()).unwrap();
-        for (_, other_entity) in &entity_by_id {
+        for other_entity in entity_by_id.values() {
             if other_entity.get_id() == circle_entity.get_id() {
                 continue;
             }
 
-            if is_overlapping(&circle_entity, other_entity) {
+            if is_overlapping(circle_entity, other_entity) {
                 let other_circle: Option<&Circle> = circle_by_entity_id.get(&other_entity.get_id());
                 if let Some(other_circle) = other_circle {
                     if other_circle.get_player_id() != circle.get_player_id() {
@@ -582,11 +578,11 @@ pub fn move_all_players(
                                 &dsl,
                                 circle_entity.get_id(),
                                 other_entity.get_id(),
-                            );
+                            )?;
                         }
                     }
                 } else {
-                    schedule_consume_entity(&dsl, circle_entity.get_id(), other_entity.get_id());
+                    schedule_consume_entity(&dsl, circle_entity.get_id(), other_entity.get_id())?;
                 }
             }
         }
@@ -775,13 +771,9 @@ pub fn circle_recombine(
         return Ok(()); // No circles to recombine
     }
 
-    let base_entity_id = recombining_entities[0].get_id();
-    for i in 1..recombining_entities.len() {
-        schedule_consume_entity(
-            &dsl,
-            base_entity_id.clone(),
-            recombining_entities[i].get_id(),
-        );
+    let consumer_entity_id = recombining_entities[0].get_id();
+    for consumed_entity in recombining_entities.iter().skip(1) {
+        schedule_consume_entity(&dsl, consumer_entity_id.clone(), consumed_entity.get_id())?;
     }
 
     Ok(())
