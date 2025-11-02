@@ -134,7 +134,7 @@ pub mod entity {
     )]
     #[spacetimedb::table(
         name = entity_relationship3,
-        public
+        public,
     )]
     pub struct EntityRelationship3 {
         /// The unique ID of the Entity Relationship3.
@@ -156,7 +156,7 @@ pub mod entity {
     )]
     #[spacetimedb::table(
         name = entity_relationship4,
-        public
+        public,
     )]
     pub struct EntityRelationship4 {
         /// The unique ID of the Entity Relationship4.
@@ -408,7 +408,7 @@ pub mod component {
 
         #[spacetimedsl::dsl(
             plural_name = space_ship_objects,
-            method(update = true)
+            method(update = true),
         )]
         #[spacetimedb::table(
             name = space_ship_object,
