@@ -2,7 +2,7 @@
 
 ## License
 
-This crate and it's source code is licensed under the same license as SpacetimeDB, see [LICENSE](LICENSE).
+This crate and its source code is licensed under the same license as SpacetimeDB, see [LICENSE](LICENSE).
 
 SpacetimeDB is licensed under the BSL 1.1 license. This is not an open source or free software license, however, it converts to the AGPL v3.0 license with a linking exception after a few years.
 
