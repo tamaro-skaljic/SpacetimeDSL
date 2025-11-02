@@ -1,6 +1,7 @@
 use super::foreign_key;
 use crate::api::dsl::foreign_key::{ForeignKey, OnDeleteStrategy};
 use crate::internal::dsl::{on_delete, path, table};
+use quote::ToTokens;
 use spacetime_bindings_macro_input::match_meta;
 use spacetime_bindings_macro_input::sats::SatsField;
 use spacetime_bindings_macro_input::sym::{column, index, primary_key, unique};
@@ -9,7 +10,10 @@ use syn::meta::ParseNestedMeta;
 use syn::{Ident, Meta, Path};
 
 impl ForeignKey {
-    pub(in crate::internal) fn try_parse(field: &SatsField<'_>) -> syn::Result<Option<ForeignKey>> {
+    pub(in crate::internal) fn try_parse(
+        has_delete_method: &bool,
+        field: &SatsField<'_>,
+    ) -> syn::Result<Option<ForeignKey>> {
         let mut foreign_key_value = None;
 
         let mut has_index = false;
@@ -70,29 +74,48 @@ impl ForeignKey {
             })?;
 
             let path_value = path_value
-            .ok_or_else(|| syn::Error::new_spanned(
-                &attr.meta,
-                "PathToTable must be set in `#[foreign_key(path = PathToTable)]`, e.g. `path = crate::path::to::my::table`. Supply the path to the referenced table.",
-            ))?;
+                .ok_or_else(|| syn::Error::new_spanned(
+                    &attr.meta,
+                    "PathToTable must be set in `#[foreign_key(path = PathToTable)]`, e.g. `path = crate::path::to::my::table`. Supply the path to the referenced table.",
+                ))?;
 
             let table_name = table_name
-            .ok_or_else(|| syn::Error::new_spanned(
-                &attr.meta,
-                "TableName must be set in `#[foreign_key(table = TableName)]`, e.g. `table = my_table`. Supply the name of the referenced table.",
-            ))?;
+                .ok_or_else(|| syn::Error::new_spanned(
+                    &attr.meta,
+                    "TableName must be set in `#[foreign_key(table = TableName)]`, e.g. `table = my_table`. Supply the name of the referenced table.",
+                ))?;
 
             let primary_key_column_name = primary_key_column_name
-            .ok_or_else(|| syn::Error::new_spanned(
-                &attr.meta,
-                "PrimaryKeyColumnName must be set in `#[foreign_key(column = PrimaryKeyColumnName)]`, e.g. `column = my_column`. Supply the name of the primary key column in the referenced table.",
-            ))?;
+                .ok_or_else(|| syn::Error::new_spanned(
+                    &attr.meta,
+                    "PrimaryKeyColumnName must be set in `#[foreign_key(column = PrimaryKeyColumnName)]`, e.g. `column = my_column`. Supply the name of the primary key column in the referenced table.",
+                ))?;
 
-            let on_delete_strategy = on_delete_strategy.ok_or_else(|| {
-            syn::Error::new_spanned(
-                &attr.meta,
-                "OnDeleteStrategy must be set in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Delete` (or Error, SetNone, SetZero or Ignore).",
-            )
-        })?;
+            let on_delete_strategy = on_delete_strategy
+                .ok_or_else(|| syn::Error::new_spanned(
+                    &attr.meta,
+                    "OnDeleteStrategy must be set in `#[foreign_key(on_delete = OnDeleteStrategy)]`, e.g. `on_delete = Delete` (or Error, SetNone, SetZero or Ignore).",
+                ))?;
+
+            if on_delete_strategy.eq(&OnDeleteStrategy::SetZero)
+                && field
+                    .vis
+                    .to_token_stream()
+                    .to_string()
+                    .eq(&syn::Visibility::Inherited.to_token_stream().to_string())
+            {
+                return Err(syn::Error::new_spanned(
+                    &attr.meta,
+                    "`OnDeleteStrategy::SetZero` is only allowed on non-private columns, because setters are only generated for non-private columns (column-level mutability constraints)!",
+                ));
+            }
+
+            if !has_delete_method && on_delete_strategy.eq(&OnDeleteStrategy::Delete) {
+                return Err(syn::Error::new_spanned(
+                    &attr.meta,
+                    "`OnDeleteStrategy::Delete` is only allowed when the table has a delete method (`#[dsl(method(delete = true))]`)!",
+                ));
+            }
 
             foreign_key_value = Some(ForeignKey {
                 path: path_value,

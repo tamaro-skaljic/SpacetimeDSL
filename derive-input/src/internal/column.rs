@@ -57,8 +57,13 @@ pub(in crate::internal) fn try_parse(
         spacetimedb_table = res.0;
         let spacetimedb_column = res.1;
 
-        let spacetimedsl_column =
-            SpacetimeDSLColumn::try_parse(field, rust_struct, &rust_field, &spacetimedb_column)?;
+        let spacetimedsl_column = SpacetimeDSLColumn::try_parse(
+            &spacetimedsl_table.has_delete_method,
+            field,
+            rust_struct,
+            &rust_field,
+            &spacetimedb_column,
+        )?;
 
         let internal_column = InternalColumn {
             spacetimedb_table_singular_name: spacetimedb_table.singular_name.clone(),
