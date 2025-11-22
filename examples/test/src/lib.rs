@@ -1,5 +1,5 @@
 pub mod entity {
-    use spacetimedb::Timestamp;
+    use spacetimedb::{AnonymousViewContext, Timestamp, ViewContext, view};
 
     /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
     #[spacetimedsl::dsl(
@@ -29,6 +29,17 @@ pub mod entity {
 
         created_at: Timestamp,
         modified_at: Option<Timestamp>,
+    }
+
+    #[view(name = my_view, public)]
+    pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
+        ctx.db.entity().obj_id().find(0)
+    }
+
+    #[view(name = my_anonymous_view, public)]
+    pub fn my_anonymous_view(ctx: &AnonymousViewContext) -> Vec<Entity> {
+        ctx.db.entity().obj_id().find(0);
+        vec![]
     }
 
     #[spacetimedsl::dsl(
