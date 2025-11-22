@@ -28,7 +28,7 @@ quote = "1"
 itertools = "0.14.0"
 
 # https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
-spacetimedb = "1.6.0"
+spacetimedb = "1.9.0"
 
 # https://crates.io/crates/spacetime-bindings-macro-input Unofficial Input Crate for the SpacetimeDB Macro Bindings.
 spacetime-bindings-macro-input = "1.6.0"
