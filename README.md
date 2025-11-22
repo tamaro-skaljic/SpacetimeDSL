@@ -1779,6 +1779,7 @@ spacetimedsl = { version = "*" }
 **Not Yet Considered:**
 
 - [Using IndexScanRangeBounds / FilterableValue](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21) 🔄
+- SpacetimeDSL is not available in `#[spacetimedb::view]` functions, because SpacetimeDB uses structs instead of traits for Contexts - We are not really able to generate code which use `ReducerContext`, `ViewContext` and `AnonymousViewContext` at the same time, so we would need to generate each read-only DSL method 3 times. 🔄
 
 ## ❓ FAQ
 
