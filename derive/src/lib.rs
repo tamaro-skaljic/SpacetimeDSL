@@ -32,13 +32,14 @@ pub fn dsl(args: TokenStream, item: TokenStream) -> TokenStream {
         let output = output::output(&input, first_dsl_attribute)?;
 
         // Check if this is the last #[dsl] attribute by counting remaining ones
-        let is_last_dsl_attribute = is_last_dsl_attribute(&derive_input);
+        let _is_last_dsl_attribute = is_last_dsl_attribute(&derive_input);
 
         // If this is the last #[dsl] attribute, make all struct fields private
         // We do this AFTER parsing and generating methods so the setter logic works correctly
-        if is_last_dsl_attribute {
-            make_struct_fields_private(&mut derive_input);
-        }
+        // TODO: Temporarily disabled to allow public primary key columns
+        // if is_last_dsl_attribute {
+        //     make_struct_fields_private(&mut derive_input);
+        // }
 
         Ok(proc_macro2::TokenStream::from_iter([
             quote!(#derive_input),
@@ -97,25 +98,26 @@ fn is_last_dsl_attribute(derive_input: &syn::DeriveInput) -> bool {
     dsl_attr_count == 0
 }
 
-/// Make all struct fields private by setting their visibility to Inherited,
-/// except for fields with #[primary_key] which preserve their original visibility
-fn make_struct_fields_private(derive_input: &mut syn::DeriveInput) {
-    if let syn::Data::Struct(data_struct) = &mut derive_input.data
-        && let syn::Fields::Named(fields) = &mut data_struct.fields
-    {
-        for field in &mut fields.named {
-            // Check if this field has the #[primary_key] attribute
-            let is_primary_key = field.attrs.iter().any(|attr| {
-                attr.path().is_ident("primary_key")
-            });
-
-            // Only make non-primary-key fields private
-            if !is_primary_key {
-                field.vis = syn::Visibility::Inherited;
-            }
-        }
-    }
-}
+// TODO: Temporarily disabled to allow public primary key columns
+// /// Make all struct fields private by setting their visibility to Inherited,
+// /// except for fields with #[primary_key] which preserve their original visibility
+// fn make_struct_fields_private(derive_input: &mut syn::DeriveInput) {
+//     if let syn::Data::Struct(data_struct) = &mut derive_input.data
+//         && let syn::Fields::Named(fields) = &mut data_struct.fields
+//     {
+//         for field in &mut fields.named {
+//             // Check if this field has the #[primary_key] attribute
+//             let is_primary_key = field.attrs.iter().any(|attr| {
+//                 attr.path().is_ident("primary_key")
+//             });
+//
+//             // Only make non-primary-key fields private
+//             if !is_primary_key {
+//                 field.vis = syn::Visibility::Inherited;
+//             }
+//         }
+//     }
+// }
 
 //region Hooks
 
