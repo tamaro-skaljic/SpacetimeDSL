@@ -36,27 +36,6 @@ impl SpacetimeDSLTable {
             dsl_data.after_delete_hook,
         );
 
-        match column_args
-            .primary_key_column
-            .as_ref()
-            .expect("The table should have a `#[primary_key]` column!")
-            .vis
-        {
-            syn::Visibility::Public(_) => {
-                return Err(syn::Error::new(
-                    Span::call_site(),
-                    "A `#[primary_key]` column should have `Visibility::Inherited` (private)! Found: Visibility::Public",
-                ));
-            }
-            syn::Visibility::Restricted(_) => {
-                return Err(syn::Error::new(
-                    Span::call_site(),
-                    "A `#[primary_key]` column should have `Visibility::Inherited` (private)! Found: Visibility::Restricted",
-                ));
-            }
-            syn::Visibility::Inherited => {}
-        }
-
         let has_update_method = &dsl_data.update_method;
         let has_delete_method = &dsl_data.delete_method;
         let mut all_columns_are_private = true;

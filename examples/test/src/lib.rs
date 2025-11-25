@@ -1,5 +1,5 @@
 pub mod entity {
-    use spacetimedb::{AnonymousViewContext, Timestamp, ViewContext, view};
+    use spacetimedb::Timestamp;
 
     /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
     #[spacetimedsl::dsl(
@@ -25,21 +25,10 @@ pub mod entity {
         #[referenced_by(path = crate::component::test,       table = test)]
         #[referenced_by(path = crate::component::test,       table = ship_object)]
         #[referenced_by(path = crate::component::test,       table = space_ship_object)]
-        obj_id: u128,
+        pub obj_id: u128,
 
         created_at: Timestamp,
         modified_at: Option<Timestamp>,
-    }
-
-    #[view(name = my_view, public)]
-    pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
-        ctx.db.entity().obj_id().find(0)
-    }
-
-    #[view(name = my_anonymous_view, public)]
-    pub fn my_anonymous_view(ctx: &AnonymousViewContext) -> Vec<Entity> {
-        ctx.db.entity().obj_id().find(0);
-        vec![]
     }
 
     #[spacetimedsl::dsl(
@@ -181,6 +170,22 @@ pub mod entity {
         #[use_wrapper(EntityRelationship4Id)]
         #[foreign_key(path = crate::entity, table = entity_relationship4, column = id, on_delete = Ignore)]
         pub parent_entity_relationship4_id: u128,
+    }
+}
+
+pub mod entity_views {
+    use crate::entity::{Entity, entity__view};
+    use spacetimedb::{AnonymousViewContext, ViewContext, view};
+
+    #[view(name = my_view, public)]
+    pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
+        ctx.db.entity().obj_id().find(0)
+    }
+
+    #[view(name = my_anonymous_view, public)]
+    pub fn my_anonymous_view(ctx: &AnonymousViewContext) -> Vec<Entity> {
+        ctx.db.entity().obj_id().find(0);
+        vec![]
     }
 }
 
