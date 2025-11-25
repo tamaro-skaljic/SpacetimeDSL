@@ -1,8 +1,8 @@
 use crate::api::{
     db::column::SpacetimeDBColumn,
     dsl::{
-        column::SpacetimeDSLColumn, foreign_key::ForeignKey, getter::Getter, setter::Setter,
-        wrapper::WrapperType,
+        column::SpacetimeDSLColumn, foreign_key::ForeignKey, getter::Getter, mut_getter::MutGetter,
+        setter::Setter, wrapper::WrapperType,
     },
     rust::{column::RustField, table::RustStruct},
 };
@@ -58,6 +58,8 @@ impl SpacetimeDSLColumn {
 
         let getter = Getter::map(rust_field, is_option, &wrapper_type);
 
+        let mut_getter = MutGetter::map(rust_field, &wrapper_type);
+
         let setter = Setter::map(rust_field, is_option, &wrapper_type);
 
         Ok(SpacetimeDSLColumn {
@@ -65,6 +67,7 @@ impl SpacetimeDSLColumn {
             wrapper_type,
             foreign_key,
             getter,
+            mut_getter,
             setter,
         })
     }

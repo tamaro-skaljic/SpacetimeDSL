@@ -36,7 +36,7 @@ spacetimedsl = { version = "*" }
 - [🎛️ Method Configuration](#️-method-configuration) - Explicit control over which operations are allowed on your tables
 - [🚨 Rich Error Types](#-the-spacetimedslerror-type) - Detailed error information beyond what SpacetimeDB provides
 - [📊 Deletion Results](#-the-deletionresultentry-type) - Complete audit trails for delete operations with cascade tracking
-- [🔄 Automatic Accessors](#-accessors-getters-and-setters) - Generated getters and setters with visibility controls
+- [🔄 Automatic Accessors](#-accessors-getters-and-setters) - Generated getters, mut-getters and setters with visibility controls
 
 ### Implementation Details
 
@@ -556,7 +556,7 @@ The trait bound `WrapperType: From<NumericType>` is not satisfied.
 - Returns reference for normal types
 - Returns cloned Wrapper Type for wrapped types
 
-**Setters (for non-private columns):**
+**Setters and Mut-Getters (for non-private columns):**
 
 - ✏️ Generated based on column visibility
 - Visibility = field visibility

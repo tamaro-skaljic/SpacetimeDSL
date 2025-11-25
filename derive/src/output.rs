@@ -67,6 +67,10 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
         if first_dsl_attribute {
             table_methods.push(accessor::getter(&column.spacetimedsl_column.getter)?);
 
+            if let Some(data) = &column.spacetimedsl_column.mut_getter {
+                table_methods.push(accessor::mut_getter(data)?)
+            }
+
             if let Some(data) = &column.spacetimedsl_column.setter {
                 table_methods.push(accessor::setter(data)?)
             }

@@ -14,6 +14,8 @@ pub mod reference;
 
 pub mod getter;
 
+pub mod mut_getter;
+
 pub mod setter;
 
 pub mod method;

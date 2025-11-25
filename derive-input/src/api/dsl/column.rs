@@ -1,5 +1,5 @@
 use super::{foreign_key::ForeignKey, getter::Getter, setter::Setter, wrapper::WrapperType};
-use crate::api::dsl::method::SpacetimeDSLMethod;
+use crate::api::dsl::{mut_getter::MutGetter, method::SpacetimeDSLMethod};
 
 #[derive(Clone)]
 pub struct SpacetimeDSLColumn {
@@ -9,6 +9,8 @@ pub struct SpacetimeDSLColumn {
     // Only `Some(T)` if it has `#[foreign_key(table = my_table, column = my_column, on_delete = OnDeleteStrategy)]`.
     pub foreign_key: Option<ForeignKey>,
     pub getter: Getter,
+    // Only `Some(T)` if mutable
+    pub mut_getter: Option<MutGetter>,
     // Only `Some(T)` if mutable
     pub setter: Option<Setter>,
 }
