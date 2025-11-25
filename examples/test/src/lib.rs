@@ -388,6 +388,8 @@ pub mod component {
             #[unique]
             pub direct_index: u8,
 
+            pub tags: Vec<String>,
+
             created_at: Timestamp,
 
             modified_at: Timestamp,
@@ -1013,8 +1015,8 @@ pub mod test {
                 CreateShipObject, CreateShipObjectRow, CreateTest, CreateTestRow,
                 DeleteTestRowsByBtreeIndex, DeleteTestRowsByWrappedIndex,
                 GetModule1RowOptionByDatabaseAndParentIdAndName,
-                GetModule2RowOptionByDatabaseAndNameAndParentId, GetTestRowsByBtreeIndex,
-                GetTestRowsByWrappedIndex,
+                GetModule2RowOptionByDatabaseAndNameAndParentId, GetTestRowOptionById,
+                GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex, UpdateTestRowById,
             },
         },
         entity::{
@@ -1563,6 +1565,7 @@ pub mod test {
             unique_on_wrapped_string: "unique_on_wrapped_string".to_string(),
             wrapped_string_option: Some("wrapped_string_option".to_string()),
             direct_index: 0,
+            tags: vec![],
             scheduled_at: spacetimedb::ScheduleAt::Time(ctx.timestamp),
         })?;
 
@@ -1578,8 +1581,30 @@ pub mod test {
             unique_on_wrapped_string: "unique_on_wrapped_string2".to_string(),
             wrapped_string_option: Some("wrapped_string_option".to_string()),
             direct_index: 1,
+            tags: vec![],
             scheduled_at: spacetimedb::ScheduleAt::Time(ctx.timestamp),
         })?;
+
+        let tags = world2.get_tags_mut();
+        tags.push("new_tag".to_string());
+        world2 = dsl.update_test_by_id(world2)?;
+
+        if world2.get_tags().len() != 1 || world2.get_tags()[0].ne("new_tag") {
+            return Err("Tags should have been updated to contain 'new_tag'".to_string());
+        }
+
+        world2.get_tags_mut().clear();
+        world2 = dsl.update_test_by_id(world2)?;
+
+        if !world2.get_tags().is_empty() {
+            return Err("Tags should have been updated to contain nothing".to_string());
+        }
+
+        world2 = dsl.get_test_by_id(&world2)?;
+
+        if !world2.get_tags().is_empty() {
+            return Err("Tags should have been updated to contain nothing".to_string());
+        }
 
         let _: Option<EntityId> = world1.get_wrapped_option();
         world2.set_wrapped_option(None);

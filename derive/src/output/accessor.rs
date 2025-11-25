@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use rust_format::{Formatter, PrettyPlease};
-use spacetimedsl_derive_input::api::dsl::{getter::Getter, setter::Setter};
+use spacetimedsl_derive_input::api::dsl::{getter::Getter, mut_getter::MutGetter, setter::Setter};
 use syn::{Ident, Visibility, parse_str, token};
 
 use crate::output::malformed_code_generation_result;
@@ -23,6 +23,30 @@ pub fn getter(getter: &Getter) -> syn::Result<TokenStream> {
     Ok(quote! {
         #[doc=#doc_comment]
         pub fn #method_name(#self_token) -> #return_type {
+            use spacetimedsl::Wrapper;
+            #method_impl
+        }
+    })
+}
+
+pub fn mut_getter(mut_getter: &MutGetter) -> syn::Result<TokenStream> {
+    let method_visibility: Visibility = parse_str(&mut_getter.method_visibility.to_string())?;
+    let method_name = &mut_getter.method_name;
+    let self_token = quote! { &mut self };
+    let return_type = &mut_getter.return_type;
+    let method_impl = &mut_getter.method_impl;
+    let doc_comment = add_impl_doc(
+        &method_visibility,
+        method_name,
+        &self_token,
+        &TokenStream::default(),
+        return_type,
+        method_impl,
+    );
+
+    Ok(quote! {
+        #[doc=#doc_comment]
+        #method_visibility fn #method_name(#self_token) -> #return_type {
             use spacetimedsl::Wrapper;
             #method_impl
         }
