@@ -1778,7 +1778,8 @@ spacetimedsl = { version = "*" }
 
 - [Using IndexScanRangeBounds / FilterableValue](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21) 🔄
 
-- SpacetimeDSL is not available in `#[spacetimedb::view]` functions, because SpacetimeDB uses structs instead of traits for Contexts - We are not really able to generate code which use `ReducerContext`, `ViewContext` and `AnonymousViewContext` at the same time, so we would need to generate each read-only DSL method 3 times. If you encounter that you can't access a method on the (Anonymous)ViewContext type because it's private, create the view function in the same module where you have defined the table. See [#90](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/90). 🔄
+- SpacetimeDSL is not available in `#[spacetimedb::view]` functions, because SpacetimeDB uses structs instead of traits for Contexts - We are not really able to generate code which use `ReducerContext`, `ViewContext` and `AnonymousViewContext` at the same time, so we would need to generate each read-only DSL method 3 times.
+  - If you encounter that you can't access a method on the (Anonymous)ViewContext type because it's private, please follow these instructions: <https://github.com/tamaro-skaljic/SpacetimeDSL/issues/90#issuecomment-3573925117> until <https://github.com/clockworklabs/SpacetimeDB/issues/3754> is resolved.
 
 ## ❓ FAQ
 
