@@ -1,5 +1,5 @@
 use super::{foreign_key::ForeignKey, getter::Getter, setter::Setter, wrapper::WrapperType};
-use crate::api::dsl::{mut_getter::MutGetter, method::SpacetimeDSLMethod};
+use crate::api::dsl::{method::SpacetimeDSLMethod, mut_getter::MutGetter};
 
 #[derive(Clone)]
 pub struct SpacetimeDSLColumn {
