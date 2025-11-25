@@ -97,13 +97,22 @@ fn is_last_dsl_attribute(derive_input: &syn::DeriveInput) -> bool {
     dsl_attr_count == 0
 }
 
-/// Make all struct fields private by setting their visibility to Inherited
+/// Make all struct fields private by setting their visibility to Inherited,
+/// except for fields with #[primary_key] which preserve their original visibility
 fn make_struct_fields_private(derive_input: &mut syn::DeriveInput) {
     if let syn::Data::Struct(data_struct) = &mut derive_input.data
         && let syn::Fields::Named(fields) = &mut data_struct.fields
     {
         for field in &mut fields.named {
-            field.vis = syn::Visibility::Inherited;
+            // Check if this field has the #[primary_key] attribute
+            let is_primary_key = field.attrs.iter().any(|attr| {
+                attr.path().is_ident("primary_key")
+            });
+
+            // Only make non-primary-key fields private
+            if !is_primary_key {
+                field.vis = syn::Visibility::Inherited;
+            }
         }
     }
 }
