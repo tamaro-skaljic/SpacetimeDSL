@@ -10,6 +10,7 @@ repository = "https://github.com/tamaro-skaljic/SpacetimeDSL/tree/main/derive"
 publish = true
 include = ["/src/**"]
 keywords = ["dsl", "spacetime", "macro", "codegen", "boilerplate"]
+readme = "../README.md"
 
 [lib]
 proc-macro = true
