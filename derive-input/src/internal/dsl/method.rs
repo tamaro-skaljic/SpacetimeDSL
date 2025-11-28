@@ -427,7 +427,7 @@ fn process_columns_for_create_and_update_method(
                 && { internal_column.rust_field_name.eq(column_name) }
             {
                 constructor_arg = Some(quote! {
-                    let #column_name = self.ctx().timestamp;
+                    let #column_name = self.ctx().timestamp();
                 });
             } else if let Some(column_name) =
                 &spacetimedsl_table.on_update_set_current_timestamp_column_name
@@ -440,7 +440,7 @@ fn process_columns_for_create_and_update_method(
                 let timestamp_value = if column_type_str.starts_with("Option") {
                     quote! { None }
                 } else {
-                    quote! { self.ctx().timestamp }
+                    quote! { self.ctx().timestamp() }
                 };
                 constructor_arg = Some(quote! {
                     let #column_name = #timestamp_value;
@@ -630,7 +630,7 @@ pub(in crate::internal) fn for_method(
     let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
 
     let mut paths_of_traits_to_extend =
-        vec![parse_str("spacetimedsl::DSLContext").expect("parsing should have worked")];
+        vec![parse_str("spacetimedsl::DSLContext<T>").expect("parsing should have worked")];
     let mut method_args = vec![];
     let method_impl;
 
@@ -805,7 +805,6 @@ pub(in crate::internal) fn for_method(
                 #(#reference_integrity_checks)*
 
                 match self
-                    .ctx()
                     .db()
                     .#singular_table_name()
                     .try_insert(#singular_table_name.clone()) { // FIXME: No clone?
@@ -846,7 +845,6 @@ pub(in crate::internal) fn for_method(
 
             method_impl = quote! {
                 self
-                    .ctx()
                     .db()
                     .#singular_table_name()
                     .iter()
@@ -865,7 +863,6 @@ pub(in crate::internal) fn for_method(
 
             method_impl = quote! {
                 self
-                    .ctx()
                     .db()
                     .#singular_table_name()
                     .count()
@@ -1098,9 +1095,9 @@ pub(in crate::internal) fn for_method(
                                 .to_string();
 
                             let timestamp_value = if column_type_str.starts_with("Option") {
-                                quote! { Some(self.ctx().timestamp) }
+                                quote! { Some(self.ctx().timestamp()) }
                             } else {
-                                quote! { self.ctx().timestamp }
+                                quote! { self.ctx().timestamp() }
                             };
 
                             quote! {
@@ -1160,7 +1157,7 @@ pub(in crate::internal) fn for_method(
                             quote! {
                                 if #field_name_for_found_value.is_none() {
                                     #field_name_for_found_value = Some(
-                                        self.ctx().db().#singular_table_name().#primary_key_column_name()
+                                        self.db().#singular_table_name().#primary_key_column_name()
                                             .find(#singular_table_name.#primary_key_column_name)
                                             .expect("Row should exist for update")
                                     )
@@ -1209,7 +1206,6 @@ pub(in crate::internal) fn for_method(
 
                         // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(spacetimedsl::SpacetimeDSLError);
                         let #singular_table_name = self
-                            .ctx()
                             .db()
                             .#singular_table_name()
                             .#index_name()
@@ -1423,7 +1419,6 @@ pub(in crate::internal) fn for_method(
 
                     let method_impl_prefix = quote! {
                         self
-                            .ctx()
                             .db()
                             .#singular_table_name()
                             .#index_name()
@@ -1830,7 +1825,6 @@ pub(in crate::internal) fn for_method(
 
                             let delete_one_impl = quote! {
                                 match self
-                                        .ctx()
                                         .db()
                                         .#singular_table_name()
                                         .#primary_key_column_name()
@@ -2125,7 +2119,7 @@ fn reference_integrity_checks_on_create_or_update(
 
         paths_of_traits_to_extend.push(
             parse_str(&format!(
-                "{}::{get_row_of_referenced_table_by_primary_key_trait_name}",
+                "{}::{get_row_of_referenced_table_by_primary_key_trait_name}<T>",
                 &foreign_key.path.to_token_stream().to_string()
             ))
             .expect("should be parseable"),
@@ -2183,7 +2177,7 @@ fn reference_integrity_checks_on_create_or_update(
 
                 quote! {
                     if #field_name_for_found_value.is_none() {
-                        #field_name_for_found_value = match self.ctx().db().#referencing_table_name().#primary_key_column_name_of_referencing_table().find(#referencing_table_name.#getter_name().value()) {
+                        #field_name_for_found_value = match self.db().#referencing_table_name().#primary_key_column_name_of_referencing_table().find(#referencing_table_name.#getter_name().value()) {
                             Some(#referencing_table_name) => Some(#referencing_table_name),
                             None => {
                                 return Err(
@@ -2399,7 +2393,7 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_check(
     let multiple = OneOrMultiple::Multiple;
 
     quote! {
-        #field_name_for_found_value = match self.ctx().db().#singular_table_name().#index_name().filter((#(#row_value_getters),*)).at_most_one() {
+        #field_name_for_found_value = match self.db().#singular_table_name().#index_name().filter((#(#row_value_getters),*)).at_most_one() {
             Ok(#singular_table_name) => #singular_table_name,
             Err(_) => return Err(
                 spacetimedsl::SpacetimeDSLError::UniqueConstraintViolation {
@@ -2439,7 +2433,7 @@ fn for_referenced_by(
             is_mut: false,
             is_option: false,
             arg_name: format_ident!("dsl"),
-            arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedsl::DSL<'_> }),
+            arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedsl::DSL<'_, T> }),
         },
         SpacetimeDSLArg {
             is_mut: false,
@@ -2721,7 +2715,7 @@ fn for_foreign_key(
             is_mut: false,
             is_option: false,
             arg_name: format_ident!("dsl"),
-            arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedsl::DSL<'_> }),
+            arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedsl::DSL<'_, T> }),
         },
         SpacetimeDSLArg {
             is_mut: false,
@@ -2875,7 +2869,6 @@ fn get_on_delete_strategy_implementation(
 ) -> TokenStream {
     let spacetimedb_call_prefix = quote! {
         dsl
-            .ctx()
             .db()
             .#singular_table_name()
     };

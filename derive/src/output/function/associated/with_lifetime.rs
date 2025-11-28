@@ -29,7 +29,7 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     let trait_comment = format!("See [`Self::{method_name}`] for details.");
     let method = quote! {
         #[doc = #trait_comment]
-        pub trait #trait_name: #(#paths_of_traits_to_extend)+* {
+        pub trait #trait_name<T: spacetimedsl::WriteContext>: #(#paths_of_traits_to_extend)+* {
             #[doc=#doc_comment]
             fn #method_name<'a>(
                 &'a self,
@@ -41,7 +41,7 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
             }
         }
 
-        impl #trait_name for spacetimedsl::DSL<'_> {}
+        impl<T: spacetimedsl::WriteContext> #trait_name<T> for spacetimedsl::DSL<'_, T> {}
     };
 
     Ok(method)

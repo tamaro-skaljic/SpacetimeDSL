@@ -241,7 +241,7 @@ fn build_dsl_function_arg() -> SpacetimeDSLArg {
         is_option: false,
         arg_name: format_ident!("dsl"),
         arg_type: SpacetimeDSLArgType::Normal(quote! {
-            &spacetimedsl::DSL
+            &spacetimedsl::DSL<'_, T>
         }),
     }
 }

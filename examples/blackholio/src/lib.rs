@@ -235,7 +235,7 @@ pub fn connect(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
 
 #[hook]
 fn after_player_update(
-    dsl: &DSL,
+    dsl: &DSL<'_, T>,
     old_player: &Player,
     new_player: &Player,
 ) -> Result<(), SpacetimeDSLError> {
@@ -297,7 +297,10 @@ pub fn enter_game(ctx: &ReducerContext, name: String) -> Result<(), SpacetimeDSL
     Ok(())
 }
 
-fn spawn_player_initial_circle(dsl: &DSL, player: &Player) -> Result<Entity, SpacetimeDSLError> {
+fn spawn_player_initial_circle(
+    dsl: &DSL<'_, ReducerContext>,
+    player: &Player,
+) -> Result<Entity, SpacetimeDSLError> {
     let mut rng = dsl.ctx().rng();
 
     let world_size = get_world_size(dsl)?;
@@ -318,12 +321,12 @@ fn spawn_player_initial_circle(dsl: &DSL, player: &Player) -> Result<Entity, Spa
     Ok(entity)
 }
 
-fn get_world_size(dsl: &DSL) -> Result<i64, SpacetimeDSLError> {
+fn get_world_size(dsl: &DSL<'_, ReducerContext>) -> Result<i64, SpacetimeDSLError> {
     Ok(dsl.get_config_by_id(ConfigId::new(0))?.world_size)
 }
 
 fn spawn_circle_at(
-    dsl: &DSL,
+    dsl: &DSL<'_, ReducerContext>,
     player: &Player,
     mass: i32,
     position: DbVector2,
@@ -594,7 +597,7 @@ pub fn move_all_players(
 }
 
 fn schedule_consume_entity(
-    dsl: &DSL,
+    dsl: &DSL<'_, ReducerContext>,
     consumer_entity_id: EntityId,
     consumed_entity_id: EntityId,
 ) -> Result<(), SpacetimeDSLError> {
