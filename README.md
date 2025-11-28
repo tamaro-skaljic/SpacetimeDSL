@@ -212,7 +212,7 @@ pub fn create_example(ctx: &spacetimedb::ReducerContext) -> Result<(), String> {
 Here is the implementation:
 
 ```rust
-pub trait CreateEntityRow<T: spacetimedsl::WriteContext> : spacetimedsl::DSL<'_, T> {
+pub trait CreateEntityRow<T: spacetimedsl::WriteContext>: spacetimedsl::DSLContext<T> {
     fn create_entity<'a>(&'a self) -> Result<Entity, spacetimedsl::SpacetimeDSLError> {
         use spacetimedsl::Wrapper;
         use spacetimedb::{DbContext, Table};
@@ -819,7 +819,7 @@ pub struct Invalid {
 <summary>📄 Here is the `Delete One` DSL method of the Entity table</summary>
 
 ```rust
-pub trait DeleteEntityRowById<T: spacetimedsl::WriteContext>: spacetimedsl::DSL<'_, T> {
+pub trait DeleteEntityRowById<T: spacetimedsl::WriteContext>: spacetimedsl::DSLContext<T> {
     fn delete_entity_by_id(
         &self,
         id: impl Into<EntityId> + Clone,

@@ -1034,7 +1034,7 @@ pub mod test {
         vec![]
     }
 
-    // FIXME: Procedures can currently not called through the SpacetimeDB CLI and not through reducers, only through clients. Will need to rely on sucessful compilation for now.
+    // FIXME: Procedures can currently not be called through the SpacetimeDB CLI and not through reducers, only through clients. Will need to rely on successful compilation for now.
     #[spacetimedb::procedure(name = "my_procedure")]
     pub fn my_procedure(ctx: &mut ProcedureContext) {
         let result = ctx.try_with_tx(|ctx| {
