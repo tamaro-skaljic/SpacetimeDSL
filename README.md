@@ -175,7 +175,7 @@ pub fn create_example(ctx: &spacetimedb::ReducerContext) -> Result<(), String> {
     )?;
 
     // SpacetimeDB with SpacetimeDSL
-    let dsl: spacetimedsl::DSL<'_> = spacetimedsl::dsl(ctx);
+    let dsl: spacetimedsl::DSL<'_, spacetimedb::ReducerContext> = spacetimedsl::dsl(ctx);
 
     // Without the question mark it would return a Result<Entity, spacetimedsl::SpacetimeDSLError>
     let entity: Entity = dsl.create_entity()?;
@@ -212,7 +212,7 @@ pub fn create_example(ctx: &spacetimedb::ReducerContext) -> Result<(), String> {
 Here is the implementation:
 
 ```rust
-pub trait CreateEntityRow : spacetimedsl::DSLContext {
+pub trait CreateEntityRow<T: spacetimedsl::WriteContext> : spacetimedsl::DSL<'_, T> {
     fn create_entity<'a>(&'a self) -> Result<Entity, spacetimedsl::SpacetimeDSLError> {
         use spacetimedsl::Wrapper;
         use spacetimedb::{DbContext, Table};
@@ -249,7 +249,7 @@ pub trait CreateEntityRow : spacetimedsl::DSLContext {
     }
 }
 
-impl CreateEntityRow for spacetimedsl::DSL<'_> {}
+impl<T: spacetimedsl::WriteContext> CreateEntityRow<T> for spacetimedsl::DSL<'_, T> {}
 ```
 
 ### 🚨 The `SpacetimeDSLError` Type
@@ -819,7 +819,7 @@ pub struct Invalid {
 <summary>📄 Here is the `Delete One` DSL method of the Entity table</summary>
 
 ```rust
-pub trait DeleteEntityRowById: spacetimedsl::DSLContext {
+pub trait DeleteEntityRowById<T: spacetimedsl::WriteContext>: spacetimedsl::DSL<'_, T> {
     fn delete_entity_by_id(
         &self,
         id: impl Into<EntityId> + Clone,
@@ -962,7 +962,7 @@ pub trait DeleteEntityRowById: spacetimedsl::DSLContext {
         });
     }
 }
-impl DeleteEntityRowById for spacetimedsl::DSL<'_> {}
+impl<T: spacetimedsl::WriteContext> DeleteEntityRowById<T> for spacetimedsl::DSL<'_, T> {}
 ```
 
 </details>
@@ -1583,7 +1583,7 @@ use spacetimedsl::hook;
 
 // After insert hook
 #[hook]
-pub fn after_entity_insert(dsl: &impl spacetimedsl::DSLContext, row: &Entity) -> Result<(), SpacetimeDSLError> {
+pub fn after_entity_insert(dsl: &spacetimedsl::DSL<'_, T>, row: &Entity) -> Result<(), SpacetimeDSLError> {
     log::info!("Inserted entity with id={}", row.id());
     Ok(())
 }
@@ -1591,7 +1591,7 @@ pub fn after_entity_insert(dsl: &impl spacetimedsl::DSLContext, row: &Entity) ->
 // Before update hook - has access to both old and new values and can Mutate the new row before the update occurs
 #[hook]
 pub fn before_entity_update(
-    dsl: &impl spacetimedsl::DSLContext,
+    dsl: &spacetimedsl::DSL<'_, T>,
     old_row: &Entity,
     mut new_row: Entity
 ) -> Result<Entity, SpacetimeDSLError> {
@@ -1605,7 +1605,7 @@ pub fn before_entity_update(
 
 // Before delete hook
 #[hook]
-pub fn before_entity_delete(dsl: &impl spacetimedsl::DSLContext, row: &Entity) -> Result<(), SpacetimeDSLError> {
+pub fn before_entity_delete(dsl: &spacetimedsl::DSL<'_, T>, row: &Entity) -> Result<(), SpacetimeDSLError> {
     log::info!("Deleting entity with id={}", row.id());
     Ok(())
 }
@@ -1778,12 +1778,14 @@ spacetimedsl = { version = "*" }
 
 - [Using IndexScanRangeBounds / FilterableValue](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21) 🔄
 
-- SpacetimeDSL is not available in `#[spacetimedb::view]` functions, because SpacetimeDB uses structs instead of traits for Contexts - We are not really able to generate code which use `ReducerContext`, `ViewContext` and `AnonymousViewContext` at the same time, so we would need to generate each read-only DSL method 3 times.
-  - If you encounter that you can't access a method on the (Anonymous)ViewContext type because it's private, please follow these instructions: <https://github.com/tamaro-skaljic/SpacetimeDSL/issues/90#issuecomment-3573925117> until <https://github.com/clockworklabs/SpacetimeDB/issues/3754> is resolved.
+- SpacetimeDSL is not available in `#[spacetimedb::view]` functions until [SpacetimeDB#3787](https://github.com/clockworklabs/SpacetimeDB/pull/3787) is merged and released.
+  - If you encounter that you can't access a method on the `(Anonymous)ViewContext` type because it's private, please follow these instructions: <https://github.com/tamaro-skaljic/SpacetimeDSL/issues/90#issuecomment-3573925117> until [SpacetimeDB#3754](https://github.com/clockworklabs/SpacetimeDB/issues/3754) is resolved and released.
 
 ## ❓ FAQ
 
 **❔ Why must `#[primary_key]` columns be private?**
+
+> Currently, they are allowed to be public, until [SpacetimeDB#3754](https://github.com/clockworklabs/SpacetimeDB/issues/3754) is resolved and released.
 
 - 🔒 They should never change after insertion
 - DSL generates [setters](#-accessors-getters-and-setters) for non-private columns
