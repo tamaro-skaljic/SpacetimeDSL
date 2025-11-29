@@ -7,8 +7,8 @@ pub mod internal;
 
 pub mod prelude {
     pub use crate::{
-        DSL, DSLContext, ReadOnlyDSL, ReadOnlyDSLContext, SpacetimeDSLError, Wrapper, dsl,
-        read_only_dsl,
+        ConnectionId, DSL, DSLContext, ReadContext, ReadOnlyDSL, ReadOnlyDSLContext, Sender,
+        SpacetimeDSLError, Timestamp, Wrapper, WriteContext, dsl, read_only_dsl,
     };
 }
 
@@ -62,21 +62,25 @@ impl<T: WriteContext> DSLContext<T> for DSL<'_, T> {
 
 pub trait ReadContext: spacetimedb::DbContext<DbView = spacetimedb::LocalReadOnly> {}
 
+// FIXME: Wait for merge and release of https://github.com/clockworklabs/SpacetimeDB/pull/3787
 // impl ReadContext for spacetimedb::AnonymousViewContext {}
 // impl ReadContext for spacetimedb::ViewContext {}
 
 pub struct ReadOnlyDSL<'a> {
     pub(crate) ctx: &'a dyn ReadContext,
+    pub(crate) db: &'a spacetimedb::LocalReadOnly,
 }
 
 pub fn read_only_dsl<'a>(ctx: &'a dyn ReadContext) -> ReadOnlyDSL<'a> {
-    ReadOnlyDSL { ctx }
+    ReadOnlyDSL { ctx, db: ctx.db() }
 }
 
 pub trait ReadOnlyDSLContext {
     fn dsl(&self) -> &ReadOnlyDSL<'_>;
 
     fn ctx(&self) -> &dyn ReadContext;
+
+    fn db(&self) -> &spacetimedb::LocalReadOnly;
 }
 
 impl ReadOnlyDSLContext for ReadOnlyDSL<'_> {
@@ -86,6 +90,10 @@ impl ReadOnlyDSLContext for ReadOnlyDSL<'_> {
 
     fn ctx(&self) -> &dyn ReadContext {
         self.ctx
+    }
+
+    fn db(&self) -> &spacetimedb::LocalReadOnly {
+        self.db
     }
 }
 
