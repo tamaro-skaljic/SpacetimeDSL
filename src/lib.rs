@@ -1,36 +1,118 @@
 pub use itertools;
-use spacetimedb::ReducerContext;
 pub use spacetimedsl_derive::{SpacetimeDSL, dsl, hook};
-use std::{
-    error::Error,
-    fmt::{self, Display},
-};
+use std::fmt::Display;
 
-pub struct DSL<'a> {
-    pub(crate) ctx: &'a ReducerContext,
+#[doc(hidden)]
+pub mod internal;
+
+pub mod prelude {
+    pub use crate::{
+        ConnectionId, DSL, DSLContext, ReadContext, ReadOnlyDSL, ReadOnlyDSLContext, Sender,
+        SpacetimeDSL, SpacetimeDSLError, Timestamp, Wrapper, WriteContext, dsl, hook,
+        itertools::Itertools, read_only_dsl,
+    };
 }
 
-pub struct DSLMethodHooks {}
+//region Write DSL
 
-pub fn dsl<'a>(ctx: &'a ReducerContext) -> DSL<'a> {
-    DSL { ctx }
+pub trait WriteContext:
+    spacetimedb::DbContext<DbView = spacetimedb::Local> + Sender + Timestamp + ConnectionId
+{
 }
 
-pub trait DSLContext {
-    fn dsl(&self) -> &DSL<'_>;
+impl WriteContext for spacetimedb::ReducerContext {}
+impl WriteContext for spacetimedb::TxContext {}
 
-    fn ctx(&self) -> &ReducerContext;
+// impl DbContext (ReducerContext, TxContext) for Local and DbContext (AnonymousViewContext, ViewContext) for LocalReadOnly
+pub struct DSL<'a, T: WriteContext> {
+    pub(crate) ctx: &'a T,
+    pub(crate) db: &'a spacetimedb::Local,
 }
 
-impl DSLContext for DSL<'_> {
-    fn dsl(&self) -> &DSL<'_> {
+pub fn dsl<'a, T: spacetimedb::DbContext<DbView = spacetimedb::Local> + WriteContext>(
+    ctx: &'a T,
+) -> DSL<'a, T> {
+    DSL { ctx, db: ctx.db() }
+}
+
+pub trait DSLContext<T: WriteContext> {
+    fn dsl(&self) -> &DSL<'_, T>;
+
+    fn ctx(&self) -> &T;
+
+    fn db(&self) -> &spacetimedb::Local;
+}
+
+impl<T: WriteContext> DSLContext<T> for DSL<'_, T> {
+    fn dsl(&self) -> &DSL<'_, T> {
         self
     }
 
-    fn ctx(&self) -> &ReducerContext {
+    fn ctx(&self) -> &T {
         self.ctx
     }
+
+    fn db(&self) -> &spacetimedb::Local {
+        self.db
+    }
 }
+
+//endregion Write DSL
+
+//region Read-Only DSL
+
+pub trait ReadContext: spacetimedb::DbContext<DbView = spacetimedb::LocalReadOnly> {}
+
+// FIXME: Wait for merge and release of https://github.com/clockworklabs/SpacetimeDB/pull/3787
+// impl ReadContext for spacetimedb::AnonymousViewContext {}
+// impl ReadContext for spacetimedb::ViewContext {}
+
+pub struct ReadOnlyDSL<'a> {
+    pub(crate) ctx: &'a dyn ReadContext,
+    pub(crate) db: &'a spacetimedb::LocalReadOnly,
+}
+
+pub fn read_only_dsl<'a>(ctx: &'a dyn ReadContext) -> ReadOnlyDSL<'a> {
+    ReadOnlyDSL { ctx, db: ctx.db() }
+}
+
+pub trait ReadOnlyDSLContext {
+    fn dsl(&self) -> &ReadOnlyDSL<'_>;
+
+    fn ctx(&self) -> &dyn ReadContext;
+
+    fn db(&self) -> &spacetimedb::LocalReadOnly;
+}
+
+impl ReadOnlyDSLContext for ReadOnlyDSL<'_> {
+    fn dsl(&self) -> &ReadOnlyDSL<'_> {
+        self
+    }
+
+    fn ctx(&self) -> &dyn ReadContext {
+        self.ctx
+    }
+
+    fn db(&self) -> &spacetimedb::LocalReadOnly {
+        self.db
+    }
+}
+
+//endregion Read-Only DSL
+
+pub trait Sender {
+    fn sender(&self) -> spacetimedb::Identity;
+}
+
+pub trait Timestamp {
+    fn timestamp(&self) -> spacetimedb::Timestamp;
+}
+
+pub trait ConnectionId {
+    fn connection_id(&self) -> Option<spacetimedb::ConnectionId>;
+}
+
+pub struct DSLMethodHooks {}
 
 pub trait Wrapper<WrappedType: Clone + Default, WrapperType>:
     Default + Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
@@ -85,17 +167,6 @@ pub enum OnDeleteStrategy {
     Ignore,
 }
 
-impl Display for OnDeleteStrategy {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            OnDeleteStrategy::Error => write!(f, "Error"),
-            OnDeleteStrategy::Delete => write!(f, "Delete"),
-            OnDeleteStrategy::SetZero => write!(f, "SetZero"),
-            OnDeleteStrategy::Ignore => write!(f, "Ignore"),
-        }
-    }
-}
-
 #[derive(Debug)]
 pub enum SpacetimeDSLError {
     Error(String),
@@ -126,96 +197,12 @@ pub enum ReferenceIntegrityViolationError {
     OnDelete(DeletionResult),
 }
 
-impl Display for SpacetimeDSLError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut message: String = String::new();
-
-        let dig_spacetimedb = "Unfortunately SpacetimeDB doesn't provide more information";
-
-        message.push_str(&match self {
-            SpacetimeDSLError::Error(error) => error.into(),
-            SpacetimeDSLError::NotFoundError {
-                table_name,
-                column_names_and_row_values
-            } => format!("Not Found Error while trying to find a row in the `{table_name}` table with `{column_names_and_row_values}`!"),
-            SpacetimeDSLError::UniqueConstraintViolation {
-                table_name,
-                action,
-                error_from,
-                one_or_multiple,
-                column_names_and_row_values,
-            } => {
-                let column_names_and_row_values = match error_from {
-                    ErrorFrom::SpacetimeDB => format!("! {dig_spacetimedb}, so here are all columns and their values: `{column_names_and_row_values}`."),
-                    ErrorFrom::SpacetimeDSL => {
-                        let one_or_multiple = match one_or_multiple {
-                            OneOrMultiple::One => "",
-                            OneOrMultiple::Multiple => " There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the unique multi-column index feature of SpacetimeDSL is broken.",
-                        };
-                        format!(" because of `{column_names_and_row_values}`!{one_or_multiple}")
-                    },
-                };
-
-                format!("Unique Constraint Violation Error while trying to {action} a row in the `{table_name}` table{column_names_and_row_values}")
-            }
-            SpacetimeDSLError::AutoIncOverflow { table_name } => {
-                format!("Auto Inc Overflow Error on the `{table_name}` table! {dig_spacetimedb}.")
-            }
-            SpacetimeDSLError::ReferenceIntegrityViolation(error) => {
-                match error {
-                    ReferenceIntegrityViolationError::OnCreateOrUpdate {
-                        table_name,
-                        create_or_update,
-                        column_names_and_row_values
-                    } => {
-                        let create_or_update = match create_or_update {
-                            Action::Get | Action::Delete => panic!("Reference Integrity Violation Error On Create Or Update only allowed while creating or updating a row."),
-                            action => action.to_string()
-                        };
-
-                        format!("Reference Integrity Violation Error while trying to {create_or_update} a row in the `{table_name}` table because of `{column_names_and_row_values}`!")
-                    },
-                    ReferenceIntegrityViolationError::OnDelete(deletion_result) => {
-                        let one_or_multiple_rows = match deletion_result.one_or_multiple {
-                            OneOrMultiple::One => "a row",
-                            OneOrMultiple::Multiple => "multiple rows",
-                        };
-
-                        format!("Reference Integrity Violation Error while trying to delete {one_or_multiple_rows} in the `{}` table because of:\n\n{}", &deletion_result.table_name, deletion_result.to_csv())
-                    },
-                }
-            }
-        });
-
-        write!(f, "{message}")
-    }
-}
-
-impl Error for SpacetimeDSLError {}
-
-impl From<SpacetimeDSLError> for String {
-    fn from(value: SpacetimeDSLError) -> Self {
-        value.to_string()
-    }
-}
-
 #[derive(Debug)]
 pub enum Action {
     Create,
     Get,
     Update,
     Delete,
-}
-
-impl Display for Action {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Action::Create => write!(f, "create"),
-            Action::Get => write!(f, "get"),
-            Action::Update => write!(f, "update"),
-            Action::Delete => write!(f, "delete"),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -244,60 +231,4 @@ pub struct DeletionResultEntry {
     pub strategy: OnDeleteStrategy,
     pub row_value: Box<str>,
     pub child_entries: Vec<DeletionResultEntry>,
-}
-
-impl DeletionResultEntry {
-    pub fn to_csv(
-        &self,
-        mut entry_id: u128,
-        mut parent_entry_id: u128,
-        mut message: String,
-    ) -> (u128, String) {
-        entry_id += 1;
-
-        let table_name = &self.table_name;
-        let column_name = &self.column_name;
-        let strategy = &self.strategy;
-        let row_value = &self.row_value;
-
-        message.push_str(&format!(
-            "{entry_id}, {parent_entry_id}, {table_name}, {column_name}, {strategy}, {row_value}\n"
-        ));
-
-        parent_entry_id = entry_id;
-
-        for child_entry in &self.child_entries {
-            (entry_id, message) = child_entry.to_csv(entry_id, parent_entry_id, message);
-        }
-
-        (entry_id, message)
-    }
-}
-
-impl fmt::Display for DeletionResult {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_csv())
-    }
-}
-
-impl DeletionResult {
-    pub fn to_csv(&self) -> String {
-        let mut message: String = String::new();
-
-        message
-            .push_str("entry_id, parent_entry_id, table_name, column_name, strategy, row_value,\n");
-
-        let mut entry_id: u128 = 0;
-
-        for entry in &self.entries {
-            (entry_id, message) = entry.to_csv(entry_id, 0, message);
-        }
-
-        message
-    }
-}
-
-#[doc(hidden)]
-pub mod internal {
-    pub struct DSLInternals;
 }
