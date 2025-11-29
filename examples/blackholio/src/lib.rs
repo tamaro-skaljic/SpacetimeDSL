@@ -5,7 +5,7 @@ use spacetimedb::SpacetimeType;
 use spacetimedb::rand::Rng;
 use spacetimedb::{Identity, ReducerContext, TimeDuration, Timestamp, spacetimedb_lib::ScheduleAt};
 use spacetimedsl::itertools::Itertools;
-use spacetimedsl::{DSL, DSLContext, SpacetimeDSLError, Wrapper, dsl, hook};
+use spacetimedsl::prelude::*;
 use std::{collections::HashMap, time::Duration};
 
 // TODO:

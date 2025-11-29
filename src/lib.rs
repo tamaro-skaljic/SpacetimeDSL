@@ -8,7 +8,8 @@ pub mod internal;
 pub mod prelude {
     pub use crate::{
         ConnectionId, DSL, DSLContext, ReadContext, ReadOnlyDSL, ReadOnlyDSLContext, Sender,
-        SpacetimeDSLError, Timestamp, Wrapper, WriteContext, dsl, read_only_dsl,
+        SpacetimeDSL, SpacetimeDSLError, Timestamp, Wrapper, WriteContext, dsl, hook,
+        itertools::Itertools, read_only_dsl,
     };
 }
 

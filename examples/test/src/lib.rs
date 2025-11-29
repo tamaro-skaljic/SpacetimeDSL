@@ -1017,7 +1017,7 @@ pub mod test {
     use spacetimedb::{
         AnonymousViewContext, ProcedureContext, ReducerContext, TimeDuration, ViewContext, reducer,
     };
-    use spacetimedsl::{DSL, Wrapper, WriteContext, dsl};
+    use spacetimedsl::prelude::*;
 
     #[spacetimedb::view(name = my_view, public)]
     pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
