@@ -9,22 +9,22 @@ switch ($Command) {
         Write-Output "Building module..."
         Write-Output ""
         Set-Location examples\test
-        spacetime publish spacetimedsl
+        spacetime publish --server local spacetimedsl
         Write-Output ""
 
         Write-Output "Testing module..."
         Write-Output ""
-        spacetime call spacetimedsl tester
+        spacetime call --server local spacetimedsl tester
         Write-Output ""
 
         Write-Output "Showing logs..."
         Write-Output ""
-        spacetime logs spacetimedsl
+        spacetime logs --server local spacetimedsl
         Write-Output ""
 
         Write-Output "Cleaning up module..."
         Write-Output ""
-        spacetime delete spacetimedsl
+        spacetime delete --server local spacetimedsl
         Write-Output ""
         Set-Location ..\..
     }
