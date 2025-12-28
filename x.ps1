@@ -32,16 +32,10 @@ switch ($Command) {
     "format" {
         cargo fmt --all -- --check
 
-        Set-Location derive-input
-        # cargo clippy --fix --allow-dirty --all-features
-
-        Set-Location ..\derive
+        Set-Location derive
         cargo clippy --fix --allow-dirty --all-features
 
-        Set-Location ..
-        # cargo clippy --fix --allow-dirty --all-features
-
-        Set-Location examples\test
+        Set-Location ..\examples\test
         cargo clippy --fix --allow-dirty --all-features
 
         Set-Location ..\blackholio

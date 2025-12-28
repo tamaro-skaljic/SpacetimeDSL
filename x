@@ -27,16 +27,10 @@ case "$1" in
     format)
         cargo fmt --all -- --check
 
-        cd derive-input
-        # cargo clippy --fix --allow-dirty --all-features
-
-        cd ../derive
+        cd derive
         cargo clippy --fix --allow-dirty --all-features
 
-        cd ..
-        # cargo clippy --fix --allow-dirty --all-features
-
-        cd examples/test
+        cd ../examples/test
         cargo clippy --fix --allow-dirty --all-features
 
         cd ../blackholio
