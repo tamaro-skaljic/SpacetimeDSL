@@ -1,0 +1,129 @@
+param(
+    [Parameter(Position=0)]
+    [ValidateSet("test", "format", "debug", "loc")]
+    [string]$Command
+)
+
+switch ($Command) {
+    "test" {
+        Write-Output "Building module..."
+        Write-Output ""
+        Set-Location examples\test
+        spacetime publish spacetimedsl
+        Write-Output ""
+
+        Write-Output "Testing module..."
+        Write-Output ""
+        spacetime call spacetimedsl tester
+        Write-Output ""
+
+        Write-Output "Showing logs..."
+        Write-Output ""
+        spacetime logs spacetimedsl
+        Write-Output ""
+
+        Write-Output "Cleaning up module..."
+        Write-Output ""
+        spacetime delete spacetimedsl
+        Write-Output ""
+        Set-Location ..\..
+    }
+
+    "format" {
+        cargo fmt --all -- --check
+
+        Set-Location derive-input
+        # cargo clippy --fix --allow-dirty --all-features
+
+        Set-Location ..\derive
+        cargo clippy --fix --allow-dirty --all-features
+
+        Set-Location ..
+        # cargo clippy --fix --allow-dirty --all-features
+
+        Set-Location examples\test
+        cargo clippy --fix --allow-dirty --all-features
+
+        Set-Location ..\blackholio
+        cargo clippy --fix --allow-dirty --all-features
+        Set-Location ..\..
+    }
+
+    "debug" {
+        Set-Location examples\test
+        $env:RUSTFLAGS = "-Zmacro-backtrace"
+        cargo +nightly expand > ..\..\debug-helper\output\lib.expanded.rs
+        Set-Location ..\..\debug-helper
+        cargo run -- ..\examples\test\src\lib.rs > output\lib.rs.ast
+        Set-Location ..
+    }
+
+    "loc" {
+        # Get all .rs files recursively from the current directory
+        $files = Get-ChildItem -Path . -Filter "*.rs" -Recurse -File | Where-Object {
+            $_.FullName -like "*\src\*"
+        } | ForEach-Object {
+            # Count lines in each file
+            $lineCount = (Get-Content $_.FullName | Measure-Object -Line).Lines
+
+            # Create a custom object with line count and relative path
+            $relativePath = $_.FullName.Replace("$PWD\", "")
+            $firstDir = $relativePath.Split('\')[0]
+            $pathWithoutFirstDir = $relativePath.Substring($firstDir.Length + 1)
+
+            # Remove 'src\' prefix if present
+            if ($pathWithoutFirstDir.StartsWith("src\")) {
+                $pathWithoutFirstDir = $pathWithoutFirstDir.Substring(4)
+            }
+
+            # Extract second directory (first segment after removing first dir and src)
+            $secondDir = if ($pathWithoutFirstDir.Contains('\')) {
+                $pathWithoutFirstDir.Split('\')[0]
+            } else {
+                ""
+            }
+
+            [PSCustomObject]@{
+                Lines = $lineCount
+                Path = $relativePath
+                FirstDir = $firstDir
+                SecondDir = $secondDir
+                PathWithoutFirstDir = $pathWithoutFirstDir
+            }
+        } | Sort-Object -Property FirstDir, SecondDir, @{Expression = {$_.Lines}; Descending = $true}
+
+        # Find the maximum line count length for padding
+        $maxLineLength = ($files | ForEach-Object { $_.Lines.ToString().Length } | Measure-Object -Maximum).Maximum
+
+        # Print with aligned paths, grouped by first directory
+        $currentGroup = $null
+        $files | ForEach-Object {
+            # Print group header when directory changes
+            if ($currentGroup -ne $_.FirstDir) {
+                if ($currentGroup -ne $null) {
+                    Write-Output ""
+                }
+                Write-Output "$($_.FirstDir):"
+                $currentGroup = $_.FirstDir
+            }
+
+            # Print in the format: {lines_of_code} {path_without_first_dir} with padding
+            $paddedLines = $_.Lines.ToString().PadLeft($maxLineLength)
+            Write-Output "$paddedLines $($_.PathWithoutFirstDir)"
+        }
+
+        # Add final newline
+        Write-Output ""
+    }
+
+    default {
+        Write-Output "Usage: .\x.ps1 {test|format|debug|loc}"
+        Write-Output ""
+        Write-Output "Commands:"
+        Write-Output "  test    - Build, test, show logs, and clean up the module"
+        Write-Output "  format  - Run cargo fmt check and clippy fixes"
+        Write-Output "  debug   - Expand macros and generate AST output"
+        Write-Output "  loc     - Count lines of Rust code grouped by directory"
+        exit 1
+    }
+}
