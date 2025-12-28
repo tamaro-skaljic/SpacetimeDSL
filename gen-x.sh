@@ -1,0 +1,337 @@
+#!/bin/bash
+
+# Helper functions that return shell-specific syntax
+
+
+switch_start() {
+    case "$1" in
+        bash) echo 'case "$1" in' ;;
+        powershell) echo 'switch ($Command) {' ;;
+    esac
+}
+
+switch_case() {
+    local shell="$1"
+    local case_name="$2"
+    case "$shell" in
+        bash) echo "    $case_name)" ;;
+        powershell) echo "    \"$case_name\" {" ;;
+    esac
+}
+
+switch_case_end() {
+    case "$1" in
+        bash) echo "        ;;" ;;
+        powershell) echo "    }" ;;
+    esac
+}
+
+switch_default() {
+    case "$1" in
+        bash) echo "    *)" ;;
+        powershell) echo "    default {" ;;
+    esac
+}
+
+switch_end() {
+    case "$1" in
+        bash) echo "esac" ;;
+        powershell) echo "}" ;;
+    esac
+}
+
+cmd_echo() {
+    local shell="$1"
+    local text="$2"
+    case "$shell" in
+        bash)
+            if [ -z "$text" ]; then
+                echo "        echo"
+            else
+                echo "        echo \"$text\""
+            fi
+            ;;
+        powershell)
+            if [ -z "$text" ]; then
+                echo "        Write-Output \"\""
+            else
+                echo "        Write-Output \"$text\""
+            fi
+            ;;
+    esac
+}
+
+cmd_cd() {
+    local shell="$1"
+    local path="$2"
+    case "$shell" in
+        bash) echo "        cd $path" ;;
+        powershell) echo "        Set-Location ${path//\//\\}" ;;  # Convert / to \
+    esac
+}
+
+script_usage() {
+    local shell="$1"
+    case "$shell" in
+        bash) echo "./x" ;;
+        powershell) echo ".\\x.ps1" ;;
+    esac
+}
+
+indent() {
+    local shell="$1"
+    local level="${2:-1}"
+    local spaces=$((level * 4))
+    printf "%${spaces}s" ""
+}
+
+# Generate common commands that are the same across shells
+cmd_spacetime() {
+    local command="$1"
+    echo "        spacetime $command"
+}
+
+cmd_cargo() {
+    local command="$1"
+    echo "        cargo $command"
+}
+
+# Header and case generation functions
+generate_header() {
+    local shell="$1"
+
+    if [ "$shell" = "bash" ]; then
+        # Bash shebang
+        echo "#!/bin/bash"
+    else
+        # PowerShell param block
+        cat << 'EOF'
+param(
+    [Parameter(Position=0)]
+    [ValidateSet("test", "format", "debug", "loc")]
+    [string]$Command
+)
+EOF
+    fi
+
+    echo
+}
+
+generate_test() {
+    local shell="$1"
+
+    switch_case "$shell" "test"
+    cmd_echo "$shell" "Building module..."
+    cmd_echo "$shell"
+    cmd_cd "$shell" "examples/test"
+    cmd_spacetime "publish --server local spacetimedsl"
+    cmd_echo "$shell"
+    echo
+    cmd_echo "$shell" "Testing module..."
+    cmd_echo "$shell"
+    cmd_spacetime "call --server local spacetimedsl tester"
+    cmd_echo "$shell"
+    echo
+    cmd_echo "$shell" "Showing logs..."
+    cmd_echo "$shell"
+    cmd_spacetime "logs --server local spacetimedsl"
+    cmd_echo "$shell"
+    echo
+    cmd_echo "$shell" "Cleaning up module..."
+    cmd_echo "$shell"
+    cmd_spacetime "delete --server local spacetimedsl"
+    cmd_echo "$shell"
+    [ "$shell" = "powershell" ] && cmd_cd "$shell" "../.."
+    switch_case_end "$shell"
+    echo
+}
+
+generate_format() {
+    local shell="$1"
+
+    switch_case "$shell" "format"
+    cmd_cargo "fmt --all -- --check"
+    echo
+    cmd_cd "$shell" "derive"
+    cmd_cargo "clippy --fix --allow-dirty --all-features"
+    echo
+    cmd_cd "$shell" "../examples/test"
+    cmd_cargo "clippy --fix --allow-dirty --all-features"
+    echo
+    cmd_cd "$shell" "../blackholio"
+    cmd_cargo "clippy --fix --allow-dirty --all-features"
+    [ "$shell" = "powershell" ] && cmd_cd "$shell" "../.."
+    switch_case_end "$shell"
+    echo
+}
+
+generate_debug() {
+    local shell="$1"
+
+    switch_case "$shell" "debug"
+    cmd_cd "$shell" "examples/test"
+    if [ "$shell" = "bash" ]; then
+        echo "        RUSTFLAGS=\"-Zmacro-backtrace\" cargo +nightly expand > ../../debug-helper/output/lib.expanded.rs"
+    else
+        echo "        \$env:RUSTFLAGS = \"-Zmacro-backtrace\""
+        echo "        cargo +nightly expand > ..\\..\\debug-helper\\output\\lib.expanded.rs"
+    fi
+    cmd_cd "$shell" "../../debug-helper"
+    if [ "$shell" = "bash" ]; then
+        echo "        cargo run -- ../examples/test/src/lib.rs > output/lib.rs.ast"
+    else
+        echo "        cargo run -- ..\\examples\\test\\src\\lib.rs > output\\lib.rs.ast"
+    fi
+    cmd_cd "$shell" ".."
+    switch_case_end "$shell"
+    echo
+}
+
+generate_loc() {
+    local shell="$1"
+
+    switch_case "$shell" "loc"
+    if [ "$shell" = "bash" ]; then
+        cat << 'BASH_LOC'
+        # Get all .rs files recursively from src directories and count lines
+        while IFS= read -r file; do
+            # Get line count
+            lines=$(wc -l < "$file")
+
+            # Get relative path
+            rel_path="${file#./}"
+
+            # Extract first directory
+            first_dir="${rel_path%%/*}"
+
+            # Get path without first directory
+            path_without_first="${rel_path#*/}"
+
+            # Remove src/ prefix if present
+            if [[ "$path_without_first" == src/* ]]; then
+                path_without_first="${path_without_first#src/}"
+            fi
+
+            # Store for grouping
+            echo "$first_dir|$lines|$path_without_first"
+        done < <(find . -path "*/src/*.rs" -type f) | sort -t'|' -k1,1 -k2,2nr | {
+            current_group=""
+
+            while IFS='|' read -r first_dir lines path_without_first; do
+                # Print group header when directory changes
+                if [[ "$current_group" != "$first_dir" ]]; then
+                    if [[ -n "$current_group" ]]; then
+                        echo
+                    fi
+                    echo "$first_dir:"
+                    current_group="$first_dir"
+                fi
+
+                # Print with padding
+                printf "%6d %s\n" "$lines" "$path_without_first"
+            done
+
+            echo
+        }
+BASH_LOC
+    else
+        cat << 'POWERSHELL_LOC'
+        # Get all .rs files recursively from the current directory
+        $files = Get-ChildItem -Path . -Filter "*.rs" -Recurse -File | Where-Object {
+            $_.FullName -like "*\src\*"
+        } | ForEach-Object {
+            # Count lines in each file
+            $lineCount = (Get-Content $_.FullName | Measure-Object -Line).Lines
+
+            # Create a custom object with line count and relative path
+            $relativePath = $_.FullName.Replace("$PWD\", "")
+            $firstDir = $relativePath.Split('\')[0]
+            $pathWithoutFirstDir = $relativePath.Substring($firstDir.Length + 1)
+
+            # Remove 'src\' prefix if present
+            if ($pathWithoutFirstDir.StartsWith("src\")) {
+                $pathWithoutFirstDir = $pathWithoutFirstDir.Substring(4)
+            }
+
+            # Extract second directory (first segment after removing first dir and src)
+            $secondDir = if ($pathWithoutFirstDir.Contains('\')) {
+                $pathWithoutFirstDir.Split('\')[0]
+            } else {
+                ""
+            }
+
+            [PSCustomObject]@{
+                Lines = $lineCount
+                Path = $relativePath
+                FirstDir = $firstDir
+                SecondDir = $secondDir
+                PathWithoutFirstDir = $pathWithoutFirstDir
+            }
+        } | Sort-Object -Property FirstDir, SecondDir, @{Expression = {$_.Lines}; Descending = $true}
+
+        # Find the maximum line count length for padding
+        $maxLineLength = ($files | ForEach-Object { $_.Lines.ToString().Length } | Measure-Object -Maximum).Maximum
+
+        # Print with aligned paths, grouped by first directory
+        $currentGroup = $null
+        $files | ForEach-Object {
+            # Print group header when directory changes
+            if ($currentGroup -ne $_.FirstDir) {
+                if ($currentGroup -ne $null) {
+                    Write-Output ""
+                }
+                Write-Output "$($_.FirstDir):"
+                $currentGroup = $_.FirstDir
+            }
+
+            # Print in the format: {lines_of_code} {path_without_first_dir} with padding
+            $paddedLines = $_.Lines.ToString().PadLeft($maxLineLength)
+            Write-Output "$paddedLines $($_.PathWithoutFirstDir)"
+        }
+
+        # Add final newline
+        Write-Output ""
+POWERSHELL_LOC
+    fi
+    switch_case_end "$shell"
+    echo
+}
+
+generate_usage() {
+    local shell="$1"
+
+    switch_default "$shell"
+    cmd_echo "$shell" "Usage: $(script_usage "$shell") {test|format|debug|loc}"
+    cmd_echo "$shell"
+    cmd_echo "$shell" "Commands:"
+    cmd_echo "$shell" "  test    - Build, test, show logs, and clean up the module"
+    cmd_echo "$shell" "  format  - Run cargo fmt check and clippy fixes"
+    cmd_echo "$shell" "  debug   - Expand macros and generate AST output"
+    cmd_echo "$shell" "  loc     - Count lines of Rust code grouped by directory"
+    echo "        exit 1"
+    switch_case_end "$shell"
+}
+
+# Main generation function
+generate() {
+    local shell="$1"
+
+    generate_header "$shell"
+    switch_start "$shell"
+    generate_test "$shell"
+    generate_format "$shell"
+    generate_debug "$shell"
+    generate_loc "$shell"
+    generate_usage "$shell"
+    switch_end "$shell"
+}
+
+# Main script execution
+echo "Generating x.sh (bash)..."
+generate bash > x.sh
+chmod +x x.sh
+
+echo "Generating x.ps1 (PowerShell)..."
+generate powershell > x.ps1
+
+echo "Done! Generated x and x.ps1"
