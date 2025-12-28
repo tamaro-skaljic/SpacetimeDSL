@@ -1,0 +1,107 @@
+#!/bin/bash
+
+case "$1" in
+    test)
+        echo "Building module..."
+        echo
+        cd examples/test
+        spacetime publish --server local spacetimedsl
+        echo
+
+        echo "Testing module..."
+        echo
+        spacetime call --server local spacetimedsl tester
+        echo
+
+        echo "Showing logs..."
+        echo
+        spacetime logs --server local spacetimedsl
+        echo
+
+        echo "Cleaning up module..."
+        echo
+        spacetime delete --server local spacetimedsl
+        echo
+        ;;
+
+    format)
+        cargo fmt --all -- --check
+
+        cd derive-input
+        # cargo clippy --fix --allow-dirty --all-features
+
+        cd ../derive
+        cargo clippy --fix --allow-dirty --all-features
+
+        cd ..
+        # cargo clippy --fix --allow-dirty --all-features
+
+        cd examples/test
+        cargo clippy --fix --allow-dirty --all-features
+
+        cd ../blackholio
+        cargo clippy --fix --allow-dirty --all-features
+        ;;
+
+    debug)
+        cd examples/test
+        RUSTFLAGS="-Zmacro-backtrace" cargo +nightly expand > ../../debug-helper/output/lib.expanded.rs
+        cd ../../debug-helper
+        cargo run -- ../examples/test/src/lib.rs > output/lib.rs.ast
+        cd ..
+        ;;
+
+    loc)
+        # Get all .rs files recursively from src directories and count lines
+        while IFS= read -r file; do
+            # Get line count
+            lines=$(wc -l < "$file")
+
+            # Get relative path
+            rel_path="${file#./}"
+
+            # Extract first directory
+            first_dir="${rel_path%%/*}"
+
+            # Get path without first directory
+            path_without_first="${rel_path#*/}"
+
+            # Remove src/ prefix if present
+            if [[ "$path_without_first" == src/* ]]; then
+                path_without_first="${path_without_first#src/}"
+            fi
+
+            # Store for grouping
+            echo "$first_dir|$lines|$path_without_first"
+        done < <(find . -path "*/src/*.rs" -type f) | sort -t'|' -k1,1 -k2,2nr | {
+            current_group=""
+
+            while IFS='|' read -r first_dir lines path_without_first; do
+                # Print group header when directory changes
+                if [[ "$current_group" != "$first_dir" ]]; then
+                    if [[ -n "$current_group" ]]; then
+                        echo
+                    fi
+                    echo "$first_dir:"
+                    current_group="$first_dir"
+                fi
+
+                # Print with padding
+                printf "%6d %s\n" "$lines" "$path_without_first"
+            done
+
+            echo
+        }
+        ;;
+
+    *)
+        echo "Usage: ./x {test|format|debug|loc}"
+        echo
+        echo "Commands:"
+        echo "  test    - Build, test, show logs, and clean up the module"
+        echo "  format  - Run cargo fmt check and clippy fixes"
+        echo "  debug   - Expand macros and generate AST output"
+        echo "  loc     - Count lines of Rust code grouped by directory"
+        exit 1
+        ;;
+esac
