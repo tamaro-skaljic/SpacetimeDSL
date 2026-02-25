@@ -2,106 +2,110 @@ name: Test SpacetimeDSL
 
 on:
   push:
-    branches: [ main, develop ]
-    tags: [ 'v*' ]  # Also run tests when version tags are pushed
+    branches: [main, develop]
+    tags: ["v*"] # Also run tests when version tags are pushed
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install Rust
-      uses: actions-rust-lang/setup-rust-toolchain@v1
-      with:
-        toolchain: stable
-        target: wasm32-unknown-unknown
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
 
-    - name: Install SpacetimeDB CLI
-      run: |
-        # Function to attempt SpacetimeDB CLI installation
-        install_spacetimedb() {
-          echo "Attempting to install SpacetimeDB CLI..."
-          curl -sSf https://install.spacetimedb.com | sh -s -- --yes
-          return $?
-        }
-        
-        # Function to verify installation
-        verify_installation() {
-          if [ -f "$HOME/.local/bin/spacetime" ]; then
-            echo "✅ SpacetimeDB CLI installed successfully"
-            echo "$HOME/.local/bin" >> $GITHUB_PATH
-            ls -la "$HOME/.local/bin/" || echo "Local bin directory not found"
-            return 0
-          else
-            echo "❌ SpacetimeDB CLI installation failed - spacetime binary not found"
-            return 1
-          fi
-        }
-        
-        # Retry logic: attempt installation up to 3 times
-        MAX_ATTEMPTS=4
-        ATTEMPT=1
-        
-        while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-          echo "📦 Installation attempt $ATTEMPT of $MAX_ATTEMPTS"
-          
-          if install_spacetimedb; then
-            echo "🔍 Verifying installation..."
-            if verify_installation; then
-              echo "🎉 SpacetimeDB CLI installation successful on attempt $ATTEMPT"
-              break
+      - name: Install SpacetimeDB CLI
+        run: |
+          # Function to attempt SpacetimeDB CLI installation
+          install_spacetimedb() {
+            echo "Attempting to install SpacetimeDB CLI..."
+            curl -sSf https://install.spacetimedb.com | sh -s -- --yes
+            return $?
+          }
+
+          # Function to verify installation
+          verify_installation() {
+            if [ -f "$HOME/.local/bin/spacetime" ]; then
+              echo "✅ SpacetimeDB CLI installed successfully"
+              echo "$HOME/.local/bin" >> $GITHUB_PATH
+              ls -la "$HOME/.local/bin/" || echo "Local bin directory not found"
+              return 0
+            else
+              echo "❌ SpacetimeDB CLI installation failed - spacetime binary not found"
+              return 1
             fi
-          fi
-          
-          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-            echo "💥 Failed to install SpacetimeDB CLI after $MAX_ATTEMPTS attempts"
-            echo "Last error details:"
-            curl -v https://install.spacetimedb.com 2>&1 || echo "Could not reach installation server"
-            exit 1
-          fi
-          
-          echo "⏳ Waiting 15 seconds before retry..."
-          sleep 15
-          ATTEMPT=$((ATTEMPT + 1))
-        done
+          }
 
-    - name: Build & test SpacetimeDSL
-      run: |
+          # Retry logic: attempt installation up to 3 times
+          MAX_ATTEMPTS=4
+          ATTEMPT=1
 
-        spacetime start &
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "📦 Installation attempt $ATTEMPT of $MAX_ATTEMPTS"
+            
+            if install_spacetimedb; then
+              echo "🔍 Verifying installation..."
+              if verify_installation; then
+                echo "🎉 SpacetimeDB CLI installation successful on attempt $ATTEMPT"
+                break
+              fi
+            fi
+            
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "💥 Failed to install SpacetimeDB CLI after $MAX_ATTEMPTS attempts"
+              echo "Last error details:"
+              curl -v https://install.spacetimedb.com 2>&1 || echo "Could not reach installation server"
+              exit 1
+            fi
+            
+            echo "⏳ Waiting 15 seconds before retry..."
+            sleep 15
+            ATTEMPT=$((ATTEMPT + 1))
+          done
 
-        cd examples/test
+      - name: Build & test SpacetimeDSL
+        run: |
 
-        echo "Waiting for SpacetimeDB to be started using a 2s sleep for now."
-        sleep 2
-        
-        echo "Building and publishing a module using SpacetimeDSL..."
-        spacetime publish spacetimedsl --yes || echo "Publish failed"
-        
-        echo "Testing the module..."
-        spacetime call spacetimedsl tester --yes || echo "Test call failed"
-        
-        echo "Showing logs..."
-        spacetime logs spacetimedsl --yes || echo "Logs failed"
-        
-        echo "Cleaning up module..."
-        spacetime delete spacetimedsl --yes || echo "Delete failed"
+          spacetime start &
 
-    - name: Check code formatting
-      run: |
-        cargo fmt --all -- --check
+          cd examples/test
 
-    - name: Run clippy on derive libraries
-      run: |
-        cd derive-input
-        cargo clippy --all-targets --all-features || echo "Clippy warnings in derive-input"
-        
-        cd ../derive
-        cargo clippy --all-targets --all-features || echo "Clippy warnings in derive"
-        
-        cd ..
-        cargo clippy --all-targets --all-features || echo "Clippy warnings in main lib"
+          echo "Waiting for SpacetimeDB to be started using a 2s sleep for now."
+          sleep 2
+
+          echo "Building and publishing a module using SpacetimeDSL..."
+          spacetime publish spacetimedsl --yes || echo "Publish failed"
+
+          echo "Testing the module..."
+          spacetime call spacetimedsl tester --yes || echo "Test call failed"
+
+          echo "Showing logs..."
+          spacetime logs spacetimedsl --yes || echo "Logs failed"
+
+          echo "Cleaning up module..."
+          spacetime delete spacetimedsl --yes || echo "Delete failed"
+
+      - name: Check code formatting
+        run: |
+          cargo fmt --all -- --check
+
+      - name: Run clippy on derive libraries
+        run: |
+          cd derive-input
+          cargo clippy --all-targets --all-features || echo "Clippy warnings in derive-input"
+
+          cd ../derive
+          cargo clippy --all-targets --all-features || echo "Clippy warnings in derive"
+
+          cd ..
+          cargo clippy --all-targets --all-features || echo "Clippy warnings in main lib"
