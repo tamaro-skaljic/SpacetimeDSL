@@ -1,7 +1,7 @@
 [package]
 authors = ["Tamaro Skaljic<mail@tamaro-skaljic.de>"]
 name = "spacetimedsl"
-version = "0.16.0"
+version = "0.17.0"
 edition = "2024"
 description = "Ergonomic DSL for SpacetimeDB"
 documentation = "https://docs.rs/spacetimedsl"
@@ -14,10 +14,10 @@ readme = "README.md"
 
 [dependencies]
 # https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
-spacetimedb = { version = "1.11.3", features = ["unstable"] }
+spacetimedb = { version = "1.12.0", features = ["unstable"] }
 
 # https://crates.io/crates/spacetimedsl_derive Macros to extend SpacetimeDSL
-spacetimedsl_derive = { version = "0.16.0", path = "derive" }
+spacetimedsl_derive = { version = "0.17.0", path = "derive" }
 
 # https://crates.io/crates/itertools Extra iterator adaptors, iterator methods, free functions, and macros.
 itertools = "^0.14"

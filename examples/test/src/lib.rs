@@ -471,6 +471,25 @@ pub mod component {
         }
     }
 
+    pub mod uuid_test {
+        // FIXME: use spacetimedb::Uuid;
+
+        #[spacetimedsl::dsl(
+            plural_name = uuid_holders1,
+            method(update = true),
+        )]
+        #[spacetimedb::table(
+            name = uuid_holder1,
+            public,
+        )]
+        pub struct UuidHolder1 {
+            #[primary_key]
+            #[create_wrapper]
+            // FIXME: the trait bound `spacetimedb::Uuid: Default` is not satisfied. the trait `Default` is not implemented for `spacetimedb::Uuid`rustcClick for full compiler diagnostic. lib.rs(168, 40): required by a bound in `spacetimedsl::Wrapper`
+            id: u128,
+        }
+    }
+
     pub mod hook_test {
         use spacetimedb::Timestamp;
 
