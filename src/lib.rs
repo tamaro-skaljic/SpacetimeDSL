@@ -2,40 +2,70 @@ pub use itertools;
 pub use spacetimedsl_derive::{SpacetimeDSL, dsl, hook};
 use std::fmt::Display;
 
-#[doc(hidden)]
-pub mod internal;
+pub mod as_anonymous_view_context;
+pub mod as_reducer_context;
+pub mod as_view_context;
+pub mod get_auth;
+pub mod get_connection_id;
+pub mod get_immutable_database;
+pub mod get_module_identity;
+pub mod get_mutable_database;
+pub mod get_random;
+pub mod get_random_number_generator;
+pub mod get_sender;
+pub mod get_timestamp;
+
+pub mod delete;
+pub mod error;
 
 pub mod prelude {
     pub use crate::{
-        ConnectionId, DSL, DSLContext, ReadContext, ReadOnlyDSL, ReadOnlyDSLContext, Sender,
-        SpacetimeDSL, SpacetimeDSLError, Timestamp, Wrapper, WriteContext, dsl, hook,
-        itertools::Itertools, read_only_dsl,
+        Context, DSL, DSLContext, ReadOnlyDSL, ReadOnlyDSLContext, SpacetimeDSL, Wrapper,
+        as_anonymous_view_context::AsAnonymousViewContext,
+        as_reducer_context::AsReducerContext,
+        as_view_context::AsViewContext,
+        delete::{DeletionResult, DeletionResultEntry},
+        dsl,
+        error::{ReferenceIntegrityViolationError, SpacetimeDSLError},
+        get_auth::GetAuth,
+        get_connection_id::GetConnectionId,
+        get_immutable_database::GetImmutableDatabase,
+        get_module_identity::GetModuleIdentity,
+        get_mutable_database::GetMutableDatabase,
+        get_random::GetRandom,
+        get_random_number_generator::GetRandomNumberGenerator,
+        get_sender::GetSender,
+        get_timestamp::GetTimestamp,
+        hook,
+        itertools::Itertools,
+        read_only_dsl,
     };
 }
 
+pub use {
+    delete::{DeletionResult, DeletionResultEntry, OnDeleteStrategy},
+    error::{ReferenceIntegrityViolationError, SpacetimeDSLError},
+};
+
+use prelude::*;
+
 //region Write DSL
 
-pub trait WriteContext:
-    spacetimedb::DbContext<DbView = spacetimedb::Local> + Sender + Timestamp + ConnectionId
-{
-}
-
-impl WriteContext for spacetimedb::ReducerContext {}
-impl WriteContext for spacetimedb::TxContext {}
-
-// impl DbContext (ReducerContext, TxContext) for Local and DbContext (AnonymousViewContext, ViewContext) for LocalReadOnly
-pub struct DSL<'a, T: WriteContext> {
+pub struct DSL<'a, T: spacetimedb::DbContext<DbView = spacetimedb::Local> + Context> {
     pub(crate) ctx: &'a T,
     pub(crate) db: &'a spacetimedb::Local,
 }
 
-pub fn dsl<'a, T: spacetimedb::DbContext<DbView = spacetimedb::Local> + WriteContext>(
+pub fn dsl<'a, T: spacetimedb::DbContext<DbView = spacetimedb::Local> + Context>(
     ctx: &'a T,
 ) -> DSL<'a, T> {
-    DSL { ctx, db: ctx.db() }
+    DSL {
+        ctx,
+        db: spacetimedb::DbContext::db(ctx),
+    }
 }
 
-pub trait DSLContext<T: WriteContext> {
+pub trait DSLContext<T: spacetimedb::DbContext<DbView = spacetimedb::Local> + Context> {
     fn dsl(&self) -> &DSL<'_, T>;
 
     fn ctx(&self) -> &T;
@@ -43,7 +73,9 @@ pub trait DSLContext<T: WriteContext> {
     fn db(&self) -> &spacetimedb::Local;
 }
 
-impl<T: WriteContext> DSLContext<T> for DSL<'_, T> {
+impl<T: spacetimedb::DbContext<DbView = spacetimedb::Local> + Context> DSLContext<T>
+    for DSL<'_, T>
+{
     fn dsl(&self) -> &DSL<'_, T> {
         self
     }
@@ -61,35 +93,37 @@ impl<T: WriteContext> DSLContext<T> for DSL<'_, T> {
 
 //region Read-Only DSL
 
-pub trait ReadContext: spacetimedb::DbContext<DbView = spacetimedb::LocalReadOnly> {}
-
-// FIXME: Wait for merge and release of https://github.com/clockworklabs/SpacetimeDB/pull/3787
-// impl ReadContext for spacetimedb::AnonymousViewContext {}
-// impl ReadContext for spacetimedb::ViewContext {}
-
-pub struct ReadOnlyDSL<'a> {
-    pub(crate) ctx: &'a dyn ReadContext,
+pub struct ReadOnlyDSL<'a, T: Context> {
+    pub(crate) ctx: &'a T,
     pub(crate) db: &'a spacetimedb::LocalReadOnly,
 }
 
-pub fn read_only_dsl<'a>(ctx: &'a dyn ReadContext) -> ReadOnlyDSL<'a> {
-    ReadOnlyDSL { ctx, db: ctx.db() }
+pub fn read_only_dsl<
+    'a,
+    T: spacetimedb::DbContext<DbView = spacetimedb::LocalReadOnly> + Context,
+>(
+    ctx: &'a T,
+) -> ReadOnlyDSL<'a, T> {
+    ReadOnlyDSL {
+        ctx,
+        db: spacetimedb::DbContext::db(ctx),
+    }
 }
 
-pub trait ReadOnlyDSLContext {
-    fn dsl(&self) -> &ReadOnlyDSL<'_>;
+pub trait ReadOnlyDSLContext<T: Context> {
+    fn dsl(&self) -> &ReadOnlyDSL<'_, T>;
 
-    fn ctx(&self) -> &dyn ReadContext;
+    fn ctx(&self) -> &T;
 
     fn db(&self) -> &spacetimedb::LocalReadOnly;
 }
 
-impl ReadOnlyDSLContext for ReadOnlyDSL<'_> {
-    fn dsl(&self) -> &ReadOnlyDSL<'_> {
+impl<T: Context> ReadOnlyDSLContext<T> for ReadOnlyDSL<'_, T> {
+    fn dsl(&self) -> &ReadOnlyDSL<'_, T> {
         self
     }
 
-    fn ctx(&self) -> &dyn ReadContext {
+    fn ctx(&self) -> &T {
         self.ctx
     }
 
@@ -100,16 +134,38 @@ impl ReadOnlyDSLContext for ReadOnlyDSL<'_> {
 
 //endregion Read-Only DSL
 
-pub trait Sender {
-    fn sender(&self) -> spacetimedb::Identity;
+pub enum ContextType {
+    AnonymousView,
+    Reducer,
+    Transaction,
+    View,
 }
 
-pub trait Timestamp {
-    fn timestamp(&self) -> spacetimedb::Timestamp;
+fn get_err(msg: &str, ctx: ContextType) -> SpacetimeDSLError {
+    crate::SpacetimeDSLError::Error(format!(
+        "{msg}. Tried to access from {} Context.",
+        match ctx {
+            ContextType::AnonymousView => "Anonymous View",
+            ContextType::Reducer => "Reducer",
+            ContextType::Transaction => "Transaction",
+            ContextType::View => "View",
+        }
+    ))
 }
-
-pub trait ConnectionId {
-    fn connection_id(&self) -> Option<spacetimedb::ConnectionId>;
+pub trait Context:
+    GetAuth
+    + GetConnectionId
+    + GetImmutableDatabase
+    + GetModuleIdentity
+    + GetMutableDatabase
+    + GetRandom
+    + GetRandomNumberGenerator
+    + GetSender
+    + GetTimestamp
+    + AsAnonymousViewContext
+    + AsReducerContext
+    + AsViewContext
+{
 }
 
 pub struct DSLMethodHooks {}
@@ -121,114 +177,7 @@ pub trait Wrapper<WrappedType: Clone + Default, WrapperType>:
     fn value(&self) -> WrappedType;
 }
 
-// TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/59 SoftDelete Feature
-
-// Don't forget to copy + paste this enum into `derive_input::api::dsl::foreign_key` if you change it
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum OnDeleteStrategy {
-    /**
-     * Available independent from the column type.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
-     * ... the deletion fails with a Reference Integrity Violation Error.
-     */
-    Error,
-
-    /**
-     * Available independent from the column type.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
-     * ... it's checked whether any primary key value of rows to delete is referenced in a foreign key with `OnDeleteStrategy::Error`.
-     * If true, the deletion fails with a Reference Integrity Violation Error and no other on delete strategy is executed.
-     * If false, the on delete strategies of all affected rows are executed.
-     */
-    Delete,
-
-    /**
-     * TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 SetNone
-     * Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
-     * Available only for columns with type `Option<T>`.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
-     * ... the value of the foreign key column is set to `None`.
-     */
-    //SetNone,
-
-    /**
-     * Available only for columns with a numeric type.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
-     * ... the value of the foreign key column is set to `0`.
-     */
-    SetZero,
-
-    /**
-     * Available independent from the column type.
-     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
-     * ... nothing happens, which means the referencing rows will reference a primary key value which doesn't exist anymore.
-     * The referential integrity is only enforced while creating a row or if a row is updated and the foreign key column value is changed.
-     */
-    Ignore,
-}
-
-#[derive(Debug)]
-pub enum SpacetimeDSLError {
-    Error(String),
-    NotFoundError {
-        table_name: Box<str>,
-        column_names_and_row_values: Box<str>,
-    },
-    UniqueConstraintViolation {
-        table_name: Box<str>,
-        action: Action,
-        error_from: ErrorFrom,
-        one_or_multiple: OneOrMultiple,
-        column_names_and_row_values: Box<str>,
-    },
-    AutoIncOverflow {
-        table_name: Box<str>,
-    },
-    ReferenceIntegrityViolation(ReferenceIntegrityViolationError),
-}
-
-#[derive(Debug)]
-pub enum ReferenceIntegrityViolationError {
-    OnCreateOrUpdate {
-        table_name: Box<str>,
-        create_or_update: Action,
-        column_names_and_row_values: Box<str>,
-    },
-    OnDelete(DeletionResult),
-}
-
-#[derive(Debug)]
-pub enum Action {
-    Create,
-    Get,
-    Update,
-    Delete,
-}
-
-#[derive(Debug)]
-pub enum ErrorFrom {
-    SpacetimeDB,
-    SpacetimeDSL,
-}
-
-#[derive(Debug)]
-pub enum OneOrMultiple {
-    One,
-    Multiple,
-}
-
-#[derive(Debug)]
-pub struct DeletionResult {
-    pub table_name: Box<str>,
-    pub one_or_multiple: OneOrMultiple,
-    pub entries: Vec<DeletionResultEntry>,
-}
-
-#[derive(Debug)]
-pub struct DeletionResultEntry {
-    pub table_name: Box<str>,
-    pub column_name: Box<str>,
-    pub strategy: OnDeleteStrategy,
-    pub row_value: Box<str>,
-    pub child_entries: Vec<DeletionResultEntry>,
+#[doc(hidden)]
+pub mod internal {
+    pub struct DSLInternals;
 }

@@ -133,7 +133,7 @@ pub fn hook(_args: TokenStream, item: TokenStream) -> TokenStream {
         );
 
         Ok(quote! {
-            impl<T: spacetimedsl::WriteContext> #trait_name<T> for spacetimedsl::DSLMethodHooks {
+            impl<T: spacetimedb::DbContext<DbView = spacetimedb::Local> + spacetimedsl::Context> #trait_name<T> for spacetimedsl::DSLMethodHooks {
                 #function_input
             }
         })

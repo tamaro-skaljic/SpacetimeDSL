@@ -1021,14 +1021,14 @@ pub mod test {
 
     #[spacetimedb::view(name = my_view, public)]
     pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
-        // FIXME: let dsl = spacetimedsl::read_only_dsl(ctx); // When https://github.com/clockworklabs/SpacetimeDB/pull/3787 is merged. Will probably also have to change read-only DSL methods to use ReadContext instead of WriteContext for the generic T parameter.
+        // FIXME: let dsl = spacetimedsl::dsl(ctx);
 
         ctx.db.entity().obj_id().find(0)
     }
 
     #[spacetimedb::view(name = my_anonymous_view, public)]
     pub fn my_anonymous_view(ctx: &AnonymousViewContext) -> Vec<Entity> {
-        // FIXME: let dsl = spacetimedsl::read_only_dsl(ctx); // See comment on my_view.
+        // FIXME: let dsl = spacetimedsl::dsl(ctx);
 
         ctx.db.entity().obj_id().find(0);
         vec![]
@@ -1695,7 +1695,9 @@ pub mod test {
         Ok(())
     }
 
-    fn hook_call_test<T: WriteContext>(dsl: DSL<'_, T>) -> Result<(), String> {
+    fn hook_call_test<T: Context + spacetimedb::DbContext<DbView = spacetimedb::Local>>(
+        dsl: DSL<'_, T>,
+    ) -> Result<(), String> {
         let mut strength = dsl.create_attribute(CreateAttribute {
             value: "STRENGTH".to_string(),
         })?;

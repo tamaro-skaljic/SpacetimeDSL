@@ -37,7 +37,7 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
         #[doc = #trait_comment]
         pub trait #trait_name {
             #[doc=#doc_comment]
-            fn #method_name<'a, T: spacetimedsl::WriteContext>(
+            fn #method_name<'a, T: spacetimedb::DbContext<DbView = spacetimedb::Local> + spacetimedsl::Context>(
                 #(#method_args),*
             ) -> #return_type {
                 use spacetimedsl::Wrapper;
@@ -64,7 +64,7 @@ fn add_impl_doc(
     let pretty_please = PrettyPlease::default();
     let implementation_docs = quote! {
         pub trait #trait_name: #(#paths_of_traits_to_extend)+* {
-            fn #method_name<'a, T: spacetimedsl::WriteContext>(
+            fn #method_name<'a, T: spacetimedb::DbContext<DbView = spacetimedb::Local> + spacetimedsl::Context>(
                 &'a self,
                 #(#method_args),*
             ) -> #return_type {
