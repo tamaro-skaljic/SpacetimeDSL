@@ -1021,14 +1021,14 @@ pub mod test {
 
     #[spacetimedb::view(name = my_view, public)]
     pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
-        // FIXME: let dsl = spacetimedsl::dsl(ctx);
+        let _dsl = spacetimedsl::read_only_dsl(ctx);
 
         ctx.db.entity().obj_id().find(0)
     }
 
     #[spacetimedb::view(name = my_anonymous_view, public)]
     pub fn my_anonymous_view(ctx: &AnonymousViewContext) -> Vec<Entity> {
-        // FIXME: let dsl = spacetimedsl::dsl(ctx);
+        let _dsl = spacetimedsl::read_only_dsl(ctx);
 
         ctx.db.entity().obj_id().find(0);
         vec![]
@@ -1695,9 +1695,7 @@ pub mod test {
         Ok(())
     }
 
-    fn hook_call_test<T: Context + spacetimedb::DbContext<DbView = spacetimedb::Local>>(
-        dsl: DSL<'_, T>,
-    ) -> Result<(), String> {
+    fn hook_call_test<T: WriteContext>(dsl: DSL<'_, T>) -> Result<(), String> {
         let mut strength = dsl.create_attribute(CreateAttribute {
             value: "STRENGTH".to_string(),
         })?;

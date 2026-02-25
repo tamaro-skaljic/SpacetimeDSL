@@ -36,4 +36,6 @@ impl_as_view_context_ok!(TxContext);
 // FIXME: https://github.com/clockworklabs/SpacetimeDB/issues/4439
 impl_as_view_context_err!(ViewContext, View);
 
-impl crate::Context for spacetimedb::ViewContext {}
+impl crate::Context<spacetimedb::LocalReadOnly> for spacetimedb::ViewContext {}
+
+impl crate::ReadContext for spacetimedb::ViewContext {}

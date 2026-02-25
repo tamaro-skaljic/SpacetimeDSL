@@ -39,6 +39,12 @@ impl_as_reducer_context_ok!(TxContext);
 
 impl_as_reducer_context_err!(ViewContext, View);
 
-impl crate::Context for spacetimedb::ReducerContext {}
+impl crate::Context<spacetimedb::Local> for spacetimedb::ReducerContext {}
+impl crate::Context<spacetimedb::Local> for spacetimedb::TxContext {}
 
-impl crate::Context for spacetimedb::TxContext {}
+impl crate::WriteContext for spacetimedb::ReducerContext {}
+impl crate::WriteContext for spacetimedb::TxContext {}
+
+// FIXME: https://github.com/clockworklabs/SpacetimeDB/issues/4439
+// impl crate::ReadContext for spacetimedb::ReducerContext {}
+// impl crate::ReadContext for spacetimedb::TxContext {}

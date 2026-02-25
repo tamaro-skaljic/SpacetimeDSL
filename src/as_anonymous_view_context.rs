@@ -43,4 +43,6 @@ impl_as_anonymous_view_context_ok!(TxContext);
 // FIXME: https://github.com/clockworklabs/SpacetimeDB/issues/4439
 impl_as_anonymous_view_context_err!(ViewContext, View);
 
-impl crate::Context for spacetimedb::AnonymousViewContext {}
+impl crate::Context<spacetimedb::LocalReadOnly> for spacetimedb::AnonymousViewContext {}
+
+impl crate::ReadContext for spacetimedb::AnonymousViewContext {}

@@ -1,6 +1,10 @@
 pub use itertools;
 pub use spacetimedsl_derive::{SpacetimeDSL, dsl, hook};
 use std::fmt::Display;
+pub use {
+    delete::{DeletionResult, DeletionResultEntry, OnDeleteStrategy},
+    error::{ReferenceIntegrityViolationError, SpacetimeDSLError},
+};
 
 pub mod as_anonymous_view_context;
 pub mod as_reducer_context;
@@ -20,7 +24,8 @@ pub mod error;
 
 pub mod prelude {
     pub use crate::{
-        Context, DSL, DSLContext, ReadOnlyDSL, ReadOnlyDSLContext, SpacetimeDSL, Wrapper,
+        Context, DSL, DSLContext, ReadContext, ReadOnlyDSL, ReadOnlyDSLContext, SpacetimeDSL,
+        Wrapper, WriteContext,
         as_anonymous_view_context::AsAnonymousViewContext,
         as_reducer_context::AsReducerContext,
         as_view_context::AsViewContext,
@@ -42,30 +47,23 @@ pub mod prelude {
     };
 }
 
-pub use {
-    delete::{DeletionResult, DeletionResultEntry, OnDeleteStrategy},
-    error::{ReferenceIntegrityViolationError, SpacetimeDSLError},
-};
-
 use prelude::*;
 
 //region Write DSL
 
-pub struct DSL<'a, T: spacetimedb::DbContext<DbView = spacetimedb::Local> + Context> {
+pub struct DSL<'a, T: Context<spacetimedb::Local>> {
     pub(crate) ctx: &'a T,
     pub(crate) db: &'a spacetimedb::Local,
 }
 
-pub fn dsl<'a, T: spacetimedb::DbContext<DbView = spacetimedb::Local> + Context>(
-    ctx: &'a T,
-) -> DSL<'a, T> {
+pub fn dsl<'a, T: Context<spacetimedb::Local>>(ctx: &'a T) -> DSL<'a, T> {
     DSL {
         ctx,
         db: spacetimedb::DbContext::db(ctx),
     }
 }
 
-pub trait DSLContext<T: spacetimedb::DbContext<DbView = spacetimedb::Local> + Context> {
+pub trait DSLContext<T: Context<spacetimedb::Local>> {
     fn dsl(&self) -> &DSL<'_, T>;
 
     fn ctx(&self) -> &T;
@@ -73,9 +71,7 @@ pub trait DSLContext<T: spacetimedb::DbContext<DbView = spacetimedb::Local> + Co
     fn db(&self) -> &spacetimedb::Local;
 }
 
-impl<T: spacetimedb::DbContext<DbView = spacetimedb::Local> + Context> DSLContext<T>
-    for DSL<'_, T>
-{
+impl<T: Context<spacetimedb::Local>> DSLContext<T> for DSL<'_, T> {
     fn dsl(&self) -> &DSL<'_, T> {
         self
     }
@@ -93,24 +89,19 @@ impl<T: spacetimedb::DbContext<DbView = spacetimedb::Local> + Context> DSLContex
 
 //region Read-Only DSL
 
-pub struct ReadOnlyDSL<'a, T: Context> {
+pub struct ReadOnlyDSL<'a, T: Context<spacetimedb::LocalReadOnly>> {
     pub(crate) ctx: &'a T,
     pub(crate) db: &'a spacetimedb::LocalReadOnly,
 }
 
-pub fn read_only_dsl<
-    'a,
-    T: spacetimedb::DbContext<DbView = spacetimedb::LocalReadOnly> + Context,
->(
-    ctx: &'a T,
-) -> ReadOnlyDSL<'a, T> {
+pub fn read_only_dsl<'a, T: Context<spacetimedb::LocalReadOnly>>(ctx: &'a T) -> ReadOnlyDSL<'a, T> {
     ReadOnlyDSL {
         ctx,
         db: spacetimedb::DbContext::db(ctx),
     }
 }
 
-pub trait ReadOnlyDSLContext<T: Context> {
+pub trait ReadOnlyDSLContext<T: Context<spacetimedb::LocalReadOnly>> {
     fn dsl(&self) -> &ReadOnlyDSL<'_, T>;
 
     fn ctx(&self) -> &T;
@@ -118,7 +109,7 @@ pub trait ReadOnlyDSLContext<T: Context> {
     fn db(&self) -> &spacetimedb::LocalReadOnly;
 }
 
-impl<T: Context> ReadOnlyDSLContext<T> for ReadOnlyDSL<'_, T> {
+impl<T: Context<spacetimedb::LocalReadOnly>> ReadOnlyDSLContext<T> for ReadOnlyDSL<'_, T> {
     fn dsl(&self) -> &ReadOnlyDSL<'_, T> {
         self
     }
@@ -152,7 +143,7 @@ fn get_err(msg: &str, ctx: ContextType) -> SpacetimeDSLError {
         }
     ))
 }
-pub trait Context:
+pub trait Context<T>:
     GetAuth
     + GetConnectionId
     + GetImmutableDatabase
@@ -165,8 +156,12 @@ pub trait Context:
     + AsAnonymousViewContext
     + AsReducerContext
     + AsViewContext
+    + spacetimedb::DbContext<DbView = T>
 {
 }
+pub trait WriteContext: Context<spacetimedb::Local> {}
+
+pub trait ReadContext: Context<spacetimedb::LocalReadOnly> {}
 
 pub struct DSLMethodHooks {}
 

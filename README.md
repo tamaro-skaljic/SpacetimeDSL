@@ -212,7 +212,7 @@ pub fn create_example(ctx: &spacetimedb::ReducerContext) -> Result<(), String> {
 Here is the implementation:
 
 ```rust
-pub trait CreateEntityRow<T: spacetimedsl::Context>: spacetimedsl::DSLContext<T> {
+pub trait CreateEntityRow<T: spacetimedsl::Context<T>>: spacetimedsl::DSLContext<T> {
     fn create_entity<'a>(&'a self) -> Result<Entity, spacetimedsl::SpacetimeDSLError> {
         use spacetimedsl::Wrapper;
         use spacetimedb::{DbContext, Table};
@@ -249,7 +249,7 @@ pub trait CreateEntityRow<T: spacetimedsl::Context>: spacetimedsl::DSLContext<T>
     }
 }
 
-impl<T: spacetimedsl::Context> CreateEntityRow<T> for spacetimedsl::DSL<'_, T> {}
+impl<T: spacetimedsl::Context<T> CreateEntityRow<T> for spacetimedsl::DSL<'_, T> {}
 ```
 
 ### 🚨 The `SpacetimeDSLError` Type
@@ -819,7 +819,7 @@ pub struct Invalid {
 <summary>📄 Here is the `Delete One` DSL method of the Entity table</summary>
 
 ```rust
-pub trait DeleteEntityRowById<T: spacetimedsl::Context>: spacetimedsl::DSLContext<T> {
+pub trait DeleteEntityRowById<T: spacetimedsl::Context<T>>: spacetimedsl::DSLContext<T> {
     fn delete_entity_by_id(
         &self,
         id: impl Into<EntityId> + Clone,
@@ -962,7 +962,7 @@ pub trait DeleteEntityRowById<T: spacetimedsl::Context>: spacetimedsl::DSLContex
         });
     }
 }
-impl<T: spacetimedsl::Context> DeleteEntityRowById<T> for spacetimedsl::DSL<'_, T> {}
+impl<T: spacetimedsl::Context<T>> DeleteEntityRowById<T> for spacetimedsl::DSL<'_, T> {}
 ```
 
 </details>
