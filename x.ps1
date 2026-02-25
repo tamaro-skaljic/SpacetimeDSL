@@ -108,6 +108,10 @@ switch ($Command) {
             Write-Output "$paddedLines $($_.PathWithoutFirstDir)"
         }
 
+        # Sum lines for src, derive-input, derive
+        $total = ($files | Where-Object { $_.FirstDir -in @("src", "derive-input", "derive") } | Measure-Object -Property Lines -Sum).Sum
+        Write-Output "Total: $total"
+
         # Add final newline
         Write-Output ""
     }

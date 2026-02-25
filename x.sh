@@ -71,8 +71,14 @@ case "$1" in
             echo "$first_dir|$lines|$path_without_first"
         done < <(find . -path "*/src/*.rs" -type f) | sort -t'|' -k1,1 -k2,2nr | {
             current_group=""
+            total=0
 
             while IFS='|' read -r first_dir lines path_without_first; do
+                # Track total for src, derive-input, derive
+                if [[ "$first_dir" == "src" || "$first_dir" == "derive-input" || "$first_dir" == "derive" ]]; then
+                    total=$((total + lines))
+                fi
+
                 # Print group header when directory changes
                 if [[ "$current_group" != "$first_dir" ]]; then
                     if [[ -n "$current_group" ]]; then
@@ -86,6 +92,8 @@ case "$1" in
                 printf "%6d %s\n" "$lines" "$path_without_first"
             done
 
+            echo
+            echo "Total: $total"
             echo
         }
         ;;

@@ -222,8 +222,14 @@ generate_loc() {
             echo "$first_dir|$lines|$path_without_first"
         done < <(find . -path "*/src/*.rs" -type f) | sort -t'|' -k1,1 -k2,2nr | {
             current_group=""
+            total=0
 
             while IFS='|' read -r first_dir lines path_without_first; do
+                # Track total for src, derive-input, derive
+                if [[ "$first_dir" == "src" || "$first_dir" == "derive-input" || "$first_dir" == "derive" ]]; then
+                    total=$((total + lines))
+                fi
+
                 # Print group header when directory changes
                 if [[ "$current_group" != "$first_dir" ]]; then
                     if [[ -n "$current_group" ]]; then
@@ -237,6 +243,8 @@ generate_loc() {
                 printf "%6d %s\n" "$lines" "$path_without_first"
             done
 
+            echo
+            echo "Total: $total"
             echo
         }
 BASH_LOC
@@ -294,6 +302,10 @@ BASH_LOC
             $paddedLines = $_.Lines.ToString().PadLeft($maxLineLength)
             Write-Output "$paddedLines $($_.PathWithoutFirstDir)"
         }
+
+        # Sum lines for src, derive-input, derive
+        $total = ($files | Where-Object { $_.FirstDir -in @("src", "derive-input", "derive") } | Measure-Object -Property Lines -Sum).Sum
+        Write-Output "Total: $total"
 
         # Add final newline
         Write-Output ""
