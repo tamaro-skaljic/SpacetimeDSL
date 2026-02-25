@@ -1,52 +1,66 @@
 use std::{error::Error, fmt::Display};
 
-use crate::{
-    Action, DeletionResult, DeletionResultEntry, ErrorFrom, OnDeleteStrategy, OneOrMultiple,
-    ReferenceIntegrityViolationError, SpacetimeDSLError,
-};
+use crate::{DeletionResult, delete::OnDeleteStrategy};
 
-pub struct DSLInternals;
+#[derive(Debug)]
+pub enum SpacetimeDSLError {
+    Error(String),
+    NotFoundError {
+        table_name: Box<str>,
+        column_names_and_row_values: Box<str>,
+    },
+    UniqueConstraintViolation {
+        table_name: Box<str>,
+        action: Action,
+        error_from: ErrorFrom,
+        one_or_multiple: OneOrMultiple,
+        column_names_and_row_values: Box<str>,
+    },
+    AutoIncOverflow {
+        table_name: Box<str>,
+    },
+    ReferenceIntegrityViolation(ReferenceIntegrityViolationError),
+}
 
-impl crate::Sender for spacetimedb::ReducerContext {
-    fn sender(&self) -> spacetimedb::Identity {
-        self.sender
+#[derive(Debug)]
+pub enum ReferenceIntegrityViolationError {
+    OnCreateOrUpdate {
+        table_name: Box<str>,
+        create_or_update: Action,
+        column_names_and_row_values: Box<str>,
+    },
+    OnDelete(DeletionResult),
+}
+
+#[derive(Debug)]
+pub enum Action {
+    Create,
+    Get,
+    Update,
+    Delete,
+}
+
+impl Display for Action {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Action::Create => write!(f, "create"),
+            Action::Get => write!(f, "get"),
+            Action::Update => write!(f, "update"),
+            Action::Delete => write!(f, "delete"),
+        }
     }
 }
 
-impl crate::Sender for spacetimedb::TxContext {
-    fn sender(&self) -> spacetimedb::Identity {
-        self.sender
-    }
+#[derive(Debug)]
+pub enum ErrorFrom {
+    SpacetimeDB,
+    SpacetimeDSL,
 }
 
-impl crate::Timestamp for spacetimedb::ReducerContext {
-    fn timestamp(&self) -> spacetimedb::Timestamp {
-        self.timestamp
-    }
-}
-
-impl crate::Timestamp for spacetimedb::TxContext {
-    fn timestamp(&self) -> spacetimedb::Timestamp {
-        self.timestamp
-    }
-}
-
-impl crate::ConnectionId for spacetimedb::ReducerContext {
-    fn connection_id(&self) -> Option<spacetimedb::ConnectionId> {
-        self.connection_id
-    }
-}
-
-impl crate::ConnectionId for spacetimedb::TxContext {
-    fn connection_id(&self) -> Option<spacetimedb::ConnectionId> {
-        self.connection_id
-    }
-}
-
-impl crate::Sender for spacetimedb::ViewContext {
-    fn sender(&self) -> spacetimedb::Identity {
-        self.sender
-    }
+#[derive(Debug)]
+pub enum OneOrMultiple {
+    One,
+    Multiple,
 }
 
 impl Display for OnDeleteStrategy {
@@ -130,67 +144,5 @@ impl Error for SpacetimeDSLError {}
 impl From<SpacetimeDSLError> for String {
     fn from(value: SpacetimeDSLError) -> Self {
         value.to_string()
-    }
-}
-
-impl Display for Action {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Action::Create => write!(f, "create"),
-            Action::Get => write!(f, "get"),
-            Action::Update => write!(f, "update"),
-            Action::Delete => write!(f, "delete"),
-        }
-    }
-}
-
-impl DeletionResultEntry {
-    pub fn to_csv(
-        &self,
-        mut entry_id: u128,
-        mut parent_entry_id: u128,
-        mut message: String,
-    ) -> (u128, String) {
-        entry_id += 1;
-
-        let table_name = &self.table_name;
-        let column_name = &self.column_name;
-        let strategy = &self.strategy;
-        let row_value = &self.row_value;
-
-        message.push_str(&format!(
-            "{entry_id}, {parent_entry_id}, {table_name}, {column_name}, {strategy}, {row_value}\n"
-        ));
-
-        parent_entry_id = entry_id;
-
-        for child_entry in &self.child_entries {
-            (entry_id, message) = child_entry.to_csv(entry_id, parent_entry_id, message);
-        }
-
-        (entry_id, message)
-    }
-}
-
-impl Display for DeletionResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_csv())
-    }
-}
-
-impl DeletionResult {
-    pub fn to_csv(&self) -> String {
-        let mut message: String = String::new();
-
-        message
-            .push_str("entry_id, parent_entry_id, table_name, column_name, strategy, row_value,\n");
-
-        let mut entry_id: u128 = 0;
-
-        for entry in &self.entries {
-            (entry_id, message) = entry.to_csv(entry_id, 0, message);
-        }
-
-        message
     }
 }

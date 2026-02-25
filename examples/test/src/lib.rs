@@ -1021,14 +1021,14 @@ pub mod test {
 
     #[spacetimedb::view(name = my_view, public)]
     pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
-        // FIXME: let dsl = spacetimedsl::read_only_dsl(ctx); // When https://github.com/clockworklabs/SpacetimeDB/pull/3787 is merged. Will probably also have to change read-only DSL methods to use ReadContext instead of WriteContext for the generic T parameter.
+        let _dsl = spacetimedsl::read_only_dsl(ctx);
 
         ctx.db.entity().obj_id().find(0)
     }
 
     #[spacetimedb::view(name = my_anonymous_view, public)]
     pub fn my_anonymous_view(ctx: &AnonymousViewContext) -> Vec<Entity> {
-        // FIXME: let dsl = spacetimedsl::read_only_dsl(ctx); // See comment on my_view.
+        let _dsl = spacetimedsl::read_only_dsl(ctx);
 
         ctx.db.entity().obj_id().find(0);
         vec![]

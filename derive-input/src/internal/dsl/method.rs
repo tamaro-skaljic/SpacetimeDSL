@@ -58,6 +58,9 @@ impl quote::ToTokens for OneOrMultiple {
         tokens.append(format_ident!("spacetimedsl"));
         tokens.append(Punct::new(':', Spacing::Joint));
         tokens.append(Punct::new(':', Spacing::Alone));
+        tokens.append(format_ident!("error"));
+        tokens.append(Punct::new(':', Spacing::Joint));
+        tokens.append(Punct::new(':', Spacing::Alone));
         tokens.append(format_ident!("OneOrMultiple"));
         tokens.append(Punct::new(':', Spacing::Joint));
         tokens.append(Punct::new(':', Spacing::Alone));
@@ -427,7 +430,7 @@ fn process_columns_for_create_and_update_method(
                 && { internal_column.rust_field_name.eq(column_name) }
             {
                 constructor_arg = Some(quote! {
-                    let #column_name = self.ctx().timestamp();
+                    let #column_name = self.ctx().timestamp()?;
                 });
             } else if let Some(column_name) =
                 &spacetimedsl_table.on_update_set_current_timestamp_column_name
@@ -440,7 +443,7 @@ fn process_columns_for_create_and_update_method(
                 let timestamp_value = if column_type_str.starts_with("Option") {
                     quote! { None }
                 } else {
-                    quote! { self.ctx().timestamp() }
+                    quote! { self.ctx().timestamp()? }
                 };
                 constructor_arg = Some(quote! {
                     let #column_name = #timestamp_value;
@@ -817,8 +820,8 @@ pub(in crate::internal) fn for_method(
                         spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
                             Err(spacetimedsl::SpacetimeDSLError::UniqueConstraintViolation {
                                 table_name: #singular_table_name_as_string.into(),
-                                action: spacetimedsl::Action::Create,
-                                error_from: spacetimedsl::ErrorFrom::SpacetimeDB,
+                                action: spacetimedsl::error::Action::Create,
+                                error_from: spacetimedsl::error::ErrorFrom::SpacetimeDB,
                                 one_or_multiple: #one,
                                 column_names_and_row_values: format!(#column_names_and_row_values, #singular_table_name).into(), // FIXME: Only show unique columns here
                             })
@@ -1095,9 +1098,9 @@ pub(in crate::internal) fn for_method(
                                 .to_string();
 
                             let timestamp_value = if column_type_str.starts_with("Option") {
-                                quote! { Some(self.ctx().timestamp()) }
+                                quote! { Some(self.ctx().timestamp()?) }
                             } else {
-                                quote! { self.ctx().timestamp() }
+                                quote! { self.ctx().timestamp()? }
                             };
 
                             quote! {
@@ -2138,7 +2141,7 @@ fn reference_integrity_checks_on_create_or_update(
                                 spacetimedsl::SpacetimeDSLError::ReferenceIntegrityViolation(
                                     spacetimedsl::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                         table_name: #referencing_table_name_as_string.into(),
-                                        create_or_update: spacetimedsl::Action::Create,
+                                        create_or_update: spacetimedsl::error::Action::Create,
                                         column_names_and_row_values: format!("{{ {} : {} }}", #referencing_table_column_name, #referencing_table_name.#referencing_table_column_getter_name()).into()
                                     }
                                 )
@@ -2196,7 +2199,7 @@ fn reference_integrity_checks_on_create_or_update(
                                 spacetimedsl::SpacetimeDSLError::ReferenceIntegrityViolation(
                                     spacetimedsl::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                         table_name: #referencing_table_name_as_string.into(),
-                                        create_or_update: spacetimedsl::Action::Update,
+                                        create_or_update: spacetimedsl::error::Action::Update,
                                         column_names_and_row_values: format!("{{ {} : {} }}", #referencing_table_column_name_as_string, #referencing_table_column_name).into()
                                     }
                                 )
@@ -2325,8 +2328,8 @@ fn multi_column_index_checks(
             return Err(
                 spacetimedsl::SpacetimeDSLError::UniqueConstraintViolation {
                     table_name: #singular_table_name_as_string.into(),
-                    action: spacetimedsl::Action::#action_as_ident,
-                    error_from: spacetimedsl::ErrorFrom::SpacetimeDSL,
+                    action: spacetimedsl::error::Action::#action_as_ident,
+                    error_from: spacetimedsl::error::ErrorFrom::SpacetimeDSL,
                     one_or_multiple: #multiple,
                     column_names_and_row_values: format!(#column_names_and_row_values, #(#row_value_getters),*).into()
                 }
@@ -2398,8 +2401,8 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_check(
             Err(_) => return Err(
                 spacetimedsl::SpacetimeDSLError::UniqueConstraintViolation {
                     table_name: #singular_table_name_as_string.into(),
-                    action: spacetimedsl::Action::#action,
-                    error_from: spacetimedsl::ErrorFrom::SpacetimeDSL,
+                    action: spacetimedsl::error::Action::#action,
+                    error_from: spacetimedsl::error::ErrorFrom::SpacetimeDSL,
                     one_or_multiple: #multiple,
                     column_names_and_row_values: format!(#column_names_and_row_values, #(#row_value_getters),*).into()
                 }

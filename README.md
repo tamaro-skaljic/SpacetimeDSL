@@ -212,7 +212,7 @@ pub fn create_example(ctx: &spacetimedb::ReducerContext) -> Result<(), String> {
 Here is the implementation:
 
 ```rust
-pub trait CreateEntityRow<T: spacetimedsl::WriteContext>: spacetimedsl::DSLContext<T> {
+pub trait CreateEntityRow<T: spacetimedsl::Context<T>>: spacetimedsl::DSLContext<T> {
     fn create_entity<'a>(&'a self) -> Result<Entity, spacetimedsl::SpacetimeDSLError> {
         use spacetimedsl::Wrapper;
         use spacetimedb::{DbContext, Table};
@@ -229,8 +229,8 @@ pub trait CreateEntityRow<T: spacetimedsl::WriteContext>: spacetimedsl::DSLConte
                     spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
                         Err(spacetimedsl::SpacetimeDSLError::UniqueConstraintViolation {
                             table_name: "entity".into(),
-                            action: spacetimedsl::Action::Create,
-                            error_from: spacetimedsl::ErrorFrom::SpacetimeDB,
+                            action: spacetimedsl::error::Action::Create,
+                            error_from: spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: spacetimedsl::OneOrMultiple::One,
                             column_names_and_row_values: format!(
                                 "{{ entity : {:?} }}",
@@ -249,7 +249,7 @@ pub trait CreateEntityRow<T: spacetimedsl::WriteContext>: spacetimedsl::DSLConte
     }
 }
 
-impl<T: spacetimedsl::WriteContext> CreateEntityRow<T> for spacetimedsl::DSL<'_, T> {}
+impl<T: spacetimedsl::Context<T> CreateEntityRow<T> for spacetimedsl::DSL<'_, T> {}
 ```
 
 ### 🚨 The `SpacetimeDSLError` Type
@@ -819,7 +819,7 @@ pub struct Invalid {
 <summary>📄 Here is the `Delete One` DSL method of the Entity table</summary>
 
 ```rust
-pub trait DeleteEntityRowById<T: spacetimedsl::WriteContext>: spacetimedsl::DSLContext<T> {
+pub trait DeleteEntityRowById<T: spacetimedsl::Context<T>>: spacetimedsl::DSLContext<T> {
     fn delete_entity_by_id(
         &self,
         id: impl Into<EntityId> + Clone,
@@ -962,7 +962,7 @@ pub trait DeleteEntityRowById<T: spacetimedsl::WriteContext>: spacetimedsl::DSLC
         });
     }
 }
-impl<T: spacetimedsl::WriteContext> DeleteEntityRowById<T> for spacetimedsl::DSL<'_, T> {}
+impl<T: spacetimedsl::Context<T>> DeleteEntityRowById<T> for spacetimedsl::DSL<'_, T> {}
 ```
 
 </details>
@@ -1778,8 +1778,7 @@ spacetimedsl = { version = "*" }
 
 - [Using IndexScanRangeBounds / FilterableValue](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21) 🔄
 
-- SpacetimeDSL is not available in `#[spacetimedb::view]` functions until [SpacetimeDB#3787](https://github.com/clockworklabs/SpacetimeDB/pull/3787) is merged and released.
-  - If you encounter that you can't access a method on the `(Anonymous)ViewContext` type because it's private, please follow these instructions: <https://github.com/tamaro-skaljic/SpacetimeDSL/issues/90#issuecomment-3573925117> until [SpacetimeDB#3754](https://github.com/clockworklabs/SpacetimeDB/issues/3754) is resolved and released.
+- If you encounter that you can't access a method on the `(Anonymous)ViewContext` type because it's private, please follow these instructions: <https://github.com/tamaro-skaljic/SpacetimeDSL/issues/90#issuecomment-3573925117> until [SpacetimeDB#3754](https://github.com/clockworklabs/SpacetimeDB/issues/3754) is resolved and released.
 
 ## ❓ FAQ
 
