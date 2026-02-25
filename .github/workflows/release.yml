@@ -20,8 +20,8 @@ jobs:
           script: |
             const tagRef = context.ref;
             const tagSha = context.sha;
-            const pollIntervalMs = 30_000; // 30 seconds
-            const timeoutMs = 30 * 60_000; // 30 minutes
+            const pollIntervalMs = 5_000; // 5 seconds
+            const timeoutMs = 10 * 60_000; // 10 minutes
 
             console.log(`Waiting for test workflow to pass for tag ${tagRef} (${tagSha})`);
 
