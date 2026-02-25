@@ -30,7 +30,7 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     let trait_comment = format!("See [`Self::{method_name}`] for details.");
     let method = quote! {
         #[doc = #trait_comment]
-        pub trait #trait_name<T: spacetimedsl::Context<spacetimedb::Local>>: #(#paths_of_traits_to_extend)+* {
+        pub trait #trait_name<T: spacetimedsl::WriteContext>: #(#paths_of_traits_to_extend)+* {
             #[allow(clippy::too_many_arguments)]
             #[doc=#doc_comment]
             fn #method_name(
@@ -43,7 +43,7 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
             }
         }
 
-        impl<T: spacetimedsl::Context<spacetimedb::Local>> #trait_name<T> for spacetimedsl::DSL<'_, T> {}
+        impl<T: spacetimedsl::WriteContext> #trait_name<T> for spacetimedsl::DSL<'_, T> {}
     };
 
     Ok(method)

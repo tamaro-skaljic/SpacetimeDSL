@@ -17,7 +17,7 @@ pub fn build(hook: &Option<SpacetimeDSLMethodHook>) -> syn::Result<TokenStream> 
     let return_type = &hook.return_type;
 
     let method = quote! {
-        pub trait #trait_name<T: spacetimedsl::Context<spacetimedb::Local>> {
+        pub trait #trait_name<T: spacetimedsl::WriteContext> {
             fn #function_name(
                 #(#function_args),*
             ) -> #return_type;
