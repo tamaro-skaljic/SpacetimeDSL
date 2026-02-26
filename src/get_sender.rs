@@ -21,7 +21,7 @@ macro_rules! impl_get_sender_ok {
     ($context:ident) => {
         impl GetSender for spacetimedb::$context {
             fn sender(&self) -> Result<spacetimedb::Identity, SpacetimeDSLError> {
-                Ok(self.sender)
+                Ok(spacetimedb::$context::sender(self))
             }
         }
     };
@@ -31,6 +31,10 @@ impl_get_sender_err!(AnonymousViewContext, AnonymousView);
 
 impl_get_sender_ok!(ReducerContext);
 
-impl_get_sender_ok!(TxContext);
+impl GetSender for spacetimedb::TxContext {
+    fn sender(&self) -> Result<spacetimedb::Identity, SpacetimeDSLError> {
+        Ok(spacetimedb::ReducerContext::sender(self))
+    }
+}
 
 impl_get_sender_ok!(ViewContext);

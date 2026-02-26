@@ -25,7 +25,7 @@ macro_rules! impl_get_connection_id_ok {
             fn connection_id(
                 &self,
             ) -> Result<Option<spacetimedb::ConnectionId>, SpacetimeDSLError> {
-                Ok(self.connection_id)
+                Ok(spacetimedb::ReducerContext::connection_id(self))
             }
         }
     };

@@ -56,7 +56,7 @@ spacetimedsl = { version = "*" }
 Let's start with a ordinary SpacetimeDB schema:
 
 ```rust
-#[spacetimedb::table(name = entity, public)]
+#[spacetimedb::table(accessor = entity, public)]
 pub struct Entity {
     #[primary_key]
     #[auto_inc]
@@ -65,7 +65,7 @@ pub struct Entity {
     created_at: spacetimedb::Timestamp,
 }
 
-#[spacetimedb::table(name = position, public, index(name = x_y, btree(columns = [x, y])))]
+#[spacetimedb::table(accessor = position, public, index(accessor = x_y, btree(columns = [x, y])))]
 pub struct Position {
     #[primary_key]
     #[auto_inc]
@@ -121,7 +121,7 @@ Let's see what happens when adding **SpacetimeDSL**:
 
 ```rust
 #[spacetimedsl::dsl(plural_name = entities, method(update = false, delete = true))] // Added
-#[spacetimedb::table(name = entity, public)]
+#[spacetimedb::table(accessor = entity, public)]
 pub struct Entity {
     #[primary_key]
     #[auto_inc]
@@ -132,8 +132,8 @@ pub struct Entity {
     created_at: spacetimedb::Timestamp,
 }
 
-#[spacetimedsl::dsl(plural_name = positions, method(update = false, delete = true), unique_index(name = x_y))] // Added
-#[spacetimedb::table(name = position, public, index(name = x_y, btree(columns = [x, y])))]
+#[spacetimedsl::dsl(plural_name = positions, method(update = false, delete = true), unique_index(accessor = x_y))] // Added
+#[spacetimedb::table(accessor = position, public, index(accessor = x_y, btree(columns = [x, y])))]
 pub struct Position {
     #[primary_key]
     #[auto_inc]
@@ -508,7 +508,7 @@ pub trait Wrapper<WrappedType: Clone + Default, WrapperType>: Default +
 
 ```rust
 #[spacetimedsl::dsl(plural_name = entities, method(update = false))]
-#[spacetimedb::table(name = entity, public)]
+#[spacetimedb::table(accessor = entity, public)]
 pub struct Entity {
     // Default Name Strategy: EntityId
     // format!("{}{}", singular_table_name_pascal_case, column_name_pascal_case)
@@ -600,12 +600,12 @@ SpacetimeDSL **automatically makes all struct fields private** when processing D
 #[dsl(
     plural_name = entity_relationships,
     method(update = false),
-    unique_index(name = parent_child_entity_id)
+    unique_index(accessor = parent_child_entity_id)
 )]
 #[table(
-    name = entity_relationship,
+    accessor = entity_relationship,
     public,
-    index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id]))
+    index(accessor = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id]))
 )]
 pub struct EntityRelationship {
     #[primary_key]
@@ -620,7 +620,7 @@ pub struct EntityRelationship {
 
 **Setup:**
 
-1. Add `unique_index(name = parent_child_entity_id)` to `#[spacetimedsl::dsl]`
+1. Add `unique_index(accessor = parent_child_entity_id)` to `#[spacetimedsl::dsl]`
 2. Have matching multi-column index in `#[spacetimedb::table]`
 
 **You get:**
@@ -648,7 +648,7 @@ Add `#[foreign_key]` and `#[referenced_by]` to enforce referential integrity and
 ```rust
 pub mod entity {
     #[dsl(plural_name = entities, method(update = false))]
-    #[table(name = entity, public)]
+    #[table(accessor = entity, public)]
     pub struct Entity {
         #[primary_key]
         #[auto_inc]
@@ -662,7 +662,7 @@ pub mod entity {
 
 pub mod identifier {
     #[dsl(plural_name = identifiers, method(update = true))]
-    #[table(name = identifier, public)]
+    #[table(accessor = identifier, public)]
     pub struct Identifier {
         #[primary_key]
         #[auto_inc]
@@ -685,7 +685,7 @@ pub mod identifier {
 }
 
 #[dsl(plural_name = identifier_references, method(update = true))]
-#[table(name = identifier_reference, public)]
+#[table(accessor = identifier_reference, public)]
 pub struct IdentifierReference {
     #[primary_key]
     #[use_wrapper(IdentifierId)]
@@ -759,7 +759,7 @@ Foreign key strategies must be compatible with the table's method configuration 
 ```rust
 // ✅ Valid: table has delete methods enabled
 #[dsl(plural_name = children, method(update = true, delete = true))]
-#[table(name = child, public)]
+#[table(accessor = child, public)]
 pub struct Child {
     #[primary_key]
     #[auto_inc]
@@ -773,7 +773,7 @@ pub struct Child {
 
 // ✅ Valid: table has update methods and column is public
 #[dsl(plural_name = items, method(update = true, delete = false))]
-#[table(name = item, public)]
+#[table(accessor = item, public)]
 pub struct Item {
     #[primary_key]
     #[auto_inc]
@@ -1552,7 +1552,7 @@ Add `hook()` configuration to your `#[spacetimedsl::dsl]` attribute:
     method(update = true, delete = true),
     hook(before(update, delete), after(insert))
 )]
-#[spacetimedb::table(name = entity, public)]
+#[spacetimedb::table(accessor = entity, public)]
 pub struct Entity {
     #[primary_key]
     #[auto_inc]
@@ -1683,7 +1683,7 @@ SpacetimeDSL requires you to explicitly specify which DSL methods to generate us
     plural_name = entities,
     method(update = true, delete = false)  // Generate update methods, but not delete methods
 )]
-#[spacetimedb::table(name = entity, public)]
+#[spacetimedb::table(accessor = entity, public)]
 pub struct Entity {
     // ... fields
 }

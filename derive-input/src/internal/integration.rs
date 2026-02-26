@@ -68,7 +68,7 @@ fn select_table_with_heuristics<'a>(
     // Try exact match first
     for (i, table_entry) in all_tables.iter().enumerate() {
         let (table_args, _) = table_entry;
-        let table_name = table_args.name.to_string();
+        let table_name = table_args.accessor.to_string();
         if table_name == plural_str {
             return Ok(all_tables.into_iter().nth(i).unwrap());
         }
@@ -78,7 +78,7 @@ fn select_table_with_heuristics<'a>(
     // This handles cases like test_tables1 -> test_table1
     for (i, table_entry) in all_tables.iter().enumerate() {
         let (table_args, _) = table_entry;
-        let table_name = table_args.name.to_string();
+        let table_name = table_args.accessor.to_string();
 
         // Check if the plural name matches the table name with some smart heuristics
         if is_plural_match(&plural_str, &table_name) {

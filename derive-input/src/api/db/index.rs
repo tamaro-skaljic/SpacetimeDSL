@@ -13,6 +13,10 @@ pub enum IndexType {
     BTreeMultiColumn { columns: Vec<Ident> },
     /// Available from `SpacetimeDBColumn.single_column_index`
     BTreeSingleColumn { column: Ident },
+    /// Available from `SpacetimeDBTable.multi_column_indices`
+    HashMultiColumn { columns: Vec<Ident> },
+    /// Available from `SpacetimeDBColumn.single_column_index`
+    HashSingleColumn { column: Ident },
     /// Available from `SpacetimeDBColumn.single_column_index`
     Direct { column: Ident },
 }

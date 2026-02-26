@@ -37,7 +37,7 @@ pub enum LoginStatus {
 }
 
 #[dsl(plural_name = config, method(update = false))]
-#[spacetimedb::table(name = config, public)]
+#[spacetimedb::table(accessor = config, public)]
 pub struct Config {
     #[primary_key]
     #[create_wrapper]
@@ -46,7 +46,7 @@ pub struct Config {
 }
 
 #[dsl(plural_name = entities, method(update = true))]
-#[spacetimedb::table(name = entity, public)]
+#[spacetimedb::table(accessor = entity, public)]
 pub struct Entity {
     #[primary_key]
     #[auto_inc]
@@ -62,7 +62,7 @@ pub struct Entity {
 }
 
 #[dsl(plural_name = circles, method(update = true))]
-#[spacetimedb::table(name = circle, public)]
+#[spacetimedb::table(accessor = circle, public)]
 pub struct Circle {
     #[primary_key]
     #[use_wrapper(EntityId)]
@@ -81,7 +81,7 @@ pub struct Circle {
 
 // FIXME: update = true should not have been valid here because all fields were private and no modified_at / updated_at column existed
 #[dsl(plural_name = players, method(update = true), hook(after(update)))]
-#[spacetimedb::table(name = player, public)]
+#[spacetimedb::table(accessor = player, public)]
 pub struct Player {
     #[primary_key]
     #[auto_inc]
@@ -97,7 +97,7 @@ pub struct Player {
 }
 
 #[dsl(plural_name = food, method(update = false))]
-#[spacetimedb::table(name = food, public)]
+#[spacetimedb::table(accessor = food, public)]
 pub struct Food {
     #[primary_key]
     #[use_wrapper(EntityId)]
@@ -106,7 +106,7 @@ pub struct Food {
 }
 
 #[dsl(plural_name = move_all_players_timers, method(update = false))]
-#[spacetimedb::table(name = move_all_players_timer, scheduled(move_all_players))]
+#[spacetimedb::table(accessor = move_all_players_timer, scheduled(move_all_players))]
 pub struct MoveAllPlayersTimer {
     #[primary_key]
     #[auto_inc]
@@ -116,7 +116,7 @@ pub struct MoveAllPlayersTimer {
 }
 
 #[dsl(plural_name = spawn_food_timers, method(update = false))]
-#[spacetimedb::table(name = spawn_food_timer, scheduled(spawn_food))]
+#[spacetimedb::table(accessor = spawn_food_timer, scheduled(spawn_food))]
 pub struct SpawnFoodTimer {
     #[primary_key]
     #[auto_inc]
@@ -126,7 +126,7 @@ pub struct SpawnFoodTimer {
 }
 
 #[dsl(plural_name = circle_decay_timers, method(update = false))]
-#[spacetimedb::table(name = circle_decay_timer, scheduled(circle_decay))]
+#[spacetimedb::table(accessor = circle_decay_timer, scheduled(circle_decay))]
 pub struct CircleDecayTimer {
     #[primary_key]
     #[auto_inc]
@@ -136,7 +136,7 @@ pub struct CircleDecayTimer {
 }
 
 #[dsl(plural_name = circle_recombine_timers, method(update = false))]
-#[spacetimedb::table(name = circle_recombine_timer, scheduled(circle_recombine))]
+#[spacetimedb::table(accessor = circle_recombine_timer, scheduled(circle_recombine))]
 pub struct CircleRecombineTimer {
     #[primary_key]
     #[auto_inc]
@@ -150,7 +150,7 @@ pub struct CircleRecombineTimer {
 }
 
 #[dsl(plural_name = consume_entity_timers, method(update = false))]
-#[spacetimedb::table(name = consume_entity_timer, scheduled(consume_entity))]
+#[spacetimedb::table(accessor = consume_entity_timer, scheduled(consume_entity))]
 pub struct ConsumeEntityTimer {
     #[primary_key]
     #[auto_inc]
@@ -197,14 +197,14 @@ pub fn init(ctx: &ReducerContext) -> Result<(), spacetimedsl::SpacetimeDSLError>
 pub fn connect(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
     let dsl = dsl(ctx);
 
-    match dsl.get_player_by_identity(&dsl.ctx().sender) {
+    match dsl.get_player_by_identity(&dsl.ctx().sender()) {
         Err(error) => match error {
             spacetimedsl::SpacetimeDSLError::NotFoundError {
                 table_name: _,
                 column_names_and_row_values: _,
             } => {
                 dsl.create_player(CreatePlayer {
-                    identity: dsl.ctx().sender,
+                    identity: dsl.ctx().sender(),
                     name: String::new(),
                     login_status: LoginStatus::LoggedIn,
                 })?;
@@ -259,7 +259,7 @@ fn after_player_update(
 pub fn disconnect(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
     let dsl = dsl(ctx);
 
-    let mut player = dsl.get_player_by_identity(&ctx.sender)?;
+    let mut player = dsl.get_player_by_identity(&ctx.sender())?;
 
     match player.get_login_status() {
         LoginStatus::LoggedIn => {
@@ -286,7 +286,7 @@ pub fn enter_game(ctx: &ReducerContext, name: String) -> Result<(), SpacetimeDSL
 
     log::info!("Creating player with name {}", name);
 
-    let mut player = dsl.get_player_by_identity(&dsl.ctx().sender)?;
+    let mut player = dsl.get_player_by_identity(&dsl.ctx().sender())?;
 
     player.set_name(name);
 
@@ -354,7 +354,7 @@ fn spawn_circle_at(
 pub fn respawn(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
     let dsl = dsl(ctx);
 
-    let player = dsl.get_player_by_identity(&dsl.ctx().sender)?;
+    let player = dsl.get_player_by_identity(&dsl.ctx().sender())?;
 
     spawn_player_initial_circle(&dsl, &player)?;
 
@@ -365,7 +365,7 @@ pub fn respawn(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
 pub fn suicide(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
     let dsl = dsl(ctx);
 
-    let player = dsl.get_player_by_identity(&dsl.ctx().sender)?;
+    let player = dsl.get_player_by_identity(&dsl.ctx().sender())?;
 
     for circle in dsl.get_circles_by_player_id(&player) {
         // food and circle are automatically deleted by on delete strategies of foreign keys referencing the entity table's primary key
@@ -382,7 +382,7 @@ pub fn update_player_input(
 ) -> Result<(), SpacetimeDSLError> {
     let dsl = dsl(ctx);
 
-    let player = dsl.get_player_by_identity(&ctx.sender)?;
+    let player = dsl.get_player_by_identity(&ctx.sender())?;
 
     for mut circle in dsl.get_circles_by_player_id(&player) {
         circle.set_direction(direction.normalized());
@@ -633,7 +633,7 @@ pub fn consume_entity(
 pub fn player_split(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
     let dsl = dsl(ctx);
 
-    let player = dsl.get_player_by_identity(&dsl.ctx().sender)?;
+    let player = dsl.get_player_by_identity(&dsl.ctx().sender())?;
 
     let circles = dsl.get_circles_by_player_id(&player).collect_vec();
 
