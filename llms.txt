@@ -20,7 +20,7 @@ spacetimedsl = { version = "*" }
     plural_name = entities,
     method(update = true, delete = true)
 )]
-#[spacetimedb::table(name = entity, public)]
+#[spacetimedb::table(accessor = entity, public)]
 pub struct Entity {
     #[primary_key]
     #[auto_inc]
@@ -256,11 +256,11 @@ Error handling in hooks:
 #[dsl(
     plural_name = entity_relationships,
     method(update = true, delete = true),
-    unique_index(name = parent_child_entity_id)
+    unique_index(accessor = parent_child_entity_id)
 )]
 #[table(
-    name = entity_relationship,
-    index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id]))
+    accessor = entity_relationship,
+    index(accessor = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id]))
 )]
 pub struct EntityRelationship {
     #[primary_key]
