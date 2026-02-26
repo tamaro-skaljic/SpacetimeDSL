@@ -159,7 +159,24 @@ impl SpacetimeDSLColumnMethods {
                     primary_key_column,
                 );
 
-                let update = match spacetimedsl_table.has_update_method {
+                let method_is_for_primary_key = match &index.index_type {
+                    IndexType::BTreeSingleColumn { column }
+                    | IndexType::HashSingleColumn { column }
+                    | IndexType::Direct { column } => {
+                        if column
+                            .to_string()
+                            .eq(&primary_key_column.rust_field_name.to_string())
+                        {
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    _ => panic!("When this code is called, it should be a single column index!"),
+                };
+
+                let update = match spacetimedsl_table.has_update_method && method_is_for_primary_key
+                {
                     false => None,
                     true => Some(for_method(
                         DSLMethod::Update(index),
@@ -892,7 +909,8 @@ pub(in crate::internal) fn for_method(
             let mut column_names_and_row_values = String::new();
             column_names_and_row_values.push_str("{{ ");
             match &index.index_type {
-                IndexType::BTreeSingleColumn { column } => {
+                IndexType::BTreeSingleColumn { column }
+                | IndexType::HashSingleColumn { column } => {
                     is_multi_column_index = false;
                     index_columns.push(column.clone());
                     value_matches_or_values_match = "value matches the value from";
@@ -902,7 +920,8 @@ pub(in crate::internal) fn for_method(
                     column_names_and_row_values.push_str(&format!(", {column} : "));
                     column_names_and_row_values.push_str("{} ");
                 }
-                IndexType::BTreeMultiColumn { columns } => {
+                IndexType::BTreeMultiColumn { columns }
+                | IndexType::HashMultiColumn { columns } => {
                     is_multi_column_index = true;
                     value_matches_or_values_match = "values match the values from";
                     single_or_multi = "multi";

@@ -9,7 +9,7 @@ pub mod entity {
         )
     )]
     #[spacetimedb::table(
-        name = entity,
+        accessor = entity,
         public,
     )]
     pub struct Entity {
@@ -38,11 +38,11 @@ pub mod entity {
         unique_index(name = id_and_name3),
     )]
     #[spacetimedb::table(
-        name = table,
-        index(name = id_and_name1, btree(columns = [id, name1])),
-        index(name = id_and_name2, btree(columns = [id, name2])),
-        index(name = id_and_name3, btree(columns = [id, name3])),
-        index(name = id_and_name4, btree(columns = [id, name4])),
+        accessor = table,
+        index(accessor = id_and_name1, btree(columns = [id, name1])),
+        index(accessor = id_and_name2, btree(columns = [id, name2])),
+        index(accessor = id_and_name3, btree(columns = [id, name3])),
+        index(accessor = id_and_name4, btree(columns = [id, name4])),
         public,
     )]
     pub struct Table {
@@ -72,8 +72,8 @@ pub mod entity {
         unique_index(name = parent_child_entity_id)
     )]
     #[spacetimedb::table(
-        name = entity_relationship,
-        index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])),
+        accessor = entity_relationship,
+        index(accessor = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])),
         public,
     )]
     pub struct EntityRelationship {
@@ -102,8 +102,8 @@ pub mod entity {
         method(update = true),
     )]
     #[spacetimedb::table(
-        name = entity_relationship2,
-        index(name = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])),
+        accessor = entity_relationship2,
+        index(accessor = parent_child_entity_id, btree(columns = [parent_entity_id, child_entity_id])),
         public,
     )]
     pub struct EntityRelationship2 {
@@ -133,7 +133,7 @@ pub mod entity {
         method(update = true),
     )]
     #[spacetimedb::table(
-        name = entity_relationship3,
+        accessor = entity_relationship3,
         public,
     )]
     pub struct EntityRelationship3 {
@@ -155,7 +155,7 @@ pub mod entity {
         method(update = true),
     )]
     #[spacetimedb::table(
-        name = entity_relationship4,
+        accessor = entity_relationship4,
         public,
     )]
     pub struct EntityRelationship4 {
@@ -183,7 +183,7 @@ pub mod component {
             method(update = true),
         )]
         #[spacetimedb::table(
-            name = identifier,
+            accessor = identifier,
             public,
         )]
         pub struct Identifier {
@@ -214,7 +214,7 @@ pub mod component {
             method(update = false),
         )]
         #[spacetimedb::table(
-            name = identifier_reference,
+            accessor = identifier_reference,
             public,
         )]
         pub struct IdentifierReference {
@@ -238,8 +238,8 @@ pub mod component {
             method(update = true),
         )]
         #[spacetimedb::table(
-            name = position,
-            index(name = x_y_z, btree(columns = [x, y, z])),
+            accessor = position,
+            index(accessor = x_y_z, btree(columns = [x, y, z])),
             public,
         )]
         pub struct Position {
@@ -276,8 +276,8 @@ pub mod component {
             unique_index(name = x_y_z),
         )]
         #[spacetimedb::table(
-            name = unique_position,
-            index(name = x_y_z, btree(columns = [x, y, z])),
+            accessor = unique_position,
+            index(accessor = x_y_z, btree(columns = [x, y, z])),
             public,
         )]
         pub struct UniquePosition {
@@ -314,7 +314,7 @@ pub mod component {
             method(update = true),
         )]
         #[spacetimedb::table(
-            name = test,
+            accessor = test,
             public,
         )]
         pub struct Test {
@@ -387,8 +387,8 @@ pub mod component {
             unique_index(name = id_and_sobj),
         )]
         #[spacetimedb::table(
-            name = ship_object,
-            index(name = id_and_sobj, btree(columns = [id, sobj_id])),
+            accessor = ship_object,
+            index(accessor = id_and_sobj, btree(columns = [id, sobj_id])),
             public,
         )]
         pub struct ShipObject {
@@ -413,8 +413,8 @@ pub mod component {
             method(update = true),
         )]
         #[spacetimedb::table(
-            name = space_ship_object,
-            index(name = id_and_sobj, btree(columns = [id, sobj_id])),
+            accessor = space_ship_object,
+            index(accessor = id_and_sobj, btree(columns = [id, sobj_id])),
             public,
         )]
         pub struct SpaceShipObject {
@@ -440,8 +440,8 @@ pub mod component {
             unique_index(name = database_and_parent_id_and_name),
         )]
         #[spacetimedb::table(
-            name = module1,
-            index(name = database_and_parent_id_and_name, btree(columns = [database_id, parent_id, name])),
+            accessor = module1,
+            index(accessor = database_and_parent_id_and_name, btree(columns = [database_id, parent_id, name])),
             public,
         )]
         #[spacetimedsl::dsl(
@@ -450,8 +450,8 @@ pub mod component {
             unique_index(name = database_and_name_and_parent_id),
         )]
         #[spacetimedb::table(
-            name = module2,
-            index(name = database_and_name_and_parent_id, btree(columns = [database_id, name, parent_id])),
+            accessor = module2,
+            index(accessor = database_and_name_and_parent_id, btree(columns = [database_id, name, parent_id])),
             public,
         )]
         pub struct Module {
@@ -479,7 +479,7 @@ pub mod component {
             method(update = true),
         )]
         #[spacetimedb::table(
-            name = uuid_holder1,
+            accessor = uuid_holder1,
             public,
         )]
         pub struct UuidHolder1 {
@@ -510,7 +510,7 @@ pub mod component {
             ),
         )]
         #[spacetimedb::table(
-            name = attribute,
+            accessor = attribute,
             public,
         )]
         pub struct Attribute {
@@ -540,7 +540,7 @@ pub mod component {
             ),
         )]
         #[spacetimedb::table(
-            name = potion,
+            accessor = potion,
             public,
         )]
         pub struct Potion {
@@ -581,7 +581,7 @@ pub mod component {
             ),
         )]
         #[spacetimedb::table(
-            name = recipe,
+            accessor = recipe,
             public,
         )]
         pub struct Recipe {
@@ -616,9 +616,9 @@ pub mod component {
             ),
         )]
         #[spacetimedb::table(
-            name = multi_column_index_with_hook_test,
+            accessor = multi_column_index_with_hook_test,
             index(
-                name = value_1_and_2,
+                accessor = value_1_and_2,
                 btree(columns = [value_1, value_2])
             ),
             public,
@@ -642,7 +642,7 @@ pub mod component {
             ),
         )]
         #[spacetimedb::table(
-            name = hook_call,
+            accessor = hook_call,
             public,
         )]
         pub struct HookCall {
@@ -1038,14 +1038,14 @@ pub mod test {
     };
     use spacetimedsl::prelude::*;
 
-    #[spacetimedb::view(name = my_view, public)]
+    #[spacetimedb::view(accessor = my_view, public)]
     pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
         let _dsl = spacetimedsl::read_only_dsl(ctx);
 
         ctx.db.entity().obj_id().find(0)
     }
 
-    #[spacetimedb::view(name = my_anonymous_view, public)]
+    #[spacetimedb::view(accessor = my_anonymous_view, public)]
     pub fn my_anonymous_view(ctx: &AnonymousViewContext) -> Vec<Entity> {
         let _dsl = spacetimedsl::read_only_dsl(ctx);
 
@@ -1054,7 +1054,7 @@ pub mod test {
     }
 
     // FIXME: Procedures can currently not be called through the SpacetimeDB CLI and not through reducers, only through clients. Will need to rely on successful compilation for now.
-    #[spacetimedb::procedure(name = "my_procedure")]
+    #[spacetimedb::procedure]
     pub fn my_procedure(ctx: &mut ProcedureContext) {
         let result = ctx.try_with_tx(|ctx| {
             let dsl = dsl(ctx);

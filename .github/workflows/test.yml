@@ -84,16 +84,16 @@ jobs:
           sleep 2
 
           echo "Building and publishing a module using SpacetimeDSL..."
-          spacetime publish spacetimedsl --yes || echo "Publish failed"
+          spacetime publish --server local spacetimedsl --yes || echo "Publish failed"
 
           echo "Testing the module..."
-          spacetime call spacetimedsl tester --yes || echo "Test call failed"
+          spacetime call --server local spacetimedsl tester --yes || echo "Test call failed"
 
           echo "Showing logs..."
-          spacetime logs spacetimedsl --yes || echo "Logs failed"
+          spacetime logs --server local spacetimedsl --yes || echo "Logs failed"
 
           echo "Cleaning up module..."
-          spacetime delete spacetimedsl --yes || echo "Delete failed"
+          spacetime delete --server local spacetimedsl --yes || echo "Delete failed"
 
       - name: Check code formatting
         run: |
