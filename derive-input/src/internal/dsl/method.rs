@@ -2537,12 +2537,14 @@ fn for_referenced_by(
 
         let referencing_table_path = &referencing_table.path;
 
-        let compile_error_check = get_referenced_table_compile_error_check(singular_table_name, referencing_table_name);
+        let compile_error_check =
+            get_referenced_table_compile_error_check(singular_table_name, referencing_table_name);
         spacetimedsl_table
             .compile_error_checks
             .insert(compile_error_check.clone());
 
-        let compile_error_check = get_referencing_table_compile_error_check(referencing_table_name, singular_table_name);
+        let compile_error_check =
+            get_referencing_table_compile_error_check(referencing_table_name, singular_table_name);
         compile_error_check_usages.push(quote! {
             use #referencing_table_path::#compile_error_check;
         });
@@ -2839,13 +2841,15 @@ fn for_foreign_key(
         })
         .collect_vec();
 
-    let compile_error_check = get_referencing_table_compile_error_check(singular_table_name, &referenced_table_name);
+    let compile_error_check =
+        get_referencing_table_compile_error_check(singular_table_name, &referenced_table_name);
 
     spacetimedsl_table
         .compile_error_checks
         .insert(compile_error_check.clone());
 
-    let compile_error_check = get_referenced_table_compile_error_check(&referenced_table_name, singular_table_name);
+    let compile_error_check =
+        get_referenced_table_compile_error_check(&referenced_table_name, singular_table_name);
 
     let compile_error_check_usage = quote! {
         use #referenced_table_path::#compile_error_check;
@@ -3285,13 +3289,19 @@ fn get_referenced_table_function_call_for_strategy_implementation(
     }
 }
 
-fn get_referenced_table_compile_error_check(referenced_table_name: &Ident, referencing_table_name: &Ident) -> Ident {
+fn get_referenced_table_compile_error_check(
+    referenced_table_name: &Ident,
+    referencing_table_name: &Ident,
+) -> Ident {
     format_ident!(
         "this_compilation_error_occurs_because_the_{referenced_table_name}_table_has_no_referenced_by_attribute_referencing_the_{referencing_table_name}_table"
     )
 }
 
-fn get_referencing_table_compile_error_check(referencing_table_name: &Ident, referenced_table_name: &Ident) -> Ident {
+fn get_referencing_table_compile_error_check(
+    referencing_table_name: &Ident,
+    referenced_table_name: &Ident,
+) -> Ident {
     format_ident!(
         "this_compilation_error_occurs_because_the_{referencing_table_name}_table_has_no_foreign_key_attribute_referencing_the_{referenced_table_name}_table"
     )
