@@ -9,7 +9,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
-spacetimedb = { version = "2.0.1", features = ["unstable"] }
+spacetimedb = { version = "2.0.2", features = ["unstable"] }
 
 # https://crates.io/crates/spacetimedsl Ergonomic DSL for SpacetimeDB
 spacetimedsl = { version = "0.18.0", path = "../.." }
