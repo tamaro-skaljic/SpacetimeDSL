@@ -1209,9 +1209,6 @@ pub(in crate::internal) fn for_method(
                     method_impl = quote! {
                         #use_itertools
 
-                        // TODO: This arg was `is_mut: true`,
-                        // but things compile fine without rebinding as `mut`.
-                        // Is this still required?
                         let mut #singular_table_name = #singular_table_name;
 
                         #let_field_name_for_found_value
