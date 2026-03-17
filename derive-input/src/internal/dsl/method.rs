@@ -489,7 +489,6 @@ fn process_columns_for_create_and_update_method(
                     .eq(&"String")
                 {
                     arg = Some(SpacetimeDSLArg {
-                        is_mut: false,
                         is_option: false,
                         arg_name: column_name.clone(),
                         arg_type: SpacetimeDSLArgType::Normal(quote! { String }),
@@ -508,7 +507,6 @@ fn process_columns_for_create_and_update_method(
                     };
                 } else {
                     arg = Some(SpacetimeDSLArg {
-                        is_mut: false,
                         is_option: false,
                         arg_name: column_name.clone(),
                         arg_type: SpacetimeDSLArgType::Normal(
@@ -526,7 +524,6 @@ fn process_columns_for_create_and_update_method(
 
                 if internal_column.spacetimedsl_column_is_option {
                     arg = Some(SpacetimeDSLArg {
-                        is_mut: false,
                         is_option: true,
                         arg_name: column_name.clone(),
                         arg_type: SpacetimeDSLArgType::Wrapped {
@@ -548,7 +545,6 @@ fn process_columns_for_create_and_update_method(
                         WrapperType::map_to_wrapped_type(wrapper_type).to_token_stream();
 
                     arg = Some(SpacetimeDSLArg {
-                        is_mut: false,
                         is_option: false,
                         arg_name: column_name.clone(),
                         arg_type: SpacetimeDSLArgType::Wrapped {
@@ -580,7 +576,6 @@ fn process_columns_for_create_and_update_method(
                 .eq(&"String")
             {
                 arg = Some(SpacetimeDSLArg {
-                    is_mut: false,
                     is_option: false,
                     arg_name: column_name.clone(),
                     arg_type: SpacetimeDSLArgType::Normal(quote! { String }),
@@ -600,7 +595,6 @@ fn process_columns_for_create_and_update_method(
                 };
             } else {
                 arg = Some(SpacetimeDSLArg {
-                    is_mut: false,
                     is_option: internal_column.spacetimedsl_column_is_option,
                     arg_name: column_name.clone(),
                     arg_type: SpacetimeDSLArgType::Normal(quote! { #column_type }),
@@ -649,10 +643,19 @@ pub(in crate::internal) fn for_method(
 
     let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
 
-    let mut paths_of_traits_to_extend =
-        vec![parse_str("spacetimedsl::DSLContext<T>").expect("parsing should have worked")];
+    let mut trait_dep_paths: Vec<syn::Path> = vec![];
     let mut method_args = vec![];
     let method_impl;
+
+    let read_context_compatible = match &dsl_method {
+        DSLMethod::GetMany(_) | DSLMethod::GetOne(_) => true,
+        DSLMethod::Create
+        | DSLMethod::GetAll
+        | DSLMethod::GetCount
+        | DSLMethod::Update(_)
+        | DSLMethod::DeleteOne(_)
+        | DSLMethod::DeleteMany(_) => false,
+    };
 
     match dsl_method {
         DSLMethod::Create => {
@@ -706,7 +709,6 @@ pub(in crate::internal) fn for_method(
                 let method_arg_name = format_ident!("Create{singular_table_name_pascal_case}");
 
                 method_args.push(SpacetimeDSLArg {
-                    is_mut: false,
                     is_option: false,
                     arg_name: singular_table_name.clone(),
                     arg_type: SpacetimeDSLArgType::Normal(quote! {
@@ -764,12 +766,12 @@ pub(in crate::internal) fn for_method(
                 CreateOrUpdate::Create,
                 spacetimedb_table,
                 internal_columns,
-                paths_of_traits_to_extend,
+                trait_dep_paths,
                 None,
                 &OneOrMultiple::One,
                 primary_key_column,
             );
-            paths_of_traits_to_extend = res.0;
+            trait_dep_paths = res.0;
             let reference_integrity_checks = res.1;
 
             let let_field_name_for_found_value =
@@ -1062,7 +1064,6 @@ pub(in crate::internal) fn for_method(
             match dsl_method {
                 DSLMethod::Update(_) => {
                     method_args.push(SpacetimeDSLArg {
-                        is_mut: true,
                         is_option: false,
                         arg_name: singular_table_name.clone(),
                         arg_type: SpacetimeDSLArgType::Normal(quote! { #struct_name }),
@@ -1145,12 +1146,12 @@ pub(in crate::internal) fn for_method(
                         CreateOrUpdate::Update,
                         spacetimedb_table,
                         internal_columns,
-                        paths_of_traits_to_extend,
+                        trait_dep_paths,
                         Some((&column_names_and_row_values, &index_columns)),
                         &one_or_multiple,
                         primary_key_column,
                     );
-                    paths_of_traits_to_extend = res.0;
+                    trait_dep_paths = res.0;
                     let reference_integrity_checks = res.1;
 
                     let let_field_name_for_found_value = if multi_column_index_checks.is_empty()
@@ -1215,6 +1216,11 @@ pub(in crate::internal) fn for_method(
                     method_impl = quote! {
                         #use_itertools
 
+                        // TODO: This arg was `is_mut: true`,
+                        // but things compile fine without rebinding as `mut`.
+                        // Is this still required?
+                        let mut #singular_table_name = #singular_table_name;
+
                         #let_field_name_for_found_value
 
                         #(#multi_column_index_checks)*
@@ -1269,7 +1275,6 @@ pub(in crate::internal) fn for_method(
                                     match &dsl_method {
                                         DSLMethod::GetMany(_) | DSLMethod::DeleteMany(_) => {
                                             method_arg = SpacetimeDSLArg {
-                                                is_mut: false,
                                                 is_option: false,
                                                 arg_name: column_name.clone(),
                                                 arg_type: SpacetimeDSLArgType::Normal(
@@ -1280,7 +1285,6 @@ pub(in crate::internal) fn for_method(
                                         }
                                         DSLMethod::GetOne(_) | DSLMethod::DeleteOne(_) => {
                                             method_arg = SpacetimeDSLArg {
-                                                is_mut: false,
                                                 is_option: false,
                                                 arg_name: column_name.clone(),
                                                 arg_type: SpacetimeDSLArgType::Normal(
@@ -1314,7 +1318,6 @@ pub(in crate::internal) fn for_method(
                                     };
 
                                     method_arg = SpacetimeDSLArg {
-                                        is_mut: false,
                                         is_option: true,
                                         arg_name: column_name.clone(),
                                         arg_type: SpacetimeDSLArgType::Wrapped {
@@ -1334,7 +1337,6 @@ pub(in crate::internal) fn for_method(
                                     match &dsl_method {
                                         DSLMethod::GetMany(_) | DSLMethod::DeleteMany(_) => {
                                             method_arg = SpacetimeDSLArg {
-                                                is_mut: false,
                                                 is_option: false,
                                                 arg_name: column_name.clone(),
                                                 arg_type: SpacetimeDSLArgType::Wrapped {
@@ -1350,7 +1352,6 @@ pub(in crate::internal) fn for_method(
                                         }
                                         DSLMethod::GetOne(_) | DSLMethod::DeleteOne(_) => {
                                             method_arg = SpacetimeDSLArg {
-                                                is_mut: false,
                                                 is_option: false,
                                                 arg_name: column_name.clone(),
                                                 arg_type: SpacetimeDSLArgType::Wrapped {
@@ -1391,7 +1392,6 @@ pub(in crate::internal) fn for_method(
                                 match dsl_method {
                                     DSLMethod::GetMany(_) | DSLMethod::DeleteMany(_) => {
                                         method_arg = SpacetimeDSLArg {
-                                            is_mut: false,
                                             is_option: column.spacetimedsl_column_is_option,
                                             arg_name: column_name.clone(),
                                             arg_type: SpacetimeDSLArgType::Normal(
@@ -1403,7 +1403,6 @@ pub(in crate::internal) fn for_method(
                                     }
                                     DSLMethod::GetOne(_) | DSLMethod::DeleteOne(_) => {
                                         method_arg = SpacetimeDSLArg {
-                                            is_mut: false,
                                             is_option: column.spacetimedsl_column_is_option,
                                             arg_name: column_name.clone(),
                                             arg_type: SpacetimeDSLArgType::Normal(
@@ -2023,11 +2022,12 @@ pub(in crate::internal) fn for_method(
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
-        paths_of_traits_to_extend,
+        trait_dep_paths,
         method_name,
         method_args,
         return_type,
         method_impl,
+        read_context_compatible,
     }
 }
 
@@ -2084,7 +2084,7 @@ fn reference_integrity_checks_on_create_or_update(
     create_or_update_dsl_method: CreateOrUpdate,
     spacetimedb_table: &SpacetimeDBTable,
     columns: &Vec<InternalColumn>,
-    mut paths_of_traits_to_extend: Vec<Path>,
+    mut trait_dep_paths: Vec<Path>,
     column_names_and_row_values_and_column_names: Option<(&String, &Vec<Ident>)>,
     one_or_multiple: &OneOrMultiple,
     primary_key_column: &InternalColumn,
@@ -2139,9 +2139,9 @@ fn reference_integrity_checks_on_create_or_update(
             .to_token_stream()
             .to_string();
 
-        paths_of_traits_to_extend.push(
+        trait_dep_paths.push(
             parse_str(&format!(
-                "{}::{get_row_of_referenced_table_by_primary_key_trait_name}<T>",
+                "{}::{get_row_of_referenced_table_by_primary_key_trait_name}",
                 &foreign_key.path.to_token_stream().to_string()
             ))
             .expect("should be parseable"),
@@ -2251,7 +2251,7 @@ fn reference_integrity_checks_on_create_or_update(
         });
     }
 
-    (paths_of_traits_to_extend, reference_integrity_checks)
+    (trait_dep_paths, reference_integrity_checks)
 }
 
 fn multi_column_index_checks(
@@ -2449,16 +2449,14 @@ fn for_referenced_by(
         get_referenced_table_trait_name(one_or_multiple, &singular_table_name_pascal_case);
     let function_name = get_referenced_table_function_name(one_or_multiple, singular_table_name);
 
-    let paths_of_traits_to_extend = vec![];
+    let trait_dep_paths = vec![];
     let mut function_args = vec![
         SpacetimeDSLArg {
-            is_mut: false,
             is_option: false,
             arg_name: format_ident!("dsl"),
             arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedsl::DSL<'_, T> }),
         },
         SpacetimeDSLArg {
-            is_mut: false,
             is_option: false,
             arg_name: format_ident!("strategy"),
             arg_type: SpacetimeDSLArgType::Normal(quote! { spacetimedsl::OnDeleteStrategy }),
@@ -2476,7 +2474,6 @@ fn for_referenced_by(
             );
             arg_name = format_ident!("primary_key_value_of_a_row_to_delete");
             function_args.push(SpacetimeDSLArg {
-                is_mut: false,
                 is_option: false,
                 arg_name: arg_name.clone(),
                 arg_type: SpacetimeDSLArgType::Normal(quote! { &#primary_key_column_type }),
@@ -2491,7 +2488,6 @@ fn for_referenced_by(
             );
             arg_name = format_ident!("primary_key_values_of_rows_to_delete");
             function_args.push(SpacetimeDSLArg {
-                is_mut: false,
                 is_option: false,
                 arg_name: arg_name.clone(),
                 arg_type: SpacetimeDSLArgType::Normal(quote! {
@@ -2621,11 +2617,12 @@ fn for_referenced_by(
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
-        paths_of_traits_to_extend,
+        trait_dep_paths,
         method_name: function_name,
         method_args: function_args,
         return_type,
         method_impl: function_impl,
+        read_context_compatible: false,
     }
 }
 
@@ -2733,16 +2730,14 @@ fn for_foreign_key(
         &referenced_table_name,
     );
 
-    let paths_of_traits_to_extend = vec![];
+    let trait_dep_paths = vec![];
     let mut function_args = vec![
         SpacetimeDSLArg {
-            is_mut: false,
             is_option: false,
             arg_name: format_ident!("dsl"),
             arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedsl::DSL<'_, T> }),
         },
         SpacetimeDSLArg {
-            is_mut: false,
             is_option: false,
             arg_name: format_ident!("strategy"),
             arg_type: SpacetimeDSLArgType::Normal(quote! { &spacetimedsl::OnDeleteStrategy }),
@@ -2760,7 +2755,6 @@ fn for_foreign_key(
             );
             arg_name = format_ident!("primary_key_value_of_a_row_of_another_table_to_delete");
             function_args.push(SpacetimeDSLArg {
-                is_mut: false,
                 is_option: false,
                 arg_name: arg_name.clone(),
                 arg_type: SpacetimeDSLArgType::Normal(
@@ -2777,7 +2771,6 @@ fn for_foreign_key(
             );
             arg_name = format_ident!("primary_key_values_of_rows_of_another_table_to_delete");
             function_args.push(SpacetimeDSLArg {
-                is_mut: false,
                 is_option: false,
                 arg_name: arg_name.clone(),
                 arg_type: SpacetimeDSLArgType::Normal(quote! {
@@ -2876,11 +2869,12 @@ fn for_foreign_key(
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
-        paths_of_traits_to_extend,
+        trait_dep_paths,
         method_name: function_name,
         method_args: function_args,
         return_type,
         method_impl: function_impl,
+        read_context_compatible: false,
     }
 }
 

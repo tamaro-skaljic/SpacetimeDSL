@@ -8,7 +8,7 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     doc_comment.push_str(&method.doc_comment);
 
     let trait_name = &method.trait_name;
-    let paths_of_traits_to_extend = &method.paths_of_traits_to_extend;
+    let trait_dep_paths = &method.trait_dep_paths;
     let method_name = &method.method_name;
 
     let method_args = crate::output::map_args(&method.method_args);
@@ -18,7 +18,7 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
 
     doc_comment = crate::output::function::add_impl_doc(
         trait_name,
-        paths_of_traits_to_extend,
+        trait_dep_paths,
         method_name,
         &method_args,
         return_type,
@@ -27,22 +27,47 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     );
 
     let trait_comment = format!("See [`Self::{method_name}`] for details.");
-    let method = quote! {
+
+    let mut tokens = quote! {
         #[doc = #trait_comment]
-        pub trait #trait_name<T: spacetimedsl::WriteContext>: #(#paths_of_traits_to_extend)+* {
+        pub trait #trait_name {
             #[doc=#doc_comment]
             fn #method_name<'a>(
                 &'a self,
                 #(#method_args),*
+            ) -> #return_type;
+        }
+
+        impl<T: spacetimedsl::WriteContext> #trait_name for spacetimedsl::DSL<'_, T> {
+            fn #method_name<'a>(
+                &'a self,
+                #(#method_args),*
             ) -> #return_type {
+                use spacetimedsl::DSLContext;
+                #(use #trait_dep_paths as _;)*
                 use spacetimedsl::Wrapper;
                 use spacetimedb::{DbContext, Table as _};
                 #method_impl
             }
         }
-
-        impl<T: spacetimedsl::WriteContext> #trait_name<T> for spacetimedsl::DSL<'_, T> {}
     };
 
-    Ok(method)
+    if method.read_context_compatible {
+        tokens.extend(quote! {
+            impl<T: spacetimedsl::ReadContext> #trait_name for spacetimedsl::ReadOnlyDSL<'_, T> {
+                fn #method_name<'a>(
+                    &'a self,
+                    #(#method_args),*
+                ) -> #return_type {
+                    use spacetimedsl::ReadOnlyDSLContext;
+                    #(use #trait_dep_paths as _;)*
+                    use spacetimedsl::Wrapper;
+                    use spacetimedb::{DbContext, Table as _};
+                    #method_impl
+                }
+            }
+        });
+    }
+
+    Ok(tokens)
 }

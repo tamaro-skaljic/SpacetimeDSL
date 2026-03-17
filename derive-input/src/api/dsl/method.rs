@@ -5,16 +5,16 @@ use syn::{Ident, Path};
 pub struct SpacetimeDSLMethod {
     pub doc_comment: String,
     pub trait_name: Ident,
-    pub paths_of_traits_to_extend: Vec<Path>,
+    pub trait_dep_paths: Vec<Path>,
     pub method_name: Ident,
     pub method_args: Vec<SpacetimeDSLArg>,
     pub return_type: TokenStream,
     pub method_impl: TokenStream,
+    pub read_context_compatible: bool,
 }
 
 #[derive(Clone)]
 pub struct SpacetimeDSLArg {
-    pub is_mut: bool,
     pub is_option: bool,
     pub arg_name: Ident,
     pub arg_type: SpacetimeDSLArgType,

@@ -192,15 +192,9 @@ fn map_args(args: &Vec<SpacetimeDSLArg>) -> Vec<TokenStream> {
             } => actual_type,
         };
 
-        if arg.is_mut {
-            function_args.push(quote! {
-                mut #arg_name: #arg_type
-            });
-        } else {
-            function_args.push(quote! {
-                #arg_name: #arg_type
-            });
-        }
+        function_args.push(quote! {
+            #arg_name: #arg_type
+        });
     }
 
     function_args

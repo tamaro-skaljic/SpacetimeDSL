@@ -228,7 +228,6 @@ fn get_return_type(
 
 fn build_function_arg(name: syn::Ident, ty: TokenStream) -> SpacetimeDSLArg {
     SpacetimeDSLArg {
-        is_mut: false,
         is_option: false,
         arg_name: name,
         arg_type: SpacetimeDSLArgType::Normal(ty),
@@ -237,7 +236,6 @@ fn build_function_arg(name: syn::Ident, ty: TokenStream) -> SpacetimeDSLArg {
 
 fn build_dsl_function_arg() -> SpacetimeDSLArg {
     SpacetimeDSLArg {
-        is_mut: false,
         is_option: false,
         arg_name: format_ident!("dsl"),
         arg_type: SpacetimeDSLArgType::Normal(quote! {
