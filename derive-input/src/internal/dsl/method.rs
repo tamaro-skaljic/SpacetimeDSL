@@ -162,11 +162,9 @@ impl SpacetimeDSLColumnMethods {
                 let method_is_for_primary_key = match &index.index_type {
                     IndexType::BTreeSingleColumn { column }
                     | IndexType::HashSingleColumn { column }
-                    | IndexType::Direct { column } => {
-                        column
-                            .to_string()
-                            .eq(&primary_key_column.rust_field_name.to_string())
-                    }
+                    | IndexType::Direct { column } => column
+                        .to_string()
+                        .eq(&primary_key_column.rust_field_name.to_string()),
                     _ => panic!("When this code is called, it should be a single column index!"),
                 };
 

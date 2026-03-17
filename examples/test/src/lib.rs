@@ -1028,7 +1028,7 @@ pub mod test {
             CreateEntityRelationship4, CreateEntityRelationship4Row, CreateEntityRelationshipRow,
             CreateEntityRow, DeleteEntityRelationship4RowById, DeleteEntityRowByObjId, Entity,
             EntityId, EntityRelationship4Id, GetEntityRelationship4RowOptionById,
-            GetEntityRowOptionByObjId, UpdateEntityRelationship4RowById, entity__view,
+            GetEntityRowOptionByObjId, UpdateEntityRelationship4RowById,
         },
     };
 
@@ -1040,17 +1040,18 @@ pub mod test {
 
     #[spacetimedb::view(accessor = my_view, public)]
     pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
-        let _dsl = spacetimedsl::read_only_dsl(ctx);
+        let dsl = spacetimedsl::read_only_dsl(ctx);
 
-        ctx.db.entity().obj_id().find(0)
+        dsl.get_entity_by_obj_id(EntityId::new(0)).ok()
     }
 
     #[spacetimedb::view(accessor = my_anonymous_view, public)]
     pub fn my_anonymous_view(ctx: &AnonymousViewContext) -> Vec<Entity> {
-        let _dsl = spacetimedsl::read_only_dsl(ctx);
+        let dsl = spacetimedsl::read_only_dsl(ctx);
 
-        ctx.db.entity().obj_id().find(0);
-        vec![]
+        dsl.get_entity_by_obj_id(EntityId::new(0))
+            .into_iter()
+            .collect()
     }
 
     // FIXME: Procedures can currently not be called through the SpacetimeDB CLI and not through reducers, only through clients. Will need to rely on successful compilation for now.
