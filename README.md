@@ -29,6 +29,7 @@ spacetimedsl = { version = "*" }
 - [🎲 Unique Multi-Column Indices](#-unique-multi-column-indices) - Enforce uniqueness across multiple columns (before SpacetimeDB native support)
 - [🪝 Hooks System](#-hooks-system) - Execute custom logic automatically before/after insert, update, and delete operations
 - [🎯 Complete Method Coverage](#-other-dsl-methods) - DSL equivalents for all SpacetimeDB operations
+- [👁️ Read-Only View Support](#️-read-only-view-support) - Use DSL getter methods in SpacetimeDB views
 
 ### Enhanced Developer Experience
 
@@ -1773,6 +1774,33 @@ spacetimedsl = { version = "*" }
 - 🔄 `#[use_wrapper]`
 - 🔗 `#[foreign_key]`
 - 📌 `#[referenced_by]`
+
+### 👁️ Read-Only View Support
+
+**Use the same DSL getter methods in SpacetimeDB views!**
+
+SpacetimeDSL generates read-only trait implementations for `Get One` and `Get Many` methods, so you can use them in views via `ReadOnlyDSL`.
+
+**Usage:**
+
+```rust
+#[spacetimedb::view(accessor = my_view, public)]
+pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
+    // Wraps ViewContext or AnonymousViewContext
+    let dsl = spacetimedsl::read_only_dsl(ctx);
+
+    // Same trait as in reducers — no separate API to learn
+    dsl.get_entity_by_obj_id(EntityId::new(0)).ok()
+}
+```
+
+**Available Methods:**
+
+- ✅ `Get One` - Find a single row by unique index
+- ✅ `Get Many` - Find multiple rows by non-unique index
+- ❌ `Get All` - Not available (`ViewHandle` has no `iter()`)
+- ❌ `Get Count` - Not available (`ViewHandle` has no `count()`)
+- ❌ `Create`, `Update`, `Delete` - Not available (views are read-only)
 
 ## ⚠️ Current limitations
 
