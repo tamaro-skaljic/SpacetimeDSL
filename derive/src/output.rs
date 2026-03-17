@@ -28,13 +28,13 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
     let mut table_methods = vec![];
     let mut dsl_methods = vec![];
 
-    dsl_methods.push(function::associated::without_lifetime::build(
+    dsl_methods.push(function::associated::build(
         &input.spacetimedsl_methods.create,
     )?);
-    dsl_methods.push(function::associated::with_lifetime::build(
+    dsl_methods.push(function::associated::build(
         &input.spacetimedsl_methods.get_all,
     )?);
-    dsl_methods.push(function::associated::with_lifetime::build(
+    dsl_methods.push(function::associated::build(
         &input.spacetimedsl_methods.get_count,
     )?);
 
@@ -129,26 +129,18 @@ fn get_column_dsl_methods(methods: &SpacetimeDSLColumnMethods) -> syn::Result<To
 
     match methods {
         SpacetimeDSLColumnMethods::ForUniqueIndex(methods) => {
-            token_streams.push(function::associated::without_lifetime::build(
-                &methods.get_one_option,
-            )?);
+            token_streams.push(function::associated::build(&methods.get_one_option)?);
 
             if let Some(method) = &methods.update {
-                token_streams.push(function::associated::without_lifetime::build(method)?)
+                token_streams.push(function::associated::build(method)?)
             };
 
-            token_streams.push(function::associated::without_lifetime::build(
-                &methods.delete_one,
-            )?);
+            token_streams.push(function::associated::build(&methods.delete_one)?);
         }
         SpacetimeDSLColumnMethods::ForIndex(methods) => {
-            token_streams.push(function::associated::with_lifetime::build(
-                &methods.get_many,
-            )?);
+            token_streams.push(function::associated::build(&methods.get_many)?);
 
-            token_streams.push(function::associated::with_lifetime::build(
-                &methods.delete_many,
-            )?);
+            token_streams.push(function::associated::build(&methods.delete_many)?);
         }
     };
 
