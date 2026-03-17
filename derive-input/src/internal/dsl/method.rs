@@ -636,7 +636,7 @@ pub(in crate::internal) fn for_method(
 
     let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
 
-    let mut trait_dep_paths: Vec<syn::Path> = vec![];
+    let mut additional_paths_to_use: Vec<syn::Path> = vec![];
     let mut method_args = vec![];
     let method_impl;
 
@@ -759,12 +759,12 @@ pub(in crate::internal) fn for_method(
                 CreateOrUpdate::Create,
                 spacetimedb_table,
                 internal_columns,
-                trait_dep_paths,
+                additional_paths_to_use,
                 None,
                 &OneOrMultiple::One,
                 primary_key_column,
             );
-            trait_dep_paths = res.0;
+            additional_paths_to_use = res.0;
             let reference_integrity_checks = res.1;
 
             let let_field_name_for_found_value =
@@ -1139,12 +1139,12 @@ pub(in crate::internal) fn for_method(
                         CreateOrUpdate::Update,
                         spacetimedb_table,
                         internal_columns,
-                        trait_dep_paths,
+                        additional_paths_to_use,
                         Some((&column_names_and_row_values, &index_columns)),
                         &one_or_multiple,
                         primary_key_column,
                     );
-                    trait_dep_paths = res.0;
+                    additional_paths_to_use = res.0;
                     let reference_integrity_checks = res.1;
 
                     let let_field_name_for_found_value = if multi_column_index_checks.is_empty()
@@ -2012,7 +2012,7 @@ pub(in crate::internal) fn for_method(
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
-        trait_dep_paths,
+        additional_paths_to_use,
         method_name,
         method_args,
         return_type,
@@ -2074,7 +2074,7 @@ fn reference_integrity_checks_on_create_or_update(
     create_or_update_dsl_method: CreateOrUpdate,
     spacetimedb_table: &SpacetimeDBTable,
     columns: &Vec<InternalColumn>,
-    mut trait_dep_paths: Vec<Path>,
+    mut additional_paths_to_use: Vec<Path>,
     column_names_and_row_values_and_column_names: Option<(&String, &Vec<Ident>)>,
     one_or_multiple: &OneOrMultiple,
     primary_key_column: &InternalColumn,
@@ -2129,7 +2129,7 @@ fn reference_integrity_checks_on_create_or_update(
             .to_token_stream()
             .to_string();
 
-        trait_dep_paths.push(
+        additional_paths_to_use.push(
             parse_str(&format!(
                 "{}::{get_row_of_referenced_table_by_primary_key_trait_name}",
                 &foreign_key.path.to_token_stream().to_string()
@@ -2241,7 +2241,7 @@ fn reference_integrity_checks_on_create_or_update(
         });
     }
 
-    (trait_dep_paths, reference_integrity_checks)
+    (additional_paths_to_use, reference_integrity_checks)
 }
 
 fn multi_column_index_checks(
@@ -2439,7 +2439,7 @@ fn for_referenced_by(
         get_referenced_table_trait_name(one_or_multiple, &singular_table_name_pascal_case);
     let function_name = get_referenced_table_function_name(one_or_multiple, singular_table_name);
 
-    let trait_dep_paths = vec![];
+    let additional_paths_to_use = vec![];
     let mut function_args = vec![
         SpacetimeDSLArg {
             is_option: false,
@@ -2607,7 +2607,7 @@ fn for_referenced_by(
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
-        trait_dep_paths,
+        additional_paths_to_use,
         method_name: function_name,
         method_args: function_args,
         return_type,
@@ -2720,7 +2720,7 @@ fn for_foreign_key(
         &referenced_table_name,
     );
 
-    let trait_dep_paths = vec![];
+    let additional_paths_to_use = vec![];
     let mut function_args = vec![
         SpacetimeDSLArg {
             is_option: false,
@@ -2859,7 +2859,7 @@ fn for_foreign_key(
     SpacetimeDSLMethod {
         doc_comment,
         trait_name,
-        trait_dep_paths,
+        additional_paths_to_use,
         method_name: function_name,
         method_args: function_args,
         return_type,

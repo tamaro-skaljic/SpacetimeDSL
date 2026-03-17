@@ -13,7 +13,7 @@ fn build_impl(
     context_import: TokenStream,
 ) -> TokenStream {
     let trait_name = &method.trait_name;
-    let trait_dep_paths = &method.trait_dep_paths;
+    let additional_paths_to_use = &method.additional_paths_to_use;
     let method_name = &method.method_name;
     let return_type = &method.return_type;
     let method_impl = &method.method_impl;
@@ -28,7 +28,7 @@ fn build_impl(
                 use spacetimedsl::Wrapper;
                 use spacetimedb::{DbContext, Table as _};
                 use #context_import;
-                #(use #trait_dep_paths as _;)*
+                #(use #additional_paths_to_use as _;)*
                 #method_impl
             }
         }

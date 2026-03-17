@@ -14,7 +14,7 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     doc_comment.push_str(&method.doc_comment);
 
     let trait_name = &method.trait_name;
-    let trait_dep_paths = &method.trait_dep_paths;
+    let additional_paths_to_use = &method.additional_paths_to_use;
     let method_name = &method.method_name;
 
     let method_args = map_args(&method.method_args);
@@ -24,7 +24,7 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
 
     doc_comment = add_impl_doc(
         trait_name,
-        trait_dep_paths,
+        additional_paths_to_use,
         method_name,
         &method_args,
         return_type,
@@ -54,7 +54,7 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
 
 fn add_impl_doc(
     trait_name: &Ident,
-    trait_dep_paths: &Vec<syn::Path>,
+    additional_paths_to_use: &Vec<syn::Path>,
     method_name: &Ident,
     method_args: &Vec<TokenStream>,
     return_type: &TokenStream,
@@ -64,7 +64,7 @@ fn add_impl_doc(
     // TODO
     let pretty_please = PrettyPlease::default();
     let implementation_docs = quote! {
-        pub trait #trait_name: #(#trait_dep_paths)+* {
+        pub trait #trait_name: #(#additional_paths_to_use)+* {
             fn #method_name<'a, T: spacetimedsl::WriteContext>(
                 &'a self,
                 #(#method_args),*
