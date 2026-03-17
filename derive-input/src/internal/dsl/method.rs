@@ -163,14 +163,9 @@ impl SpacetimeDSLColumnMethods {
                     IndexType::BTreeSingleColumn { column }
                     | IndexType::HashSingleColumn { column }
                     | IndexType::Direct { column } => {
-                        if column
+                        column
                             .to_string()
                             .eq(&primary_key_column.rust_field_name.to_string())
-                        {
-                            true
-                        } else {
-                            false
-                        }
                     }
                     _ => panic!("When this code is called, it should be a single column index!"),
                 };
