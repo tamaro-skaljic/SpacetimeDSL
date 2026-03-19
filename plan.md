@@ -52,7 +52,7 @@ When `is_singleton`:
 **File:** `derive/src/lib.rs`
 
 - When `singleton` is detected in args (before full parsing), modify the `DeriveInput` to:
-  1. Error if user has a field named `id` with type `()`.
+  1. Error if user has a field named `id`.
   2. Add `#[primary_key] id: ()` as the first field of the struct.
 - This happens BEFORE `Table::try_parse()` so SpacetimeDB's `#[table]` also processes it.
 
