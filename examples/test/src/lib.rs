@@ -994,13 +994,7 @@ pub mod component {
 
 pub mod singleton_test {
     /// A singleton table representing global game configuration.
-    #[spacetimedsl::dsl(
-        singleton,
-        method(
-            update = true,
-            delete = true,
-        ),
-    )]
+    #[spacetimedsl::dsl(singleton, method(update = true, delete = true,))]
     #[spacetimedb::table(
         accessor = game_config,
         public,
@@ -1014,10 +1008,6 @@ pub mod singleton_test {
 
 pub mod test {
     use crate::{
-        singleton_test::{
-            CreateGameConfig, CreateGameConfigRow, DeleteGameConfigRow,
-            GetGameConfigRow, UpdateGameConfigRow,
-        },
         component::{
             hook_test::{
                 CountOfAllPotionRows, CreateAttribute, CreateAttributeRow,
@@ -1053,6 +1043,10 @@ pub mod test {
             CreateEntityRow, DeleteEntityRelationship4RowById, DeleteEntityRowByObjId, Entity,
             EntityId, EntityRelationship4Id, GetEntityRelationship4RowOptionById,
             GetEntityRowOptionByObjId, UpdateEntityRelationship4RowById,
+        },
+        singleton_test::{
+            CreateGameConfig, CreateGameConfigRow, DeleteGameConfigRow, GetGameConfigRow,
+            UpdateGameConfigRow,
         },
     };
 

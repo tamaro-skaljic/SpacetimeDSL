@@ -28,8 +28,11 @@ pub(crate) fn try_parse(
     let mut dsl_data = try_parse_dsl(&args)?;
 
     // Pass plural_name to integration for intelligent table selection
-    let (table_args, column_args) =
-        integration::spacetime_bindings_macro_input(input, &dsl_data.plural_name, dsl_data.is_singleton)?;
+    let (table_args, column_args) = integration::spacetime_bindings_macro_input(
+        input,
+        &dsl_data.plural_name,
+        dsl_data.is_singleton,
+    )?;
 
     // For singletons, set plural_name to the singular name from the table accessor
     // (it's only used for get_all/count_of_all which won't be generated)
