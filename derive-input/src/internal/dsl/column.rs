@@ -14,6 +14,7 @@ use syn::Error;
 impl SpacetimeDSLColumn {
     pub(in crate::internal) fn try_parse(
         has_delete_method: &bool,
+        is_singleton: bool,
         field: &SatsField<'_>,
         rust_struct: &RustStruct,
         rust_field: &RustField,
@@ -27,14 +28,14 @@ impl SpacetimeDSLColumn {
 
         let wrapper_type = WrapperType::try_parse(rust_struct, rust_field, field)?;
 
-        if spacetimedb_column.is_primary_key && wrapper_type.is_none() {
+        if !is_singleton && spacetimedb_column.is_primary_key && wrapper_type.is_none() {
             return Err(Error::new(
                 Span::call_site(),
                 "A #[primary_key] column must have `#[create_wrapper]` or `#[use_wrapper]`!",
             ));
         }
 
-        let foreign_key = ForeignKey::try_parse(has_delete_method, field)?;
+        let foreign_key = ForeignKey::try_parse(has_delete_method, is_singleton, field)?;
 
         if foreign_key.is_some() {
             match &wrapper_type {
@@ -56,11 +57,18 @@ impl SpacetimeDSLColumn {
             }
         }
 
-        let getter = Getter::map(rust_field, is_option, &wrapper_type);
+        // Singleton PK column (id: u8) doesn't need getter/setter/mut_getter
+        let is_singleton_pk = is_singleton && spacetimedb_column.is_primary_key;
 
-        let mut_getter = MutGetter::map(rust_field, &wrapper_type);
-
-        let setter = Setter::map(rust_field, is_option, &wrapper_type);
+        let (getter, mut_getter, setter) = if is_singleton_pk {
+            (None, None, None)
+        } else {
+            (
+                Some(Getter::map(rust_field, is_option, &wrapper_type)),
+                MutGetter::map(rust_field, &wrapper_type),
+                Setter::map(rust_field, is_option, &wrapper_type),
+            )
+        };
 
         Ok(SpacetimeDSLColumn {
             is_option,

@@ -189,6 +189,7 @@ impl SpacetimeDSLTable {
         Ok((
             spacetimedb_table,
             SpacetimeDSLTable {
+                is_singleton: dsl_data.is_singleton,
                 plural_name: dsl_data.plural_name,
                 has_update_method,
                 has_delete_method: has_delete_method.unwrap_or(true),

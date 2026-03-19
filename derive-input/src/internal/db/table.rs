@@ -6,26 +6,54 @@ use crate::{
     },
     internal::table::rm_rsharp,
 };
+use proc_macro2::Span;
 use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::table::{
     IndexArg, IndexType as SpacetimeIndexType, ScheduledArg, TableAccess, TableArgs,
 };
-use syn::Ident;
+use syn::{Error, Ident};
 
 impl SpacetimeDBTable {
-    pub(in crate::internal) fn map(table: &TableArgs) -> SpacetimeDBTable {
+    pub(in crate::internal) fn map(
+        table: &TableArgs,
+        is_singleton: bool,
+    ) -> syn::Result<SpacetimeDBTable> {
         let singular_name = rm_rsharp(table.accessor.clone());
         let visibility = SpacetimeDBTableVisibility::map(&table.access);
-        let indices = table.indices.iter().map(Index::map).collect();
+        let indices: Vec<Index> = table.indices.iter().map(Index::map).collect();
         let scheduled_reducer = table.scheduled.as_ref().map(ScheduledReducer::map);
 
-        SpacetimeDBTable {
+        // Singleton validation: no multi-column indices allowed
+        if is_singleton {
+            for index in &indices {
+                match &index.index_type {
+                    IndexType::BTreeMultiColumn { columns }
+                    | IndexType::HashMultiColumn { columns } => {
+                        return Err(Error::new(
+                            Span::call_site(),
+                            format!(
+                                "Multi-column indices are not allowed on singleton tables! Found index `{}` on columns `{}`.",
+                                index.name,
+                                columns
+                                    .iter()
+                                    .map(|c| c.to_string())
+                                    .collect::<Vec<_>>()
+                                    .join(", "),
+                            ),
+                        ));
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        Ok(SpacetimeDBTable {
             singular_name,
             visibility,
             // Contains all indices during processing for the moment, but all single column indices are removed from the Vector after the columns are processed.
             multi_column_indices: indices,
             scheduled_reducer,
-        }
+        })
     }
 }
 

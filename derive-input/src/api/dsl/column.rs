@@ -8,7 +8,7 @@ pub struct SpacetimeDSLColumn {
     pub wrapper_type: Option<WrapperType>,
     // Only `Some(T)` if it has `#[foreign_key(table = my_table, column = my_column, on_delete = OnDeleteStrategy)]`.
     pub foreign_key: Option<ForeignKey>,
-    pub getter: Getter,
+    pub getter: Option<Getter>,
     // Only `Some(T)` if mutable
     pub mut_getter: Option<MutGetter>,
     // Only `Some(T)` if mutable

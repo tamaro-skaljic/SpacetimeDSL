@@ -12,6 +12,7 @@ use crate::api::dsl::{
 
 #[derive(Clone)]
 pub struct SpacetimeDSLTable {
+    pub is_singleton: bool,
     pub plural_name: Ident,
     pub has_update_method: bool,
     pub has_delete_method: bool,
@@ -33,8 +34,8 @@ pub struct CreateDSLMethodArg {
 #[derive(Clone)]
 pub struct SpacetimeDSLTableMethods {
     pub create: SpacetimeDSLMethod,
-    pub get_all: SpacetimeDSLMethod,
-    pub get_count: SpacetimeDSLMethod,
+    pub get_all: Option<SpacetimeDSLMethod>,
+    pub get_count: Option<SpacetimeDSLMethod>,
     pub execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted:
         Option<SpacetimeDSLMethod>,
     pub execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted:

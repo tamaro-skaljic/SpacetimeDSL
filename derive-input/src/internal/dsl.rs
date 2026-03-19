@@ -21,6 +21,7 @@ pub mod setter;
 pub mod method;
 
 symbol!(table);
+symbol!(singleton);
 symbol!(plural_name);
 symbol!(unique_index);
 symbol!(method);

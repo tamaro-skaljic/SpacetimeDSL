@@ -1,5 +1,5 @@
 use crate::internal::dsl::{
-    after, before, delete, hook, insert, method, plural_name, unique_index, update,
+    after, before, delete, hook, insert, method, plural_name, singleton, unique_index, update,
 };
 use spacetime_bindings_macro_input::{match_meta, sym, util::check_duplicate};
 use syn::{
@@ -25,11 +25,20 @@ pub(crate) fn try_parse(
     input: &syn::DeriveInput,
 ) -> syn::Result<crate::api::Table> {
     // Parse DSL attribute arguments
-    let dsl_data = try_parse_dsl(&args)?;
+    let mut dsl_data = try_parse_dsl(&args)?;
 
     // Pass plural_name to integration for intelligent table selection
-    let (table_args, column_args) =
-        integration::spacetime_bindings_macro_input(input, &dsl_data.plural_name)?;
+    let (table_args, column_args) = integration::spacetime_bindings_macro_input(
+        input,
+        &dsl_data.plural_name,
+        dsl_data.is_singleton,
+    )?;
+
+    // For singletons, set plural_name to the singular name from the table accessor
+    // (it's only used for get_all/count_of_all which won't be generated)
+    if dsl_data.is_singleton {
+        dsl_data.plural_name = crate::internal::table::rm_rsharp(table_args.accessor.clone());
+    }
 
     // Pass the parsed plural_name to avoid re-parsing
     table::try_parse(input, dsl_data, &table_args, &column_args)
@@ -38,6 +47,7 @@ pub(crate) fn try_parse(
 // Parse plural_name from DSL arguments
 fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     let mut name_plural: Option<Ident> = None;
+    let mut is_singleton: Option<()> = None;
 
     let mut unique_indices = vec![];
 
@@ -58,6 +68,10 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
 
     parser(|meta| {
         match_meta!(match meta {
+            singleton => {
+                check_duplicate(&is_singleton, &meta)?;
+                is_singleton = Some(());
+            }
             plural_name => {
                 check_duplicate(&name_plural, &meta)?;
                 let value = meta.value()?;
@@ -172,13 +186,40 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         }
     }
 
-    Ok(DSLData {
-        plural_name: name_plural.ok_or_else(|| {
+    let is_singleton = is_singleton.is_some();
+
+    if is_singleton {
+        if name_plural.is_some() {
+            return Err(syn::Error::new(
+                proc_macro2::Span::call_site(),
+                "`plural_name` is not allowed on singleton tables! Use `#[dsl(singleton)]` without `plural_name`.",
+            ));
+        }
+
+        if !unique_indices.is_empty() {
+            return Err(syn::Error::new(
+                proc_macro2::Span::call_site(),
+                "`unique_index` is not allowed on singleton tables!",
+            ));
+        }
+    }
+
+    // For singletons, plural_name will be set later from the table accessor.
+    // Use a placeholder for now.
+    let parsed_plural_name = if is_singleton {
+        syn::Ident::new("__singleton_placeholder", proc_macro2::Span::call_site())
+    } else {
+        name_plural.ok_or_else(|| {
             syn::Error::new(
                 proc_macro2::Span::call_site(),
                 "PluralName must be set in `#[dsl(plural_name = PluralName)]`",
             )
-        })?,
+        })?
+    };
+
+    Ok(DSLData {
+        is_singleton,
+        plural_name: parsed_plural_name,
         unique_indices,
         before_insert_hook: before_insert_hook.is_some(),
         before_update_hook: before_update_hook.is_some(),
@@ -192,6 +233,7 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
 }
 
 struct DSLData {
+    is_singleton: bool,
     plural_name: Ident,
     unique_indices: Vec<Ident>,
     before_insert_hook: bool,
