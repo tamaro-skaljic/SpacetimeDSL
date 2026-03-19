@@ -25,7 +25,7 @@ pub fn dsl(args: TokenStream, item: TokenStream) -> TokenStream {
             }
         });
 
-        // For singletons, inject `#[primary_key] id: ()` into the struct
+        // For singletons, inject `#[primary_key] id: u8` into the struct
         if is_singleton {
             inject_singleton_primary_key(&mut derive_input)?;
         }
@@ -133,8 +133,8 @@ fn is_last_dsl_attribute(derive_input: &syn::DeriveInput) -> bool {
 //     }
 // }
 
-/// For singleton tables, inject `#[primary_key] id: ()` as the first field.
-/// Errors if the user already has a field named `id` with type `()`.
+/// For singleton tables, inject `#[primary_key] id: u8` as the first field.
+/// Errors if the user already has a field named `id`.
 fn inject_singleton_primary_key(derive_input: &mut syn::DeriveInput) -> syn::Result<()> {
     if let syn::Data::Struct(data_struct) = &mut derive_input.data
         && let syn::Fields::Named(fields) = &mut data_struct.fields
@@ -152,7 +152,6 @@ fn inject_singleton_primary_key(derive_input: &mut syn::DeriveInput) -> syn::Res
         }
 
         // Create the field: `#[primary_key] id: u8`
-        // We use u8 with value 0 as the singleton PK since () doesn't implement FilterableValue
         let pk_field = syn::Field {
             attrs: vec![syn::parse_quote!(#[primary_key])],
             vis: syn::Visibility::Inherited,

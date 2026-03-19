@@ -28,22 +28,10 @@ impl SpacetimeDSLColumn {
 
         let wrapper_type = WrapperType::try_parse(rust_struct, rust_field, field)?;
 
-        // Singleton pk (id: u8) doesn't need a wrapper
-        if spacetimedb_column.is_primary_key && wrapper_type.is_none() && !is_singleton {
+        if !is_singleton && spacetimedb_column.is_primary_key && wrapper_type.is_none() {
             return Err(Error::new(
                 Span::call_site(),
                 "A #[primary_key] column must have `#[create_wrapper]` or `#[use_wrapper]`!",
-            ));
-        }
-
-        // Singleton validation: user-defined columns must not have #[primary_key]
-        if is_singleton && spacetimedb_column.is_primary_key && rust_field.name != "id" {
-            return Err(Error::new(
-                Span::call_site(),
-                format!(
-                    "`#[primary_key]` is not allowed on user-defined columns of singleton tables! Found `#[primary_key]` on column `{}`.",
-                    rust_field.name,
-                ),
             ));
         }
 
@@ -81,7 +69,7 @@ impl SpacetimeDSLColumn {
             }
         }
 
-        // Singleton PK column (id: ()) doesn't need getter/setter/mut_getter
+        // Singleton PK column (id: u8) doesn't need getter/setter/mut_getter
         let is_singleton_pk = is_singleton && spacetimedb_column.is_primary_key;
 
         let getter = if is_singleton_pk {

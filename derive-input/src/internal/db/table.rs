@@ -14,7 +14,10 @@ use spacetime_bindings_macro_input::table::{
 use syn::{Error, Ident};
 
 impl SpacetimeDBTable {
-    pub(in crate::internal) fn map(table: &TableArgs, is_singleton: bool) -> syn::Result<SpacetimeDBTable> {
+    pub(in crate::internal) fn map(
+        table: &TableArgs,
+        is_singleton: bool,
+    ) -> syn::Result<SpacetimeDBTable> {
         let singular_name = rm_rsharp(table.accessor.clone());
         let visibility = SpacetimeDBTableVisibility::map(&table.access);
         let indices: Vec<Index> = table.indices.iter().map(Index::map).collect();
@@ -31,7 +34,11 @@ impl SpacetimeDBTable {
                             format!(
                                 "Multi-column indices are not allowed on singleton tables! Found index `{}` on columns `{}`.",
                                 index.name,
-                                columns.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(", "),
+                                columns
+                                    .iter()
+                                    .map(|c| c.to_string())
+                                    .collect::<Vec<_>>()
+                                    .join(", "),
                             ),
                         ));
                     }

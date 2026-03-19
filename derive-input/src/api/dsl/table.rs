@@ -36,12 +36,6 @@ pub struct SpacetimeDSLTableMethods {
     pub create: SpacetimeDSLMethod,
     pub get_all: Option<SpacetimeDSLMethod>,
     pub get_count: Option<SpacetimeDSLMethod>,
-    /// For singletons: get_{singular_name}() -> Result<T, Error>
-    pub get_singleton: Option<SpacetimeDSLMethod>,
-    /// For singletons: update_{singular_name}(entity) -> Result<T, Error>
-    pub update_singleton: Option<SpacetimeDSLMethod>,
-    /// For singletons: delete_{singular_name}() -> Result<DeletionResult, Error>
-    pub delete_singleton: Option<SpacetimeDSLMethod>,
     pub execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted:
         Option<SpacetimeDSLMethod>,
     pub execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted:

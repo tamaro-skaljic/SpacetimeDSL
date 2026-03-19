@@ -39,16 +39,6 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
         dsl_methods.push(function::associated::build(method)?);
     }
 
-    if let Some(method) = &input.spacetimedsl_methods.get_singleton {
-        dsl_methods.push(function::associated::build(method)?);
-    }
-    if let Some(method) = &input.spacetimedsl_methods.update_singleton {
-        dsl_methods.push(function::associated::build(method)?);
-    }
-    if let Some(method) = &input.spacetimedsl_methods.delete_singleton {
-        dsl_methods.push(function::associated::build(method)?);
-    }
-
     if let Some(method) = &input
         .spacetimedsl_methods
         .execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted
