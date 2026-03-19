@@ -29,6 +29,7 @@ spacetimedsl = { version = "*" }
 - [🎲 Unique Multi-Column Indices](#-unique-multi-column-indices) - Enforce uniqueness across multiple columns (before SpacetimeDB native support)
 - [🪝 Hooks System](#-hooks-system) - Execute custom logic automatically before/after insert, update, and delete operations
 - [🎯 Complete Method Coverage](#-other-dsl-methods) - DSL equivalents for all SpacetimeDB operations
+- [🎯 Singleton Tables](#-singleton-tables) - Single-row tables for global config or state
 - [👁️ Read-Only View Support](#️-read-only-view-support) - Use DSL getter methods in SpacetimeDB views
 
 ### Enhanced Developer Experience
@@ -1774,6 +1775,59 @@ spacetimedsl = { version = "*" }
 - 🔄 `#[use_wrapper]`
 - 🔗 `#[foreign_key]`
 - 📌 `#[referenced_by]`
+
+### 🎯 Singleton Tables
+
+**Single-row tables for global config or state!**
+
+Add `singleton` to `#[dsl]` to create a table that holds exactly one row. The macro automatically injects a `#[primary_key] id: u8` column (always `0`) and generates simplified methods without the `_by_id` suffix.
+
+**Usage:**
+
+```rust
+#[spacetimedsl::dsl(
+    singleton,
+    method(update = true, delete = true),
+)]
+#[spacetimedb::table(accessor = game_config, public)]
+pub struct GameConfig {
+    pub max_players: u32,
+    pub game_name: String,
+}
+```
+
+**Generated methods:**
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `create_game_config` | `(CreateGameConfig) -> Result<GameConfig, _>` | Inserts the singleton row with `id = 0` |
+| `get_game_config` | `() -> Result<GameConfig, _>` | Gets the singleton row |
+| `update_game_config` | `(GameConfig) -> Result<GameConfig, _>` | Updates the singleton row (forces `id = 0`) |
+| `delete_game_config` | `() -> Result<DeletionResult, _>` | Deletes the singleton row |
+
+**Singleton constraints:**
+- No `plural_name` attribute (no `get_all_*` / `count_of_all_*` methods generated)
+- No `#[index]` or `#[unique]` attributes
+- No `unique_index(...)` in `#[dsl]`
+- No `#[referenced_by]` on columns
+- Only one `#[table]` attribute allowed
+
+**Example:**
+
+```rust
+// In a reducer:
+let cfg = dsl.create_game_config(CreateGameConfig {
+    max_players: 64,
+    game_name: "My Game".to_string(),
+})?;
+
+let cfg = dsl.get_game_config()?;
+
+cfg.set_max_players(128);
+let cfg = dsl.update_game_config(cfg)?;
+
+dsl.delete_game_config()?;
+```
 
 ### 👁️ Read-Only View Support
 

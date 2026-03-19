@@ -354,7 +354,33 @@ The macro enforces consistency between field visibility and method configuration
 
 These compile-time checks prevent runtime errors and ensure configuration consistency. See the Automatic Accessors feature (#6) for how field visibility controls setter generation.
 
-### 6. Automatic Accessors
+### 6. Singleton Tables
+
+Single-row tables for global config or persistent game state. Use `singleton` in `#[dsl]`:
+
+```rust
+#[spacetimedsl::dsl(
+    singleton,
+    method(update = true, delete = true),
+)]
+#[spacetimedb::table(accessor = game_config, public)]
+pub struct GameConfig {
+    pub max_players: u32,
+    pub game_name: String,
+}
+```
+
+The macro auto-injects `#[primary_key] id: u8` (always `0`). Generated methods:
+- `create_game_config(CreateGameConfig { ... })` → `Result<GameConfig, _>` (sets `id = 0`)
+- `get_game_config()` → `Result<GameConfig, _>` (no argument needed)
+- `update_game_config(game_config)` → `Result<GameConfig, _>` (forces `id = 0`)
+- `delete_game_config()` → `Result<DeletionResult, _>` (no argument needed)
+
+**NOT generated:** `get_all_game_configs`, `count_of_all_game_configs`
+
+**Restrictions:** No `plural_name`, `unique_index`, `#[index]`, `#[unique]`, `#[referenced_by]`, or multiple `#[table]` attrs.
+
+### 8. Automatic Accessors
 
 All fields become private, getters/setters generated:
 
@@ -373,7 +399,7 @@ entity.set_x(&other_entity)  // If wrapped type
 entity.get_created_at() -> &Timestamp
 ```
 
-### 7. Rich Error Types
+### 9. Rich Error Types
 
 ```rust
 pub enum SpacetimeDSLError {
@@ -390,7 +416,7 @@ Better debugging with metadata:
 - `NotFoundError` includes table name and search values
 - `ReferenceIntegrityViolation` includes full deletion tree with `DeletionResult`
 
-### 8. Deletion Results
+### 10. Deletion Results
 
 Complete audit trail for deletes:
 
