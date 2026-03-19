@@ -35,18 +35,6 @@ impl SpacetimeDSLColumn {
             ));
         }
 
-        // Singleton validation: #[referenced_by] is not allowed
-        if is_singleton {
-            for attr in field.original_attrs {
-                if attr.meta.path().is_ident("referenced_by") {
-                    return Err(Error::new_spanned(
-                        attr,
-                        "`#[referenced_by]` is not allowed on singleton tables!",
-                    ));
-                }
-            }
-        }
-
         let foreign_key = ForeignKey::try_parse(has_delete_method, is_singleton, field)?;
 
         if foreign_key.is_some() {
