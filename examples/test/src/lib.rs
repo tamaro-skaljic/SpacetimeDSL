@@ -1078,7 +1078,7 @@ pub mod test {
         let result = ctx.try_with_tx(|ctx| {
             let dsl = dsl(ctx);
 
-            hook_call_test(dsl)
+            hook_call_test(&dsl)
         });
 
         match result {
@@ -1729,7 +1729,10 @@ pub mod test {
 
         singleton_test(&dsl)?;
 
-        hook_call_test(dsl)?;
+        hook_call_test(&dsl)?;
+
+        my_view(&dsl.ctx().as_view_context()?);
+        my_anonymous_view(&dsl.ctx().as_anonymous_view_context()?);
 
         info!("Test executed successfully!");
         Ok(())
@@ -1792,7 +1795,7 @@ pub mod test {
         Ok(())
     }
 
-    fn hook_call_test<T: WriteContext>(dsl: DSL<'_, T>) -> Result<(), String> {
+    fn hook_call_test<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
         let mut strength = dsl.create_attribute(CreateAttribute {
             value: "STRENGTH".to_string(),
         })?;
