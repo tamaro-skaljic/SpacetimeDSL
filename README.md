@@ -1857,6 +1857,7 @@ spacetimedsl = { version = "*" }
 - 🔄 `#[use_wrapper]`
 - 🔗 `#[foreign_key]`
 - 📌 `#[referenced_by]`
+
 ## ⚠️ Current limitations
 
 - [Using IndexScanRangeBounds / FilterableValue](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21) 🔄
