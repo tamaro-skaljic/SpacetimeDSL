@@ -1002,9 +1002,9 @@ pub(in crate::internal) fn for_method(
 
             let is_singleton_pk = spacetimedsl_table.is_singleton
                 && !is_multi_column_index
-                && index_columns.first().is_some_and(|c| {
-                    primary_key_column.rust_field_name == *c
-                });
+                && index_columns
+                    .first()
+                    .is_some_and(|c| primary_key_column.rust_field_name == *c);
 
             let unique_multi_column_index_hint = if is_unique_index && is_multi_column_index {
                 "Warning: The unique multi-column index feature of SpacetimeDSL is experimental.\n- It will be removed if unique multi-column indices are implemented in SpacetimeDB.\n- SpacetimeDSL is only able to enforce referential integrity if you never use the (mutating) `insert`, `update` and `delete` methods of `spacetimedb::ReducerContext` yourself."

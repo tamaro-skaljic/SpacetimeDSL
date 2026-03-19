@@ -66,7 +66,7 @@ impl SpacetimeDSLColumn {
             (
                 Some(Getter::map(rust_field, is_option, &wrapper_type)),
                 MutGetter::map(rust_field, &wrapper_type),
-                Setter::map(rust_field, is_option, &wrapper_type)
+                Setter::map(rust_field, is_option, &wrapper_type),
             )
         };
 
