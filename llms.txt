@@ -380,7 +380,7 @@ The macro auto-injects `#[primary_key] id: u8` (always `0`). Generated methods:
 
 **Restrictions:** No `plural_name`, `unique_index`, `#[index]`, `#[unique]`, `#[referenced_by]`, or multiple `#[table]` attrs.
 
-### 8. Automatic Accessors
+### 7. Automatic Accessors
 
 All fields become private, getters/setters generated:
 
@@ -399,7 +399,7 @@ entity.set_x(&other_entity)  // If wrapped type
 entity.get_created_at() -> &Timestamp
 ```
 
-### 9. Rich Error Types
+### 8. Rich Error Types
 
 ```rust
 pub enum SpacetimeDSLError {
@@ -416,7 +416,7 @@ Better debugging with metadata:
 - `NotFoundError` includes table name and search values
 - `ReferenceIntegrityViolation` includes full deletion tree with `DeletionResult`
 
-### 10. Deletion Results
+### 9. Deletion Results
 
 Complete audit trail for deletes:
 
