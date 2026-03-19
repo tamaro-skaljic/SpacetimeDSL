@@ -9,7 +9,7 @@
 
 ```toml
 # https://crates.io/crates/spacetimedsl Ergonomic DSL for SpacetimeDB
-spacetimedsl = { version = "*" }
+spacetimedsl = { version = "0.20.0"20.0" }
 ```
 
 📖 **Get started** by adding `#[spacetimedsl::dsl]` with required `method()` configuration, plus helper attributes `#[create_wrapper]`, `#[use_wrapper]`,\
@@ -1848,7 +1848,7 @@ Add to your server modules `Cargo.toml`:
 
 ```toml
 # https://crates.io/crates/spacetimedsl Ergonomic DSL for SpacetimeDB
-spacetimedsl = { version = "*" }
+spacetimedsl = { version = "0.20.0" }
 ```
 
 **Get started** with `#[spacetimedsl::dsl]` and helper attributes:

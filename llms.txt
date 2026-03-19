@@ -8,7 +8,7 @@ SpacetimeDSL provides type-safe, developer-friendly abstractions over SpacetimeD
 
 ```toml
 [dependencies]
-spacetimedsl = { version = "*" }
+spacetimedsl = { version = "0.20.0" }
 ```
 
 ## Core Concepts
