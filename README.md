@@ -1760,22 +1760,6 @@ pub struct UserProfile { /* ... */ }
 pub struct CacheEntry { /* ... */ }
 ```
 
-**Ready to try?** 🚀
-
-Add to your server modules `Cargo.toml`:
-
-```toml
-# https://crates.io/crates/spacetimedsl Ergonomic DSL for SpacetimeDB
-spacetimedsl = { version = "*" }
-```
-
-**Get started** with `#[spacetimedsl::dsl]` and helper attributes:
-
-- ✨ `#[create_wrapper]`
-- 🔄 `#[use_wrapper]`
-- 🔗 `#[foreign_key]`
-- 📌 `#[referenced_by]`
-
 ### 🎯 Singleton Tables
 
 **Single-row tables for global config or state!**
@@ -1800,31 +1784,33 @@ pub struct GameConfig {
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `create_game_config` | `(CreateGameConfig) -> Result<GameConfig, _>` | Inserts the singleton row with `id = 0` |
-| `get_game_config` | `() -> Result<GameConfig, _>` | Gets the singleton row |
-| `update_game_config` | `(GameConfig) -> Result<GameConfig, _>` | Updates the singleton row (forces `id = 0`) |
-| `delete_game_config` | `() -> Result<DeletionResult, _>` | Deletes the singleton row |
+| `create_game_config` | `(CreateGameConfig) -> Result<GameConfig, SpacetimeDSLError>` | Inserts the singleton row with `id = 0` |
+| `get_game_config` | `() -> Result<GameConfig, SpacetimeDSLError>` | Gets the singleton row |
+| `update_game_config` | `(GameConfig) -> Result<GameConfig, SpacetimeDSLError>` | Updates the singleton row (forces `id = 0`) |
+| `delete_game_config` | `() -> Result<DeletionResult, SpacetimeDSLError>` | Deletes the singleton row |
 
 **Singleton constraints:**
-- No `plural_name` attribute (no `get_all_*` / `count_of_all_*` methods generated)
-- No `#[index]` or `#[unique]` attributes
-- No `unique_index(...)` in `#[dsl]`
-- No `#[referenced_by]` on columns
+
+- No `plural_name` attribute in `#[dsl]` (no `get_all_*` / `count_of_all_*` methods generated)
+- No `#[index]` or `#[unique]` attributes (`#[foreign_key]` allowed without here!)
+- No `#[referenced_by]` (are only allowed on `#[primary_key]` and it's generated automatically for you here)
 - Only one `#[table]` attribute allowed
+- No `index(...)` in `#[table]`
 
 **Example:**
 
 ```rust
 // In a reducer:
-let cfg = dsl.create_game_config(CreateGameConfig {
+let mut cfg = dsl.create_game_config(CreateGameConfig {
     max_players: 64,
     game_name: "My Game".to_string(),
 })?;
 
-let cfg = dsl.get_game_config()?;
+cfg = dsl.get_game_config()?;
 
 cfg.set_max_players(128);
-let cfg = dsl.update_game_config(cfg)?;
+
+dsl.update_game_config(cfg)?;
 
 dsl.delete_game_config()?;
 ```
@@ -1856,6 +1842,21 @@ pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
 - ❌ `Get Count` - Not available (`ViewHandle` has no `count()`)
 - ❌ `Create`, `Update`, `Delete` - Not available (views are read-only)
 
+**Ready to try?** 🚀
+
+Add to your server modules `Cargo.toml`:
+
+```toml
+# https://crates.io/crates/spacetimedsl Ergonomic DSL for SpacetimeDB
+spacetimedsl = { version = "*" }
+```
+
+**Get started** with `#[spacetimedsl::dsl]` and helper attributes:
+
+- ✨ `#[create_wrapper]`
+- 🔄 `#[use_wrapper]`
+- 🔗 `#[foreign_key]`
+- 📌 `#[referenced_by]`
 ## ⚠️ Current limitations
 
 - [Using IndexScanRangeBounds / FilterableValue](https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21) 🔄
