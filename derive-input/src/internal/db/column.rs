@@ -36,7 +36,7 @@ impl SpacetimeDBColumn {
         }
 
         // Singleton validation: user-defined columns must not have #[primary_key], #[index], or #[unique]
-        // (the injected `id: ()` pk is allowed)
+        // (the injected `id: u8` pk is allowed)
         if is_singleton && !is_primary_key {
             // Check if this column has a single-column index (which means #[index], #[unique], or #[primary_key] was used)
             for index in spacetimedb_table.multi_column_indices.iter() {
