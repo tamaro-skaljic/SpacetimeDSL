@@ -60,22 +60,14 @@ impl SpacetimeDSLColumn {
         // Singleton PK column (id: u8) doesn't need getter/setter/mut_getter
         let is_singleton_pk = is_singleton && spacetimedb_column.is_primary_key;
 
-        let getter = if is_singleton_pk {
-            None
+        let (getter, mut_getter, setter) = if is_singleton_pk {
+            (None, None, None)
         } else {
-            Some(Getter::map(rust_field, is_option, &wrapper_type))
-        };
-
-        let mut_getter = if is_singleton_pk {
-            None
-        } else {
-            MutGetter::map(rust_field, &wrapper_type)
-        };
-
-        let setter = if is_singleton_pk {
-            None
-        } else {
-            Setter::map(rust_field, is_option, &wrapper_type)
+            (
+                Some(Getter::map(rust_field, is_option, &wrapper_type)),
+                MutGetter::map(rust_field, &wrapper_type),
+                Setter::map(rust_field, is_option, &wrapper_type)
+            )
         };
 
         Ok(SpacetimeDSLColumn {
