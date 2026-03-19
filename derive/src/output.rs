@@ -31,12 +31,23 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
     dsl_methods.push(function::associated::build(
         &input.spacetimedsl_methods.create,
     )?);
-    dsl_methods.push(function::associated::build(
-        &input.spacetimedsl_methods.get_all,
-    )?);
-    dsl_methods.push(function::associated::build(
-        &input.spacetimedsl_methods.get_count,
-    )?);
+
+    if let Some(method) = &input.spacetimedsl_methods.get_all {
+        dsl_methods.push(function::associated::build(method)?);
+    }
+    if let Some(method) = &input.spacetimedsl_methods.get_count {
+        dsl_methods.push(function::associated::build(method)?);
+    }
+
+    if let Some(method) = &input.spacetimedsl_methods.get_singleton {
+        dsl_methods.push(function::associated::build(method)?);
+    }
+    if let Some(method) = &input.spacetimedsl_methods.update_singleton {
+        dsl_methods.push(function::associated::build(method)?);
+    }
+    if let Some(method) = &input.spacetimedsl_methods.delete_singleton {
+        dsl_methods.push(function::associated::build(method)?);
+    }
 
     if let Some(method) = &input
         .spacetimedsl_methods
@@ -65,7 +76,9 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
 
     for column in &input.columns {
         if first_dsl_attribute {
-            table_methods.push(accessor::getter(&column.spacetimedsl_column.getter)?);
+            if let Some(getter) = &column.spacetimedsl_column.getter {
+                table_methods.push(accessor::getter(getter)?);
+            }
 
             if let Some(data) = &column.spacetimedsl_column.mut_getter {
                 table_methods.push(accessor::mut_getter(data)?)

@@ -16,6 +16,20 @@ pub fn dsl(args: TokenStream, item: TokenStream) -> TokenStream {
         let args = proc_macro2::TokenStream::from(args);
         let mut derive_input: syn::DeriveInput = syn::parse(item)?;
 
+        // Check if this is a singleton table by scanning args for the `singleton` keyword
+        let is_singleton = args.clone().into_iter().any(|token| {
+            if let proc_macro2::TokenTree::Ident(ident) = token {
+                ident == "singleton"
+            } else {
+                false
+            }
+        });
+
+        // For singletons, inject `#[primary_key] id: ()` into the struct
+        if is_singleton {
+            inject_singleton_primary_key(&mut derive_input)?;
+        }
+
         // Add `derive(SpacetimeDSL)` only if it's not already in the attributes of the item.
         // If multiple `#[dsl]` attributes are applied to the same `struct` item,
         // this will ensure that we don't emit multiple conflicting implementations.
@@ -118,6 +132,47 @@ fn is_last_dsl_attribute(derive_input: &syn::DeriveInput) -> bool {
 //         }
 //     }
 // }
+
+/// For singleton tables, inject `#[primary_key] id: ()` as the first field.
+/// Errors if the user already has a field named `id` with type `()`.
+fn inject_singleton_primary_key(derive_input: &mut syn::DeriveInput) -> syn::Result<()> {
+    if let syn::Data::Struct(data_struct) = &mut derive_input.data
+        && let syn::Fields::Named(fields) = &mut data_struct.fields
+    {
+        // Check if user manually defined an `id` field
+        for field in fields.named.iter() {
+            if let Some(ident) = &field.ident
+                && ident == "id"
+            {
+                return Err(syn::Error::new_spanned(
+                    field,
+                    "Singleton tables automatically add `#[primary_key] id: u8`. Do not define an `id` field manually!",
+                ));
+            }
+        }
+
+        // Create the field: `#[primary_key] id: u8`
+        // We use u8 with value 0 as the singleton PK since () doesn't implement FilterableValue
+        let pk_field = syn::Field {
+            attrs: vec![syn::parse_quote!(#[primary_key])],
+            vis: syn::Visibility::Inherited,
+            mutability: syn::FieldMutability::None,
+            ident: Some(syn::Ident::new("id", proc_macro2::Span::call_site())),
+            colon_token: Some(syn::token::Colon::default()),
+            ty: syn::parse_quote!(u8),
+        };
+
+        // Insert as the first field
+        fields.named.insert(0, pk_field);
+    } else {
+        return Err(syn::Error::new(
+            proc_macro2::Span::call_site(),
+            "Singleton tables must be structs with named fields!",
+        ));
+    }
+
+    Ok(())
+}
 
 //region Hooks
 

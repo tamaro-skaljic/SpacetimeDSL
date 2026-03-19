@@ -992,6 +992,26 @@ pub mod component {
     }
 }
 
+pub mod singleton_test {
+    /// A singleton table representing global game configuration.
+    #[spacetimedsl::dsl(
+        singleton,
+        method(
+            update = true,
+            delete = true,
+        ),
+    )]
+    #[spacetimedb::table(
+        accessor = game_config,
+        public,
+    )]
+    pub struct GameConfig {
+        pub max_players: u32,
+
+        pub game_name: String,
+    }
+}
+
 pub mod test {
     use crate::{
         component::{

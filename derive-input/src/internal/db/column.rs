@@ -11,6 +11,7 @@ impl SpacetimeDBColumn {
         mut spacetimedb_table: SpacetimeDBTable,
         auto_inc_column_names: &[Ident],
         primary_key_column_name: &Ident,
+        is_singleton: bool,
     ) -> Result<(SpacetimeDBTable, SpacetimeDBColumn), Error> {
         let column_name = &rust_field.name;
 
@@ -32,6 +33,29 @@ impl SpacetimeDBColumn {
                     column_name,
                 ),
             ));
+        }
+
+        // Singleton validation: user-defined columns must not have #[primary_key], #[index], or #[unique]
+        // (the injected `id: ()` pk is allowed)
+        if is_singleton && !is_primary_key {
+            // Check if this column has a single-column index (which means #[index], #[unique], or #[primary_key] was used)
+            for index in spacetimedb_table.multi_column_indices.iter() {
+                match &index.index_type {
+                    IndexType::BTreeSingleColumn { column }
+                    | IndexType::Direct { column }
+                    | IndexType::HashSingleColumn { column } => {
+                        if column.eq(column_name) {
+                            return Err(Error::new(
+                                Span::call_site(),
+                                format!(
+                                    "`#[index]` and `#[unique]` are not allowed on singleton tables! Found index on column `{column_name}`.",
+                                ),
+                            ));
+                        }
+                    }
+                    _ => {}
+                }
+            }
         }
 
         let mut single_column_index = None;

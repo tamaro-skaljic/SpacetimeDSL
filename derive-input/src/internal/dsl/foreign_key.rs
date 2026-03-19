@@ -12,6 +12,7 @@ use syn::{Ident, Meta, Path};
 impl ForeignKey {
     pub(in crate::internal) fn try_parse(
         has_delete_method: &bool,
+        is_singleton: bool,
         field: &SatsField<'_>,
     ) -> syn::Result<Option<ForeignKey>> {
         let mut foreign_key_value = None;
@@ -32,7 +33,8 @@ impl ForeignKey {
                 continue;
             }
 
-            if !has_index {
+            // Singletons don't require an index on FK columns
+            if !has_index && !is_singleton {
                 return Err(syn::Error::new_spanned(
                     attr,
                     "`#[foreign_key]` is only allowed in combination with `#[primary_key]`, `#[unique]` or `#[index]`!",

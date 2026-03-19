@@ -6,7 +6,24 @@ use syn::{DeriveInput, Error};
 pub(in crate::internal) fn spacetime_bindings_macro_input<'a>(
     item: &'a DeriveInput,
     plural_name: &syn::Ident,
+    is_singleton: bool,
 ) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
+    if is_singleton {
+        let all_tables = get_all_table_attributes(item)?;
+
+        if all_tables.len() != 1 {
+            return Err(Error::new(
+                Span::call_site(),
+                format!(
+                    "Singleton tables must have exactly one `#[table]` attribute, but found {}!",
+                    all_tables.len()
+                ),
+            ));
+        }
+
+        return Ok(all_tables.into_iter().next().unwrap());
+    }
+
     select_table_with_heuristics(item, plural_name)
 }
 

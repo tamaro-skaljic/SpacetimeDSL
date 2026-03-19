@@ -18,7 +18,7 @@ pub(in crate::internal) fn try_parse(
 ) -> syn::Result<Table> {
     let rust_struct = crate::internal::rust::table::map_struct(input);
 
-    let spacetimedb_table = SpacetimeDBTable::map(table_args);
+    let spacetimedb_table = SpacetimeDBTable::map(table_args, dsl_data.is_singleton)?;
 
     let (spacetimedb_table, mut spacetimedsl_table) =
         SpacetimeDSLTable::try_parse(dsl_data, column_args, spacetimedb_table)?;

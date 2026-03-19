@@ -53,12 +53,14 @@ pub(in crate::internal) fn try_parse(
             spacetimedb_table,
             &auto_inc_column_names,
             &primary_key_column_name,
+            spacetimedsl_table.is_singleton,
         )?;
         spacetimedb_table = res.0;
         let spacetimedb_column = res.1;
 
         let spacetimedsl_column = SpacetimeDSLColumn::try_parse(
             &spacetimedsl_table.has_delete_method,
+            spacetimedsl_table.is_singleton,
             field,
             rust_struct,
             &rust_field,

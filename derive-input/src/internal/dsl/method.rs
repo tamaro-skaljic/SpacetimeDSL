@@ -117,6 +117,11 @@ impl SpacetimeDSLColumnMethods {
         internal_columns: &Vec<InternalColumn>,
         primary_key_column: &InternalColumn,
     ) -> Option<SpacetimeDSLColumnMethods> {
+        // Singletons use dedicated get/update/delete methods, not per-column methods
+        if spacetimedsl_table.is_singleton {
+            return None;
+        }
+
         let index = match &spacetimedb_column.single_column_index {
             None => {
                 return None;
@@ -211,6 +216,8 @@ impl SpacetimeDSLTableMethods {
         internal_columns: &Vec<InternalColumn>,
         primary_key_column: &InternalColumn,
     ) -> syn::Result<(SpacetimeDSLTableMethods, SpacetimeDSLTable)> {
+        let is_singleton = spacetimedsl_table.is_singleton;
+
         let create = for_method(
             DSLMethod::Create,
             rust_struct,
@@ -220,23 +227,66 @@ impl SpacetimeDSLTableMethods {
             primary_key_column,
         );
 
-        let get_all = for_method(
-            DSLMethod::GetAll,
-            rust_struct,
-            spacetimedb_table,
-            &mut spacetimedsl_table,
-            internal_columns,
-            primary_key_column,
-        );
+        let get_all = if is_singleton {
+            None
+        } else {
+            Some(for_method(
+                DSLMethod::GetAll,
+                rust_struct,
+                spacetimedb_table,
+                &mut spacetimedsl_table,
+                internal_columns,
+                primary_key_column,
+            ))
+        };
 
-        let get_count = for_method(
-            DSLMethod::GetCount,
-            rust_struct,
-            spacetimedb_table,
-            &mut spacetimedsl_table,
-            internal_columns,
-            primary_key_column,
-        );
+        let get_count = if is_singleton {
+            None
+        } else {
+            Some(for_method(
+                DSLMethod::GetCount,
+                rust_struct,
+                spacetimedb_table,
+                &mut spacetimedsl_table,
+                internal_columns,
+                primary_key_column,
+            ))
+        };
+
+        // Generate singleton-specific methods
+        let (get_singleton, update_singleton, delete_singleton) = if is_singleton {
+            let get_singleton = Some(for_singleton_get(
+                rust_struct,
+                spacetimedb_table,
+                &spacetimedsl_table,
+            ));
+
+            let update_singleton = if spacetimedsl_table.has_update_method {
+                Some(for_singleton_update(
+                    rust_struct,
+                    spacetimedb_table,
+                    &mut spacetimedsl_table,
+                    internal_columns,
+                    primary_key_column,
+                ))
+            } else {
+                None
+            };
+
+            let delete_singleton = if spacetimedsl_table.has_delete_method {
+                Some(for_singleton_delete(
+                    rust_struct,
+                    spacetimedb_table,
+                    &mut spacetimedsl_table,
+                ))
+            } else {
+                None
+            };
+
+            (get_singleton, update_singleton, delete_singleton)
+        } else {
+            (None, None, None)
+        };
 
         let execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted;
         let execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted;
@@ -397,6 +447,9 @@ impl SpacetimeDSLTableMethods {
             create,
             get_all,
             get_count,
+            get_singleton,
+            update_singleton,
+            delete_singleton,
             execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted,
             execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted,
             execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted,
@@ -431,6 +484,26 @@ fn process_columns_for_create_and_update_method(
 
     match create_or_update {
         CreateOrUpdate::Create => {
+            // Singleton PK column (id: u8) is auto-filled with 0
+            if spacetimedsl_table.is_singleton
+                && internal_column.rust_field_name == "id"
+                && internal_column
+                    .rust_field_type_name_or_path
+                    .to_token_stream()
+                    .to_string()
+                    == "u8"
+            {
+                constructor_arg = Some(quote! {
+                    let #column_name = 0u8;
+                });
+                return (
+                    arg,
+                    wrapper_type_option_to_wrapped_type_option_mapper,
+                    constructor_arg,
+                    constructor_arg_name,
+                );
+            }
+
             if internal_column.spacetimedb_column_is_auto_inc {
                 constructor_arg = Some(quote! {
                     let #column_name = #column_type::default();
@@ -2616,6 +2689,383 @@ fn for_referenced_by(
     }
 }
 
+/// Generate `get_{singular_name}()` -> `Result<T, SpacetimeDSLError>` for singleton tables.
+fn for_singleton_get(
+    rust_struct: &RustStruct,
+    spacetimedb_table: &SpacetimeDBTable,
+    _spacetimedsl_table: &SpacetimeDSLTable,
+) -> SpacetimeDSLMethod {
+    let struct_name = &rust_struct.name;
+    let singular_table_name = &spacetimedb_table.singular_name;
+    let singular_table_name_as_string = singular_table_name.to_string();
+    let singular_table_name_pascal_case =
+        RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
+
+    let doc_comment = format!(
+        "Try to get the `{struct_name}` from the singleton `{singular_table_name}` table."
+    );
+
+    let trait_name = format_ident!("Get{singular_table_name_pascal_case}Row");
+    let method_name = format_ident!("get_{singular_table_name}");
+
+    let return_type = quote! {
+        Result<#struct_name, spacetimedsl::SpacetimeDSLError>
+    };
+
+    let method_impl = quote! {
+        match self
+            .db()
+            .#singular_table_name()
+            .id()
+            .find(&0u8)
+        {
+            Some(#singular_table_name) => Ok(#singular_table_name),
+            None => return Err(
+                spacetimedsl::SpacetimeDSLError::NotFoundError {
+                    table_name: #singular_table_name_as_string.into(),
+                    column_names_and_row_values: "{{ id : 0 }}".into()
+                }
+            )
+        }
+    };
+
+    SpacetimeDSLMethod {
+        doc_comment,
+        trait_name,
+        additional_paths_to_use: vec![],
+        method_name,
+        method_args: vec![],
+        return_type,
+        method_impl,
+        read_context_compatible: true,
+    }
+}
+
+/// Generate `update_{singular_name}(entity)` -> `Result<T, SpacetimeDSLError>` for singleton tables.
+fn for_singleton_update(
+    rust_struct: &RustStruct,
+    spacetimedb_table: &SpacetimeDBTable,
+    spacetimedsl_table: &mut SpacetimeDSLTable,
+    internal_columns: &Vec<InternalColumn>,
+    primary_key_column: &InternalColumn,
+) -> SpacetimeDSLMethod {
+    let struct_name = &rust_struct.name;
+    let singular_table_name = &spacetimedb_table.singular_name;
+    let singular_table_name_pascal_case =
+        RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
+    let primary_key_column_name = &primary_key_column.rust_field_name;
+
+    let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
+
+    let doc_comment = format!(
+        "Try to update the `{struct_name}` row of the singleton `{singular_table_name}` table."
+    );
+
+    let trait_name = format_ident!("Update{singular_table_name_pascal_case}Row");
+    let method_name = format_ident!("update_{singular_table_name}");
+
+    let return_type = quote! {
+        Result<#struct_name, spacetimedsl::SpacetimeDSLError>
+    };
+
+    let method_args = vec![SpacetimeDSLArg {
+        is_option: false,
+        arg_name: singular_table_name.clone(),
+        arg_type: SpacetimeDSLArgType::Normal(quote! { #struct_name }),
+    }];
+
+    let mut row_value_getters = vec![];
+
+    internal_columns
+        .iter()
+        .filter(|internal_column| {
+            internal_column.spacetimedsl_column_foreign_key.is_some()
+                && internal_column
+                    .rust_field_visibility
+                    .to_string()
+                    .ne(&RustVisibility::Private.to_string())
+        })
+        .for_each(|internal_column| {
+            let (_, _, column_getter, _) =
+                process_columns_for_create_and_update_method(
+                    spacetimedsl_table,
+                    CreateOrUpdate::Update,
+                    internal_column,
+                );
+            if let Some(column_getter) = column_getter {
+                row_value_getters.push(column_getter)
+            };
+        });
+
+    let on_update_set_current_timestamp = match &spacetimedsl_table
+        .on_update_set_current_timestamp_column_name
+    {
+        None => TokenStream::default(),
+        Some(column_name) => {
+            let on_update_set_current_timestamp_column = internal_columns
+                .iter()
+                .find(|c| c.rust_field_name.eq(column_name))
+                .unwrap_or_else(|| {
+                    panic!("{column_name} column should exist in internal columns")
+                });
+
+            let column_type_str = on_update_set_current_timestamp_column
+                .rust_field_type_name_or_path
+                .to_token_stream()
+                .to_string();
+
+            let timestamp_value = if column_type_str.starts_with("Option") {
+                quote! { Some(self.ctx().timestamp()?) }
+            } else {
+                quote! { self.ctx().timestamp()? }
+            };
+
+            quote! {
+                #singular_table_name.#column_name = #timestamp_value;
+            }
+        }
+    };
+
+    let mut additional_paths_to_use: Vec<syn::Path> = vec![];
+
+    let res = reference_integrity_checks_on_create_or_update(
+        CreateOrUpdate::Update,
+        spacetimedb_table,
+        internal_columns,
+        additional_paths_to_use,
+        None,
+        &OneOrMultiple::One,
+        primary_key_column,
+    );
+    additional_paths_to_use = res.0;
+    let reference_integrity_checks = res.1;
+
+    let let_field_name_for_found_value = if reference_integrity_checks.is_empty()
+        && spacetimedsl_table.hooks.before_update.is_none()
+        && spacetimedsl_table.hooks.after_update.is_none()
+    {
+        TokenStream::default()
+    } else {
+        quote! {
+            let mut #field_name_for_found_value: Option<#struct_name> = None;
+        }
+    };
+
+    let before_update_hook = match &spacetimedsl_table.hooks.before_update {
+        None => TokenStream::default(),
+        Some(before_update_hook) => {
+            let hook_trait_name = &before_update_hook.trait_name;
+            let hook_function_name = &before_update_hook.function_name;
+
+            quote! {
+                if #field_name_for_found_value.is_none() {
+                    #field_name_for_found_value = Some(
+                        self.db().#singular_table_name().#primary_key_column_name()
+                            .find(#singular_table_name.#primary_key_column_name)
+                            .expect("Row should exist for update")
+                    )
+                }
+
+                use self::#hook_trait_name;
+                let #singular_table_name = spacetimedsl::DSLMethodHooks::#hook_function_name(
+                    &self.dsl(),
+                    #field_name_for_found_value.as_ref().unwrap(),
+                    #singular_table_name
+                )?;
+            }
+        }
+    };
+
+    let after_update_hook = match &spacetimedsl_table.hooks.after_update {
+        None => TokenStream::default(),
+        Some(after_update_hook) => {
+            let hook_trait_name = &after_update_hook.trait_name;
+            let hook_function_name = &after_update_hook.function_name;
+
+            quote! {
+                use self::#hook_trait_name;
+                spacetimedsl::DSLMethodHooks::#hook_function_name(
+                    &self.dsl(),
+                    #field_name_for_found_value.as_ref().unwrap(),
+                    &#singular_table_name
+                )?;
+            }
+        }
+    };
+
+    let method_impl = quote! {
+        let mut #singular_table_name = #singular_table_name;
+
+        #let_field_name_for_found_value
+
+        #(#row_value_getters)*
+        #(#reference_integrity_checks)*
+
+        #on_update_set_current_timestamp
+
+        #before_update_hook
+
+        // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(spacetimedsl::SpacetimeDSLError);
+        let #singular_table_name = self
+            .db()
+            .#singular_table_name()
+            .#primary_key_column_name()
+            .update(#singular_table_name);
+
+        #after_update_hook
+
+        Ok(#singular_table_name)
+    };
+
+    SpacetimeDSLMethod {
+        doc_comment,
+        trait_name,
+        additional_paths_to_use,
+        method_name,
+        method_args,
+        return_type,
+        method_impl,
+        read_context_compatible: false,
+    }
+}
+
+/// Generate `delete_{singular_name}()` -> `Result<DeletionResult, SpacetimeDSLError>` for singleton tables.
+fn for_singleton_delete(
+    rust_struct: &RustStruct,
+    spacetimedb_table: &SpacetimeDBTable,
+    spacetimedsl_table: &mut SpacetimeDSLTable,
+) -> SpacetimeDSLMethod {
+    let struct_name = &rust_struct.name;
+    let singular_table_name = &spacetimedb_table.singular_name;
+    let singular_table_name_as_string = singular_table_name.to_string();
+    let singular_table_name_pascal_case =
+        RenameRule::PascalCase.apply_to_field(singular_table_name.to_string());
+
+    let one = OneOrMultiple::One;
+
+    let doc_comment = format!(
+        "Try to delete the `{struct_name}` row from the singleton `{singular_table_name}` table."
+    );
+
+    let trait_name = format_ident!("Delete{singular_table_name_pascal_case}Row");
+    let method_name = format_ident!("delete_{singular_table_name}");
+
+    let return_type = quote! {
+        Result<spacetimedsl::DeletionResult, spacetimedsl::SpacetimeDSLError>
+    };
+
+    let get_row_to_delete = quote! {
+        let row_to_delete = self
+            .db()
+            .#singular_table_name()
+            .id()
+            .find(&0u8);
+    };
+
+    let return_error_on_is_none = quote! {
+        let row_to_delete = match row_to_delete {
+            None => return Err(
+                spacetimedsl::SpacetimeDSLError::NotFoundError {
+                    table_name: #singular_table_name_as_string.into(),
+                    column_names_and_row_values: "{{ id : 0 }}".into()
+                }
+            ),
+            Some(row_to_delete) => row_to_delete,
+        };
+    };
+
+    let map_row_to_delete_to_deletion_result_entry = quote! {
+        let mut deletion_result_entry = spacetimedsl::DeletionResultEntry {
+            table_name: #singular_table_name_as_string.into(),
+            column_name: "id".into(),
+            strategy: spacetimedsl::OnDeleteStrategy::Delete,
+            row_value: "0".into(),
+            child_entries: vec![],
+        };
+    };
+
+    let delete_one_impl = quote! {
+        match self
+                .db()
+                .#singular_table_name()
+                .id()
+                .delete(&0u8) {
+            false => {
+                return Err(
+                    spacetimedsl::SpacetimeDSLError::Error(
+                        "Delete One Error: `count_of_rows_to_delete ( 1 ) != ( 0 ) count_of_deleted_rows`!".to_string(),
+                    )
+                );
+            },
+            true => {},
+        };
+    };
+
+    let before_delete_hook = match &spacetimedsl_table.hooks.before_delete {
+        None => TokenStream::default(),
+        Some(before_delete_hook) => {
+            let hook_trait_name = &before_delete_hook.trait_name;
+            let hook_function_name = &before_delete_hook.function_name;
+
+            quote! {
+                use self::#hook_trait_name;
+                spacetimedsl::DSLMethodHooks::#hook_function_name(&self.dsl(), &row_to_delete)?;
+            }
+        }
+    };
+
+    let after_delete_hook = match &spacetimedsl_table.hooks.after_delete {
+        None => TokenStream::default(),
+        Some(after_delete_hook) => {
+            let hook_trait_name = &after_delete_hook.trait_name;
+            let hook_function_name = &after_delete_hook.function_name;
+
+            quote! {
+                use self::#hook_trait_name;
+                spacetimedsl::DSLMethodHooks::#hook_function_name(&self.dsl(), &row_to_delete)?;
+            }
+        }
+    };
+
+    let return_result_impl = quote! {
+        return Ok(spacetimedsl::DeletionResult {
+            table_name: #singular_table_name_as_string.into(),
+            one_or_multiple: #one,
+            entries: vec![deletion_result_entry],
+        });
+    };
+
+    // Singletons can't have #[referenced_by], so no need for referencing table strategies
+    let method_impl = quote! {
+        use spacetimedsl::itertools::Itertools;
+
+        #get_row_to_delete
+
+        #return_error_on_is_none
+
+        #map_row_to_delete_to_deletion_result_entry
+
+        #before_delete_hook
+
+        #delete_one_impl
+
+        #after_delete_hook
+
+        #return_result_impl
+    };
+
+    SpacetimeDSLMethod {
+        doc_comment,
+        trait_name,
+        additional_paths_to_use: vec![],
+        method_name,
+        method_args: vec![],
+        return_type,
+        method_impl,
+        read_context_compatible: false,
+    }
+}
+
 fn for_foreign_key(
     one_or_multiple: &OneOrMultiple,
     has_referenced_bys: bool,
@@ -2898,37 +3348,57 @@ fn get_on_delete_strategy_implementation(
     let mut strategy_by_column = vec![];
     let mut strategy_after_all = TokenStream::default();
 
+    let is_singleton = spacetimedsl_table.is_singleton;
+
     for column in &columns_by_on_delete_strategy {
         let column_name = &column.rust_field.name;
         let column_name_as_string = column_name.to_string();
 
-        let is_unique_index = column
-            .spacetimedb_column
-            .single_column_index
-            .as_ref()
-            .expect("Index should exist")
-            .is_unique;
+        // Singletons don't have indices on FK columns; use .id().find(&0u8) instead
+        let is_unique_index = if is_singleton {
+            true // Singleton has at most 1 row, treat as unique
+        } else {
+            column
+                .spacetimedb_column
+                .single_column_index
+                .as_ref()
+                .expect("Index should exist")
+                .is_unique
+        };
 
-        let row_finder = match is_unique_index {
-            true => {
-                quote! {
-                    #spacetimedb_call_prefix.#column_name().find(primary_key_value_of_a_row_of_another_table_to_delete)
-                }
+        let row_finder = if is_singleton {
+            // For singletons, find the single row by PK and check FK column manually
+            quote! {
+                #spacetimedb_call_prefix.id().find(&0u8).filter(|row| row.#column_name == *primary_key_value_of_a_row_of_another_table_to_delete)
             }
-            false => {
-                quote! {
-                    #spacetimedb_call_prefix.#column_name().filter(primary_key_value_of_a_row_of_another_table_to_delete)
+        } else {
+            match is_unique_index {
+                true => {
+                    quote! {
+                        #spacetimedb_call_prefix.#column_name().find(primary_key_value_of_a_row_of_another_table_to_delete)
+                    }
+                }
+                false => {
+                    quote! {
+                        #spacetimedb_call_prefix.#column_name().filter(primary_key_value_of_a_row_of_another_table_to_delete)
+                    }
                 }
             }
         };
 
-        let wrapper_type_struct_name_or_path = match primary_key_column
-            .spacetimedsl_column_wrapper_type
-            .as_ref()
-            .expect("Wrapper Type should exist")
-        {
-            WrapperType::Created(wrap) => wrap.wrapper_struct_name.to_token_stream(),
-            WrapperType::Used(wrapped) => wrapped.wrapper_struct_name_or_path.to_token_stream(),
+        let row_value_format = if is_singleton {
+            // Singleton PK is u8(0) with no wrapper type
+            quote! { "0".to_string() }
+        } else {
+            let wrapper_type_struct_name_or_path = match primary_key_column
+                .spacetimedsl_column_wrapper_type
+                .as_ref()
+                .expect("Wrapper Type should exist")
+            {
+                WrapperType::Created(wrap) => wrap.wrapper_struct_name.to_token_stream(),
+                WrapperType::Used(wrapped) => wrapped.wrapper_struct_name_or_path.to_token_stream(),
+            };
+            quote! { format!("{}", #wrapper_type_struct_name_or_path::new(#primary_key_column_name.clone())) }
         };
 
         let create_entry = quote! {
@@ -2936,7 +3406,7 @@ fn get_on_delete_strategy_implementation(
                 table_name: #singular_table_name_as_string.into(),
                 column_name: #column_name_as_string.into(),
                 strategy: #on_delete_strategy,
-                row_value: format!("{}", #wrapper_type_struct_name_or_path::new(#primary_key_column_name.clone())).into(),
+                row_value: #row_value_format.into(),
                 child_entries,
             }
         };
