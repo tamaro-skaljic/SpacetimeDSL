@@ -232,18 +232,18 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     })
 }
 
-pub(crate) struct DSLData {
-    pub is_singleton: bool,
-    pub plural_name: Ident,
-    pub unique_indices: Vec<Ident>,
-    pub before_insert_hook: bool,
-    pub before_update_hook: bool,
-    pub before_delete_hook: bool,
-    pub after_insert_hook: bool,
-    pub after_update_hook: bool,
-    pub after_delete_hook: bool,
-    pub update_method: Option<bool>,
-    pub delete_method: Option<bool>,
+struct DSLData {
+    is_singleton: bool,
+    plural_name: Ident,
+    unique_indices: Vec<Ident>,
+    before_insert_hook: bool,
+    before_update_hook: bool,
+    before_delete_hook: bool,
+    after_insert_hook: bool,
+    after_update_hook: bool,
+    after_delete_hook: bool,
+    update_method: Option<bool>,
+    delete_method: Option<bool>,
 }
 
 // Parse unique index from meta
