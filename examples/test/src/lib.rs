@@ -1719,7 +1719,7 @@ pub mod test {
             ));
         };
 
-        // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32Add test for SetNone strategy if it's implemented
+        // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 Add test for SetNone strategy if it's implemented
 
         // This would produce a compilation error if the column order in unique multi column indices differ from the order in the table
         dsl.get_module1_by_database_and_parent_id_and_name(&0, &0, "")
