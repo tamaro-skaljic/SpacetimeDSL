@@ -225,7 +225,7 @@ fn before_position_hook_helper(
 ```toml
 
 # https://crates.io/crates/spacetimedsl The SpacetimeDB Rust Server Module meta-framework
-spacetimedsl = { version = "0.20.0" }
+spacetimedsl = { version = "0.20.1" }
 
 ```
 
