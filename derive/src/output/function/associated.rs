@@ -10,24 +10,23 @@ fn build_impl(
     method_args: &[TokenStream],
     context_bound: TokenStream,
     dsl_type: TokenStream,
-    context_import: TokenStream,
+    doc_comment: &str,
 ) -> TokenStream {
-    let trait_name = &method.trait_name;
-    let additional_paths_to_use = &method.additional_paths_to_use;
     let method_name = &method.method_name;
+    let additional_paths_to_use = &method.additional_paths_to_use;
     let return_type = &method.return_type;
     let method_impl = &method.method_impl;
 
     quote! {
-        impl<T: #context_bound> #trait_name for #dsl_type {
+        impl<T: #context_bound> #dsl_type {
             #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-            fn #method_name<'a>(
+            #[doc = #doc_comment]
+            pub fn #method_name<'a>(
                 &'a self,
                 #(#method_args),*
             ) -> #return_type {
-                use spacetimedsl::Wrapper;
+                use ::spacetimedsl::Wrapper;
                 use spacetimedb::{DbContext, Table as _};
-                use #context_import;
                 #(use #additional_paths_to_use as _;)*
                 #method_impl
             }
@@ -36,50 +35,61 @@ fn build_impl(
 }
 
 pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
-    let trait_name = &method.trait_name;
     let method_name = &method.method_name;
     let method_args = crate::output::map_args(&method.method_args);
     let return_type = &method.return_type;
 
-    let mut dsl_impl = build_impl(
-        method,
-        &method_args,
-        quote! { spacetimedsl::WriteContext },
-        quote! { spacetimedsl::DSL<'_, T> },
-        quote! { spacetimedsl::DSLContext },
-    );
-
-    if method.read_context_compatible {
-        dsl_impl.extend(build_impl(
-            method,
-            &method_args,
-            quote! { spacetimedsl::ReadContext },
-            quote! { spacetimedsl::ReadOnlyDSL<'_, T> },
-            quote! { spacetimedsl::ReadOnlyDSLContext },
-        ));
-    }
+    // Build the write-context impl to generate the doc comment from it.
+    let dsl_impl_for_doc = {
+        let method_impl = &method.method_impl;
+        let additional_paths_to_use = &method.additional_paths_to_use;
+        quote! {
+            impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+                #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+                pub fn #method_name<'a>(
+                    &'a self,
+                    #(#method_args),*
+                ) -> #return_type {
+                    use ::spacetimedsl::Wrapper;
+                    use spacetimedb::{DbContext, Table as _};
+                    #(use #additional_paths_to_use as _;)*
+                    #method_impl
+                }
+            }
+        }
+    };
 
     let impl_doc = PrettyPlease::default()
-        .format_tokens(dsl_impl.clone())
-        .unwrap_or_else(|_| panic!("{}", malformed_code_generation_result(dsl_impl.to_string())));
+        .format_tokens(dsl_impl_for_doc.clone())
+        .unwrap_or_else(|_| {
+            panic!(
+                "{}",
+                malformed_code_generation_result(dsl_impl_for_doc.to_string())
+            )
+        });
 
     let doc_comment = format!(
         "{}\n\nImplementation:\n\n```no_run\n{impl_doc}\n```",
         method.doc_comment
     );
-    let trait_comment = format!("See [`Self::{method_name}`] for details.");
 
-    Ok(quote! {
-        #[doc = #trait_comment]
-        pub trait #trait_name {
-            #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-            #[doc=#doc_comment]
-            fn #method_name<'a>(
-                &'a self,
-                #(#method_args),*
-            ) -> #return_type;
-        }
+    let mut output = build_impl(
+        method,
+        &method_args,
+        quote! { crate::spacetimedsl::WriteContext },
+        quote! { crate::spacetimedsl::DSL<'_, T> },
+        &doc_comment,
+    );
 
-        #dsl_impl
-    })
+    if method.read_context_compatible {
+        output.extend(build_impl(
+            method,
+            &method_args,
+            quote! { crate::spacetimedsl::ReadContext },
+            quote! { crate::spacetimedsl::ReadOnlyDSL<'_, T> },
+            &doc_comment,
+        ));
+    }
+
+    Ok(output)
 }

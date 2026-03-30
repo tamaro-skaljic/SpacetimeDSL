@@ -1,8 +1,10 @@
+::spacetimedsl::spacetimedsl!();
+
 pub mod entity {
     use spacetimedb::Timestamp;
 
     /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
-    #[spacetimedsl::dsl(
+    #[::spacetimedsl::dsl(
         plural_name = entities,
         method(
             update = true,
@@ -31,7 +33,7 @@ pub mod entity {
         modified_at: Option<Timestamp>,
     }
 
-    #[spacetimedsl::dsl(
+    #[::spacetimedsl::dsl(
         plural_name = tables,
         method(update = true),
         unique_index(name = id_and_name1),
@@ -66,7 +68,7 @@ pub mod entity {
         pub name4: String,
     }
 
-    #[spacetimedsl::dsl(
+    #[::spacetimedsl::dsl(
         plural_name = entity_relationships,
         method(update = true),
         unique_index(name = parent_child_entity_id)
@@ -97,7 +99,7 @@ pub mod entity {
         updated_at: Option<Timestamp>,
     }
 
-    #[spacetimedsl::dsl(
+    #[::spacetimedsl::dsl(
         plural_name = entity_relationships2,
         method(update = true),
     )]
@@ -128,7 +130,7 @@ pub mod entity {
         updated_at: Timestamp,
     }
 
-    #[spacetimedsl::dsl(
+    #[::spacetimedsl::dsl(
         plural_name = entity_relationships3,
         method(update = true),
     )]
@@ -150,7 +152,7 @@ pub mod entity {
         pub parent_entity_relationship3_id: u128,
     }
 
-    #[spacetimedsl::dsl(
+    #[::spacetimedsl::dsl(
         plural_name = entity_relationships4,
         method(update = true),
     )]
@@ -178,7 +180,7 @@ pub mod component {
         use spacetimedb::Timestamp;
 
         /// A Identifier is a developer-friendly String.
-        #[spacetimedsl::dsl(
+        #[::spacetimedsl::dsl(
             plural_name = identifiers,
             method(update = true),
         )]
@@ -209,7 +211,7 @@ pub mod component {
             modified_at: Option<Timestamp>,
         }
 
-        #[spacetimedsl::dsl(
+        #[::spacetimedsl::dsl(
             plural_name = identifier_references,
             method(update = false),
         )]
@@ -233,7 +235,7 @@ pub mod component {
         use spacetimedb::Timestamp;
 
         /// A Position in the World.
-        #[spacetimedsl::dsl(
+        #[::spacetimedsl::dsl(
             plural_name = positions,
             method(update = true),
         )]
@@ -270,7 +272,7 @@ pub mod component {
         }
 
         /// A unique Position in the World.
-        #[spacetimedsl::dsl(
+        #[::spacetimedsl::dsl(
             plural_name = unique_positions,
             method(update = true),
             unique_index(name = x_y_z),
@@ -309,7 +311,7 @@ pub mod component {
         use spacetimedb::{ScheduleAt, Timestamp};
 
         /// A Position in the World.
-        #[spacetimedsl::dsl(
+        #[::spacetimedsl::dsl(
             plural_name = tests,
             method(update = true),
         )]
@@ -381,7 +383,7 @@ pub mod component {
             scheduled_at: ScheduleAt,
         }
 
-        #[spacetimedsl::dsl(
+        #[::spacetimedsl::dsl(
             plural_name = ship_objects,
             method(update = true),
             unique_index(name = id_and_sobj),
@@ -408,7 +410,7 @@ pub mod component {
             pub entity_id: u128,
         }
 
-        #[spacetimedsl::dsl(
+        #[::spacetimedsl::dsl(
             plural_name = space_ship_objects,
             method(update = true),
         )]
@@ -434,7 +436,7 @@ pub mod component {
             pub entity_id: u128,
         }
 
-        #[spacetimedsl::dsl(
+        #[::spacetimedsl::dsl(
             plural_name = modules1,
             method(update = true),
             unique_index(name = database_and_parent_id_and_name),
@@ -444,7 +446,7 @@ pub mod component {
             index(accessor = database_and_parent_id_and_name, btree(columns = [database_id, parent_id, name])),
             public,
         )]
-        #[spacetimedsl::dsl(
+        #[::spacetimedsl::dsl(
             plural_name = modules2,
             method(update = true),
             unique_index(name = database_and_name_and_parent_id),
@@ -474,7 +476,7 @@ pub mod component {
     pub mod uuid_test {
         // FIXME: use spacetimedb::Uuid;
 
-        #[spacetimedsl::dsl(
+        #[::spacetimedsl::dsl(
             plural_name = uuid_holders1,
             method(update = true),
         )]
@@ -491,9 +493,10 @@ pub mod component {
     }
 
     pub mod hook_test {
+        use crate::spacetimedsl::prelude::*;
         use spacetimedb::Timestamp;
 
-        #[spacetimedsl::dsl(
+        #[::spacetimedsl::dsl(
             plural_name = attributes,
             method(update = true),
             hook(
@@ -523,7 +526,7 @@ pub mod component {
             pub value: String,
         }
 
-        #[spacetimedsl::dsl(
+        #[::spacetimedsl::dsl(
             plural_name = potions,
             method(update = true),
             hook(
@@ -564,8 +567,8 @@ pub mod component {
             unique_attribute_id: u128,
         }
 
-        #[spacetimedsl::dsl(
-            plural_name = potions,
+        #[::spacetimedsl::dsl(
+            plural_name = recipes,
             method(update = true),
             hook(
                 before(
@@ -599,7 +602,7 @@ pub mod component {
             potion_id: u128,
         }
 
-        #[spacetimedsl::dsl(
+        #[::spacetimedsl::dsl(
             plural_name = multi_column_index_with_hook_tests,
             method(update = true),
             hook(
@@ -634,7 +637,7 @@ pub mod component {
             pub value_2: bool,
         }
 
-        #[spacetimedsl::dsl(
+        #[::spacetimedsl::dsl(
             plural_name = hook_calls,
             method(
                 update = false,
@@ -656,11 +659,11 @@ pub mod component {
             created_at: Timestamp,
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn before_attribute_insert(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             mut create_attribute_request: CreateAttribute,
-        ) -> Result<CreateAttribute, spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<CreateAttribute, SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "BEFORE_ATTRIBUTE_INSERT".to_string(),
             })?;
@@ -671,11 +674,11 @@ pub mod component {
             Ok(create_attribute_request)
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn after_attribute_insert(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             new_attribute: &Attribute,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "AFTER_ATTRIBUTE_INSERT".to_string(),
             })?;
@@ -689,12 +692,12 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn before_attribute_update(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_attribute: &Attribute,
             mut new_attribute: Attribute,
-        ) -> Result<Attribute, spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<Attribute, SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "BEFORE_ATTRIBUTE_UPDATE".to_string(),
             })?;
@@ -704,12 +707,12 @@ pub mod component {
             Ok(new_attribute)
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn after_attribute_update(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             old_attribute: &Attribute,
             new_attribute: &Attribute,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "AFTER_ATTRIBUTE_UPDATE".to_string(),
             })?;
@@ -726,11 +729,11 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn before_attribute_delete(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_attribute: &Attribute,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "BEFORE_ATTRIBUTE_DELETE".to_string(),
             })?;
@@ -738,11 +741,11 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn after_attribute_delete(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_attribute: &Attribute,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "AFTER_ATTRIBUTE_DELETE".to_string(),
             })?;
@@ -750,11 +753,11 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn before_potion_insert(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             mut create_potion_request: CreatePotion,
-        ) -> Result<CreatePotion, spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<CreatePotion, SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "BEFORE_POTION_INSERT".to_string(),
             })?;
@@ -764,11 +767,11 @@ pub mod component {
             Ok(create_potion_request)
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn after_potion_insert(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             new_potion: &Potion,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "AFTER_POTION_INSERT".to_string(),
             })?;
@@ -786,12 +789,12 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn before_potion_update(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_potion: &Potion,
             mut new_potion: Potion,
-        ) -> Result<Potion, spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<Potion, SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "BEFORE_POTION_UPDATE".to_string(),
             })?;
@@ -801,12 +804,12 @@ pub mod component {
             Ok(new_potion)
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn after_potion_update(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_potion: &Potion,
             _new_potion: &Potion,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "AFTER_POTION_UPDATE".to_string(),
             })?;
@@ -814,11 +817,11 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn before_potion_delete(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_potion: &Potion,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "BEFORE_POTION_DELETE".to_string(),
             })?;
@@ -826,11 +829,11 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn after_potion_delete(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_potion: &Potion,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "AFTER_POTION_DELETE".to_string(),
             })?;
@@ -838,11 +841,11 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn before_recipe_insert(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             mut create_recipe_request: CreateRecipe,
-        ) -> Result<CreateRecipe, spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<CreateRecipe, SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "BEFORE_RECIPE_INSERT".to_string(),
             })?;
@@ -852,11 +855,11 @@ pub mod component {
             Ok(create_recipe_request)
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn after_recipe_insert(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _new_recipe: &Recipe,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "AFTER_RECIPE_INSERT".to_string(),
             })?;
@@ -864,12 +867,12 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn before_recipe_update(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_recipe: &Recipe,
             mut new_recipe: Recipe,
-        ) -> Result<Recipe, spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<Recipe, SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "BEFORE_RECIPE_UPDATE".to_string(),
             })?;
@@ -879,12 +882,12 @@ pub mod component {
             Ok(new_recipe)
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn after_recipe_update(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_recipe: &Recipe,
             _new_recipe: &Recipe,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "AFTER_RECIPE_UPDATE".to_string(),
             })?;
@@ -892,11 +895,11 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn before_recipe_delete(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_recipe: &Recipe,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "BEFORE_RECIPE_DELETE".to_string(),
             })?;
@@ -904,11 +907,11 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn after_recipe_delete(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_recipe: &Recipe,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "AFTER_RECIPE_DELETE".to_string(),
             })?;
@@ -916,11 +919,11 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn before_multi_column_index_with_hook_test_insert(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             create_multi_column_index_with_hook_test_request: CreateMultiColumnIndexWithHookTest,
-        ) -> Result<CreateMultiColumnIndexWithHookTest, spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<CreateMultiColumnIndexWithHookTest, SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "BEFORE_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_INSERT".to_string(),
             })?;
@@ -928,11 +931,11 @@ pub mod component {
             Ok(create_multi_column_index_with_hook_test_request)
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn after_multi_column_index_with_hook_test_insert(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _new_multi_column_index_with_hook_test: &MultiColumnIndexWithHookTest,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "AFTER_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_INSERT".to_string(),
             })?;
@@ -940,12 +943,12 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn before_multi_column_index_with_hook_test_update(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_multi_column_index_with_hook_test: &MultiColumnIndexWithHookTest,
             new_multi_column_index_with_hook_test: MultiColumnIndexWithHookTest,
-        ) -> Result<MultiColumnIndexWithHookTest, spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<MultiColumnIndexWithHookTest, SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "BEFORE_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_UPDATE".to_string(),
             })?;
@@ -953,12 +956,12 @@ pub mod component {
             Ok(new_multi_column_index_with_hook_test)
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn after_multi_column_index_with_hook_test_update(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_multi_column_index_with_hook_test: &MultiColumnIndexWithHookTest,
             _new_multi_column_index_with_hook_test: &MultiColumnIndexWithHookTest,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "AFTER_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_UPDATE".to_string(),
             })?;
@@ -966,11 +969,11 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn before_multi_column_index_with_hook_test_delete(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_multi_column_index_with_hook_test: &MultiColumnIndexWithHookTest,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "BEFORE_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_DELETE".to_string(),
             })?;
@@ -978,11 +981,11 @@ pub mod component {
             Ok(())
         }
 
-        #[spacetimedsl::hook]
+        #[::spacetimedsl::hook]
         fn after_multi_column_index_with_hook_test_delete(
-            dsl: &spacetimedsl::DSL<'_, T>,
+            dsl: &crate::spacetimedsl::DSL<'_, T>,
             _old_multi_column_index_with_hook_test: &MultiColumnIndexWithHookTest,
-        ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+        ) -> Result<(), SpacetimeDSLError> {
             dsl.create_hook_call(CreateHookCall {
                 value: "AFTER_MULTI_COLUMN_INDEX_WITH_HOOK_TEST_DELETE".to_string(),
             })?;
@@ -994,7 +997,7 @@ pub mod component {
 
 pub mod singleton_test {
     /// A singleton table representing global game configuration.
-    #[spacetimedsl::dsl(singleton, method(update = true, delete = true,))]
+    #[::spacetimedsl::dsl(singleton, method(update = true, delete = true,))]
     #[spacetimedb::table(
         accessor = game_config,
         public,
@@ -1009,63 +1012,34 @@ pub mod singleton_test {
 pub mod test {
     use crate::{
         component::{
-            hook_test::{
-                CountOfAllPotionRows, CreateAttribute, CreateAttributeRow,
-                CreateMultiColumnIndexWithHookTest, CreateMultiColumnIndexWithHookTestRow,
-                DeleteAttributeRowById, DeleteMultiColumnIndexWithHookTestRowById,
-                GetAllHookCallRows, GetPotionRowOptionById, GetPotionRowOptionByValue,
-                UpdateAttributeRowById, UpdateMultiColumnIndexWithHookTestRowById,
-            },
-            identifier::{
-                CountOfAllIdentifierRows, CreateIdentifier, CreateIdentifierRow,
-                GetIdentifierRowOptionByEntityId, GetIdentifierRowOptionByValue,
-                UpdateIdentifierRowById, update_modified_at,
-            },
-            position::{
-                CountOfAllPositionRows, CountOfAllUniquePositionRows, CreatePosition,
-                CreatePositionRow, CreateUniquePosition, CreateUniquePositionRow,
-                DeleteUniquePositionRowByXYZ, GetAllPositionRows, GetAllUniquePositionRows,
-                GetPositionRowOptionById, PositionId, UniquePositionId, UpdatePositionRowById,
-                UpdateUniquePositionRowById,
-            },
-            test::{
-                CreateShipObject, CreateShipObjectRow, CreateTest, CreateTestRow,
-                DeleteTestRowsByBtreeIndex, DeleteTestRowsByWrappedIndex,
-                GetModule1RowOptionByDatabaseAndParentIdAndName,
-                GetModule2RowOptionByDatabaseAndNameAndParentId, GetTestRowOptionById,
-                GetTestRowsByBtreeIndex, GetTestRowsByWrappedIndex, UpdateTestRowById,
-            },
+            hook_test::{CreateAttribute, CreateMultiColumnIndexWithHookTest},
+            identifier::{CreateIdentifier, update_modified_at},
+            position::{CreatePosition, CreateUniquePosition, PositionId, UniquePositionId},
+            test::{CreateShipObject, CreateTest},
         },
         entity::{
-            CountOfAllEntityRelationship2Rows, CountOfAllEntityRelationshipRows,
-            CreateEntityRelationship, CreateEntityRelationship2, CreateEntityRelationship2Row,
-            CreateEntityRelationship4, CreateEntityRelationship4Row, CreateEntityRelationshipRow,
-            CreateEntityRow, DeleteEntityRelationship4RowById, DeleteEntityRowByObjId, Entity,
-            EntityId, EntityRelationship4Id, GetEntityRelationship4RowOptionById,
-            GetEntityRowOptionByObjId, UpdateEntityRelationship4RowById,
+            CreateEntityRelationship, CreateEntityRelationship2, CreateEntityRelationship4, Entity,
+            EntityId, EntityRelationship4Id,
         },
-        singleton_test::{
-            CreateGameConfig, CreateGameConfigRow, DeleteGameConfigRow, GetGameConfigRow,
-            UpdateGameConfigRow,
-        },
+        singleton_test::CreateGameConfig,
     };
 
     use log::info;
     use spacetimedb::{
         AnonymousViewContext, ProcedureContext, ReducerContext, TimeDuration, ViewContext, reducer,
     };
-    use spacetimedsl::prelude::*;
+    use crate::spacetimedsl::prelude::*;
 
     #[spacetimedb::view(accessor = my_view, public)]
     pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
-        let dsl = spacetimedsl::read_only_dsl(ctx);
+        let dsl = read_only_dsl(ctx);
 
         dsl.get_entity_by_obj_id(EntityId::new(0)).ok()
     }
 
     #[spacetimedb::view(accessor = my_anonymous_view, public)]
     pub fn my_anonymous_view(ctx: &AnonymousViewContext) -> Vec<Entity> {
-        let dsl = spacetimedsl::read_only_dsl(ctx);
+        let dsl = read_only_dsl(ctx);
 
         dsl.get_entity_by_obj_id(EntityId::new(0))
             .into_iter()

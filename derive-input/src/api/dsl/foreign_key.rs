@@ -55,23 +55,12 @@ pub enum OnDeleteStrategy {
 
 impl quote::ToTokens for OnDeleteStrategy {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        use proc_macro2::{Punct, Spacing};
-        use quote::{TokenStreamExt, format_ident};
-
-        tokens.append(format_ident!("spacetimedsl"));
-        tokens.append(Punct::new(':', Spacing::Joint));
-        tokens.append(Punct::new(':', Spacing::Alone));
-        tokens.append(format_ident!("OnDeleteStrategy"));
-        tokens.append(Punct::new(':', Spacing::Joint));
-        tokens.append(Punct::new(':', Spacing::Alone));
-        tokens.append(format_ident!(
-            "{}",
-            match self {
-                OnDeleteStrategy::Error => "Error",
-                OnDeleteStrategy::Delete => "Delete",
-                OnDeleteStrategy::SetZero => "SetZero",
-                OnDeleteStrategy::Ignore => "Ignore",
-            },
-        ));
+        let variant = match self {
+            OnDeleteStrategy::Error => quote::quote! { crate::spacetimedsl::OnDeleteStrategy::Error },
+            OnDeleteStrategy::Delete => quote::quote! { crate::spacetimedsl::OnDeleteStrategy::Delete },
+            OnDeleteStrategy::SetZero => quote::quote! { crate::spacetimedsl::OnDeleteStrategy::SetZero },
+            OnDeleteStrategy::Ignore => quote::quote! { crate::spacetimedsl::OnDeleteStrategy::Ignore },
+        };
+        tokens.extend(variant);
     }
 }

@@ -12,13 +12,14 @@ Authoritative reference to transform **SpacetimeDB** Rust Server Modules to use 
 When transforming a **SpacetimeDB** module to use **SpacetimeDSL**, follow these steps:
 
 1. Add `spacetimedsl` dependency to `Cargo.toml`
-2. Add `use spacetimedsl::prelude::*;` at the top of every file that uses DSL features
-3. Add `#[dsl]` attribute above each `#[table]`
-4. Define `plural_name`, `method(update = ..., delete = ...)`
-5. Add `#[create_wrapper]` / `#[use_wrapper]` on `#[primary_key]`, `#[unique]`, and `#[index]` columns
-6. Add `#[foreign_key]` + `#[referenced_by]` for relationships
-7. Replace all `ctx.db.table_name()` calls with DSL methods
-8. Change reducer return type to `Result<(), SpacetimeDSLError>`
+2. Add `spacetimedsl::spacetimedsl!();` at the top of `lib.rs` (before table definitions)
+3. Add `use crate::spacetimedsl::prelude::*;` at the top of every file that uses DSL features
+4. Add `#[dsl]` attribute above each `#[table]`
+5. Define `plural_name`, `method(update = ..., delete = ...)`
+6. Add `#[create_wrapper]` / `#[use_wrapper]` on `#[primary_key]`, `#[unique]`, and `#[index]` columns
+7. Add `#[foreign_key]` + `#[referenced_by]` for relationships
+8. Replace all `ctx.db.table_name()` calls with DSL methods
+9. Change reducer return type to `Result<(), SpacetimeDSLError>`
 
 ---
 
@@ -53,19 +54,27 @@ spacetimedsl = { version = "0.20.1" }
 
 ```
 
-### Required Import
+### Required Setup
 
-Add this import at the top of every file that uses DSL features, alongside your `use spacetimedb::...` imports:
+Add this call once at the top of your crate root (`lib.rs`), before any table definitions:
 
 ```rust
-use spacetimedsl::prelude::*;
+spacetimedsl::spacetimedsl!();
+```
+
+This generates a `crate::spacetimedsl` module containing the `DSL` and `ReadOnlyDSL` structs, their constructor functions, and the prelude.
+
+Then add this import at the top of every file that uses DSL features, alongside your `use spacetimedb::...` imports:
+
+```rust
+use crate::spacetimedsl::prelude::*;
 ```
 
 ### Prelude Exports
 
-The prelude provides these types and functions:
+`crate::spacetimedsl::prelude` provides these types and functions:
 
-- `DSL`, `ReadOnlyDSL` — DSL context structs
+- `DSL`, `ReadOnlyDSL` — DSL context structs (generated into your crate)
 - `DSLContext`, `ReadOnlyDSLContext` — DSL context traits
 - `Wrapper` — trait for wrapper types
 - `DeletionResult`, `DeletionResultEntry` — deletion audit types
@@ -78,16 +87,13 @@ The prelude provides these types and functions:
 
 ### Cross-Module Imports
 
-The prelude imports DSL core types from `spacetimedsl`. However, generated traits and types (like `CreateEntityRow`, `EntityId`, `GetEntityRowOptionByObjId`) live in the user's own crate modules. In single-module projects, everything is in scope. In multi-module projects, you must import generated traits explicitly:
+The prelude imports DSL core types from `crate::spacetimedsl`. DSL methods are generated as direct `pub fn` implementations on `DSL<T>` and `ReadOnlyDSL<T>` — no traits to import. In multi-module projects you only need to import method argument structs, wrapper types, and table structs from the modules that define them:
 
 ```rust
-use crate::entity::{
-    CreateEntityRow, EntityId, GetEntityRowOptionByObjId,
-    DeleteEntityRowByObjId, UpdateEntityRowByObjId,
-};
+use crate::entity::{EntityId, CreateEntityRelationship};
 ```
 
-The `spacetimedsl::itertools` re-export is also available if you need itertools without adding a direct dependency.
+The `spacetimedsl::itertools` re-export is also available via the prelude if you need itertools without adding a direct dependency.
 
 ---
 
@@ -148,7 +154,7 @@ pub struct Task {
 
 ```rust
 use spacetimedb::{table, reducer, Table, ReducerContext, Identity, Timestamp};
-use spacetimedsl::prelude::*;
+use crate::spacetimedsl::prelude::*;
 
 #[dsl(plural_name = users, method(update = true, delete = true))]
 #[table(accessor = user, public)]
@@ -235,7 +241,7 @@ ctx.rng()        // Method call — deterministic RNG
 **With SpacetimeDSL:**
 
 ```rust
-let dsl = spacetimedsl::dsl(ctx);
+let dsl = dsl(ctx);
 dsl.ctx().sender()     // Identity of the caller
 dsl.ctx().timestamp    // Current Timestamp
 dsl.ctx().db           // Database handle (avoid using directly — prefer DSL methods)
@@ -254,7 +260,7 @@ dsl.ctx().rng()        // Deterministic RNG
 ```rust
 #[reducer]
 pub fn send_message(ctx: &ReducerContext, text: String) -> Result<(), SpacetimeDSLError> {
-    let dsl = spacetimedsl::dsl(ctx);
+    let dsl = dsl(ctx);
 
     if text.is_empty() {
         return Err(SpacetimeDSLError::Error("Message cannot be empty".to_string()));
@@ -283,7 +289,7 @@ Key rules:
 // Called when module is first published
 #[reducer(init)]
 pub fn init(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
-    let dsl = spacetimedsl::dsl(ctx);
+    let dsl = dsl(ctx);
 
     Ok(())
 }
@@ -291,14 +297,14 @@ pub fn init(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
 // You can disconnect a client immediately by returning an error.
 #[reducer(client_connected)]
 pub fn client_connected(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
-    let dsl = spacetimedsl::dsl(ctx);
+    let dsl = dsl(ctx);
     
     Ok(())
 }
 
 #[reducer(client_disconnected)]
 pub fn client_disconnected(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
-    let dsl = spacetimedsl::dsl(ctx);
+    let dsl = dsl(ctx);
 
     Ok(())
 }
@@ -325,7 +331,7 @@ pub struct CleanupJob {
 
 #[reducer]
 pub fn cleanup_expired(ctx: &ReducerContext, job: CleanupJob) -> Result<(), SpacetimeDSLError> {
-    let dsl = spacetimedsl::dsl(ctx);
+    let dsl = dsl(ctx);
     // Do something...
     // Job row is auto-deleted after reducer completes for ScheduleAt::Time, for ScheduleAt::Interval it is rescheduled for the next interval time.
     log::info!("Cleaning up: {}", job.target_id);
@@ -335,7 +341,7 @@ pub fn cleanup_expired(ctx: &ReducerContext, job: CleanupJob) -> Result<(), Spac
 // Schedule a job
 #[reducer]
 pub fn schedule_cleanup(ctx: &ReducerContext, target_id: u64, delay_ms: u64) -> Result<(), SpacetimeDSLError> {
-    let dsl = spacetimedsl::dsl(ctx);
+    let dsl = dsl(ctx);
 
     let future_time = dsl.ctx().timestamp()? + std::time::Duration::from_millis(delay_ms);
     dsl.create_cleanup_job(CreateCleanupJob {
@@ -349,7 +355,7 @@ pub fn schedule_cleanup(ctx: &ReducerContext, target_id: u64, delay_ms: u64) -> 
 // Cancel by deleting the row
 #[reducer]
 pub fn cancel_cleanup(ctx: &ReducerContext, job_id: u64) -> Result<(), SpacetimeDSLError> {
-    let dsl = spacetimedsl::dsl(ctx);
+    let dsl = dsl(ctx);
 
     dsl.delete_cleanup_job_by_scheduled_id(CleanupJobScheduledId::new(job_id))?;
 
@@ -365,7 +371,7 @@ Procedures allow side effects (HTTP, filesystem) that reducers cannot do. Use th
 #[spacetimedb::procedure]
 pub fn my_procedure(ctx: &mut ProcedureContext) -> Result<(), SpacetimeDSLError> {
     ctx.try_with_tx(|ctx| {
-        let dsl = spacetimedsl::dsl(ctx);
+        let dsl = dsl(ctx);
         // Use DSL methods here
         Ok(())
     })
@@ -379,7 +385,7 @@ Views use `read_only_dsl(ctx)` — this is for views only, never for reducers:
 ```rust
 #[spacetimedb::view(accessor = my_view, public)]
 pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
-    let dsl = spacetimedsl::read_only_dsl(ctx);
+    let dsl = read_only_dsl(ctx);
 
     dsl.get_config()?.ok()
 }
@@ -428,14 +434,14 @@ log::error!("Error occurred");
 For reducers (write access):
 
 ```rust
-let dsl = spacetimedsl::dsl(ctx);
+let dsl = dsl(ctx);
 ```
 
 For procedures (write access):
 
 ```rust
 ctx.try_with_tx(|ctx| {
-    let dsl = spacetimedsl::dsl(ctx);
+    let dsl = dsl(ctx);
     // Do something...
     Ok(())
 })
@@ -444,7 +450,7 @@ ctx.try_with_tx(|ctx| {
 For views and anonymous views (read-only access):
 
 ```rust
-let dsl = spacetimedsl::read_only_dsl(ctx);
+let dsl = read_only_dsl(ctx);
 ```
 
 Do NOT use `read_only_dsl` in reducers — it is for views only.
@@ -464,7 +470,7 @@ Create the DSL once at reducer start and pass `&DSL` to helper functions:
 ```rust
 #[reducer]
 pub fn my_reducer(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
-    let dsl = spacetimedsl::dsl(ctx);
+    let dsl = dsl(ctx);
     helper(&dsl)?;
     Ok(())
 }
@@ -1441,7 +1447,7 @@ pub enum SpacetimeDSLError {
 ```rust
 #[reducer]
 pub fn my_reducer(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
-    let dsl = spacetimedsl::dsl(ctx);
+    let dsl = dsl(ctx);
 
     let entity = dsl.create_entity()?;
 
@@ -1553,22 +1559,14 @@ All generated traits follow consistent naming patterns. The table name used in t
 | Before delete | `Before{Table}DeleteHook` | `BeforeEntityDeleteHook` |
 | After delete  | `After{Table}DeleteHook`  | `AfterEntityDeleteHook`  |
 
-### When to Import Generated Traits
+### Cross-Module Usage
 
-In single-module projects, all traits are in scope. In multi-module projects, import the specific traits you need for cross-module helper functions:
+DSL methods are inherent `pub fn`s on `crate::spacetimedsl::DSL<T>` — no traits to import. In multi-module projects, import only method argument structs, wrapper types, and table structs:
 
 ```rust
-use crate::entity::{
-    CreateEntityRow, EntityId, GetEntityRowOptionByObjId,
-    DeleteEntityRowByObjId, UpdateEntityRowByObjId,
-    CountOfAllEntityRows,
-};
+use crate::entity::{EntityId, CreateEntityRelationship};
 
-use crate::component::position::{
-    CreatePosition, CreatePositionRow, PositionId,
-    GetPositionRowOptionById, GetAllPositionRows,
-    UpdatePositionRowById, CountOfAllPositionRows,
-};
+use crate::component::position::{CreatePosition, PositionId};
 ```
 
 ---
@@ -1610,7 +1608,7 @@ impl std::fmt::Display for ConfigId {
 }
 ```
 
-### Create Struct and Trait
+### Create Struct and Method
 
 ```rust
 pub struct CreateConfig {
@@ -1618,20 +1616,18 @@ pub struct CreateConfig {
     pub world_size: i64, // Not a timestamp, so included
 }
 
-pub trait CreateConfigRow<T: spacetimedsl::Context<T>>: spacetimedsl::DSLContext<T> {
-    fn create_config(&self, request: CreateConfig) -> Result<Config, SpacetimeDSLError> {
+impl<T: spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    pub fn create_config(&self, request: CreateConfig) -> Result<Config, SpacetimeDSLError> {
         // Validates unique constraints, inserts via SpacetimeDB, wraps errors
     }
 }
-
-impl<T: spacetimedsl::Context<spacetimedb::Local>> CreateConfigRow<T> for DSL<'_, T> {}
 ```
 
-### Get Trait
+### Get Method
 
 ```rust
-pub trait GetConfigRowOptionById<T: spacetimedsl::Context<T>>: spacetimedsl::DSLContext<T> {
-    fn get_config_by_id(&self, id: impl Into<ConfigId>) -> Result<Config, SpacetimeDSLError> {
+impl<T: spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    pub fn get_config_by_id(&self, id: impl Into<ConfigId>) -> Result<Config, SpacetimeDSLError> {
         let id = Into::<ConfigId>::into(id);
         match self.db().config().id().find(id.value()) {
             Some(config) => Ok(config),
@@ -1642,8 +1638,6 @@ pub trait GetConfigRowOptionById<T: spacetimedsl::Context<T>>: spacetimedsl::DSL
         }
     }
 }
-
-impl<T: spacetimedsl::Context<spacetimedb::Local>> GetConfigRowOptionById<T> for DSL<'_, T> {}
 ```
 
 ### Getter Methods

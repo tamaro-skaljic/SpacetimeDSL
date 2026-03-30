@@ -214,14 +214,14 @@ fn get_return_type(
         (Timing::Before, Operation::Insert) => {
             let arg_type = format_ident!("Create{singular_table_name_pascal_case}");
             quote! {
-                Result<#arg_type, spacetimedsl::SpacetimeDSLError>
+                Result<#arg_type, crate::spacetimedsl::SpacetimeDSLError>
             }
         }
         (Timing::Before, Operation::Update) => quote! {
-            Result<#singular_table_name_pascal_case, spacetimedsl::SpacetimeDSLError>
+            Result<#singular_table_name_pascal_case, crate::spacetimedsl::SpacetimeDSLError>
         },
         _ => quote! {
-            Result<(), spacetimedsl::SpacetimeDSLError>
+            Result<(), crate::spacetimedsl::SpacetimeDSLError>
         },
     }
 }
@@ -239,7 +239,7 @@ fn build_dsl_function_arg() -> SpacetimeDSLArg {
         is_option: false,
         arg_name: format_ident!("dsl"),
         arg_type: SpacetimeDSLArgType::Normal(quote! {
-            &spacetimedsl::DSL<'_, T>
+            &crate::spacetimedsl::DSL<'_, T>
         }),
     }
 }

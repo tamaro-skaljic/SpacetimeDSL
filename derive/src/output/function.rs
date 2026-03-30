@@ -13,9 +13,8 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     let mut doc_comment = String::new();
     doc_comment.push_str(&method.doc_comment);
 
-    let trait_name = &method.trait_name;
-    let additional_paths_to_use = &method.additional_paths_to_use;
     let method_name = &method.method_name;
+    let additional_paths_to_use = &method.additional_paths_to_use;
 
     let method_args = map_args(&method.method_args);
 
@@ -23,39 +22,33 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     let method_impl = &method.method_impl;
 
     doc_comment = add_impl_doc(
-        trait_name,
-        additional_paths_to_use,
         method_name,
+        additional_paths_to_use,
         &method_args,
         return_type,
         method_impl,
         doc_comment,
     );
 
-    let trait_comment = format!("See [`Self::{method_name}`] for details.");
     let method = quote! {
-        #[doc = #trait_comment]
-        pub trait #trait_name {
+        impl crate::spacetimedsl::internal::DSLInternals {
             #[doc=#doc_comment]
-            fn #method_name<'a, T: spacetimedsl::WriteContext>(
+            pub fn #method_name<'a, T: crate::spacetimedsl::WriteContext>(
                 #(#method_args),*
             ) -> #return_type {
-                use spacetimedsl::Wrapper;
+                use ::spacetimedsl::Wrapper;
                 use spacetimedb::{DbContext, Table as _};
                 #method_impl
             }
         }
-
-        impl #trait_name for spacetimedsl::internal::DSLInternals {}
     };
 
     Ok(method)
 }
 
 fn add_impl_doc(
-    trait_name: &Ident,
-    additional_paths_to_use: &Vec<syn::Path>,
     method_name: &Ident,
+    additional_paths_to_use: &Vec<syn::Path>,
     method_args: &Vec<TokenStream>,
     return_type: &TokenStream,
     method_impl: &TokenStream,
@@ -64,13 +57,13 @@ fn add_impl_doc(
     // TODO
     let pretty_please = PrettyPlease::default();
     let implementation_docs = quote! {
-        pub trait #trait_name: #(#additional_paths_to_use)+* {
-            fn #method_name<'a, T: spacetimedsl::WriteContext>(
-                &'a self,
+        impl crate::spacetimedsl::internal::DSLInternals {
+            pub fn #method_name<'a, T: crate::spacetimedsl::WriteContext>(
                 #(#method_args),*
             ) -> #return_type {
-                use spacetimedsl::Wrapper;
+                use ::spacetimedsl::Wrapper;
                 use spacetimedb::{DbContext, Table as _};
+                #(use #additional_paths_to_use as _;)*
                 #method_impl
             }
         }

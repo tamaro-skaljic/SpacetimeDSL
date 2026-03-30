@@ -1,11 +1,12 @@
+::spacetimedsl::spacetimedsl!();
+
 pub mod math;
 
 use math::DbVector2;
 use spacetimedb::SpacetimeType;
 use spacetimedb::rand::Rng;
-use spacetimedb::{Identity, ReducerContext, TimeDuration, Timestamp, spacetimedb_lib::ScheduleAt};
-use spacetimedsl::itertools::Itertools;
-use spacetimedsl::prelude::*;
+use spacetimedb::{ReducerContext, TimeDuration, Timestamp, spacetimedb_lib::ScheduleAt};
+use crate::spacetimedsl::prelude::*;
 use std::{collections::HashMap, time::Duration};
 
 // TODO:
@@ -36,16 +37,22 @@ pub enum LoginStatus {
     LoggedOut,
 }
 
-#[dsl(plural_name = config, method(update = false))]
-#[spacetimedb::table(accessor = config, public)]
-pub struct Config {
-    #[primary_key]
-    #[create_wrapper]
-    id: i32,
-    world_size: i64,
-}
+pub mod tables {
+    use super::LoginStatus;
+    use super::{move_all_players, spawn_food, circle_decay, circle_recombine, consume_entity};
+    use crate::math::DbVector2;
+    use spacetimedb::{Identity, Timestamp};
 
-#[dsl(plural_name = entities, method(update = true))]
+    #[::spacetimedsl::dsl(plural_name = config, method(update = false))]
+    #[spacetimedb::table(accessor = config, public)]
+    pub struct Config {
+        #[primary_key]
+        #[create_wrapper]
+        id: i32,
+        world_size: i64,
+    }
+
+#[::spacetimedsl::dsl(plural_name = entities, method(update = true))]
 #[spacetimedb::table(accessor = entity, public)]
 pub struct Entity {
     #[primary_key]
@@ -61,7 +68,7 @@ pub struct Entity {
     pub login_status: LoginStatus, // FIXME (find out where used in dsl macro): binary operation `==` cannot be applied to type `LoginStatus` consider annotating `LoginStatus` with `#[derive(PartialEq)]`
 }
 
-#[dsl(plural_name = circles, method(update = true))]
+#[::spacetimedsl::dsl(plural_name = circles, method(update = true))]
 #[spacetimedb::table(accessor = circle, public)]
 pub struct Circle {
     #[primary_key]
@@ -80,7 +87,7 @@ pub struct Circle {
 }
 
 // FIXME: update = true should not have been valid here because all fields were private and no modified_at / updated_at column existed
-#[dsl(plural_name = players, method(update = true), hook(after(update)))]
+#[::spacetimedsl::dsl(plural_name = players, method(update = true), hook(after(update)))]
 #[spacetimedb::table(accessor = player, public)]
 pub struct Player {
     #[primary_key]
@@ -96,7 +103,7 @@ pub struct Player {
     pub login_status: LoginStatus,
 }
 
-#[dsl(plural_name = food, method(update = false))]
+#[::spacetimedsl::dsl(plural_name = food, method(update = false))]
 #[spacetimedb::table(accessor = food, public)]
 pub struct Food {
     #[primary_key]
@@ -105,7 +112,7 @@ pub struct Food {
     entity_id: i32,
 }
 
-#[dsl(plural_name = move_all_players_timers, method(update = false))]
+#[::spacetimedsl::dsl(plural_name = move_all_players_timers, method(update = false))]
 #[spacetimedb::table(accessor = move_all_players_timer, scheduled(move_all_players))]
 pub struct MoveAllPlayersTimer {
     #[primary_key]
@@ -115,7 +122,7 @@ pub struct MoveAllPlayersTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 }
 
-#[dsl(plural_name = spawn_food_timers, method(update = false))]
+#[::spacetimedsl::dsl(plural_name = spawn_food_timers, method(update = false))]
 #[spacetimedb::table(accessor = spawn_food_timer, scheduled(spawn_food))]
 pub struct SpawnFoodTimer {
     #[primary_key]
@@ -125,7 +132,7 @@ pub struct SpawnFoodTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 }
 
-#[dsl(plural_name = circle_decay_timers, method(update = false))]
+#[::spacetimedsl::dsl(plural_name = circle_decay_timers, method(update = false))]
 #[spacetimedb::table(accessor = circle_decay_timer, scheduled(circle_decay))]
 pub struct CircleDecayTimer {
     #[primary_key]
@@ -135,7 +142,7 @@ pub struct CircleDecayTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 }
 
-#[dsl(plural_name = circle_recombine_timers, method(update = false))]
+#[::spacetimedsl::dsl(plural_name = circle_recombine_timers, method(update = false))]
 #[spacetimedb::table(accessor = circle_recombine_timer, scheduled(circle_recombine))]
 pub struct CircleRecombineTimer {
     #[primary_key]
@@ -149,7 +156,7 @@ pub struct CircleRecombineTimer {
     player_id: i32,
 }
 
-#[dsl(plural_name = consume_entity_timers, method(update = false))]
+#[::spacetimedsl::dsl(plural_name = consume_entity_timers, method(update = false))]
 #[spacetimedb::table(accessor = consume_entity_timer, scheduled(consume_entity))]
 pub struct ConsumeEntityTimer {
     #[primary_key]
@@ -166,9 +173,11 @@ pub struct ConsumeEntityTimer {
     #[foreign_key(path = self, table = entity, column = id, on_delete = Delete)]
     consumer_entity_id: i32,
 }
+} // end pub mod tables
+pub use tables::*;
 
 #[spacetimedb::reducer(init)]
-pub fn init(ctx: &ReducerContext) -> Result<(), spacetimedsl::SpacetimeDSLError> {
+pub fn init(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
     let dsl = dsl(ctx);
 
     log::info!("Initializing...");
@@ -199,7 +208,7 @@ pub fn connect(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
 
     match dsl.get_player_by_identity(&dsl.ctx().sender()) {
         Err(error) => match error {
-            spacetimedsl::SpacetimeDSLError::NotFoundError {
+            SpacetimeDSLError::NotFoundError {
                 table_name: _,
                 column_names_and_row_values: _,
             } => {
@@ -233,7 +242,7 @@ pub fn connect(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
     Ok(())
 }
 
-#[hook]
+#[::spacetimedsl::hook]
 fn after_player_update(
     dsl: &DSL<'_, T>,
     old_player: &Player,
@@ -322,7 +331,7 @@ fn spawn_player_initial_circle(
 }
 
 fn get_world_size(dsl: &DSL<'_, ReducerContext>) -> Result<i64, SpacetimeDSLError> {
-    Ok(dsl.get_config_by_id(ConfigId::new(0))?.world_size)
+    Ok(*dsl.get_config_by_id(ConfigId::new(0))?.get_world_size())
 }
 
 fn spawn_circle_at(
