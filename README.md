@@ -5,24 +5,24 @@
 
 ## 📑 Table of Contents
 
-See [`DOCUMENTATION.md`](DOCUMENTATION.md) for a comprehensive reference with all features, examples, and rules.
+See [`docs/DOCUMENTATION.md`](docs/DOCUMENTATION.md)  for a comprehensive reference with all features, examples, and rules.
 
 ### Core Unique Features
 
-- [🔗 Foreign Keys / Referential Integrity](DOCUMENTATION.md#foreign-keys--referential-integrity) — Enforce relationships between tables with different strategies on deletion.
-- [🏷️ Wrapper Types](DOCUMENTATION.md#wrapper-types) — Type-safe column identifiers that eliminate primitive obsession.
-- [🎲 Unique Multi-Column Indices](DOCUMENTATION.md#unique-multi-column-indices) — Enforce uniqueness across multiple columns (because **SpacetimeDB** has no native support).
-- [🪝 Hooks System](DOCUMENTATION.md#hooks-system) — Execute custom logic automatically before and after inserts, updates and deletes.
-- [🎨 Ergonomic DSL Methods](DOCUMENTATION.md#dsl-methods) — DSL equivalents for all **SpacetimeDB** operations with cleaner syntax and smart defaults.
-- [🎯 Singleton Tables](DOCUMENTATION.md#singleton-tables) — Single-row tables for global config or state.
-- [👁️ Read-Only View Support](DOCUMENTATION.md#views) — Use DSL methods in **SpacetimeDB** views.
+- [🔗 Foreign Keys / Referential Integrity](docs/DOCUMENTATION.md#foreign-keys--referential-integrity) — Enforce relationships between tables with different strategies on deletion.
+- [🏷️ Wrapper Types](docs/DOCUMENTATION.md#wrapper-types) — Type-safe column identifiers that eliminate primitive obsession.
+- [🎲 Unique Multi-Column Indices](docs/DOCUMENTATION.md#unique-multi-column-indices) — Enforce uniqueness across multiple columns (because **SpacetimeDB** has no native support).
+- [🪝 Hooks System](docs/DOCUMENTATION.md#hooks-system) — Execute custom logic automatically before and after inserts, updates and deletes.
+- [🎨 Ergonomic DSL Methods](docs/DOCUMENTATION.md#dsl-methods) — DSL equivalents for all **SpacetimeDB** operations with cleaner syntax and smart defaults.
+- [🎯 Singleton Tables](docs/DOCUMENTATION.md#singleton-tables) — Single-row tables for global config or state.
+- [👁️ Read-Only View Support](docs/DOCUMENTATION.md#views) — Use DSL methods in **SpacetimeDB** views.
 
 ### Enhanced Developer Experience
 
-- [🎛️ Method Configuration](DOCUMENTATION.md#method-configuration) — Explicit control over which operations are allowed on your tables.
-- [🚨 Rich Error Types](DOCUMENTATION.md#error-handling) — Detailed error information beyond what **SpacetimeDB** provides.
-- [📊 Deletion Results](DOCUMENTATION.md#deletionresult) — Complete audit trails for delete operations with cascade tracking.
-- [🔄 Automatic Accessors](DOCUMENTATION.md#accessor-methods-getterssetters) — Generated getters, mut-getters and setters with visibility controls.
+- [🎛️ Method Configuration](docs/DOCUMENTATION.md#method-configuration) — Explicit control over which operations are allowed on your tables.
+- [🚨 Rich Error Types](docs/DOCUMENTATION.md#error-handling) — Detailed error information beyond what **SpacetimeDB** provides.
+- [📊 Deletion Results](docs/DOCUMENTATION.md#deletionresult) — Complete audit trails for delete operations with cascade tracking.
+- [🔄 Automatic Accessors](docs/DOCUMENTATION.md#accessor-methods-getterssetters) — Generated getters, mut-getters and setters with visibility controls.
 
 ### Additional Information
 
