@@ -156,7 +156,7 @@ generate_format() {
     local shell="$1"
 
     switch_case "$shell" "format"
-    cmd_cargo "fmt --all -- --check"
+    cmd_cargo "fmt --all"
     echo
     cmd_cd "$shell" "derive"
     cmd_cargo "clippy --fix --allow-dirty --all-features"

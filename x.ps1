@@ -32,7 +32,7 @@ switch ($Command) {
     }
 
     "format" {
-        cargo fmt --all -- --check
+        cargo fmt --all
 
         Set-Location derive
         cargo clippy --fix --allow-dirty --all-features

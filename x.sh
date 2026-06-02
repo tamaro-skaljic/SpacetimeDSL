@@ -27,7 +27,7 @@ case "$1" in
         ;;
 
     format)
-        cargo fmt --all -- --check
+        cargo fmt --all
 
         cd derive
         cargo clippy --fix --allow-dirty --all-features
