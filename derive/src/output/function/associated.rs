@@ -1,9 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use rust_format::{Formatter, PrettyPlease};
 use spacetimedsl_derive_input::api::dsl::method::SpacetimeDSLMethod;
 
-use crate::output::malformed_code_generation_result;
+use crate::output::doc_comment;
 
 fn build_impl(
     method: &SpacetimeDSLMethod,
@@ -59,19 +58,8 @@ pub fn build(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
         }
     };
 
-    let impl_doc = PrettyPlease::default()
-        .format_tokens(dsl_impl_for_doc.clone())
-        .unwrap_or_else(|_| {
-            panic!(
-                "{}",
-                malformed_code_generation_result(dsl_impl_for_doc.to_string())
-            )
-        });
-
-    let doc_comment = format!(
-        "{}\n\nImplementation:\n\n```no_run\n{impl_doc}\n```",
-        method.doc_comment
-    );
+    let doc_comment =
+        doc_comment::doc_comment_with_implementation(&method.doc_comment, dsl_impl_for_doc);
 
     let mut output = build_impl(
         method,

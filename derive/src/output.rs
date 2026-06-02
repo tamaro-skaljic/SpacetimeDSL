@@ -7,6 +7,7 @@ use spacetimedsl_derive_input::api::{
 
 mod accessor;
 mod create_method_arg;
+mod doc_comment;
 mod function;
 mod hook;
 
@@ -67,15 +68,15 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
     for column in &input.columns {
         if first_dsl_attribute {
             if let Some(getter) = &column.spacetimedsl_column.getter {
-                table_methods.push(accessor::getter(getter)?);
+                table_methods.push(accessor::build(accessor::Accessor::Getter(getter))?);
             }
 
-            if let Some(data) = &column.spacetimedsl_column.mut_getter {
-                table_methods.push(accessor::mut_getter(data)?)
+            if let Some(mut_getter) = &column.spacetimedsl_column.mut_getter {
+                table_methods.push(accessor::build(accessor::Accessor::MutGetter(mut_getter))?)
             }
 
-            if let Some(data) = &column.spacetimedsl_column.setter {
-                table_methods.push(accessor::setter(data)?)
+            if let Some(setter) = &column.spacetimedsl_column.setter {
+                table_methods.push(accessor::build(accessor::Accessor::Setter(setter))?)
             }
         }
 
