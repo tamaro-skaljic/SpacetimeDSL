@@ -148,10 +148,7 @@ macro_rules! spacetimedsl {
                 pub(crate) db: &'a spacetimedb::LocalReadOnly,
             }
 
-            pub fn read_only_dsl<
-                'a,
-                T: ::spacetimedsl::Context<spacetimedb::LocalReadOnly>,
-            >(
+            pub fn read_only_dsl<'a, T: ::spacetimedsl::Context<spacetimedb::LocalReadOnly>>(
                 ctx: &'a T,
             ) -> ReadOnlyDSL<'a, T> {
                 ReadOnlyDSL {
@@ -166,8 +163,8 @@ macro_rules! spacetimedsl {
                 fn db(&self) -> &spacetimedb::LocalReadOnly;
             }
 
-            impl<T: ::spacetimedsl::Context<spacetimedb::LocalReadOnly>>
-                ReadOnlyDSLContext<T> for ReadOnlyDSL<'_, T>
+            impl<T: ::spacetimedsl::Context<spacetimedb::LocalReadOnly>> ReadOnlyDSLContext<T>
+                for ReadOnlyDSL<'_, T>
             {
                 fn dsl(&self) -> &ReadOnlyDSL<'_, T> {
                     self
@@ -189,17 +186,19 @@ macro_rules! spacetimedsl {
 
             // Re-export key extern-crate items directly so that proc-macro–generated code
             // can reach them via `crate::spacetimedsl::X` without needing `::spacetimedsl::X`.
+            pub use ::spacetimedsl::Context;
+            pub use ::spacetimedsl::ReadContext;
             pub use ::spacetimedsl::Wrapper;
             pub use ::spacetimedsl::WriteContext;
-            pub use ::spacetimedsl::ReadContext;
-            pub use ::spacetimedsl::Context;
-            pub use ::spacetimedsl::error;
             pub use ::spacetimedsl::delete;
+            pub use ::spacetimedsl::error;
             pub use ::spacetimedsl::itertools;
             // Flat re-exports so that `spacetimedsl::X` paths (which in user crates resolve to
             // `crate::spacetimedsl::X`) work without needing the sub-module prefix.
-            pub use ::spacetimedsl::error::{SpacetimeDSLError, ReferenceIntegrityViolationError};
-            pub use ::spacetimedsl::delete::{DeletionResult, DeletionResultEntry, OnDeleteStrategy};
+            pub use ::spacetimedsl::delete::{
+                DeletionResult, DeletionResultEntry, OnDeleteStrategy,
+            };
+            pub use ::spacetimedsl::error::{ReferenceIntegrityViolationError, SpacetimeDSLError};
 
             pub mod prelude {
                 pub use super::{
@@ -214,14 +213,18 @@ macro_rules! spacetimedsl {
                 //   #[::spacetimedsl::hook]
                 //   #[derive(::spacetimedsl::SpacetimeDSL)]
                 pub use ::spacetimedsl::Context;
-                pub use ::spacetimedsl::WriteContext;
                 pub use ::spacetimedsl::ReadContext;
                 pub use ::spacetimedsl::Wrapper;
-                pub use ::spacetimedsl::error::{ReferenceIntegrityViolationError, SpacetimeDSLError};
-                pub use ::spacetimedsl::delete::{DeletionResult, DeletionResultEntry, OnDeleteStrategy};
+                pub use ::spacetimedsl::WriteContext;
                 pub use ::spacetimedsl::as_anonymous_view_context::AsAnonymousViewContext;
                 pub use ::spacetimedsl::as_reducer_context::AsReducerContext;
                 pub use ::spacetimedsl::as_view_context::AsViewContext;
+                pub use ::spacetimedsl::delete::{
+                    DeletionResult, DeletionResultEntry, OnDeleteStrategy,
+                };
+                pub use ::spacetimedsl::error::{
+                    ReferenceIntegrityViolationError, SpacetimeDSLError,
+                };
                 pub use ::spacetimedsl::get_auth::GetAuth;
                 pub use ::spacetimedsl::get_connection_id::GetConnectionId;
                 pub use ::spacetimedsl::get_immutable_database::GetImmutableDatabase;

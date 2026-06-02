@@ -54,7 +54,9 @@ impl quote::ToTokens for OneOrMultiple {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let variant = match self {
             OneOrMultiple::One => quote! { crate::spacetimedsl::error::OneOrMultiple::One },
-            OneOrMultiple::Multiple => quote! { crate::spacetimedsl::error::OneOrMultiple::Multiple },
+            OneOrMultiple::Multiple => {
+                quote! { crate::spacetimedsl::error::OneOrMultiple::Multiple }
+            }
         };
         tokens.extend(variant);
     }
@@ -2624,7 +2626,9 @@ fn for_referenced_by(
         SpacetimeDSLArg {
             is_option: false,
             arg_name: format_ident!("strategy"),
-            arg_type: SpacetimeDSLArgType::Normal(quote! { crate::spacetimedsl::delete::OnDeleteStrategy }),
+            arg_type: SpacetimeDSLArgType::Normal(
+                quote! { crate::spacetimedsl::delete::OnDeleteStrategy },
+            ),
         },
     ];
 
@@ -2902,7 +2906,9 @@ fn for_foreign_key(
         SpacetimeDSLArg {
             is_option: false,
             arg_name: format_ident!("strategy"),
-            arg_type: SpacetimeDSLArgType::Normal(quote! { &crate::spacetimedsl::delete::OnDeleteStrategy }),
+            arg_type: SpacetimeDSLArgType::Normal(
+                quote! { &crate::spacetimedsl::delete::OnDeleteStrategy },
+            ),
         },
     ];
 

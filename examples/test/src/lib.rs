@@ -1024,11 +1024,11 @@ pub mod test {
         singleton_test::CreateGameConfig,
     };
 
+    use crate::spacetimedsl::prelude::*;
     use log::info;
     use spacetimedb::{
         AnonymousViewContext, ProcedureContext, ReducerContext, TimeDuration, ViewContext, reducer,
     };
-    use crate::spacetimedsl::prelude::*;
 
     #[spacetimedb::view(accessor = my_view, public)]
     pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
