@@ -75,7 +75,6 @@ use crate::spacetimedsl::prelude::*;
 `crate::spacetimedsl::prelude` provides these types and functions:
 
 - `DSL`, `ReadOnlyDSL` — DSL context structs (generated into your crate)
-- `DSLContext`, `ReadOnlyDSLContext` — DSL context traits
 - `Wrapper` — trait for wrapper types
 - `DeletionResult`, `DeletionResultEntry` — deletion audit types
 - `dsl`, `read_only_dsl` — constructor functions

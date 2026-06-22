@@ -26,7 +26,6 @@ use spacetimedsl::prelude::*;
 The prelude provides these types and functions:
 
 - `DSL`, `ReadOnlyDSL` — DSL context structs
-- `DSLContext`, `ReadOnlyDSLContext` — DSL context traits
 - `Wrapper` — trait for wrapper types
 - `DeletionResult`, `DeletionResultEntry` — deletion audit types
 - `dsl`, `read_only_dsl` — constructor functions

@@ -462,7 +462,7 @@ fn process_columns_for_create_and_update_method(
                 && { internal_column.rust_field_name.eq(column_name) }
             {
                 constructor_arg = Some(quote! {
-                    let #column_name = self.ctx.timestamp()?;
+                    let #column_name = self.ctx().timestamp()?;
                 });
             } else if let Some(column_name) =
                 &spacetimedsl_table.on_update_set_current_timestamp_column_name
@@ -475,7 +475,7 @@ fn process_columns_for_create_and_update_method(
                 let timestamp_value = if column_type_str.starts_with("Option") {
                     quote! { None }
                 } else {
-                    quote! { self.ctx.timestamp()? }
+                    quote! { self.ctx().timestamp()? }
                 };
                 constructor_arg = Some(quote! {
                     let #column_name = #timestamp_value;
@@ -839,7 +839,7 @@ pub(in crate::internal) fn for_method(
                 #(#reference_integrity_checks)*
 
                 match self
-                    .db
+                    .db()
                     .#singular_table_name()
                     .try_insert(#singular_table_name.clone()) { // FIXME: No clone?
                     Ok(entity) => {
@@ -877,7 +877,7 @@ pub(in crate::internal) fn for_method(
 
             method_impl = quote! {
                 self
-                    .db
+                    .db()
                     .#singular_table_name()
                     .iter()
             };
@@ -893,7 +893,7 @@ pub(in crate::internal) fn for_method(
 
             method_impl = quote! {
                 self
-                    .db
+                    .db()
                     .#singular_table_name()
                     .count()
             };
@@ -1145,9 +1145,9 @@ pub(in crate::internal) fn for_method(
                                 .to_string();
 
                             let timestamp_value = if column_type_str.starts_with("Option") {
-                                quote! { Some(self.ctx.timestamp()?) }
+                                quote! { Some(self.ctx().timestamp()?) }
                             } else {
-                                quote! { self.ctx.timestamp()? }
+                                quote! { self.ctx().timestamp()? }
                             };
 
                             quote! {
@@ -1207,7 +1207,7 @@ pub(in crate::internal) fn for_method(
                             quote! {
                                 if #field_name_for_found_value.is_none() {
                                     #field_name_for_found_value = Some(
-                                        self.db.#singular_table_name().#primary_key_column_name()
+                                        self.db().#singular_table_name().#primary_key_column_name()
                                             .find(#singular_table_name.#primary_key_column_name)
                                             .expect("Row should exist for update")
                                     )
@@ -1265,7 +1265,7 @@ pub(in crate::internal) fn for_method(
 
                         // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(crate::spacetimedsl::error::SpacetimeDSLError);
                         let #singular_table_name = self
-                            .db
+                            .db()
                             .#singular_table_name()
                             .#index_name()
                             .update(#singular_table_name);
@@ -1473,7 +1473,7 @@ pub(in crate::internal) fn for_method(
 
                     let method_impl_prefix = quote! {
                         self
-                            .db
+                            .db()
                             .#singular_table_name()
                             .#index_name()
                     };
@@ -1765,7 +1765,7 @@ pub(in crate::internal) fn for_method(
                             false => {
                                 if is_singleton_pk {
                                     method_impl = quote! {
-                                        match self.db.#singular_table_name().id().find(&0u8) {
+                                        match self.db().#singular_table_name().id().find(&0u8) {
                                             Some(#singular_table_name) => Ok(#singular_table_name),
                                             None => return Err(
                                                 crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
@@ -1823,7 +1823,7 @@ pub(in crate::internal) fn for_method(
                                 method_impl = quote! {
                                     use ::spacetimedsl::itertools::Itertools;
 
-                                    let row_to_delete = match self.db.#singular_table_name().id().find(&0u8) {
+                                    let row_to_delete = match self.db().#singular_table_name().id().find(&0u8) {
                                         None => return Err(
                                             crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                                                 table_name: #singular_table_name_as_string.into(),
@@ -1843,7 +1843,7 @@ pub(in crate::internal) fn for_method(
 
                                     #before_delete_hook
 
-                                    match self.db.#singular_table_name().id().delete(&0u8) {
+                                    match self.db().#singular_table_name().id().delete(&0u8) {
                                         false => {
                                             return Err(
                                                 crate::spacetimedsl::error::SpacetimeDSLError::Error(
@@ -1963,7 +1963,7 @@ pub(in crate::internal) fn for_method(
 
                                 let delete_one_impl = quote! {
                                     match self
-                                            .db
+                                            .db()
                                             .#singular_table_name()
                                             .#primary_key_column_name()
                                             .delete(&row_to_delete.#primary_key_column_name) {
@@ -2317,7 +2317,7 @@ fn reference_integrity_checks_on_create_or_update(
 
                 quote! {
                     if #field_name_for_found_value.is_none() {
-                        #field_name_for_found_value = match self.db.#referencing_table_name().#primary_key_column_name_of_referencing_table().find(#referencing_table_name.#getter_name().value()) {
+                        #field_name_for_found_value = match self.db().#referencing_table_name().#primary_key_column_name_of_referencing_table().find(#referencing_table_name.#getter_name().value()) {
                             Some(#referencing_table_name) => Some(#referencing_table_name),
                             None => {
                                 return Err(
@@ -2533,7 +2533,7 @@ pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_check(
     let multiple = OneOrMultiple::Multiple;
 
     quote! {
-        #field_name_for_found_value = match self.db.#singular_table_name().#index_name().filter((#(#row_value_getters),*)).at_most_one() {
+        #field_name_for_found_value = match self.db().#singular_table_name().#index_name().filter((#(#row_value_getters),*)).at_most_one() {
             Ok(#singular_table_name) => #singular_table_name,
             Err(_) => return Err(
                 crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
@@ -2990,7 +2990,7 @@ fn get_on_delete_strategy_implementation(
 ) -> TokenStream {
     let spacetimedb_call_prefix = quote! {
         dsl
-            .db
+            .db()
             .#singular_table_name()
     };
 
