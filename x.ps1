@@ -25,7 +25,7 @@ switch ($Command) {
 
         Write-Output "Cleaning up module..."
         Write-Output ""
-        spacetime delete --server local spacetimedsl
+        spacetime delete --yes --server local spacetimedsl
         Set-Location ..\..
         Write-Output "Building module..."
         Write-Output ""
@@ -40,7 +40,7 @@ switch ($Command) {
 
         Write-Output "Cleaning up module..."
         Write-Output ""
-        spacetime delete --server local blackholio
+        spacetime delete --yes --server local blackholio
         Set-Location ..\..
     }
 

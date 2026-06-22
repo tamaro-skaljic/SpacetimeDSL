@@ -4,8 +4,8 @@
 
 Authoritative reference to transform **SpacetimeDB** Rust Server Modules to use **SpacetimeDSL**.
 
-- **SpacetimeDSL** version **0.20.1**
-- **SpacetimeDB** version **2.0.2**
+- **SpacetimeDSL** version **0.21.0**
+- **SpacetimeDB** version **2.6.0**
 
 ## Quick Transformation Checklist
 
@@ -50,7 +50,7 @@ When transforming a **SpacetimeDB** module to use **SpacetimeDSL**, follow these
 ```toml
 
 # https://crates.io/crates/spacetimedsl The SpacetimeDB Rust Server Module meta-framework
-spacetimedsl = { version = "0.20.1" }
+spacetimedsl = { version = "0.21.0" }
 
 ```
 
