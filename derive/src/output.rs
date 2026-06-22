@@ -7,6 +7,7 @@ use spacetimedsl_derive_input::api::{
 
 mod accessor;
 mod create_method_arg;
+mod doc_comment;
 mod function;
 mod hook;
 
@@ -28,36 +29,43 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
     let mut table_methods = vec![];
     let mut dsl_methods = vec![];
 
-    dsl_methods.push(function::associated::build(
+    dsl_methods.push(function::build(
         &input.spacetimedsl_methods.create,
+        function::ImplTarget::Dsl,
     )?);
 
     if let Some(method) = &input.spacetimedsl_methods.get_all {
-        dsl_methods.push(function::associated::build(method)?);
+        dsl_methods.push(function::build(method, function::ImplTarget::Dsl)?);
     }
     if let Some(method) = &input.spacetimedsl_methods.get_count {
-        dsl_methods.push(function::associated::build(method)?);
+        dsl_methods.push(function::build(method, function::ImplTarget::Dsl)?);
     }
 
     if let Some(method) = &input
         .spacetimedsl_methods
         .execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted
     {
-        dsl_methods.push(function::build(method)?);
+        dsl_methods.push(function::build(method, function::ImplTarget::Internals)?);
     }
 
     if let Some(method) = &input
         .spacetimedsl_methods
         .execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted {
-        dsl_methods.push(function::build(method)?);
+        dsl_methods.push(function::build(method, function::ImplTarget::Internals)?);
     }
 
     for execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted in &input.spacetimedsl_methods.execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted {
-        dsl_methods.push(function::build(execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted)?);
+        dsl_methods.push(function::build(
+            execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted,
+            function::ImplTarget::Internals,
+        )?);
     }
 
     for execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted in &input.spacetimedsl_methods.execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted {
-        dsl_methods.push(function::build(execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted)?);
+        dsl_methods.push(function::build(
+            execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted,
+            function::ImplTarget::Internals,
+        )?);
     }
 
     for multi_column_index in &input.spacetimedsl_methods.multi_column_indices {
@@ -67,15 +75,15 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
     for column in &input.columns {
         if first_dsl_attribute {
             if let Some(getter) = &column.spacetimedsl_column.getter {
-                table_methods.push(accessor::getter(getter)?);
+                table_methods.push(accessor::build(accessor::Accessor::Getter(getter))?);
             }
 
-            if let Some(data) = &column.spacetimedsl_column.mut_getter {
-                table_methods.push(accessor::mut_getter(data)?)
+            if let Some(mut_getter) = &column.spacetimedsl_column.mut_getter {
+                table_methods.push(accessor::build(accessor::Accessor::MutGetter(mut_getter))?)
             }
 
-            if let Some(data) = &column.spacetimedsl_column.setter {
-                table_methods.push(accessor::setter(data)?)
+            if let Some(setter) = &column.spacetimedsl_column.setter {
+                table_methods.push(accessor::build(accessor::Accessor::Setter(setter))?)
             }
         }
 
@@ -132,18 +140,30 @@ fn get_column_dsl_methods(methods: &SpacetimeDSLColumnMethods) -> syn::Result<To
 
     match methods {
         SpacetimeDSLColumnMethods::ForUniqueIndex(methods) => {
-            token_streams.push(function::associated::build(&methods.get_one_option)?);
+            token_streams.push(function::build(
+                &methods.get_one_option,
+                function::ImplTarget::Dsl,
+            )?);
 
             if let Some(method) = &methods.update {
-                token_streams.push(function::associated::build(method)?)
+                token_streams.push(function::build(method, function::ImplTarget::Dsl)?)
             };
 
-            token_streams.push(function::associated::build(&methods.delete_one)?);
+            token_streams.push(function::build(
+                &methods.delete_one,
+                function::ImplTarget::Dsl,
+            )?);
         }
         SpacetimeDSLColumnMethods::ForIndex(methods) => {
-            token_streams.push(function::associated::build(&methods.get_many)?);
+            token_streams.push(function::build(
+                &methods.get_many,
+                function::ImplTarget::Dsl,
+            )?);
 
-            token_streams.push(function::associated::build(&methods.delete_many)?);
+            token_streams.push(function::build(
+                &methods.delete_many,
+                function::ImplTarget::Dsl,
+            )?);
         }
     };
 

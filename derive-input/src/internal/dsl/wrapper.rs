@@ -136,7 +136,7 @@ fn get_wrapper_impl(
             }
         }
 
-        impl spacetimedsl::Wrapper<#wrapped_type, #wrapper_struct_name> for #wrapper_struct_name {
+        impl crate::spacetimedsl::Wrapper<#wrapped_type, #wrapper_struct_name> for #wrapper_struct_name {
             fn new(value: #wrapped_type) -> Self {
                 Self { value }
             }

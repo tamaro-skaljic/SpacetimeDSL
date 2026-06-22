@@ -4,7 +4,6 @@ use syn::{Ident, Path};
 #[derive(Clone)]
 pub struct SpacetimeDSLMethod {
     pub doc_comment: String,
-    pub trait_name: Ident,
     pub additional_paths_to_use: Vec<Path>,
     pub method_name: Ident,
     pub method_args: Vec<SpacetimeDSLArg>,

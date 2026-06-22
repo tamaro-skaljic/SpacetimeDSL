@@ -136,7 +136,6 @@ generate_test() {
     cmd_echo "$shell" "Testing module..."
     cmd_echo "$shell"
     cmd_spacetime "call --server local spacetimedsl tester"
-    cmd_echo "$shell"
     echo
     cmd_echo "$shell" "Showing logs..."
     cmd_echo "$shell"
@@ -146,8 +145,24 @@ generate_test() {
     cmd_echo "$shell" "Cleaning up module..."
     cmd_echo "$shell"
     cmd_spacetime "delete --server local spacetimedsl"
-    cmd_echo "$shell"
     [ "$shell" = "powershell" ] && cmd_cd "$shell" "../.."
+
+    cmd_echo "$shell" "Building module..."
+    cmd_echo "$shell"
+    cmd_cd "$shell" "examples/blackholio"
+    cmd_spacetime "publish --server local blackholio"
+    cmd_echo "$shell"
+    echo
+    cmd_echo "$shell" "Showing logs..."
+    cmd_echo "$shell"
+    cmd_spacetime "logs --server local blackholio"
+    cmd_echo "$shell"
+    echo
+    cmd_echo "$shell" "Cleaning up module..."
+    cmd_echo "$shell"
+    cmd_spacetime "delete --server local blackholio"
+    [ "$shell" = "powershell" ] && cmd_cd "$shell" "../.."
+
     switch_case_end "$shell"
     echo
 }
@@ -156,7 +171,7 @@ generate_format() {
     local shell="$1"
 
     switch_case "$shell" "format"
-    cmd_cargo "fmt --all -- --check"
+    cmd_cargo "fmt --all"
     echo
     cmd_cd "$shell" "derive"
     cmd_cargo "clippy --fix --allow-dirty --all-features"

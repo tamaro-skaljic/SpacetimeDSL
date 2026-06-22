@@ -17,7 +17,6 @@ switch ($Command) {
         Write-Output "Testing module..."
         Write-Output ""
         spacetime call --server local spacetimedsl tester
-        Write-Output ""
 
         Write-Output "Showing logs..."
         Write-Output ""
@@ -27,12 +26,26 @@ switch ($Command) {
         Write-Output "Cleaning up module..."
         Write-Output ""
         spacetime delete --server local spacetimedsl
+        Set-Location ..\..
+        Write-Output "Building module..."
         Write-Output ""
+        Set-Location examples\blackholio
+        spacetime publish --server local blackholio
+        Write-Output ""
+
+        Write-Output "Showing logs..."
+        Write-Output ""
+        spacetime logs --server local blackholio
+        Write-Output ""
+
+        Write-Output "Cleaning up module..."
+        Write-Output ""
+        spacetime delete --server local blackholio
         Set-Location ..\..
     }
 
     "format" {
-        cargo fmt --all -- --check
+        cargo fmt --all
 
         Set-Location derive
         cargo clippy --fix --allow-dirty --all-features

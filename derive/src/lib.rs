@@ -63,7 +63,7 @@ pub fn dsl(args: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 fn derive_table_helper_attr() -> syn::Attribute {
-    let source = quote!(#[derive(Clone, Debug, PartialEq, spacetimedsl::SpacetimeDSL)]); // TODO: Add PartialOrd if ScheduledAt has implemented it
+    let source = quote!(#[derive(Clone, Debug, PartialEq, ::spacetimedsl::SpacetimeDSL)]); // TODO: Add PartialOrd if ScheduledAt has implemented it
 
     syn::parse::Parser::parse2(syn::Attribute::parse_outer, source)
         .unwrap()
@@ -187,7 +187,7 @@ pub fn hook(_args: TokenStream, item: TokenStream) -> TokenStream {
         );
 
         Ok(quote! {
-            impl<T: spacetimedsl::WriteContext> #trait_name<T> for spacetimedsl::DSLMethodHooks {
+            impl<T: crate::spacetimedsl::WriteContext> #trait_name<T> for crate::spacetimedsl::DSLMethodHooks {
                 #function_input
             }
         })
