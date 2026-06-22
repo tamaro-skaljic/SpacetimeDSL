@@ -2229,20 +2229,8 @@ fn reference_integrity_checks_on_create_or_update(
         };
 
         let referenced_table_name = &foreign_key.table_name;
-        let referenced_table_name_pascal_case = format_ident!(
-            "{}",
-            RenameRule::PascalCase.apply_to_field(referenced_table_name.to_string())
-        );
 
         let primary_key_column_name_of_referenced_table = &foreign_key.primary_key_column_name;
-        let primary_key_column_name_of_referenced_table_pascal_case = format_ident!(
-            "{}",
-            RenameRule::PascalCase
-                .apply_to_field(primary_key_column_name_of_referenced_table.to_string())
-        );
-        let get_row_of_referenced_table_by_primary_key_trait_name = format_ident!(
-            "Get{referenced_table_name_pascal_case}RowOptionBy{primary_key_column_name_of_referenced_table_pascal_case}"
-        );
         let get_row_of_referenced_table_by_primary_key_method_name = format_ident!(
             "get_{referenced_table_name}_by_{primary_key_column_name_of_referenced_table}"
         );
@@ -2259,11 +2247,6 @@ fn reference_integrity_checks_on_create_or_update(
             .rust_field_type_name_or_path
             .to_token_stream()
             .to_string();
-
-        // With inherent impl methods (no longer trait-based), no need to import the old
-        // "Get{Table}RowOptionBy{PK}" trait — the method is now a direct inherent method
-        // on `crate::spacetimedsl::DSL<T>`.
-        let _ = get_row_of_referenced_table_by_primary_key_trait_name;
 
         let field_name_for_found_value =
             format_ident!("the_same_or_another_{referencing_table_name}");
