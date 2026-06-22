@@ -652,7 +652,6 @@ pub(in crate::internal) fn for_method(
 
     // TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/35 Doc comments should be influenced by referenced_by and foreign_key attributes.
     let doc_comment;
-    let trait_name;
     let method_name;
     let return_type;
 
@@ -675,8 +674,6 @@ pub(in crate::internal) fn for_method(
     match dsl_method {
         DSLMethod::Create => {
             doc_comment = format!("Create a row in the `{singular_table_name}` table.");
-
-            trait_name = format_ident!("Create{singular_table_name_pascal_case}Row");
 
             method_name = format_ident!("create_{}", singular_table_name);
 
@@ -872,8 +869,6 @@ pub(in crate::internal) fn for_method(
         DSLMethod::GetAll => {
             doc_comment = format!("Get all rows inside the `{singular_table_name}` table.");
 
-            trait_name = format_ident!("GetAll{singular_table_name_pascal_case}Rows");
-
             method_name = format_ident!("get_all_{}", plural_table_name);
 
             return_type = quote! {
@@ -889,8 +884,6 @@ pub(in crate::internal) fn for_method(
         }
         DSLMethod::GetCount => {
             doc_comment = format!("Count all rows inside the `{singular_table_name}` table.");
-
-            trait_name = format_ident!("CountOfAll{singular_table_name_pascal_case}Rows");
 
             method_name = format_ident!("count_of_all_{}", plural_table_name);
 
@@ -911,8 +904,6 @@ pub(in crate::internal) fn for_method(
         | DSLMethod::Update(index)
         | DSLMethod::DeleteOne(index) => {
             let index_name = &index.name;
-            let index_name_pascal_case =
-                RenameRule::PascalCase.apply_to_field(index_name.to_string());
 
             let is_unique_index = index.is_unique;
             let is_multi_column_index;
@@ -1037,45 +1028,6 @@ pub(in crate::internal) fn for_method(
                     } else {
                         format!(
                             "{unique_multi_column_index_hint}\n\nTry to delete a `{struct_name}` row in the `{singular_table_name}` table whose {value_matches_or_values_match} the unique {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
-                        )
-                    }
-                }
-                DSLMethod::Create | DSLMethod::GetAll | DSLMethod::GetCount => panic!(
-                    "DSLColumnMethod Create / GetAll / GetCount should already be processed!"
-                ),
-            };
-
-            trait_name = match dsl_method {
-                DSLMethod::GetMany(_) => format_ident!(
-                    "Get{singular_table_name_pascal_case}RowsBy{index_name_pascal_case}"
-                ),
-                DSLMethod::DeleteMany(_) => format_ident!(
-                    "Delete{singular_table_name_pascal_case}RowsBy{index_name_pascal_case}"
-                ),
-                DSLMethod::GetOne(_) => {
-                    if is_singleton_pk {
-                        format_ident!("Get{singular_table_name_pascal_case}Row")
-                    } else {
-                        format_ident!(
-                            "Get{singular_table_name_pascal_case}RowOptionBy{index_name_pascal_case}"
-                        )
-                    }
-                }
-                DSLMethod::Update(_) => {
-                    if is_singleton_pk {
-                        format_ident!("Update{singular_table_name_pascal_case}Row")
-                    } else {
-                        format_ident!(
-                            "Update{singular_table_name_pascal_case}RowBy{index_name_pascal_case}"
-                        )
-                    }
-                }
-                DSLMethod::DeleteOne(_) => {
-                    if is_singleton_pk {
-                        format_ident!("Delete{singular_table_name_pascal_case}Row")
-                    } else {
-                        format_ident!(
-                            "Delete{singular_table_name_pascal_case}RowBy{index_name_pascal_case}"
                         )
                     }
                 }
@@ -2191,7 +2143,6 @@ pub(in crate::internal) fn for_method(
 
     SpacetimeDSLMethod {
         doc_comment,
-        trait_name,
         additional_paths_to_use,
         method_name,
         method_args,
@@ -2612,8 +2563,6 @@ fn for_referenced_by(
     let primary_key_column_type = &primary_key_column.rust_field_type_name_or_path;
 
     let doc_comment;
-    let trait_name =
-        get_referenced_table_trait_name(one_or_multiple, &singular_table_name_pascal_case);
     let function_name = get_referenced_table_function_name(one_or_multiple, singular_table_name);
 
     let additional_paths_to_use = vec![];
@@ -2782,7 +2731,6 @@ fn for_referenced_by(
 
     SpacetimeDSLMethod {
         doc_comment,
-        trait_name,
         additional_paths_to_use,
         method_name: function_name,
         method_args: function_args,
@@ -2872,23 +2820,9 @@ fn for_foreign_key(
     }
 
     let singular_table_name = &spacetimedb_table.singular_name;
-    let singular_table_name_pascal_case = format_ident!(
-        "{}",
-        RenameRule::PascalCase.apply_to_field(spacetimedb_table.singular_name.to_string())
-    );
     let referenced_table_name = format_ident!("{}", *referenced_table_name);
-    let referenced_table_name_pascal_case = format_ident!(
-        "{}",
-        RenameRule::PascalCase.apply_to_field(referenced_table_name.to_string())
-    );
 
     let doc_comment;
-
-    let trait_name = get_referencing_table_trait_name(
-        one_or_multiple,
-        &singular_table_name_pascal_case,
-        &referenced_table_name_pascal_case,
-    );
 
     let function_name = get_referencing_table_function_name(
         one_or_multiple,
@@ -3036,7 +2970,6 @@ fn for_foreign_key(
 
     SpacetimeDSLMethod {
         doc_comment,
-        trait_name,
         additional_paths_to_use,
         method_name: function_name,
         method_args: function_args,
@@ -3485,24 +3418,6 @@ fn get_referencing_table_compile_error_check(
     format_ident!(
         "this_compilation_error_occurs_because_the_{referencing_table_name}_table_has_no_foreign_key_attribute_referencing_the_{referenced_table_name}_table"
     )
-}
-
-fn get_referenced_table_trait_name(
-    one_or_multiple: &OneOrMultiple,
-    referenced_table_name_pascal_case: &Ident,
-) -> Ident {
-    match one_or_multiple {
-        OneOrMultiple::One => {
-            format_ident!(
-                "ExecuteOnDeleteStrategiesOfReferencingTablesAfterOneRowOfThe{referenced_table_name_pascal_case}TableWasDeleted"
-            )
-        }
-        OneOrMultiple::Multiple => {
-            format_ident!(
-                "ExecuteOnDeleteStrategiesOfReferencingTablesAfterMultipleRowsOfThe{referenced_table_name_pascal_case}TableWereDeleted"
-            )
-        }
-    }
 }
 
 fn get_referenced_table_function_name(
