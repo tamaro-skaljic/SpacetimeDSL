@@ -144,7 +144,7 @@ generate_test() {
     echo
     cmd_echo "$shell" "Cleaning up module..."
     cmd_echo "$shell"
-    cmd_spacetime "delete --server local spacetimedsl"
+    cmd_spacetime "delete --yes --server local spacetimedsl"
     [ "$shell" = "powershell" ] && cmd_cd "$shell" "../.."
 
     cmd_echo "$shell" "Building module..."
@@ -160,7 +160,7 @@ generate_test() {
     echo
     cmd_echo "$shell" "Cleaning up module..."
     cmd_echo "$shell"
-    cmd_spacetime "delete --server local blackholio"
+    cmd_spacetime "delete --yes --server local blackholio"
     [ "$shell" = "powershell" ] && cmd_cd "$shell" "../.."
 
     switch_case_end "$shell"
