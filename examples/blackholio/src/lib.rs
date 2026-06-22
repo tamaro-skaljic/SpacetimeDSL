@@ -43,7 +43,7 @@ pub mod tables {
     use crate::math::DbVector2;
     use spacetimedb::{Identity, Timestamp};
 
-    #[::spacetimedsl::dsl(plural_name = config, method(update = false))]
+    #[spacetimedsl::dsl(plural_name = config, method(update = false))]
     #[spacetimedb::table(accessor = config, public)]
     pub struct Config {
         #[primary_key]
@@ -52,7 +52,7 @@ pub mod tables {
         world_size: i64,
     }
 
-    #[::spacetimedsl::dsl(plural_name = entities, method(update = true))]
+    #[spacetimedsl::dsl(plural_name = entities, method(update = true))]
     #[spacetimedb::table(accessor = entity, public)]
     pub struct Entity {
         #[primary_key]
@@ -68,7 +68,7 @@ pub mod tables {
         pub login_status: LoginStatus, // FIXME (find out where used in dsl macro): binary operation `==` cannot be applied to type `LoginStatus` consider annotating `LoginStatus` with `#[derive(PartialEq)]`
     }
 
-    #[::spacetimedsl::dsl(plural_name = circles, method(update = true))]
+    #[spacetimedsl::dsl(plural_name = circles, method(update = true))]
     #[spacetimedb::table(accessor = circle, public)]
     pub struct Circle {
         #[primary_key]
@@ -87,7 +87,7 @@ pub mod tables {
     }
 
     // FIXME: update = true should not have been valid here because all fields were private and no modified_at / updated_at column existed
-    #[::spacetimedsl::dsl(plural_name = players, method(update = true), hook(after(update)))]
+    #[spacetimedsl::dsl(plural_name = players, method(update = true), hook(after(update)))]
     #[spacetimedb::table(accessor = player, public)]
     pub struct Player {
         #[primary_key]
@@ -103,7 +103,7 @@ pub mod tables {
         pub login_status: LoginStatus,
     }
 
-    #[::spacetimedsl::dsl(plural_name = food, method(update = false))]
+    #[spacetimedsl::dsl(plural_name = food, method(update = false))]
     #[spacetimedb::table(accessor = food, public)]
     pub struct Food {
         #[primary_key]
@@ -112,7 +112,7 @@ pub mod tables {
         entity_id: i32,
     }
 
-    #[::spacetimedsl::dsl(plural_name = move_all_players_timers, method(update = false))]
+    #[spacetimedsl::dsl(plural_name = move_all_players_timers, method(update = false))]
     #[spacetimedb::table(accessor = move_all_players_timer, scheduled(move_all_players))]
     pub struct MoveAllPlayersTimer {
         #[primary_key]
@@ -122,7 +122,7 @@ pub mod tables {
         scheduled_at: spacetimedb::ScheduleAt,
     }
 
-    #[::spacetimedsl::dsl(plural_name = spawn_food_timers, method(update = false))]
+    #[spacetimedsl::dsl(plural_name = spawn_food_timers, method(update = false))]
     #[spacetimedb::table(accessor = spawn_food_timer, scheduled(spawn_food))]
     pub struct SpawnFoodTimer {
         #[primary_key]
@@ -132,7 +132,7 @@ pub mod tables {
         scheduled_at: spacetimedb::ScheduleAt,
     }
 
-    #[::spacetimedsl::dsl(plural_name = circle_decay_timers, method(update = false))]
+    #[spacetimedsl::dsl(plural_name = circle_decay_timers, method(update = false))]
     #[spacetimedb::table(accessor = circle_decay_timer, scheduled(circle_decay))]
     pub struct CircleDecayTimer {
         #[primary_key]
@@ -142,7 +142,7 @@ pub mod tables {
         scheduled_at: spacetimedb::ScheduleAt,
     }
 
-    #[::spacetimedsl::dsl(plural_name = circle_recombine_timers, method(update = false))]
+    #[spacetimedsl::dsl(plural_name = circle_recombine_timers, method(update = false))]
     #[spacetimedb::table(accessor = circle_recombine_timer, scheduled(circle_recombine))]
     pub struct CircleRecombineTimer {
         #[primary_key]
@@ -156,7 +156,7 @@ pub mod tables {
         player_id: i32,
     }
 
-    #[::spacetimedsl::dsl(plural_name = consume_entity_timers, method(update = false))]
+    #[spacetimedsl::dsl(plural_name = consume_entity_timers, method(update = false))]
     #[spacetimedb::table(accessor = consume_entity_timer, scheduled(consume_entity))]
     pub struct ConsumeEntityTimer {
         #[primary_key]

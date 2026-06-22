@@ -494,7 +494,6 @@ pub mod component {
 
     pub mod hook_test {
         use crate::spacetimedsl::prelude::*;
-        use spacetimedb::Timestamp;
 
         #[spacetimedsl::dsl(
             plural_name = attributes,
@@ -1026,9 +1025,6 @@ pub mod test {
     };
 
     use log::info;
-    use spacetimedb::{
-        AnonymousViewContext, ProcedureContext, ReducerContext, TimeDuration, ViewContext, reducer,
-    };
 
     #[spacetimedb::view(accessor = my_view, public)]
     pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
@@ -1594,7 +1590,7 @@ pub mod test {
             wrapped_string_option: Some("wrapped_string_option".to_string()),
             direct_index: 0,
             tags: vec![],
-            scheduled_at: spacetimedb::ScheduleAt::Time(ctx.timestamp),
+            scheduled_at: ScheduleAt::Time(ctx.timestamp),
         })?;
 
         let mut world2 = dsl.create_test(CreateTest {
@@ -1610,7 +1606,7 @@ pub mod test {
             wrapped_string_option: Some("wrapped_string_option".to_string()),
             direct_index: 1,
             tags: vec![],
-            scheduled_at: spacetimedb::ScheduleAt::Time(ctx.timestamp),
+            scheduled_at: ScheduleAt::Time(ctx.timestamp),
         })?;
 
         let tags = world2.get_tags_mut();

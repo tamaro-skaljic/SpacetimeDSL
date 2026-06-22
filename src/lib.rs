@@ -205,13 +205,6 @@ macro_rules! spacetimedsl {
                     DSL, DSLContext, DSLMethodHooks, ReadOnlyDSL, ReadOnlyDSLContext, dsl,
                     read_only_dsl,
                 };
-                // NOTE: SpacetimeDSL, dsl (attr), and hook are intentionally NOT re-exported
-                // here as macros. Re-exporting them through this macro-generated module would
-                // give them macro-expansion context that causes E0659. Users must invoke them
-                // with the `::spacetimedsl::` prefix:
-                //   #[::spacetimedsl::dsl(...)]
-                //   #[::spacetimedsl::hook]
-                //   #[derive(::spacetimedsl::SpacetimeDSL)]
                 pub use ::spacetimedsl::Context;
                 pub use ::spacetimedsl::ReadContext;
                 pub use ::spacetimedsl::Wrapper;
@@ -235,6 +228,11 @@ macro_rules! spacetimedsl {
                 pub use ::spacetimedsl::get_sender::GetSender;
                 pub use ::spacetimedsl::get_timestamp::GetTimestamp;
                 pub use ::spacetimedsl::itertools::Itertools;
+
+                pub use spacetimedb::{
+                    AnonymousViewContext, Identity, ProcedureContext, ReducerContext, ScheduleAt,
+                    SpacetimeType, TimeDuration, Timestamp, ViewContext, rand::Rng, reducer,
+                };
             }
         }
     };
