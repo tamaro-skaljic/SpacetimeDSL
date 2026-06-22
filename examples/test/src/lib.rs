@@ -1030,6 +1030,7 @@ pub mod test {
     pub fn my_view(ctx: &ViewContext) -> Option<Entity> {
         let dsl = read_only_dsl(ctx);
 
+        let _ = dsl.count_of_all_entities();
         dsl.get_entity_by_obj_id(EntityId::new(0)).ok()
     }
 

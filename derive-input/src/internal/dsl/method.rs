@@ -662,10 +662,9 @@ pub(in crate::internal) fn for_method(
     let method_impl;
 
     let read_context_compatible = match &dsl_method {
-        DSLMethod::GetMany(_) | DSLMethod::GetOne(_) => true,
+        DSLMethod::GetCount | DSLMethod::GetMany(_) | DSLMethod::GetOne(_) => true,
         DSLMethod::Create
         | DSLMethod::GetAll
-        | DSLMethod::GetCount
         | DSLMethod::Update(_)
         | DSLMethod::DeleteOne(_)
         | DSLMethod::DeleteMany(_) => false,
