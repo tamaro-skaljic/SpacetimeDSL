@@ -40,8 +40,13 @@ impl_as_anonymous_view_context_ok!(ReducerContext);
 
 impl_as_anonymous_view_context_ok!(TxContext);
 
-// FIXME: https://github.com/clockworklabs/SpacetimeDB/issues/4439
-impl_as_anonymous_view_context_err!(ViewContext, View);
+impl AsAnonymousViewContext for spacetimedb::ViewContext {
+    fn as_anonymous_view_context(
+        &self,
+    ) -> Result<spacetimedb::AnonymousViewContext, SpacetimeDSLError> {
+        Ok(self.as_anonymous())
+    }
+}
 
 impl crate::Context<spacetimedb::LocalReadOnly> for spacetimedb::AnonymousViewContext {}
 
