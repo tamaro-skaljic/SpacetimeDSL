@@ -207,17 +207,18 @@ macro_rules! spacetimedsl {
                 };
                 pub use ::spacetimedsl::Context;
                 pub use ::spacetimedsl::ReadContext;
-                pub use ::spacetimedsl::Wrapper;
                 pub use ::spacetimedsl::WriteContext;
-                pub use ::spacetimedsl::as_anonymous_view_context::AsAnonymousViewContext;
-                pub use ::spacetimedsl::as_reducer_context::AsReducerContext;
-                pub use ::spacetimedsl::as_view_context::AsViewContext;
+
                 pub use ::spacetimedsl::delete::{
                     DeletionResult, DeletionResultEntry, OnDeleteStrategy,
                 };
+
                 pub use ::spacetimedsl::error::{
                     ReferenceIntegrityViolationError, SpacetimeDSLError,
                 };
+
+                pub use ::spacetimedsl::Wrapper;
+
                 pub use ::spacetimedsl::get_auth::GetAuth;
                 pub use ::spacetimedsl::get_connection_id::GetConnectionId;
                 pub use ::spacetimedsl::get_immutable_database::GetImmutableDatabase;
@@ -227,11 +228,16 @@ macro_rules! spacetimedsl {
                 pub use ::spacetimedsl::get_random_number_generator::GetRandomNumberGenerator;
                 pub use ::spacetimedsl::get_sender::GetSender;
                 pub use ::spacetimedsl::get_timestamp::GetTimestamp;
+
+                pub use ::spacetimedsl::as_anonymous_view_context::AsAnonymousViewContext;
+                pub use ::spacetimedsl::as_reducer_context::AsReducerContext;
+                pub use ::spacetimedsl::as_view_context::AsViewContext;
+
                 pub use ::spacetimedsl::itertools::Itertools;
 
                 pub use spacetimedb::{
                     AnonymousViewContext, Identity, ProcedureContext, ReducerContext, ScheduleAt,
-                    SpacetimeType, TimeDuration, Timestamp, ViewContext, rand::Rng, reducer,
+                    SpacetimeType, Table, TimeDuration, Timestamp, ViewContext, rand::Rng,
                 };
             }
         }

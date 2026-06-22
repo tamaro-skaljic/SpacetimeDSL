@@ -1057,7 +1057,7 @@ pub mod test {
         }
     }
 
-    #[reducer]
+    #[spacetimedb::reducer]
     fn tester(ctx: &ReducerContext) -> Result<(), String> {
         let dsl = dsl(ctx);
 
