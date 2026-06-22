@@ -13,7 +13,6 @@ case "$1" in
         echo "Testing module..."
         echo
         spacetime call --server local spacetimedsl tester
-        echo
 
         echo "Showing logs..."
         echo
@@ -23,7 +22,20 @@ case "$1" in
         echo "Cleaning up module..."
         echo
         spacetime delete --server local spacetimedsl
+        echo "Building module..."
         echo
+        cd examples/blackholio
+        spacetime publish --server local blackholio
+        echo
+
+        echo "Showing logs..."
+        echo
+        spacetime logs --server local blackholio
+        echo
+
+        echo "Cleaning up module..."
+        echo
+        spacetime delete --server local blackholio
         ;;
 
     format)
