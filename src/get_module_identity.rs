@@ -21,7 +21,7 @@ macro_rules! impl_get_identity_ok {
     ($context:ident) => {
         impl GetModuleIdentity for spacetimedb::$context {
             fn module_identity(&self) -> Result<spacetimedb::Identity, SpacetimeDSLError> {
-                Ok(self.identity())
+                Ok(self.database_identity())
             }
         }
     };
