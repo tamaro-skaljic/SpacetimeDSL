@@ -88,7 +88,7 @@ pub trait Wrapper<WrappedType: Clone + Default, WrapperType>:
 ///
 /// ```rust,ignore
 /// // lib.rs
-/// spacetimedsl::spacetimedsl!();
+/// ::spacetimedsl::spacetimedsl!();
 /// ```
 ///
 /// Then import everything you need with:
