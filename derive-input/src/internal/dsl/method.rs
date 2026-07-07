@@ -2940,9 +2940,11 @@ fn for_foreign_key(
 
         let mut error = false;
 
-        match &strategy {
-            #(#strategy_implementations)*
-        };
+        'outer: {
+            match &strategy {
+                #(#strategy_implementations)*
+            };
+        }
 
         match error {
             false => Ok(entries),
@@ -3097,7 +3099,7 @@ fn get_on_delete_strategy_implementation(
                             if crate::spacetimedsl::DSLMethodHooks::#hook_function_name(&dsl, &row).is_err() {
                                 error = true;
                                 // FIXME: This results in the error supplied by the hook being ignored, we should propagate it back to the caller but that requires changing the function signature.
-                                break;
+                                break 'outer;
                             }
                         }
                     }
@@ -3117,7 +3119,7 @@ fn get_on_delete_strategy_implementation(
                             if crate::spacetimedsl::DSLMethodHooks::#hook_function_name(&dsl, &row).is_err() {
                                 error = true;
                                 // FIXME: This results in the error supplied by the hook being ignored, we should propagate it back to the caller but that requires changing the function signature.
-                                break;
+                                break 'outer;
                             }
                         }
                     }
