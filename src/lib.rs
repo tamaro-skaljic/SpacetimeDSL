@@ -54,7 +54,7 @@ pub(crate) fn get_err(msg: &str, ctx: ContextType) -> SpacetimeDSLError {
     ))
 }
 
-pub trait Context<T>:
+pub trait Context:
     GetAuth
     + GetConnectionId
     + GetImmutableDatabase
@@ -67,13 +67,12 @@ pub trait Context<T>:
     + AsAnonymousViewContext
     + AsReducerContext
     + AsViewContext
-    + spacetimedb::DbContext<DbView = T>
 {
 }
 
-pub trait WriteContext: Context<spacetimedb::Local> {}
+pub trait WriteContext: Context + spacetimedb::CtxDbWrite {}
 
-pub trait ReadContext: Context<spacetimedb::LocalReadOnly> {}
+pub trait ReadContext: Context + spacetimedb::CtxDbRead {}
 
 pub trait Wrapper<WrappedType: Clone + Default, WrapperType>:
     Default + Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
@@ -105,21 +104,19 @@ macro_rules! spacetimedsl {
             // Use `::spacetimedsl::` (global path) throughout this module.
             // The local module name `spacetimedsl` creates ambiguity with `$crate` so
             // we use the explicit `::` prefix to reference the external crate.
-            pub struct DSL<'a, T: ::spacetimedsl::Context<spacetimedb::Local>> {
+            pub struct DSL<'a, T: ::spacetimedsl::WriteContext> {
                 ctx: &'a T,
                 db: &'a spacetimedb::Local,
             }
 
-            pub fn dsl<'a, T: ::spacetimedsl::Context<spacetimedb::Local>>(
-                ctx: &'a T,
-            ) -> DSL<'a, T> {
+            pub fn dsl<'a, T: ::spacetimedsl::WriteContext>(ctx: &'a T) -> DSL<'a, T> {
                 DSL {
                     ctx,
-                    db: spacetimedb::DbContext::db(ctx),
+                    db: spacetimedb::CtxDbWrite::db(ctx),
                 }
             }
 
-            impl<T: ::spacetimedsl::Context<spacetimedb::Local>> DSL<'_, T> {
+            impl<T: ::spacetimedsl::WriteContext> DSL<'_, T> {
                 pub fn dsl(&self) -> &DSL<'_, T> {
                     self
                 }
@@ -131,21 +128,21 @@ macro_rules! spacetimedsl {
                 }
             }
 
-            pub struct ReadOnlyDSL<'a, T: ::spacetimedsl::Context<spacetimedb::LocalReadOnly>> {
+            pub struct ReadOnlyDSL<'a, T: ::spacetimedsl::ReadContext> {
                 ctx: &'a T,
                 db: &'a spacetimedb::LocalReadOnly,
             }
 
-            pub fn read_only_dsl<'a, T: ::spacetimedsl::Context<spacetimedb::LocalReadOnly>>(
+            pub fn read_only_dsl<'a, T: ::spacetimedsl::ReadContext>(
                 ctx: &'a T,
             ) -> ReadOnlyDSL<'a, T> {
                 ReadOnlyDSL {
                     ctx,
-                    db: spacetimedb::DbContext::db(ctx),
+                    db: spacetimedb::CtxDbRead::db_read_only(ctx),
                 }
             }
 
-            impl<T: ::spacetimedsl::Context<spacetimedb::LocalReadOnly>> ReadOnlyDSL<'_, T> {
+            impl<T: ::spacetimedsl::ReadContext> ReadOnlyDSL<'_, T> {
                 pub fn dsl(&self) -> &ReadOnlyDSL<'_, T> {
                     self
                 }
