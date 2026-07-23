@@ -12,7 +12,7 @@ crate-type = ["cdylib"]
 proc-macro2 = { version = "1", features = ["span-locations"] }
 
 # https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
-spacetimedb = { version = "2.6.1", features = ["unstable"] }
+spacetimedb = { version = "2.7.0", features = ["unstable"] }
 
 # https://crates.io/crates/syn Parser for Rust source code
 syn = { default-features = false, features = [
