@@ -4,8 +4,8 @@
 
 Authoritative reference to transform **SpacetimeDB** Rust Server Modules to use **SpacetimeDSL**.
 
-- **SpacetimeDSL** version **0.21.0**
-- **SpacetimeDB** version **2.6.0**
+- **SpacetimeDSL** version **0.22.0**
+- **SpacetimeDB** version **2.7.0**
 
 ## Quick Transformation Checklist
 
