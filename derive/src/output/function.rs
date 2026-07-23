@@ -28,7 +28,7 @@ fn build_method_body(method: &SpacetimeDSLMethod) -> TokenStream {
 
     quote! {
         use ::spacetimedsl::Wrapper;
-        use spacetimedb::{DbContext, Table as _};
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         #(use #additional_paths_to_use as _;)*
         #method_impl
     }

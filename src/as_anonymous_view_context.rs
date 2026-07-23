@@ -48,6 +48,6 @@ impl AsAnonymousViewContext for spacetimedb::ViewContext {
     }
 }
 
-impl crate::Context<spacetimedb::LocalReadOnly> for spacetimedb::AnonymousViewContext {}
+impl crate::Context for spacetimedb::AnonymousViewContext {}
 
 impl crate::ReadContext for spacetimedb::AnonymousViewContext {}
