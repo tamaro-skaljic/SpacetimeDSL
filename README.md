@@ -1,6 +1,8 @@
 <!-- markdownlint-disable MD033 -->
 # ✨ **SpacetimeDSL** — The **SpacetimeDB** Rust Server Module meta-framework
 
+[![dependency status](https://deps.rs/crate/spacetimedsl/latest/status.svg)](https://deps.rs/crate/spacetimedsl/latest)
+
 **SpacetimeDSL** allows you to interact in an ergonomic, more developer-friendly and type-safer way with the data in your [**SpacetimeDB**](https://spacetimedb.com/) server.
 
 ## 📑 Table of Contents
