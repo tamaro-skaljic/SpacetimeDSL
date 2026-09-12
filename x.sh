@@ -22,6 +22,7 @@ case "$1" in
         echo "Cleaning up module..."
         echo
         spacetime delete --yes --server local spacetimedsl
+        cd ../..
         echo "Building module..."
         echo
         cd examples/blackholio
@@ -36,6 +37,7 @@ case "$1" in
         echo "Cleaning up module..."
         echo
         spacetime delete --yes --server local blackholio
+        cd ../..
         ;;
 
     format)

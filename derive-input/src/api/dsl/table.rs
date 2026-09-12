@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use proc_macro2::TokenStream;
 use syn::Ident;
@@ -19,7 +19,7 @@ pub struct SpacetimeDSLTable {
     pub on_insert_set_current_timestamp_column_name: Option<Ident>,
     pub on_update_set_current_timestamp_column_name: Option<Ident>,
     pub referencing_tables: Vec<ReferencingTable>,
-    pub compile_error_checks: HashSet<Ident>,
+    pub compile_error_checks: BTreeSet<Ident>,
     pub create_dsl_method_arg: Option<CreateDSLMethodArg>,
     pub hooks: SpacetimeDSLMethodHooks,
 }

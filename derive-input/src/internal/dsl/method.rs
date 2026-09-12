@@ -27,7 +27,7 @@ use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, TokenStreamExt, format_ident, quote};
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{BTreeMap, HashMap, VecDeque},
     fmt::{self, Display},
 };
 use strum::IntoEnumIterator;
@@ -276,7 +276,7 @@ impl SpacetimeDSLTableMethods {
             .collect();
 
         if !columns_with_foreign_keys.is_empty() {
-            let mut columns_with_foreign_keys_by_table = HashMap::new();
+            let mut columns_with_foreign_keys_by_table = BTreeMap::new();
 
             columns_with_foreign_keys.iter().for_each(|c| {
                 let name_of_another_table = &c
@@ -292,7 +292,7 @@ impl SpacetimeDSLTableMethods {
 
                 columns_with_foreign_keys_by_table
                     .get_mut(name_of_another_table)
-                    .expect("key should exist in HashMap")
+                    .expect("key should exist in BTreeMap")
                     .push(c);
             });
 
@@ -2746,7 +2746,7 @@ fn for_foreign_key(
     let referenced_table_primary_key_column_type =
         &first_foreign_key_column.rust_field.type_name_or_path;
 
-    let mut columns_by_on_delete_strategies = HashMap::new();
+    let mut columns_by_on_delete_strategies = BTreeMap::new();
 
     for column_with_foreign_key in columns_with_foreign_key {
         if column_with_foreign_key
@@ -2886,30 +2886,23 @@ fn for_foreign_key(
         }
     };
 
-    let mut strategy_implementations = HashMap::new();
+    // `OnDeleteStrategy::iter()` yields the strategies in declaration order,
+    // so the generated match arms are ordered independently of the input order.
+    let strategy_implementations = OnDeleteStrategy::iter()
+        .map(|on_delete_strategy| {
+            let implementation = match columns_by_on_delete_strategies.remove(&on_delete_strategy) {
+                Some(columns_by_on_delete_strategy) => get_on_delete_strategy_implementation(
+                    spacetimedsl_table,
+                    has_referenced_bys,
+                    singular_table_name,
+                    &on_delete_strategy,
+                    columns_by_on_delete_strategy,
+                    one_or_multiple,
+                    primary_key_column,
+                ),
+                None => TokenStream::default(),
+            };
 
-    for on_delete_strategy in OnDeleteStrategy::iter() {
-        strategy_implementations.insert(on_delete_strategy.clone(), TokenStream::default());
-    }
-
-    for (on_delete_strategy, columns_by_on_delete_strategy) in columns_by_on_delete_strategies {
-        strategy_implementations.insert(
-            on_delete_strategy.clone(),
-            get_on_delete_strategy_implementation(
-                spacetimedsl_table,
-                has_referenced_bys,
-                singular_table_name,
-                on_delete_strategy,
-                columns_by_on_delete_strategy,
-                one_or_multiple,
-                primary_key_column,
-            ),
-        );
-    }
-
-    let strategy_implementations = strategy_implementations
-        .iter()
-        .map(|(on_delete_strategy, implementation)| {
             quote! {
                 #on_delete_strategy => {
                     #implementation

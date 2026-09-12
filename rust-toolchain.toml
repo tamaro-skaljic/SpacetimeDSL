@@ -1,0 +1,6 @@
+[toolchain]
+# Pinned exactly so the `trybuild` `.stderr` files in `compile-tests/` stay reproducible
+# between local development and CI. Bumping this regenerates them.
+channel = "1.97.1"
+components = ["clippy", "rustfmt"]
+targets = ["wasm32-unknown-unknown"]
