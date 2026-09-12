@@ -29,42 +29,37 @@ pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<To
     let mut table_methods = vec![];
     let mut dsl_methods = vec![];
 
-    dsl_methods.push(function::build(
-        &input.spacetimedsl_methods.create,
-        function::ImplTarget::Dsl,
-    )?);
+    dsl_methods.push(function::build_public(&input.spacetimedsl_methods.create)?);
 
     if let Some(method) = &input.spacetimedsl_methods.get_all {
-        dsl_methods.push(function::build(method, function::ImplTarget::Dsl)?);
+        dsl_methods.push(function::build_public(method)?);
     }
     if let Some(method) = &input.spacetimedsl_methods.get_count {
-        dsl_methods.push(function::build(method, function::ImplTarget::Dsl)?);
+        dsl_methods.push(function::build_public(method)?);
     }
 
     if let Some(method) = &input
         .spacetimedsl_methods
         .execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted
     {
-        dsl_methods.push(function::build(method, function::ImplTarget::Internals)?);
+        dsl_methods.push(function::build_internal(method)?);
     }
 
     if let Some(method) = &input
         .spacetimedsl_methods
         .execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted {
-        dsl_methods.push(function::build(method, function::ImplTarget::Internals)?);
+        dsl_methods.push(function::build_internal(method)?);
     }
 
     for execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted in &input.spacetimedsl_methods.execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted {
-        dsl_methods.push(function::build(
-            execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted,
-            function::ImplTarget::Internals,
+        dsl_methods.push(function::build_internal(
+            execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted
         )?);
     }
 
     for execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted in &input.spacetimedsl_methods.execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted {
-        dsl_methods.push(function::build(
-            execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted,
-            function::ImplTarget::Internals,
+        dsl_methods.push(function::build_internal(
+            execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted
         )?);
     }
 
@@ -140,30 +135,18 @@ fn get_column_dsl_methods(methods: &SpacetimeDSLColumnMethods) -> syn::Result<To
 
     match methods {
         SpacetimeDSLColumnMethods::ForUniqueIndex(methods) => {
-            token_streams.push(function::build(
-                &methods.get_one_option,
-                function::ImplTarget::Dsl,
-            )?);
+            token_streams.push(function::build_public(&methods.get_one_option)?);
 
             if let Some(method) = &methods.update {
-                token_streams.push(function::build(method, function::ImplTarget::Dsl)?)
+                token_streams.push(function::build_public(method)?)
             };
 
-            token_streams.push(function::build(
-                &methods.delete_one,
-                function::ImplTarget::Dsl,
-            )?);
+            token_streams.push(function::build_public(&methods.delete_one)?);
         }
         SpacetimeDSLColumnMethods::ForIndex(methods) => {
-            token_streams.push(function::build(
-                &methods.get_many,
-                function::ImplTarget::Dsl,
-            )?);
+            token_streams.push(function::build_public(&methods.get_many)?);
 
-            token_streams.push(function::build(
-                &methods.delete_many,
-                function::ImplTarget::Dsl,
-            )?);
+            token_streams.push(function::build_public(&methods.delete_many)?);
         }
     };
 
