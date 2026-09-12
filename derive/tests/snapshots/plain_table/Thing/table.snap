@@ -1,0 +1,63 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct ThingId {
+    value: u64,
+}
+impl Default for ThingId {
+    fn default() -> ThingId {
+        ThingId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for ThingId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "ThingId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, ThingId> for ThingId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Thing> for ThingId {
+    fn from(value: &Thing) -> Self {
+        ThingId { value: value.id.clone() }
+    }
+}
+impl From<&Thing> for Option<ThingId> {
+    fn from(value: &Thing) -> Option<ThingId> {
+        Some(ThingId { value: value.id.clone() })
+    }
+}
+impl From<&ThingId> for Option<ThingId> {
+    fn from(value: &ThingId) -> Option<ThingId> {
+        use spacetimedsl::Wrapper;
+        Some(ThingId::new(value.value()))
+    }
+}
+impl From<&ThingId> for ThingId {
+    fn from(value: &ThingId) -> Self {
+        use spacetimedsl::Wrapper;
+        ThingId::new(value.value())
+    }
+}
+impl Thing {
+    ///
+    pub fn get_id(&self) -> ThingId {
+        use spacetimedsl::Wrapper;
+        ThingId::new(self.id.clone())
+    }
+}
+
+// Generated DSL methods:
+// count_of_all_things
+// create_thing
+// delete_thing_by_id
+// get_all_things
+// get_thing_by_id

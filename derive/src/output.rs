@@ -25,26 +25,28 @@ pub(crate) struct GeneratedOutput {
     pub dsl_methods: Vec<GeneratedDSLMethod>,
 }
 
+impl GeneratedOutput {
+    /// Concatenates the halves in the order the macro emits them.
+    pub(crate) fn into_token_stream(self) -> TokenStream {
+        let items_outside_dsl_methods = self.items_outside_dsl_methods;
+        let dsl_methods = self
+            .dsl_methods
+            .into_iter()
+            .map(|dsl_method| dsl_method.tokens);
+
+        quote! {
+            #items_outside_dsl_methods
+
+            #(#dsl_methods)*
+        }
+    }
+}
+
 pub(crate) struct GeneratedDSLMethod {
     /// Only read by the characterization tests, which snapshot each method under its own name.
     #[cfg_attr(not(test), allow(dead_code))]
     pub method_name: Ident,
     pub tokens: TokenStream,
-}
-
-pub(crate) fn output(input: &Table, first_dsl_attribute: bool) -> syn::Result<TokenStream> {
-    let GeneratedOutput {
-        items_outside_dsl_methods,
-        dsl_methods,
-    } = build(input, first_dsl_attribute)?;
-
-    let dsl_methods = dsl_methods.into_iter().map(|dsl_method| dsl_method.tokens);
-
-    Ok(quote! {
-        #items_outside_dsl_methods
-
-        #(#dsl_methods)*
-    })
 }
 
 pub(crate) fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedOutput> {

@@ -2,6 +2,9 @@ use ident_case::RenameRule;
 use proc_macro::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use spacetimedsl_derive_input::api::Table;
+
+#[cfg(test)]
+mod characterization_tests;
 mod output;
 
 /// Add `#[dsl]` to your structs with `#[table]`
@@ -20,6 +23,29 @@ fn expand_dsl_attribute(
     args: proc_macro2::TokenStream,
     item: proc_macro2::TokenStream,
 ) -> syn::Result<proc_macro2::TokenStream> {
+    let ExpandedDSLAttribute {
+        derive_input,
+        generated_output,
+    } = expand_dsl_attribute_parts(args, item)?;
+
+    Ok(proc_macro2::TokenStream::from_iter([
+        quote!(#derive_input),
+        generated_output.into_token_stream(),
+    ]))
+}
+
+/// The expansion before its halves are concatenated, so the characterization tests
+/// can snapshot each generated DSL method on its own without parsing the [`Table`] twice.
+struct ExpandedDSLAttribute {
+    /// The item the macro echoes back, with the `derive(SpacetimeDSL)` helper attached.
+    derive_input: syn::DeriveInput,
+    generated_output: output::GeneratedOutput,
+}
+
+fn expand_dsl_attribute_parts(
+    args: proc_macro2::TokenStream,
+    item: proc_macro2::TokenStream,
+) -> syn::Result<ExpandedDSLAttribute> {
     // put this on the struct so we don't get unknown attribute errors
     let derive_table_helper = derive_table_helper_attr();
 
@@ -53,7 +79,7 @@ fn expand_dsl_attribute(
     let input = Table::try_parse(args, &derive_input)?;
 
     // Build the output, possibly using quasi-quotation
-    let output = output::output(&input, first_dsl_attribute)?;
+    let generated_output = output::build(&input, first_dsl_attribute)?;
 
     // Check if this is the last #[dsl] attribute by counting remaining ones
     let _is_last_dsl_attribute = is_last_dsl_attribute(&derive_input);
@@ -65,10 +91,10 @@ fn expand_dsl_attribute(
     //     make_struct_fields_private(&mut derive_input);
     // }
 
-    Ok(proc_macro2::TokenStream::from_iter([
-        quote!(#derive_input),
-        output,
-    ]))
+    Ok(ExpandedDSLAttribute {
+        derive_input,
+        generated_output,
+    })
 }
 
 fn derive_table_helper_attr() -> syn::Attribute {
