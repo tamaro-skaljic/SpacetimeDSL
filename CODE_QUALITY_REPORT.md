@@ -39,7 +39,7 @@ Additionally, the same `dsl_method` value is re-matched exhaustively several sep
 
 Recommendation: invert the structure. Instead of one function that switches on the variant repeatedly, give each variant a single place that produces a whole `SpacetimeDSLMethod`. Two shapes are reasonable, and the choice should be made by the developers:
 
-- **Option A — one function per variant.** `for_create(...)`, `for_get_all(...)`, `for_get_many(...)`, and so on, with a thin dispatcher that matches `DSLMethod` exactly once. Simplest, most direct, no new traits; keeps the code obvious. This aligns best with KISS.
+- **Option A — one function per variant. (developer decision)** `for_create(...)`, `for_get_all(...)`, `for_get_many(...)`, and so on, with a thin dispatcher that matches `DSLMethod` exactly once. Simplest, most direct, no new traits; keeps the code obvious. This aligns best with KISS.
 - **Option B — a trait with one implementor per variant.** Better if the variants need to share a documented extension contract, but it adds an abstraction layer that `AGENTS.md` says to defer until duplication justifies it.
 
 Option A is the safer default: it removes all of the redundant matching and every unreachable `panic!` arm without introducing indirection. Either way, the enum should be reshaped so the "index-based" variants and the "table-wide" variants are distinguishable by type, so that the "should already be processed" panics become impossible to express rather than merely unreached.
@@ -74,7 +74,7 @@ Three separate problems in one signature:
 
 Recommendation: rename to describe what it does (for example `generate` or `for_table`). Then decide, deliberately, which of two directions to take the `Result`:
 
-- **Keep `syn::Result` and start using it** — convert the user-facing `panic!`s into `syn::Error` with the offending span, so invalid attribute usage produces a pointed compiler diagnostic instead of a macro panic. This is the better outcome for users and is what the Robustness Principle asks for.
+- **Keep `syn::Result` and start using it (developer decision)** — convert the user-facing `panic!`s into `syn::Error` with the offending span, so invalid attribute usage produces a pointed compiler diagnostic instead of a macro panic. This is the better outcome for users and is what the Robustness Principle asks for.
 - **Drop `syn::Result`** — only defensible if the developers conclude that every remaining failure really is an internal invariant violation.
 
 These are not equivalent, and the choice affects the module's whole error strategy, so the developers should make it explicitly rather than by default. Once the `&mut` mutation is removed, the by-value/return-it-back parameter can become a plain reference.
@@ -85,7 +85,7 @@ These are not equivalent, and the choice affects the module's whole error strate
 
 `additional_paths_to_use` is declared as an empty vector, passed into `reference_integrity_checks_on_create_or_update`, returned from it completely unchanged, reassigned from the returned tuple, and finally stored on the generated method — where the downstream output stage faithfully emits `use <path> as _;` for each entry. It is never pushed to, anywhere in the codebase. The other generators simply declare it as an empty vector and store it. The entire round trip is a no-op that complicates two signatures and one return type.
 
-Recommendation: the developers must decide for themselves whether this is genuinely no longer needed or whether the fact that it is unused is actually a bug — that is, whether `reference_integrity_checks_on_create_or_update` was *supposed* to collect the paths of referenced tables so the generated code can `use` them, and silently stopped doing so. The generated `use ... as _;` emission downstream suggests a real intended purpose. If the feature is wanted, restore the population; if not, delete the field, the parameter, the tuple return, and the downstream emission in the same pass.
+Recommendation: the developers must decide for themselves whether this is genuinely no longer needed (developer decision) or whether the fact that it is unused is actually a bug — that is, whether `reference_integrity_checks_on_create_or_update` was *supposed* to collect the paths of referenced tables so the generated code can `use` them, and silently stopped doing so. The generated `use ... as _;` emission downstream suggests a real intended purpose. If the feature is wanted, restore the population; if not, delete the field, the parameter, the tuple return, and the downstream emission in the same pass.
 
 ### `method.rs`: `get_referencing_table_trait_name(...)` and its discarded call
 
@@ -93,7 +93,7 @@ Recommendation: the developers must decide for themselves whether this is genuin
 
 `for_referenced_by` computes `referencing_table_trait_name`, then discards it with `let _ = &referencing_table_trait_name;` and an inline comment stating the trait is no longer generated and an inherent `impl` is used instead. The helper function that builds the name is otherwise unreferenced, and the PascalCase conversions of the table names exist only to feed it.
 
-Recommendation: the developers must decide for themselves whether this trait naming is genuinely no longer needed or whether its absence is actually a bug — the comment claims the trait was intentionally replaced, but a comment is not verification. If the replacement is complete, delete the helper, the discarding statement, and the PascalCase values that only feed it. The comment explaining the removal belongs in the commit message, not in the source.
+Recommendation: the developers must decide for themselves whether this trait naming is genuinely no longer needed (developer decision) or whether its absence is actually a bug — the comment claims the trait was intentionally replaced, but a comment is not verification. If the replacement is complete, delete the helper, the discarding statement, and the PascalCase values that only feed it. The comment explaining the removal belongs in the commit message, not in the source.
 
 ### `method.rs`: `strategy_before_all`
 
@@ -102,6 +102,8 @@ Recommendation: the developers must decide for themselves whether this trait nam
 `strategy_before_all` is bound to an empty `quote! {}` and never reassigned, yet it is interpolated into both output arms of `get_on_delete_strategy_implementation` as a placeholder. It emits nothing.
 
 Recommendation: the developers must decide for themselves whether this is dead scaffolding or a missing implementation — the name and its symmetry with `strategy_after_all` (which *is* populated) suggest a slot someone intended to fill. Either populate it or remove the binding and both interpolations.
+
+Developer decision: Keep, even if it violates YAGNI and KISS that it is there and unused at the moment.
 
 ### `method.rs`: commented-out `set_none_strategy` blocks and in-`quote!` TODO markers
 
@@ -117,9 +119,9 @@ Recommendation: delete every commented-out `set_none_strategy` block and the in-
 
 The format string that describes "these columns had these values", used in `NotFoundError` and `UniqueConstraintViolation` messages, is built by imperative string pushes in more than one place: once inside `for_method` (with a branch per `IndexType`) and again inside `multi_column_index_checks`. The two builders produce **different** formats — one wraps the result in braces, the other does not — and the placeholder-to-argument correspondence is maintained by hand in parallel with a separately built list of row-value getters.
 
-The copies have already drifted into a defect. In `for_method`, the opening brace is pushed first and then the single-column branches push a separator-prefixed column segment, so single-column indices produce a message with a stray leading comma before the first column name. The multi-column branch pushes its first column without the separator and is correct. This is precisely the failure mode duplication causes: one copy was fixed, the other was not.
+The copies have already drifted into a defect. In `for_method`, the opening brace is pushed first and then the single-column branches push a separator-prefixed column segment, so single-column indices produce a message with a stray leading comma before the first column name. The multi-column branch pushes its first column without the separator and is correct (developer decision). This is precisely the failure mode duplication causes: one copy was fixed, the other was not.
 
-Recommendation: this is a case where the logic has drifted and carries an invariant — the format string's placeholder count must always match the row-value getter list. The developers should first understand the differences between the copies and decide which output format is the intended one (braced or unbraced, and what the correct separator placement is), because the messages are user-facing and changing them changes what users see. Once decided, extract a single builder that emits the format string **and** the matching getter list together as one value, so the two can no longer disagree. Add a test pinning the exact message text for a single-column index, a multi-column index, and a direct index before changing anything, so the fix is provably a fix.
+Recommendation: this is a case where the logic has drifted and carries an invariant — the format string's placeholder count must always match the row-value getter list. The developers should first understand the differences between the copies and decide which output format is the intended one (braced (developer decision) or unbraced, and what the correct separator placement is), because the messages are user-facing and changing them changes what users see. Once decided, extract a single builder that emits the format string **and** the matching getter list together as one value, so the two can no longer disagree. Add a test pinning the exact message text for a single-column index, a multi-column index, and a direct index before changing anything, so the fix is provably a fix.
 
 ### `method.rs`: the `DeleteOne` and `DeleteMany` implementation assembly
 
@@ -131,6 +133,8 @@ They are not identical, though: the singular path carries a hard-coded `count_of
 
 Recommendation: the logic has drifted and the differences may be intentional. The developers should first understand which differences are *required* by the one-row versus many-rows semantics and which are accidental — in particular whether the differing error message wording and the singleton path's divergent structure are deliberate. Only after that decision should the shared stage sequence be extracted into one assembler parameterised by the genuinely varying parts. Extracting before understanding the differences risks silently standardising on the wrong behaviour.
 
+Developer decision: Every difference is intentional, required and deliberate, nothing has drifted or is accidental.
+
 ### `method.rs`: the `OneOrMultiple` branch pairs
 
 **Violates:** Don't Repeat Yourself; Duplication Control & Reuse; Connascence of Algorithm
@@ -138,6 +142,8 @@ Recommendation: the logic has drifted and the differences may be intentional. Th
 `get_referenced_table_function_call_for_dsl_method`, `for_referenced_by`, `for_foreign_key`, and `get_on_delete_strategy_implementation` each contain a `match one_or_multiple` whose two arms emit structurally parallel token streams differing only in whether the accumulator is a `Vec` or a `HashMap` and whether the body is wrapped in a loop. The same `Vec`-versus-`HashMap` accumulation-and-append pattern is spelled out separately in each.
 
 Recommendation: as with the delete paths, the developers should first confirm the arms really are parallel and that no arm has accumulated a fix the other lacks. Where they are confirmed parallel, extract the accumulator handling into a single helper that takes `one_or_multiple` and the per-row body, so the two shapes exist in exactly one place. Where an arm has genuinely diverged, that divergence should be documented as intentional rather than left for the next reader to re-derive.
+
+Developer decision: Same as the delete paths, every difference is intentional, required and deliberate, nothing has drifted or is accidental.
 
 ### `method.rs`: `OneOrMultiple` used for two unrelated concepts
 
@@ -148,6 +154,8 @@ Recommendation: as with the delete paths, the developers should first confirm th
 This is exactly the coupling `AGENTS.md` warns about: two call sites agree on a meaning that the type name contradicts, and nothing enforces it.
 
 Recommendation: the developers should determine what the generated error payload is *supposed* to report in the multi-column update case, since the current behaviour may be reporting a column-count fact in a field documented as a row-count fact. Once that is settled, give the column-arity concept its own type (or pass the column list and let the callee decide), so `OneOrMultiple` retains one meaning.
+
+Developer decision: The type name contradicts nothing, as it doesn't state it is for columns, rows, functions or whatever. "OneOrMultiple" is deliberately just a differentiator between "One" or "Multiple" and will never change. That it is used everywhere for "rows" except at one site where it is used for "columns" does not mean that it was created to be only used for "rows", instead it was intentional design that the type gives only information about whether there is "one" or there are "multiple" of a generic something. Keep it one type, do not introduce multiple types for THE SAME concept.
 
 ### `method.rs`: hook token emission
 
@@ -185,7 +193,9 @@ The name is plural but the function handles exactly one column. It returns an un
 
 Internally it serves two different callers through a mode flag, with early returns that apply to only one mode, so reading the Create path means skipping over Update concerns and vice versa.
 
-Recommendation: rename to the singular. Replace the tuple with a named struct whose fields say what they are — this alone removes the positional coupling at every call site. Then decide whether Create and Update should be separate functions: they share the wrapper-type handling but differ in whether they read the field directly or through a getter, and in Create's auto-increment/timestamp/singleton pre-handling. Splitting them and sharing only the wrapper-type logic is probably cleaner, but the developers should confirm the shared portion really is identical before splitting, since a split that duplicates drifting logic would trade one violation for another.
+Recommendation: rename to the singular. Replace the tuple with a named struct whose fields say what they are — this alone removes the positional coupling at every call site. Then decide whether Create and Update should be separate functions (developer decision: yes): they share the wrapper-type handling but differ in whether they read the field directly or through a getter, and in Create's auto-increment/timestamp/singleton pre-handling. Splitting them and sharing only the wrapper-type logic is probably cleaner, but the developers should confirm the shared portion really is identical before splitting, since a split that duplicates drifting logic would trade one violation for another.
+
+Developer decision: Split into separate functions. While they share wrapper type handling in this isolated function, the update path is discarding them silently anyway, so they are only relevant for the create-path and can be removed from the update-related function extracted from this function. Note that `wrapper_type_option_to_wrapped_type_option_mapper` is only irrelevant for update paths in this specific, isolated function. There are other functions which have a local variable with the same name and there it is assigned in several ways, so the change is really only isolated to this one function and the two call sited.
 
 ### `method.rs`: `reference_integrity_checks_on_create_or_update(...)`
 
@@ -228,7 +238,7 @@ The singleton table concept is special-cased independently in the column-method 
 
 Changing anything about how singletons are represented therefore requires finding and editing every one of these sites, and missing one produces inconsistent generated code rather than a compile error.
 
-Recommendation: define the singleton contract in one place — the sentinel primary key name, its type, its value, and its rendered representation — and have every site read from it. Then consider whether the singleton generation paths should be selected once at the top (a distinct generation strategy) rather than re-tested inside each branch. The developers should decide how far to take this: a single shared constant set is cheap and clearly correct, whereas a separate singleton generation path is a larger structural change that only pays off if singleton behaviour continues to diverge.
+Recommendation: define the singleton contract in one place — the sentinel primary key name, its type, its value, and its rendered representation — and have every site read from it. Then consider whether the singleton generation paths should be selected once (developer decision) at the top (a distinct generation strategy) rather than re-tested inside each branch. The developers should decide how far to take this: a single shared constant set is cheap and clearly correct, whereas a separate singleton generation path (developer decision) is a larger structural change that only pays off if singleton behaviour continues to diverge.
 
 ### `method.rs`: fully qualified generated paths repeated inline
 
@@ -265,7 +275,7 @@ The module panics in two distinct situations that it does not distinguish:
 - **Internal invariants** — "should already be processed", "When this code is called, it should be a single column index", and the many `expect` calls on collection lookups. These are the generator asserting its own consistency.
 - **User input errors** — mismatched foreign key column types and mismatched foreign key paths both `panic!` with a prose message. These are reachable purely by a user writing a valid-looking but unsupported attribute combination, and the result is a proc-macro panic with no span, rather than a compiler error pointing at the offending attribute.
 
-Recommendation: separate the two. User input errors should become `syn::Error` values carrying the span of the offending field or attribute, surfaced through the `syn::Result` that the entry point already returns but never uses (see the `try_parse` entry above — the two changes belong together). Internal invariants may remain panics, but each should state the invariant it protects. The developers should audit which of the current `expect` calls are genuinely unreachable and which are user-reachable; that audit is the deciding input, and it cannot be made from the message text alone.
+Recommendation: separate the two. (developer decision) User input errors should become `syn::Error` values carrying the span of the offending field or attribute, surfaced through the `syn::Result` that the entry point already returns but never uses (see the `try_parse` entry above — the two changes belong together). Internal invariants may remain panics, but each should state the invariant it protects. The developers should audit which of the current `expect` calls are genuinely unreachable and which are user-reachable; that audit is the deciding input, and it cannot be made from the message text alone.
 
 ### `method.rs`: unverified branches and an apparently non-compiling emission
 
@@ -274,6 +284,45 @@ Recommendation: separate the two. User input errors should become `syn::Error` v
 The crate contains no unit tests. `examples/test` is a `cdylib` compiled against the macro; it demonstrates that the paths those examples exercise produce compilable output, and asserts nothing about the output's content. Any generated-code branch not reached by an example is entirely unverified.
 
 At least one such branch appears to be broken. The wrapper-type option mapper generated for an optional, wrapper-typed index column emits a `match` whose final arm is terminated with a semicolon inside the braces and whose overall expression is not terminated — tokens that would not compile if a user ever triggered that path. This branch cannot have been exercised.
+
+```rust
+wrapper_type_option_to_wrapped_type_option_mapper = quote! {
+    let #column_name = match #column_name.into() {
+        None => None,
+        Some(#column_name) => Some(Into::<#wrapper_type_ty>::into(#column_name).value()); // wrong ;
+    } // missing ;
+};
+```
+
+Note from developer START: The reason why this path was never emitted is that Spacetime **DB** currently doesn't support indices on types wrapped in an `Option<T>`. I have added a column to the "Test" table in the example which is an wrapped non-String Option and when I've added a index, it produced the currently implemented panic handler for such a case:
+
+```rust
+custom attribute panicked
+message: 
+
+Congratulations, you have found a bug in SpacetimeDSL!
+
+We would be very pleased if you can create an issue in our GitHub repository: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/new
+
+Please include your table definition as well as the following, malformed, code generation result - thank you very much!
+
+impl < T : crate :: spacetimedsl :: WriteContext > crate :: spacetimedsl :: DSL < '_, T > { #[allow(clippy :: needless_lifetimes, clippy :: too_many_arguments)] pub fn get_tests_by_wrapped_timestamp_option < 'a > (& 'a self, wrapped_timestamp_option : & impl Into < Option < TestWrappedTimestampOption >>) -> impl Iterator < Item = Test > { use :: spacetimedsl :: Wrapper; use spacetimedb :: { CtxDbRead, CtxDbWrite, Table as _ }; let wrapped_timestamp_option = match wrapped_timestamp_option.into() { None => None, Some(wrapped_timestamp_option) => Some(Into :: < TestWrappedTimestampOption > :: into(wrapped_timestamp_option).value()), } self.db().test().wrapped_timestamp_option().filter(wrapped_timestamp_option) } }
+```
+
+Note that there is another bug which only appears when adding a `#[unique]` rather than a `#[index(btree)]` to the column:
+
+```txt
+`Option<Option<spacetimedb::Timestamp>>` doesn't implement `std::fmt::Display`
+the trait `std::fmt::Display` is not implemented for `Option<Option<spacetimedb::Timestamp>>`
+in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+required for `&Option<Option<spacetimedb::Timestamp>>` to implement `std::fmt::Display`
+macros.rs(114, 33): Actual error occurred here
+macros.rs(114, 33): Error originated from macro call here
+```
+
+This is a defect of SpacetimeDSL and must be traced to its origin, so that it will work flawlessly when SpacetimeDB implements indices for option types.
+
+Note from developer END.
 
 The `Update` path also carries an unanswered correctness question in a comment, noting that the `String` handling was written for single-column indices and asking whether it works for multi-column indices. That question has been left in the source rather than answered.
 
