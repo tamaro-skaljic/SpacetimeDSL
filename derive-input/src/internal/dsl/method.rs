@@ -1343,8 +1343,8 @@ pub(in crate::internal) fn for_method(
                                     wrapper_type_option_to_wrapped_type_option_mapper = quote! {
                                         let #column_name = match #column_name.into() {
                                             None => None,
-                                            Some(#column_name) => Some(Into::<#wrapper_type_ty>::into(#column_name).value());
-                                        }
+                                            Some(#column_name) => Some(Into::<#wrapper_type_ty>::into(#column_name).value()),
+                                        };
                                     };
 
                                     method_arg = SpacetimeDSLArg {

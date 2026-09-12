@@ -370,6 +370,10 @@ pub mod component {
             #[create_wrapper]
             pub wrapped_string_option: Option<String>,
 
+            // FIXME: #[index(btree)] // Index on option is currently not supported.
+            #[create_wrapper]
+            pub wrapped_timestamp_option: Option<Timestamp>,
+
             #[index(direct)]
             #[unique]
             pub direct_index: u8,
@@ -1674,6 +1678,7 @@ pub mod test {
             index_on_wrapped_string: "index_on_wrapped_string".to_string(),
             unique_on_wrapped_string: "unique_on_wrapped_string".to_string(),
             wrapped_string_option: Some("wrapped_string_option".to_string()),
+            wrapped_timestamp_option: Some(ctx.timestamp),
             direct_index: 0,
             tags: vec![],
             scheduled_at: ScheduleAt::Time(ctx.timestamp),
@@ -1690,6 +1695,7 @@ pub mod test {
             index_on_wrapped_string: "index_on_wrapped_string".to_string(),
             unique_on_wrapped_string: "unique_on_wrapped_string2".to_string(),
             wrapped_string_option: Some("wrapped_string_option".to_string()),
+            wrapped_timestamp_option: Some(ctx.timestamp),
             direct_index: 1,
             tags: vec![],
             scheduled_at: ScheduleAt::Time(ctx.timestamp),
