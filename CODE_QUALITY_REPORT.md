@@ -60,7 +60,7 @@ Recommendation: introduce a single generation-context struct (for example `Metho
 
 `AGENTS.md` is explicit that CQS wins over Minimize Coupling for internal methods, and these are internal methods.
 
-Recommendation: make the writes part of the return value. Have each generator return its produced method *together with* whatever it wants recorded (the create-argument struct, the set of compile-error checks), and let the single orchestrating caller apply them to the table. This also removes the reason `try_parse` currently takes the table by value and hands it back.
+Recommendation: make the writes part of the return value. Have each generator return its produced method _together with_ whatever it wants recorded (the create-argument struct, the set of compile-error checks), and let the single orchestrating caller apply them to the table. This also removes the reason `try_parse` currently takes the table by value and hands it back.
 
 ### `method.rs`: `SpacetimeDSLTableMethods::try_parse(...) -> syn::Result<(SpacetimeDSLTableMethods, SpacetimeDSLTable)>`
 
@@ -85,7 +85,7 @@ These are not equivalent, and the choice affects the module's whole error strate
 
 `additional_paths_to_use` is declared as an empty vector, passed into `reference_integrity_checks_on_create_or_update`, returned from it completely unchanged, reassigned from the returned tuple, and finally stored on the generated method — where the downstream output stage faithfully emits `use <path> as _;` for each entry. It is never pushed to, anywhere in the codebase. The other generators simply declare it as an empty vector and store it. The entire round trip is a no-op that complicates two signatures and one return type.
 
-Recommendation: the developers must decide for themselves whether this is genuinely no longer needed (developer decision) or whether the fact that it is unused is actually a bug — that is, whether `reference_integrity_checks_on_create_or_update` was *supposed* to collect the paths of referenced tables so the generated code can `use` them, and silently stopped doing so. The generated `use ... as _;` emission downstream suggests a real intended purpose. If the feature is wanted, restore the population; if not, delete the field, the parameter, the tuple return, and the downstream emission in the same pass.
+Recommendation: the developers must decide for themselves whether this is genuinely no longer needed (developer decision) or whether the fact that it is unused is actually a bug — that is, whether `reference_integrity_checks_on_create_or_update` was _supposed_ to collect the paths of referenced tables so the generated code can `use` them, and silently stopped doing so. The generated `use ... as _;` emission downstream suggests a real intended purpose. If the feature is wanted, restore the population; if not, delete the field, the parameter, the tuple return, and the downstream emission in the same pass.
 
 ### `method.rs`: `get_referencing_table_trait_name(...)` and its discarded call
 
@@ -101,7 +101,7 @@ Recommendation: the developers must decide for themselves whether this trait nam
 
 `strategy_before_all` is bound to an empty `quote! {}` and never reassigned, yet it is interpolated into both output arms of `get_on_delete_strategy_implementation` as a placeholder. It emits nothing.
 
-Recommendation: the developers must decide for themselves whether this is dead scaffolding or a missing implementation — the name and its symmetry with `strategy_after_all` (which *is* populated) suggest a slot someone intended to fill. Either populate it or remove the binding and both interpolations.
+Recommendation: the developers must decide for themselves whether this is dead scaffolding or a missing implementation — the name and its symmetry with `strategy_after_all` (which _is_ populated) suggest a slot someone intended to fill. Either populate it or remove the binding and both interpolations.
 
 Developer decision: Keep, even if it violates YAGNI and KISS that it is there and unused at the moment.
 
@@ -109,7 +109,7 @@ Developer decision: Keep, even if it violates YAGNI and KISS that it is there an
 
 **Violates:** Unused scaffolding removed immediately; Optimize for Deletion; Documentation & Communication Clarity (_Future ideas captured outside codebase_, _Log blockers to future cleanups for retrospectives_)
 
-The `SetNone` on-delete strategy is present as commented-out code in several generator functions, plus `//TODO ... #set_none_strategy` markers *inside* `quote!` bodies, meaning the comment is emitted into the generated source that users read. The work is already tracked in a linked issue.
+The `SetNone` on-delete strategy is present as commented-out code in several generator functions, plus `//TODO ... #set_none_strategy` markers _inside_ `quote!` bodies, meaning the comment is emitted into the generated source that users read. The work is already tracked in a linked issue.
 
 Recommendation: delete every commented-out `set_none_strategy` block and the in-`quote!` markers. The issue is the correct home for the deferred work, and it already exists — the commented code adds nothing the issue does not already carry, while making every surrounding function longer and noisier. If the commented code contains a design detail not captured in the issue, move that detail into the issue first, then delete.
 
@@ -131,7 +131,7 @@ The two delete paths assemble their generated bodies from the same sequence of s
 
 They are not identical, though: the singular path carries a hard-coded `count_of_rows_to_delete ( 1 )` message while the plural path formats real counts, the entry container is a `Vec` in one and a `HashMap` in the other, and the singleton sub-path of `DeleteOne` is a third, separately written variant that skips the `Itertools` conditionality and hard-codes the primary key.
 
-Recommendation: the logic has drifted and the differences may be intentional. The developers should first understand which differences are *required* by the one-row versus many-rows semantics and which are accidental — in particular whether the differing error message wording and the singleton path's divergent structure are deliberate. Only after that decision should the shared stage sequence be extracted into one assembler parameterised by the genuinely varying parts. Extracting before understanding the differences risks silently standardising on the wrong behaviour.
+Recommendation: the logic has drifted and the differences may be intentional. The developers should first understand which differences are _required_ by the one-row versus many-rows semantics and which are accidental — in particular whether the differing error message wording and the singleton path's divergent structure are deliberate. Only after that decision should the shared stage sequence be extracted into one assembler parameterised by the genuinely varying parts. Extracting before understanding the differences risks silently standardising on the wrong behaviour.
 
 Developer decision: Every difference is intentional, required and deliberate, nothing has drifted or is accidental.
 
@@ -153,7 +153,7 @@ Developer decision: Same as the delete paths, every difference is intentional, r
 
 This is exactly the coupling `AGENTS.md` warns about: two call sites agree on a meaning that the type name contradicts, and nothing enforces it.
 
-Recommendation: the developers should determine what the generated error payload is *supposed* to report in the multi-column update case, since the current behaviour may be reporting a column-count fact in a field documented as a row-count fact. Once that is settled, give the column-arity concept its own type (or pass the column list and let the callee decide), so `OneOrMultiple` retains one meaning.
+Recommendation: the developers should determine what the generated error payload is _supposed_ to report in the multi-column update case, since the current behaviour may be reporting a column-count fact in a field documented as a row-count fact. Once that is settled, give the column-arity concept its own type (or pass the column list and let the callee decide), so `OneOrMultiple` retains one meaning.
 
 Developer decision: The type name contradicts nothing, as it doesn't state it is for columns, rows, functions or whatever. "OneOrMultiple" is deliberately just a differentiator between "One" or "Multiple" and will never change. That it is used everywhere for "rows" except at one site where it is used for "columns" does not mean that it was created to be only used for "rows", instead it was intentional design that the type gives only information about whether there is "one" or there are "multiple" of a generic something. Keep it one type, do not introduce multiple types for THE SAME concept.
 
@@ -169,7 +169,7 @@ Recommendation: extract a single helper that takes the optional hook and the cal
 
 **Violates:** Don't Repeat Yourself; Law of Demeter; Duplication Control & Reuse
 
-Resolving a `WrapperType` to its struct name or path — matching `Created` to `wrapper_struct_name` and `Used` to `wrapper_struct_name_or_path`, then `to_token_stream()` — is written out inline at each site that needs it, each time preceded by an `expect` on the primary key column's optional wrapper type, and each time with a *differently worded* expect message for the same condition.
+Resolving a `WrapperType` to its struct name or path — matching `Created` to `wrapper_struct_name` and `Used` to `wrapper_struct_name_or_path`, then `to_token_stream()` — is written out inline at each site that needs it, each time preceded by an `expect` on the primary key column's optional wrapper type, and each time with a _differently worded_ expect message for the same condition.
 
 The inline matching also reaches through the primary key column into its wrapper type into that wrapper's fields — a Law of Demeter violation that couples this module to `WrapperType`'s internal variant layout, so adding a variant forces edits here.
 
@@ -264,7 +264,7 @@ Field and local names such as `execute_on_delete_strategies_of_referencing_table
 
 `AGENTS.md` forbids abbreviation, so shortening these by truncating words is not an option and should not be attempted.
 
-Recommendation: shorten by *namespacing*, not abbreviating. Group the related pair into a small struct — for example a type holding `after_one_row_was_deleted` and `after_multiple_rows_were_deleted` — so the shared prefix lives in the type name and each field keeps a fully spelled, unabbreviated name. This satisfies both the no-abbreviation rule and readability. Note that the *generated* function names (which users see and call) are a separate question and should not be changed without considering the effect on the public generated API.
+Recommendation: shorten by _namespacing_, not abbreviating. Group the related pair into a small struct — for example a type holding `after_one_row_was_deleted` and `after_multiple_rows_were_deleted` — so the shared prefix lives in the type name and each field keeps a fully spelled, unabbreviated name. This satisfies both the no-abbreviation rule and readability. Note that the _generated_ function names (which users see and call) are a separate question and should not be changed without considering the effect on the public generated API.
 
 ### `method.rs`: panics used for both internal invariants and user input errors
 
