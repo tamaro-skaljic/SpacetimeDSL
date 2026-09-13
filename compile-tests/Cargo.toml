@@ -1,5 +1,5 @@
 [package]
-name = "spacetimedsl_compile_tests"
+name = "spacetimedsl-compile-tests"
 version = "0.22.0"
 edition = "2024"
 description = "Compile tests which pin the diagnostics SpacetimeDSL emits for invalid table definitions. Not published - it exists only to be tested."

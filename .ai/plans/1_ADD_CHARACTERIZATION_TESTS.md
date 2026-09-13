@@ -312,7 +312,7 @@ New workspace member, added to `members` in the root `Cargo.toml`.
 
 ```
 compile-tests/
-  Cargo.toml           # name = "spacetimedsl_compile_tests", publish = false
+  Cargo.toml           # name = "spacetimedsl-compile-tests", publish = false
                        # [dependencies] spacetimedsl (path = ".."), spacetimedb
                        # [dev-dependencies] trybuild = "1"
   src/lib.rs           # empty
@@ -379,7 +379,7 @@ Add a `generate_unit_test` function emitting a `unit-test` case:
 
 ```
 cargo test -p spacetimedsl_derive
-cargo test -p spacetimedsl_compile_tests
+cargo test -p spacetimedsl-compile-tests
 ```
 
 Register it in `generate()` (after `generate_test`), add `"unit-test"` to the
@@ -481,7 +481,7 @@ items 2–14 keep their existing references.
 ```bash
 cargo build --workspace
 cargo test -p spacetimedsl_derive          # snapshots
-cargo test -p spacetimedsl_compile_tests   # trybuild
+cargo test -p spacetimedsl-compile-tests   # trybuild
 cargo insta pending-snapshots              # must be empty
 cargo insta test --unreferenced=reject     # no orphaned snapshot files
 ./x.sh unit-test
