@@ -6,7 +6,7 @@
 //! `::spacetimedsl::spacetimedsl!()`, defines the table which triggers the diagnostic and
 //! ends in an empty `main`.
 //!
-//! Run with `TRYBUILD=overwrite cargo test -p spacetimedsl_compile_tests` to regenerate
+//! Run with `TRYBUILD=overwrite cargo test -p spacetimedsl-compile-tests` to regenerate
 //! the `.stderr` files after a deliberate change to a diagnostic, then read every diff
 //! before committing it.
 //!

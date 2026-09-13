@@ -10,17 +10,11 @@ repository = "https://github.com/tamaro-skaljic/SpacetimeDSL"
 publish = true
 include = ["README.md", "/src/**"]
 keywords = ["dsl", "spacetime", "macro", "codegen", "boilerplate"]
-readme = "README.md"
 
 [dependencies]
-# https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
-spacetimedb = { version = "2.7.0", features = ["unstable"] }
-
-# https://crates.io/crates/spacetimedsl_derive Macros to extend SpacetimeDSL
-spacetimedsl_derive = { version = "0.22.0", path = "derive" }
-
-# https://crates.io/crates/itertools Extra iterator adaptors, iterator methods, free functions, and macros.
-itertools = "^0.14"
+spacetimedb.workspace = true
+spacetimedsl_derive.workspace = true
+itertools.workspace = true
 
 [workspace]
 members = [
@@ -31,3 +25,55 @@ members = [
     "examples/test",
     "examples/blackholio",
 ]
+
+[workspace.dependencies]
+# https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
+spacetimedb = { version = "=2.7.0", features = ["unstable"] }
+
+# https://crates.io/crates/spacetimedsl The SpacetimeDB Rust Server Module meta-framework
+spacetimedsl = { version = "=0.22.0", path = "." }
+
+# https://crates.io/crates/spacetimedsl_derive Macros to extend SpacetimeDSL
+spacetimedsl_derive = { version = "=0.22.0", path = "derive" }
+
+# https://crates.io/crates/spacetimedsl_derive-input Contains structs which represent the output of SpacetimeDSL.
+spacetimedsl_derive-input = { version = "=0.22.0", path = "derive-input" }
+
+# https://crates.io/crates/itertools Extra iterator adaptors, iterator methods, free functions, and macros.
+itertools = "=0.15"
+
+# https://crates.io/crates/trybuild Test harness for ui tests of compiler diagnostics
+trybuild = { version = "=1.0.121" }
+
+# https://crates.io/crates/colored The most simple way to add colors in your terminal
+colored = { version = "=3.1.1" }
+
+# https://crates.io/crates/proc_macro2 A substitute implementation of the compiler's `proc_macro` API to decouple token-based libraries from the procedural macro use case.
+proc-macro2 = { version = "=1.0.107" }
+
+# https://crates.io/crates/syn Parser for Rust source code
+syn = { version = "=2.0.119", default-features = false } # FIXME: 3.0.5
+
+# https://crates.io/crates/quote Quasi-quoting macro quote!(...)
+quote = { version = "=1.0.47" }
+
+# https://crates.io/crates/rust-format A Rust source code formatting crate with a unified interface for string, file, and TokenStream input
+rust-format = { version = "=0.3.4", features = [
+    "pretty_please",
+    "token_stream",
+] }
+
+# https://crates.io/crates/insta A snapshot testing library for Rust
+insta = { version = "=1.48.0" }
+
+# https://crates.io/crates/ident_case Utility for applying case rules to Rust identifiers.
+ident_case = { version = "=1.0.1" }
+
+# https://crates.io/crates/spacetime-bindings-macro-input Unofficial Input Crate for the SpacetimeDB Macro Bindings.
+spacetime-bindings-macro-input = { version = "=2.0.1" }
+
+# https://crates.io/crates/strum Helpful macros for working with enums and strings
+strum = { version = "=0.28.0", features = ["derive"] }
+
+# https://crates.io/crates/log A lightweight logging facade for Rust
+log = { version = "=0.4.34" }

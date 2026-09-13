@@ -180,7 +180,7 @@ generate_unit_test() {
     echo
     cmd_echo "$shell" "Checking the diagnostics for rejected tables..."
     cmd_echo "$shell"
-    cmd_cargo "test -p spacetimedsl_compile_tests"
+    cmd_cargo "test -p spacetimedsl-compile-tests"
     switch_case_end "$shell"
     echo
 }

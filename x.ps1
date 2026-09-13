@@ -52,7 +52,7 @@ switch ($Command) {
 
         Write-Output "Checking the diagnostics for rejected tables..."
         Write-Output ""
-        cargo test -p spacetimedsl_compile_tests
+        cargo test -p spacetimedsl-compile-tests
     }
 
     "format" {

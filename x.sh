@@ -48,7 +48,7 @@ case "$1" in
 
         echo "Checking the diagnostics for rejected tables..."
         echo
-        cargo test -p spacetimedsl_compile_tests
+        cargo test -p spacetimedsl-compile-tests
         ;;
 
     format)
