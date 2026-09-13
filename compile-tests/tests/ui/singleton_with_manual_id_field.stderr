@@ -1,0 +1,5 @@
+error: Singleton tables automatically add `#[primary_key] id: u8`. Do not define an `id` field manually!
+  --> tests/ui/singleton_with_manual_id_field.rs:10:9
+   |
+10 |         id: u8,
+   |         ^^^^^^

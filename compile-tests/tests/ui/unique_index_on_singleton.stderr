@@ -1,0 +1,33 @@
+error: `unique_index` is not allowed on singleton tables!
+  --> tests/ui/unique_index_on_singleton.rs:7:5
+   |
+ 7 | /     #[spacetimedsl::dsl(
+ 8 | |         singleton,
+ 9 | |         method(update = true),
+10 | |         unique_index(name = world_name_and_seed),
+11 | |     )]
+   | |______^
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: `#[index]` and `#[unique]` are not allowed on singleton tables! Found index on column `world_name`.
+  --> tests/ui/unique_index_on_singleton.rs:23:5
+   |
+23 | /     #[spacetimedsl::dsl(
+24 | |         singleton,
+25 | |         method(update = true),
+26 | |     )]
+   | |______^
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: `#[index]` and `#[unique]` are not allowed on singleton tables! Found index on column `seed`.
+  --> tests/ui/unique_index_on_singleton.rs:38:5
+   |
+38 | /     #[spacetimedsl::dsl(
+39 | |         singleton,
+40 | |         method(update = true),
+41 | |     )]
+   | |______^
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

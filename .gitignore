@@ -11,3 +11,6 @@ target/
 
 # Spacetime ignore
 /.spacetime
+
+# Compile-test output which did not match the pinned .stderr, written by `trybuild` for review
+/compile-tests/wip
