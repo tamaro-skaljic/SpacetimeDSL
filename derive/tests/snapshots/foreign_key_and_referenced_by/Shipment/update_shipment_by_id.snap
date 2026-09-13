@@ -1,0 +1,109 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Shipment` row of the `shipment` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_shipment_by_id<'a>(
+        &'a self,
+        shipment: Shipment,
+    ) -> Result<Shipment, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut shipment = shipment;
+        let mut the_same_or_another_shipment: Option<Shipment> = None;
+        let origin_warehouse_id = shipment.get_origin_warehouse_id().value();
+        let destination_warehouse_id = shipment.get_destination_warehouse_id().value();
+        if origin_warehouse_id.ne(&0) {
+            if the_same_or_another_shipment.is_none() {
+                the_same_or_another_shipment = match self
+                    .db()
+                    .shipment()
+                    .id()
+                    .find(shipment.get_id().value())
+                {
+                    Some(shipment) => Some(shipment),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "shipment".into(),
+                            column_names_and_row_values: format!(
+                                "{{ , id : {}  }}", origin_warehouse_id
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_shipment
+                .as_ref()
+                .expect("field_name_for_found_value should be Some(_)")
+                .get_origin_warehouse_id()
+                .ne(&shipment.get_origin_warehouse_id())
+            {
+                match self.get_warehouse_by_id(shipment.get_origin_warehouse_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "shipment".into(),
+                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", "origin_warehouse_id", origin_warehouse_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        if destination_warehouse_id.ne(&0) {
+            if the_same_or_another_shipment.is_none() {
+                the_same_or_another_shipment = match self
+                    .db()
+                    .shipment()
+                    .id()
+                    .find(shipment.get_id().value())
+                {
+                    Some(shipment) => Some(shipment),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "shipment".into(),
+                            column_names_and_row_values: format!(
+                                "{{ , id : {}  }}", destination_warehouse_id
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_shipment
+                .as_ref()
+                .expect("field_name_for_found_value should be Some(_)")
+                .get_destination_warehouse_id()
+                .ne(&shipment.get_destination_warehouse_id())
+            {
+                match self.get_warehouse_by_id(shipment.get_destination_warehouse_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "shipment".into(),
+                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", "destination_warehouse_id",
+                                    destination_warehouse_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        let shipment = self.db().shipment().id().update(shipment);
+        Ok(shipment)
+    }
+}

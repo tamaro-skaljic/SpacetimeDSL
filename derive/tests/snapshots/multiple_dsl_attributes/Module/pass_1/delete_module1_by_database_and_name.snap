@@ -1,0 +1,81 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Warning: The unique multi-column index feature of SpacetimeDSL is experimental.
+- It will be removed if unique multi-column indices are implemented in SpacetimeDB.
+- SpacetimeDSL is only able to enforce referential integrity if you never use the (mutating) `insert`, `update` and `delete` methods of `spacetimedb::ReducerContext` yourself.
+
+Try to delete a `Module` row in the `module1` table whose values match the values from the unique multi-column btree index `database_and_name` on the columns `database_id` and `name`.*/
+    pub fn delete_module1_by_database_and_name<'a>(
+        &'a self,
+        database_id: &u64,
+        name: &str,
+    ) -> Result<
+        crate::spacetimedsl::delete::DeletionResult,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use ::spacetimedsl::itertools::Itertools;
+        let mut the_same_or_another_module1: Option<Module> = None;
+        the_same_or_another_module1 = match self
+            .db()
+            .module1()
+            .database_and_name()
+            .filter((database_id, name))
+            .at_most_one()
+        {
+            Ok(module1) => module1,
+            Err(_) => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                    table_name: "module1".into(),
+                    action: crate::spacetimedsl::error::Action::Delete,
+                    error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    column_names_and_row_values: format!(
+                        "{{ database_id : {} , name : {} }}", database_id, name
+                    )
+                        .into(),
+                });
+            }
+        };
+        let row_to_delete = the_same_or_another_module1;
+        let row_to_delete = match row_to_delete {
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "module1".into(),
+                    column_names_and_row_values: format!(
+                        "{{ database_id : {} , name : {} }}", database_id, name
+                    )
+                        .into(),
+                });
+            }
+            Some(row_to_delete) => row_to_delete,
+        };
+        let mut deletion_result_entry = crate::spacetimedsl::delete::DeletionResultEntry {
+            table_name: "module1".into(),
+            column_name: "id".into(),
+            strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
+            row_value: format!("{}", ModuleId::new(row_to_delete.id.clone())).into(),
+            child_entries: vec![],
+        };
+        match self.db().module1().id().delete(&row_to_delete.id) {
+            false => {
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                        "Delete One Error: `count_of_rows_to_delete ( 1 ) != ( 0 ) count_of_deleted_rows`!"
+                            .to_string(),
+                    ),
+                );
+            }
+            true => {}
+        };
+        return Ok(crate::spacetimedsl::delete::DeletionResult {
+            table_name: "module1".into(),
+            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+            entries: vec![deletion_result_entry],
+        });
+    }
+}

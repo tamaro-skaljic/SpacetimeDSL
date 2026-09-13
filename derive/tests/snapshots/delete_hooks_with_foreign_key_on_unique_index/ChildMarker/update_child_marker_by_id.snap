@@ -1,0 +1,86 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `ChildMarker` row of the `child_marker` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_child_marker_by_id<'a>(
+        &'a self,
+        child_marker: ChildMarker,
+    ) -> Result<ChildMarker, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut child_marker = child_marker;
+        let mut the_same_or_another_child_marker: Option<ChildMarker> = None;
+        let parent_id = child_marker.get_parent_id().value();
+        if parent_id.ne(&0) {
+            if the_same_or_another_child_marker.is_none() {
+                the_same_or_another_child_marker = match self
+                    .db()
+                    .child_marker()
+                    .id()
+                    .find(child_marker.get_id().value())
+                {
+                    Some(child_marker) => Some(child_marker),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "child_marker".into(),
+                            column_names_and_row_values: format!(
+                                "{{ , id : {}  }}", parent_id
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_child_marker
+                .as_ref()
+                .expect("field_name_for_found_value should be Some(_)")
+                .get_parent_id()
+                .ne(&child_marker.get_parent_id())
+            {
+                match self.get_parent_record_by_id(child_marker.get_parent_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "child_marker".into(),
+                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", "parent_id", parent_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        if the_same_or_another_child_marker.is_none() {
+            the_same_or_another_child_marker = Some(
+                self
+                    .db()
+                    .child_marker()
+                    .id()
+                    .find(child_marker.id)
+                    .expect("Row should exist for update"),
+            );
+        }
+        use self::BeforeChildMarkerUpdateHook;
+        let child_marker = crate::spacetimedsl::DSLMethodHooks::before_child_marker_update(
+            self,
+            the_same_or_another_child_marker.as_ref().unwrap(),
+            child_marker,
+        )?;
+        let child_marker = self.db().child_marker().id().update(child_marker);
+        use self::AfterChildMarkerUpdateHook;
+        crate::spacetimedsl::DSLMethodHooks::after_child_marker_update(
+            self,
+            the_same_or_another_child_marker.as_ref().unwrap(),
+            &child_marker,
+        )?;
+        Ok(child_marker)
+    }
+}

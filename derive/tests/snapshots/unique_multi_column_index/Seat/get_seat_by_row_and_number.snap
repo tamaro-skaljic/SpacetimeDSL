@@ -1,0 +1,105 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Warning: The unique multi-column index feature of SpacetimeDSL is experimental.
+- It will be removed if unique multi-column indices are implemented in SpacetimeDB.
+- SpacetimeDSL is only able to enforce referential integrity if you never use the (mutating) `insert`, `update` and `delete` methods of `spacetimedb::ReducerContext` yourself.
+
+Try to get a `Seat` from the `seat` table whose values match the values from the unique multi-column btree index `row_and_number` on the columns `row_id` and `number`.*/
+    pub fn get_seat_by_row_and_number<'a>(
+        &'a self,
+        row_id: &u64,
+        number: &u32,
+    ) -> Result<Seat, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use ::spacetimedsl::itertools::Itertools;
+        let mut the_same_or_another_seat: Option<Seat> = None;
+        the_same_or_another_seat = match self
+            .db()
+            .seat()
+            .row_and_number()
+            .filter((row_id, number))
+            .at_most_one()
+        {
+            Ok(seat) => seat,
+            Err(_) => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                    table_name: "seat".into(),
+                    action: crate::spacetimedsl::error::Action::Get,
+                    error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    column_names_and_row_values: format!(
+                        "{{ row_id : {} , number : {} }}", row_id, number
+                    )
+                        .into(),
+                });
+            }
+        };
+        match the_same_or_another_seat {
+            Some(seat) => Ok(seat),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "seat".into(),
+                    column_names_and_row_values: format!(
+                        "{{ row_id : {} , number : {} }}", row_id, number
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Warning: The unique multi-column index feature of SpacetimeDSL is experimental.
+- It will be removed if unique multi-column indices are implemented in SpacetimeDB.
+- SpacetimeDSL is only able to enforce referential integrity if you never use the (mutating) `insert`, `update` and `delete` methods of `spacetimedb::ReducerContext` yourself.
+
+Try to get a `Seat` from the `seat` table whose values match the values from the unique multi-column btree index `row_and_number` on the columns `row_id` and `number`.*/
+    pub fn get_seat_by_row_and_number<'a>(
+        &'a self,
+        row_id: &u64,
+        number: &u32,
+    ) -> Result<Seat, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use ::spacetimedsl::itertools::Itertools;
+        let mut the_same_or_another_seat: Option<Seat> = None;
+        the_same_or_another_seat = match self
+            .db()
+            .seat()
+            .row_and_number()
+            .filter((row_id, number))
+            .at_most_one()
+        {
+            Ok(seat) => seat,
+            Err(_) => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                    table_name: "seat".into(),
+                    action: crate::spacetimedsl::error::Action::Get,
+                    error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    column_names_and_row_values: format!(
+                        "{{ row_id : {} , number : {} }}", row_id, number
+                    )
+                        .into(),
+                });
+            }
+        };
+        match the_same_or_another_seat {
+            Some(seat) => Ok(seat),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "seat".into(),
+                    column_names_and_row_values: format!(
+                        "{{ row_id : {} , number : {} }}", row_id, number
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

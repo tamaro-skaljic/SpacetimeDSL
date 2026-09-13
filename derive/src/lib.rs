@@ -2,63 +2,98 @@ use ident_case::RenameRule;
 use proc_macro::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use spacetimedsl_derive_input::api::Table;
+
+#[cfg(test)]
+mod characterization_tests;
 mod output;
 
 /// Add `#[dsl]` to your structs with `#[table]`
 /// to interact in a more ergonomic way than SpacetimeDB allows you by default.
 #[proc_macro_attribute]
 pub fn dsl(args: TokenStream, item: TokenStream) -> TokenStream {
+    let args = proc_macro2::TokenStream::from(args);
+    let item = proc_macro2::TokenStream::from(item);
+
+    ok_or_compile_error(|| expand_dsl_attribute(args, item))
+}
+
+/// The whole `#[dsl]` expansion on [`proc_macro2`] types, so it can be called
+/// outside of a procedural macro invocation - by the characterization tests, for example.
+fn expand_dsl_attribute(
+    args: proc_macro2::TokenStream,
+    item: proc_macro2::TokenStream,
+) -> syn::Result<proc_macro2::TokenStream> {
+    let ExpandedDSLAttribute {
+        derive_input,
+        generated_output,
+    } = expand_dsl_attribute_parts(args, item)?;
+
+    Ok(proc_macro2::TokenStream::from_iter([
+        quote!(#derive_input),
+        generated_output.into_token_stream(),
+    ]))
+}
+
+/// The expansion before its halves are concatenated, so the characterization tests
+/// can snapshot each generated DSL method on its own without parsing the [`Table`] twice.
+struct ExpandedDSLAttribute {
+    /// The item the macro echoes back, with the `derive(SpacetimeDSL)` helper attached.
+    derive_input: syn::DeriveInput,
+    generated_output: output::GeneratedOutput,
+}
+
+fn expand_dsl_attribute_parts(
+    args: proc_macro2::TokenStream,
+    item: proc_macro2::TokenStream,
+) -> syn::Result<ExpandedDSLAttribute> {
     // put this on the struct so we don't get unknown attribute errors
     let derive_table_helper = derive_table_helper_attr();
 
-    ok_or_compile_error(|| {
-        // Parse the input tokens into a syntax tree
-        let args = proc_macro2::TokenStream::from(args);
-        let mut derive_input: syn::DeriveInput = syn::parse(item)?;
+    // Parse the input tokens into a syntax tree
+    let mut derive_input: syn::DeriveInput = syn::parse2(item)?;
 
-        // Check if this is a singleton table by scanning args for the `singleton` keyword
-        let is_singleton = args.clone().into_iter().any(|token| {
-            if let proc_macro2::TokenTree::Ident(ident) = token {
-                ident == "singleton"
-            } else {
-                false
-            }
-        });
-
-        // For singletons, inject `#[primary_key] id: u8` into the struct
-        if is_singleton {
-            inject_singleton_primary_key(&mut derive_input)?;
-        }
-
-        // Add `derive(SpacetimeDSL)` only if it's not already in the attributes of the item.
-        // If multiple `#[dsl]` attributes are applied to the same `struct` item,
-        // this will ensure that we don't emit multiple conflicting implementations.
-        let first_dsl_attribute = if !derive_input.attrs.contains(&derive_table_helper) {
-            derive_input.attrs.push(derive_table_helper);
-            true
+    // Check if this is a singleton table by scanning args for the `singleton` keyword
+    let is_singleton = args.clone().into_iter().any(|token| {
+        if let proc_macro2::TokenTree::Ident(ident) = token {
+            ident == "singleton"
         } else {
             false
-        };
+        }
+    });
 
-        let input = Table::try_parse(args, &derive_input)?;
+    // For singletons, inject `#[primary_key] id: u8` into the struct
+    if is_singleton {
+        inject_singleton_primary_key(&mut derive_input)?;
+    }
 
-        // Build the output, possibly using quasi-quotation
-        let output = output::output(&input, first_dsl_attribute)?;
+    // Add `derive(SpacetimeDSL)` only if it's not already in the attributes of the item.
+    // If multiple `#[dsl]` attributes are applied to the same `struct` item,
+    // this will ensure that we don't emit multiple conflicting implementations.
+    let first_dsl_attribute = if !derive_input.attrs.contains(&derive_table_helper) {
+        derive_input.attrs.push(derive_table_helper);
+        true
+    } else {
+        false
+    };
 
-        // Check if this is the last #[dsl] attribute by counting remaining ones
-        let _is_last_dsl_attribute = is_last_dsl_attribute(&derive_input);
+    let input = Table::try_parse(args, &derive_input)?;
 
-        // If this is the last #[dsl] attribute, make all struct fields private
-        // We do this AFTER parsing and generating methods so the setter logic works correctly
-        // TODO: Temporarily disabled to allow public primary key columns
-        // if is_last_dsl_attribute {
-        //     make_struct_fields_private(&mut derive_input);
-        // }
+    // Build the output, possibly using quasi-quotation
+    let generated_output = output::build(&input, first_dsl_attribute)?;
 
-        Ok(proc_macro2::TokenStream::from_iter([
-            quote!(#derive_input),
-            output,
-        ]))
+    // Check if this is the last #[dsl] attribute by counting remaining ones
+    let _is_last_dsl_attribute = is_last_dsl_attribute(&derive_input);
+
+    // If this is the last #[dsl] attribute, make all struct fields private
+    // We do this AFTER parsing and generating methods so the setter logic works correctly
+    // TODO: Temporarily disabled to allow public primary key columns
+    // if is_last_dsl_attribute {
+    //     make_struct_fields_private(&mut derive_input);
+    // }
+
+    Ok(ExpandedDSLAttribute {
+        derive_input,
+        generated_output,
     })
 }
 

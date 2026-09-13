@@ -1,0 +1,146 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct SessionId {
+    value: u64,
+}
+impl Default for SessionId {
+    fn default() -> SessionId {
+        SessionId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for SessionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "SessionId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, SessionId> for SessionId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Session> for SessionId {
+    fn from(value: &Session) -> Self {
+        SessionId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Session> for Option<SessionId> {
+    fn from(value: &Session) -> Option<SessionId> {
+        Some(SessionId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&SessionId> for Option<SessionId> {
+    fn from(value: &SessionId) -> Option<SessionId> {
+        use spacetimedsl::Wrapper;
+        Some(SessionId::new(value.value()))
+    }
+}
+impl From<&SessionId> for SessionId {
+    fn from(value: &SessionId) -> Self {
+        use spacetimedsl::Wrapper;
+        SessionId::new(value.value())
+    }
+}
+impl Session {
+    ///
+    pub fn get_id(&self) -> SessionId {
+        use spacetimedsl::Wrapper;
+        SessionId::new(self.id.clone())
+    }
+    ///
+    pub fn get_token(&self) -> &String {
+        use spacetimedsl::Wrapper;
+        &self.token
+    }
+    ///
+    pub fn get_token_mut(&mut self) -> &mut String {
+        use spacetimedsl::Wrapper;
+        &mut self.token
+    }
+    ///
+    pub fn set_token(&mut self, token: String) -> String {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.token, token);
+        old_value
+    }
+    ///
+    pub fn get_device_id(&self) -> &u64 {
+        use spacetimedsl::Wrapper;
+        &self.device_id
+    }
+    ///
+    pub fn get_device_id_mut(&mut self) -> &mut u64 {
+        use spacetimedsl::Wrapper;
+        &mut self.device_id
+    }
+    ///
+    pub fn set_device_id(&mut self, device_id: u64) -> u64 {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.device_id, device_id);
+        old_value
+    }
+    ///
+    pub fn get_region_id(&self) -> &u64 {
+        use spacetimedsl::Wrapper;
+        &self.region_id
+    }
+    ///
+    pub fn get_region_id_mut(&mut self) -> &mut u64 {
+        use spacetimedsl::Wrapper;
+        &mut self.region_id
+    }
+    ///
+    pub fn set_region_id(&mut self, region_id: u64) -> u64 {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.region_id, region_id);
+        old_value
+    }
+    ///
+    pub fn get_shard_id(&self) -> &u64 {
+        use spacetimedsl::Wrapper;
+        &self.shard_id
+    }
+    ///
+    pub fn get_shard_id_mut(&mut self) -> &mut u64 {
+        use spacetimedsl::Wrapper;
+        &mut self.shard_id
+    }
+    ///
+    pub fn set_shard_id(&mut self, shard_id: u64) -> u64 {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.shard_id, shard_id);
+        old_value
+    }
+}
+///
+pub struct CreateSession {
+    pub token: String,
+    pub device_id: u64,
+    pub region_id: u64,
+    pub shard_id: u64,
+}
+
+// Generated DSL methods:
+// count_of_all_sessions
+// create_session
+// delete_session_by_device_id
+// delete_session_by_id
+// delete_sessions_by_region_and_shard
+// delete_sessions_by_token
+// get_all_sessions
+// get_session_by_device_id
+// get_session_by_id
+// get_sessions_by_region_and_shard
+// get_sessions_by_token
+// update_session_by_device_id
+// update_session_by_id

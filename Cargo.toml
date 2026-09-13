@@ -24,6 +24,7 @@ itertools = "^0.14"
 
 [workspace]
 members = [
+    "compile-tests",
     "debug-helper",
     "derive-input",
     "derive",

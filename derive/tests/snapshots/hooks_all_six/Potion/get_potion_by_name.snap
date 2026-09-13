@@ -1,0 +1,53 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Potion` from the `potion` table whose value matches the value from the unique single-column btree index on the `name` column.*/
+    pub fn get_potion_by_name<'a>(
+        &'a self,
+        name: &str,
+    ) -> Result<Potion, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().potion().name().find(name.to_string()) {
+            Some(potion) => Ok(potion),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "potion".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , name : {}  }}", name.to_string()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Potion` from the `potion` table whose value matches the value from the unique single-column btree index on the `name` column.*/
+    pub fn get_potion_by_name<'a>(
+        &'a self,
+        name: &str,
+    ) -> Result<Potion, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().potion().name().find(name.to_string()) {
+            Some(potion) => Ok(potion),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "potion".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , name : {}  }}", name.to_string()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

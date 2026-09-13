@@ -7,35 +7,48 @@ case "$1" in
         echo "Building module..."
         echo
         cd examples/test
-        spacetime publish --server local spacetimedsl
+        spacetime publish --yes --server local spacetimedsl
         echo
 
         echo "Testing module..."
         echo
-        spacetime call --server local spacetimedsl tester
+        spacetime call --yes --server local spacetimedsl tester
 
         echo "Showing logs..."
         echo
-        spacetime logs --server local spacetimedsl
+        spacetime logs --yes --server local spacetimedsl
         echo
 
         echo "Cleaning up module..."
         echo
         spacetime delete --yes --server local spacetimedsl
+        cd ../..
         echo "Building module..."
         echo
         cd examples/blackholio
-        spacetime publish --server local blackholio
+        spacetime publish --yes --server local blackholio
         echo
 
         echo "Showing logs..."
         echo
-        spacetime logs --server local blackholio
+        spacetime logs --yes --server local blackholio
         echo
 
         echo "Cleaning up module..."
         echo
         spacetime delete --yes --server local blackholio
+        cd ../..
+        ;;
+
+    unit-test)
+        echo "Snapshotting the generated code..."
+        echo
+        cargo test -p spacetimedsl_derive
+        echo
+
+        echo "Checking the diagnostics for rejected tables..."
+        echo
+        cargo test -p spacetimedsl_compile_tests
         ;;
 
     format)
@@ -111,13 +124,14 @@ case "$1" in
         ;;
 
     *)
-        echo "Usage: ./x {test|format|debug|loc}"
+        echo "Usage: ./x {test|unit-test|format|debug|loc}"
         echo
         echo "Commands:"
-        echo "  test    - Build, test, show logs, and clean up the module"
-        echo "  format  - Run cargo fmt check and clippy fixes"
-        echo "  debug   - Expand macros and generate AST output"
-        echo "  loc     - Count lines of Rust code grouped by directory"
+        echo "  test      - Build, test, show logs, and clean up the module"
+        echo "  unit-test - Run the snapshot and compile tests of the generator"
+        echo "  format    - Run cargo fmt check and clippy fixes"
+        echo "  debug     - Expand macros and generate AST output"
+        echo "  loc       - Count lines of Rust code grouped by directory"
         exit 1
         ;;
 esac

@@ -1,0 +1,11 @@
+error: Cannot have an `after_update` hook when the `update` method is disabled in `#[dsl(method(update = false))]`
+  --> tests/ui/after_update_hook_without_update_method.rs:7:5
+   |
+ 7 | /     #[spacetimedsl::dsl(
+ 8 | |         plural_name = audit_entries,
+ 9 | |         method(update = false),
+10 | |         hook(after(update)),
+11 | |     )]
+   | |______^
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

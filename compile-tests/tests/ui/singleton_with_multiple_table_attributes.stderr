@@ -1,0 +1,7 @@
+error: Singleton tables must have exactly one `#[table]` attribute, but found 2!
+ --> tests/ui/singleton_with_multiple_table_attributes.rs:8:5
+  |
+8 |     #[spacetimedsl::dsl(singleton, method(update = true))]
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

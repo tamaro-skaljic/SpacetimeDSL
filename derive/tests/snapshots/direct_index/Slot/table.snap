@@ -1,0 +1,86 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct SlotId {
+    value: u64,
+}
+impl Default for SlotId {
+    fn default() -> SlotId {
+        SlotId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for SlotId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "SlotId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, SlotId> for SlotId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Slot> for SlotId {
+    fn from(value: &Slot) -> Self {
+        SlotId { value: value.id.clone() }
+    }
+}
+impl From<&Slot> for Option<SlotId> {
+    fn from(value: &Slot) -> Option<SlotId> {
+        Some(SlotId { value: value.id.clone() })
+    }
+}
+impl From<&SlotId> for Option<SlotId> {
+    fn from(value: &SlotId) -> Option<SlotId> {
+        use spacetimedsl::Wrapper;
+        Some(SlotId::new(value.value()))
+    }
+}
+impl From<&SlotId> for SlotId {
+    fn from(value: &SlotId) -> Self {
+        use spacetimedsl::Wrapper;
+        SlotId::new(value.value())
+    }
+}
+impl Slot {
+    ///
+    pub fn get_id(&self) -> SlotId {
+        use spacetimedsl::Wrapper;
+        SlotId::new(self.id.clone())
+    }
+    ///
+    pub fn get_position(&self) -> &u8 {
+        use spacetimedsl::Wrapper;
+        &self.position
+    }
+    ///
+    pub fn get_position_mut(&mut self) -> &mut u8 {
+        use spacetimedsl::Wrapper;
+        &mut self.position
+    }
+    ///
+    pub fn set_position(&mut self, position: u8) -> u8 {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.position, position);
+        old_value
+    }
+}
+///
+pub struct CreateSlot {
+    pub position: u8,
+}
+
+// Generated DSL methods:
+// count_of_all_slots
+// create_slot
+// delete_slot_by_id
+// delete_slot_by_position
+// get_all_slots
+// get_slot_by_id
+// get_slot_by_position
+// update_slot_by_id

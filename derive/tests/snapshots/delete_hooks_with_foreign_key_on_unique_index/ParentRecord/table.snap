@@ -1,0 +1,70 @@
+---
+source: derive/src/characterization_tests.rs
+---
+pub trait this_compilation_error_occurs_because_the_parent_record_table_has_no_referenced_by_attribute_referencing_the_child_marker_table {}
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct ParentRecordId {
+    value: u64,
+}
+impl Default for ParentRecordId {
+    fn default() -> ParentRecordId {
+        ParentRecordId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for ParentRecordId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "ParentRecordId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, ParentRecordId> for ParentRecordId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&ParentRecord> for ParentRecordId {
+    fn from(value: &ParentRecord) -> Self {
+        ParentRecordId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&ParentRecord> for Option<ParentRecordId> {
+    fn from(value: &ParentRecord) -> Option<ParentRecordId> {
+        Some(ParentRecordId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&ParentRecordId> for Option<ParentRecordId> {
+    fn from(value: &ParentRecordId) -> Option<ParentRecordId> {
+        use spacetimedsl::Wrapper;
+        Some(ParentRecordId::new(value.value()))
+    }
+}
+impl From<&ParentRecordId> for ParentRecordId {
+    fn from(value: &ParentRecordId) -> Self {
+        use spacetimedsl::Wrapper;
+        ParentRecordId::new(value.value())
+    }
+}
+impl ParentRecord {
+    ///
+    pub fn get_id(&self) -> ParentRecordId {
+        use spacetimedsl::Wrapper;
+        ParentRecordId::new(self.id.clone())
+    }
+}
+
+// Generated DSL methods:
+// count_of_all_parent_records
+// create_parent_record
+// delete_parent_record_by_id
+// execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_parent_record_table_were_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_parent_record_table_was_deleted
+// get_all_parent_records
+// get_parent_record_by_id

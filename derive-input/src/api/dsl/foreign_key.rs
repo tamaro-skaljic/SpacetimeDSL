@@ -10,7 +10,7 @@ pub struct ForeignKey {
 
 // This enum is copy+paste of the enum in the SpacetimeDSL crate (which is the public API of the DSL).
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, strum::EnumIter)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, strum::EnumIter)]
 pub enum OnDeleteStrategy {
     /**
      * Available independent from the column type.

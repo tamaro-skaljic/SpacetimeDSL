@@ -1,0 +1,50 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `potion` table.
+    pub fn create_potion<'a>(
+        &'a self,
+        potion: CreatePotion,
+    ) -> Result<Potion, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use self::BeforePotionInsertHook;
+        let potion = crate::spacetimedsl::DSLMethodHooks::before_potion_insert(
+            self,
+            potion,
+        )?;
+        let id = u64::default();
+        let name = potion.name;
+        let potion = Potion { id, name };
+        match self.db().potion().try_insert(potion.clone()) {
+            Ok(entity) => {
+                use self::AfterPotionInsertHook;
+                crate::spacetimedsl::DSLMethodHooks::after_potion_insert(self, &entity)?;
+                Ok(entity)
+            }
+            Err(error) => {
+                match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "potion".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ potion : {:?} }}", potion
+                            )
+                                .into(),
+                        })
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "potion".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

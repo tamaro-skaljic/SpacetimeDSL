@@ -1,0 +1,80 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `seat` table.
+    pub fn create_seat<'a>(
+        &'a self,
+        seat: CreateSeat,
+    ) -> Result<Seat, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use ::spacetimedsl::itertools::Itertools;
+        let id = u64::default();
+        let row_id = seat.row_id;
+        let number = seat.number;
+        let seat = Seat { id, row_id, number };
+        let mut the_same_or_another_seat: Option<Seat> = None;
+        the_same_or_another_seat = match self
+            .db()
+            .seat()
+            .row_and_number()
+            .filter((seat.row_id, seat.number))
+            .at_most_one()
+        {
+            Ok(seat) => seat,
+            Err(_) => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                    table_name: "seat".into(),
+                    action: crate::spacetimedsl::error::Action::Create,
+                    error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    column_names_and_row_values: format!(
+                        "row_id : {} , number : {}", seat.row_id, seat.number
+                    )
+                        .into(),
+                });
+            }
+        };
+        match &the_same_or_another_seat {
+            Some(the_same_or_another_seat) => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                    table_name: "seat".into(),
+                    action: crate::spacetimedsl::error::Action::Create,
+                    error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    column_names_and_row_values: format!(
+                        "row_id : {} , number : {}", seat.row_id, seat.number
+                    )
+                        .into(),
+                });
+            }
+            _ => {}
+        };
+        match self.db().seat().try_insert(seat.clone()) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "seat".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ seat : {:?} }}", seat
+                            )
+                                .into(),
+                        })
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "seat".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

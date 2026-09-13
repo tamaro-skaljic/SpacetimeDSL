@@ -1,0 +1,29 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Booking` iterator that contains all rows in the `booking` table whose values match the values from the multi-column btree index `day_and_room` on the columns `day` and `room_id`.
+    pub fn get_bookings_by_day_and_room<'a>(
+        &'a self,
+        day: &'a u32,
+        room_id: &'a u64,
+    ) -> impl Iterator<Item = Booking> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().booking().day_and_room().filter((day, room_id))
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Booking` iterator that contains all rows in the `booking` table whose values match the values from the multi-column btree index `day_and_room` on the columns `day` and `room_id`.
+    pub fn get_bookings_by_day_and_room<'a>(
+        &'a self,
+        day: &'a u32,
+        room_id: &'a u64,
+    ) -> impl Iterator<Item = Booking> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().booking().day_and_room().filter((day, room_id))
+    }
+}

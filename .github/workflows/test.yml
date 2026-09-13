@@ -19,10 +19,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Rust
+        # The toolchain and its targets come from `rust-toolchain.toml`,
+        # so CI and local development use the exact same rustc.
         uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
-          target: wasm32-unknown-unknown
 
       - name: Install SpacetimeDB CLI
         run: |
@@ -74,26 +73,13 @@ jobs:
           done
 
       - name: Build & test SpacetimeDSL
+        # Both suites come from `x.sh`, so CI runs exactly what a developer runs.
         run: |
-
           spacetime start &
 
-          cd examples/test
+          ./x.sh unit-test
 
-          echo "Waiting for SpacetimeDB to be started using a 2s sleep for now."
-          sleep 2
-
-          echo "Building and publishing a module using SpacetimeDSL..."
-          spacetime publish --server local spacetimedsl --yes || echo "Publish failed"
-
-          echo "Testing the module..."
-          spacetime call --server local spacetimedsl tester --yes || echo "Test call failed"
-
-          echo "Showing logs..."
-          spacetime logs --server local spacetimedsl --yes || echo "Logs failed"
-
-          echo "Cleaning up module..."
-          spacetime delete --server local spacetimedsl --yes || echo "Delete failed"
+          ./x.sh test
 
       - name: Check code formatting
         run: |

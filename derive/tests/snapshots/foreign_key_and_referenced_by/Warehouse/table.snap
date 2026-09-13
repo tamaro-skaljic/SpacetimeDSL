@@ -1,0 +1,92 @@
+---
+source: derive/src/characterization_tests.rs
+---
+pub trait this_compilation_error_occurs_because_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_inspection_table {}
+pub trait this_compilation_error_occurs_because_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_shipment_table {}
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct WarehouseId {
+    value: u64,
+}
+impl Default for WarehouseId {
+    fn default() -> WarehouseId {
+        WarehouseId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for WarehouseId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "WarehouseId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, WarehouseId> for WarehouseId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Warehouse> for WarehouseId {
+    fn from(value: &Warehouse) -> Self {
+        WarehouseId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Warehouse> for Option<WarehouseId> {
+    fn from(value: &Warehouse) -> Option<WarehouseId> {
+        Some(WarehouseId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&WarehouseId> for Option<WarehouseId> {
+    fn from(value: &WarehouseId) -> Option<WarehouseId> {
+        use spacetimedsl::Wrapper;
+        Some(WarehouseId::new(value.value()))
+    }
+}
+impl From<&WarehouseId> for WarehouseId {
+    fn from(value: &WarehouseId) -> Self {
+        use spacetimedsl::Wrapper;
+        WarehouseId::new(value.value())
+    }
+}
+impl Warehouse {
+    ///
+    pub fn get_id(&self) -> WarehouseId {
+        use spacetimedsl::Wrapper;
+        WarehouseId::new(self.id.clone())
+    }
+    ///
+    pub fn get_name(&self) -> &String {
+        use spacetimedsl::Wrapper;
+        &self.name
+    }
+    ///
+    pub fn get_name_mut(&mut self) -> &mut String {
+        use spacetimedsl::Wrapper;
+        &mut self.name
+    }
+    ///
+    pub fn set_name(&mut self, name: String) -> String {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.name, name);
+        old_value
+    }
+}
+///
+pub struct CreateWarehouse {
+    pub name: String,
+}
+
+// Generated DSL methods:
+// count_of_all_warehouses
+// create_warehouse
+// delete_warehouse_by_id
+// execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_warehouse_table_were_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_warehouse_table_was_deleted
+// get_all_warehouses
+// get_warehouse_by_id
+// update_warehouse_by_id

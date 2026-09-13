@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get all rows inside the `signed_document` table.
+    pub fn get_all_signed_documents<'a>(
+        &'a self,
+    ) -> impl Iterator<Item = SignedDocument> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().signed_document().iter()
+    }
+}

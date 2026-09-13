@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
@@ -196,7 +196,7 @@ impl SpacetimeDSLTable {
                 on_insert_set_current_timestamp_column_name,
                 on_update_set_current_timestamp_column_name,
                 referencing_tables,
-                compile_error_checks: HashSet::new(),
+                compile_error_checks: BTreeSet::new(),
                 // is set later in method.rs.
                 create_dsl_method_arg: None,
                 hooks,

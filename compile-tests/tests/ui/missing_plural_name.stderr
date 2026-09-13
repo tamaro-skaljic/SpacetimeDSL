@@ -1,0 +1,7 @@
+error: PluralName must be set in `#[dsl(plural_name = PluralName)]`
+ --> tests/ui/missing_plural_name.rs:7:5
+  |
+7 |     #[spacetimedsl::dsl(method(update = false))]
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -1,0 +1,27 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Signature` iterator that contains all rows in the `signature` table whose value matches the value from the single-column btree index on the `value` column.
+    pub fn get_signatures_by_value<'a>(
+        &'a self,
+        value: &str,
+    ) -> impl Iterator<Item = Signature> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().signature().value().filter(value)
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Signature` iterator that contains all rows in the `signature` table whose value matches the value from the single-column btree index on the `value` column.
+    pub fn get_signatures_by_value<'a>(
+        &'a self,
+        value: &str,
+    ) -> impl Iterator<Item = Signature> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().signature().value().filter(value)
+    }
+}

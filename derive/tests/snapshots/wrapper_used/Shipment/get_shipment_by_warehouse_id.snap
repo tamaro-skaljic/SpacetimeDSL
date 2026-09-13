@@ -1,0 +1,63 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Shipment` from the `shipment` table whose value matches the value from the unique single-column btree index on the `warehouse_id` column.*/
+    pub fn get_shipment_by_warehouse_id<'a>(
+        &'a self,
+        warehouse_id: impl Into<crate::warehouse::WarehouseId> + Clone,
+    ) -> Result<Shipment, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self
+            .db()
+            .shipment()
+            .warehouse_id()
+            .find(warehouse_id.clone().into().value())
+        {
+            Some(shipment) => Ok(shipment),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "shipment".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , warehouse_id : {}  }}", warehouse_id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Shipment` from the `shipment` table whose value matches the value from the unique single-column btree index on the `warehouse_id` column.*/
+    pub fn get_shipment_by_warehouse_id<'a>(
+        &'a self,
+        warehouse_id: impl Into<crate::warehouse::WarehouseId> + Clone,
+    ) -> Result<Shipment, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self
+            .db()
+            .shipment()
+            .warehouse_id()
+            .find(warehouse_id.clone().into().value())
+        {
+            Some(shipment) => Ok(shipment),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "shipment".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , warehouse_id : {}  }}", warehouse_id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

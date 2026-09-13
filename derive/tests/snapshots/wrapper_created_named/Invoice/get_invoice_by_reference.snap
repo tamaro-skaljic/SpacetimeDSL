@@ -1,0 +1,53 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Invoice` from the `invoice` table whose value matches the value from the unique single-column btree index on the `reference` column.*/
+    pub fn get_invoice_by_reference<'a>(
+        &'a self,
+        reference: &str,
+    ) -> Result<Invoice, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().invoice().reference().find(reference.to_string()) {
+            Some(invoice) => Ok(invoice),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "invoice".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , reference : {}  }}", reference.to_string()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Invoice` from the `invoice` table whose value matches the value from the unique single-column btree index on the `reference` column.*/
+    pub fn get_invoice_by_reference<'a>(
+        &'a self,
+        reference: &str,
+    ) -> Result<Invoice, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().invoice().reference().find(reference.to_string()) {
+            Some(invoice) => Ok(invoice),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "invoice".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , reference : {}  }}", reference.to_string()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

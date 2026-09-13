@@ -1,0 +1,55 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `ChildMarker` from the `child_marker` table whose value matches the value from the unique single-column btree index on the `parent_id` column.*/
+    pub fn get_child_marker_by_parent_id<'a>(
+        &'a self,
+        parent_id: impl Into<ParentRecordId> + Clone,
+    ) -> Result<ChildMarker, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().child_marker().parent_id().find(parent_id.clone().into().value())
+        {
+            Some(child_marker) => Ok(child_marker),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "child_marker".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , parent_id : {}  }}", parent_id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `ChildMarker` from the `child_marker` table whose value matches the value from the unique single-column btree index on the `parent_id` column.*/
+    pub fn get_child_marker_by_parent_id<'a>(
+        &'a self,
+        parent_id: impl Into<ParentRecordId> + Clone,
+    ) -> Result<ChildMarker, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().child_marker().parent_id().find(parent_id.clone().into().value())
+        {
+            Some(child_marker) => Ok(child_marker),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "child_marker".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , parent_id : {}  }}", parent_id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

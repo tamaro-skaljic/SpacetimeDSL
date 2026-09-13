@@ -30,5 +30,12 @@ fn implementation_section(implementation: TokenStream) -> String {
             )
         });
 
+    // The characterization tests pin the textual doc comments, not the pretty-printed
+    // implementation, which would otherwise duplicate every snapshotted method body.
+    // `PrettyPlease` above still runs, so malformed emissions still panic during tests.
+    if cfg!(test) {
+        return String::default();
+    }
+
     format!("\n\nImplementation:\n\n```no_run\n{implementation}\n```")
 }

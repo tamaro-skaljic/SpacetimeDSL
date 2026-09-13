@@ -1,0 +1,73 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Try to delete all `Shipment` rows in the `shipment` table whose value matches the value from the single-column btree index on the `origin_warehouse_id` column.
+    pub fn delete_shipments_by_origin_warehouse_id<'a>(
+        &'a self,
+        origin_warehouse_id: impl Into<WarehouseId>,
+    ) -> Result<
+        crate::spacetimedsl::delete::DeletionResult,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use ::spacetimedsl::itertools::Itertools;
+        let origin_warehouse_id = origin_warehouse_id.into().value();
+        let rows_to_delete: Vec<Shipment> = self
+            .db()
+            .shipment()
+            .origin_warehouse_id()
+            .filter(origin_warehouse_id)
+            .collect();
+        if rows_to_delete.is_empty() {
+            return Ok(crate::spacetimedsl::delete::DeletionResult {
+                table_name: "shipment".into(),
+                one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                entries: vec![],
+            });
+        }
+        let mut deletion_result_entries = std::collections::HashMap::new();
+        for row_to_delete in &rows_to_delete {
+            deletion_result_entries
+                .insert(
+                    &row_to_delete.id,
+                    crate::spacetimedsl::delete::DeletionResultEntry {
+                        table_name: "shipment".into(),
+                        column_name: "id".into(),
+                        strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
+                        row_value: format!(
+                            "{}", ShipmentId::new(row_to_delete.id.clone())
+                        )
+                            .into(),
+                        child_entries: vec![],
+                    },
+                );
+        }
+        let count_of_rows_to_delete: u64 = rows_to_delete
+            .len()
+            .try_into()
+            .unwrap_or(u64::MAX);
+        let count_of_deleted_rows = self
+            .db()
+            .shipment()
+            .origin_warehouse_id()
+            .delete(origin_warehouse_id);
+        if count_of_rows_to_delete.ne(&count_of_deleted_rows) {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Delete Many Error: `count_of_rows_to_delete ( {} ) != ( {} ) count_of_deleted_rows`!",
+                        & count_of_rows_to_delete, & count_of_deleted_rows
+                    ),
+                ),
+            );
+        }
+        return Ok(crate::spacetimedsl::delete::DeletionResult {
+            table_name: "shipment".into(),
+            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+            entries: deletion_result_entries.into_values().collect_vec(),
+        });
+    }
+}

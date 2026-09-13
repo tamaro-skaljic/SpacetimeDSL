@@ -1,0 +1,63 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `CleanupTimer` from the `cleanup_timer` table whose value matches the value from the unique single-column btree index on the `scheduled_id` column.*/
+    pub fn get_cleanup_timer_by_scheduled_id<'a>(
+        &'a self,
+        scheduled_id: impl Into<CleanupTimerScheduledId> + Clone,
+    ) -> Result<CleanupTimer, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self
+            .db()
+            .cleanup_timer()
+            .scheduled_id()
+            .find(scheduled_id.clone().into().value())
+        {
+            Some(cleanup_timer) => Ok(cleanup_timer),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "cleanup_timer".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , scheduled_id : {}  }}", scheduled_id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `CleanupTimer` from the `cleanup_timer` table whose value matches the value from the unique single-column btree index on the `scheduled_id` column.*/
+    pub fn get_cleanup_timer_by_scheduled_id<'a>(
+        &'a self,
+        scheduled_id: impl Into<CleanupTimerScheduledId> + Clone,
+    ) -> Result<CleanupTimer, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self
+            .db()
+            .cleanup_timer()
+            .scheduled_id()
+            .find(scheduled_id.clone().into().value())
+        {
+            Some(cleanup_timer) => Ok(cleanup_timer),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "cleanup_timer".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , scheduled_id : {}  }}", scheduled_id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

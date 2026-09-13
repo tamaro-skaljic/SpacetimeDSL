@@ -1,0 +1,50 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `signed_document` table.
+    pub fn create_signed_document<'a>(
+        &'a self,
+        signed_document: CreateSignedDocument,
+    ) -> Result<SignedDocument, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let title = signed_document.title;
+        let signature = signed_document.signature;
+        let created_at = self.ctx().timestamp()?;
+        let modified_at = None;
+        let signed_document = SignedDocument {
+            id,
+            title,
+            signature,
+            created_at,
+            modified_at,
+        };
+        match self.db().signed_document().try_insert(signed_document.clone()) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "signed_document".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ signed_document : {:?} }}", signed_document
+                            )
+                                .into(),
+                        })
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "signed_document".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

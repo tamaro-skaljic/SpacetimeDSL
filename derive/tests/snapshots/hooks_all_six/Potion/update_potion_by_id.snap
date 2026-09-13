@@ -1,0 +1,42 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Potion` row of the `potion` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_potion_by_id<'a>(
+        &'a self,
+        potion: Potion,
+    ) -> Result<Potion, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut potion = potion;
+        let mut the_same_or_another_potion: Option<Potion> = None;
+        if the_same_or_another_potion.is_none() {
+            the_same_or_another_potion = Some(
+                self
+                    .db()
+                    .potion()
+                    .id()
+                    .find(potion.id)
+                    .expect("Row should exist for update"),
+            );
+        }
+        use self::BeforePotionUpdateHook;
+        let potion = crate::spacetimedsl::DSLMethodHooks::before_potion_update(
+            self,
+            the_same_or_another_potion.as_ref().unwrap(),
+            potion,
+        )?;
+        let potion = self.db().potion().id().update(potion);
+        use self::AfterPotionUpdateHook;
+        crate::spacetimedsl::DSLMethodHooks::after_potion_update(
+            self,
+            the_same_or_another_potion.as_ref().unwrap(),
+            &potion,
+        )?;
+        Ok(potion)
+    }
+}

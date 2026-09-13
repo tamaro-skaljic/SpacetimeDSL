@@ -1,0 +1,59 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `inspection` table.
+    pub fn create_inspection<'a>(
+        &'a self,
+        inspection: CreateInspection,
+    ) -> Result<Inspection, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let warehouse_id = inspection.warehouse_id.value();
+        let inspection = Inspection { id, warehouse_id };
+        let mut the_same_or_another_inspection: Option<Inspection> = None;
+        if warehouse_id.ne(&0) {
+            match self.get_warehouse_by_id(inspection.get_warehouse_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "inspection".into(),
+                            create_or_update: crate::spacetimedsl::error::Action::Create,
+                            column_names_and_row_values: format!(
+                                "{{ {} : {} }}", warehouse_id, inspection.get_warehouse_id()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        match self.db().inspection().try_insert(inspection.clone()) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "inspection".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ inspection : {:?} }}", inspection
+                            )
+                                .into(),
+                        })
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "inspection".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

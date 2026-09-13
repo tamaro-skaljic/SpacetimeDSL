@@ -1,3 +1,3 @@
 # Instructions
 
-See [`DOCUMENTATION.md`](docs/DOCUMENTATION.md).
+See [`AGENTS.md`](AGENTS.md).

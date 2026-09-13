@@ -1,0 +1,20 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl Module {}
+///
+pub struct CreateModule2 {
+    pub database_id: u64,
+    pub name: String,
+}
+
+// Generated DSL methods:
+// count_of_all_modules2
+// create_module2
+// delete_module2_by_id
+// delete_module2_by_name_and_database
+// get_all_modules2
+// get_module2_by_id
+// get_module2_by_name_and_database
+// update_module2_by_id
+// update_module2_by_name_and_database

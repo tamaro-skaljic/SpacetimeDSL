@@ -1,0 +1,53 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Seat` from the `seat` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn get_seat_by_id<'a>(
+        &'a self,
+        id: impl Into<SeatId> + Clone,
+    ) -> Result<Seat, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().seat().id().find(id.clone().into().value()) {
+            Some(seat) => Ok(seat),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "seat".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , id : {}  }}", id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Seat` from the `seat` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn get_seat_by_id<'a>(
+        &'a self,
+        id: impl Into<SeatId> + Clone,
+    ) -> Result<Seat, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().seat().id().find(id.clone().into().value()) {
+            Some(seat) => Ok(seat),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "seat".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , id : {}  }}", id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

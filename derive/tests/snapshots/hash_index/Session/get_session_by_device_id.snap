@@ -1,0 +1,53 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Session` from the `session` table whose value matches the value from the unique single-column btree index on the `device_id` column.*/
+    pub fn get_session_by_device_id<'a>(
+        &'a self,
+        device_id: &u64,
+    ) -> Result<Session, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().session().device_id().find(device_id) {
+            Some(session) => Ok(session),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "session".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , device_id : {}  }}", device_id
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Session` from the `session` table whose value matches the value from the unique single-column btree index on the `device_id` column.*/
+    pub fn get_session_by_device_id<'a>(
+        &'a self,
+        device_id: &u64,
+    ) -> Result<Session, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().session().device_id().find(device_id) {
+            Some(session) => Ok(session),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "session".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , device_id : {}  }}", device_id
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

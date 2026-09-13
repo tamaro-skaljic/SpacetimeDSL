@@ -1,0 +1,55 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl crate::spacetimedsl::internal::DSLInternals {
+    ///Execute On Delete Strategies of the referencing table `book` after one row of the referenced table `author` was deleted.
+    pub fn execute_on_delete_strategies_of_the_book_table_after_one_row_of_the_author_table_was_deleted<
+        'a,
+        T: crate::spacetimedsl::WriteContext,
+    >(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+    > {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use self::this_compilation_error_occurs_because_the_author_table_has_no_referenced_by_attribute_referencing_the_book_table;
+        use ::spacetimedsl::itertools::Itertools;
+        let mut entries = vec![];
+        let mut error = false;
+        'outer: {
+            match &strategy {
+                crate::spacetimedsl::OnDeleteStrategy::Error => {
+                    for row in dsl
+                        .db()
+                        .book()
+                        .author_id()
+                        .filter(primary_key_value_of_a_row_of_another_table_to_delete)
+                    {
+                        error = true;
+                        let child_entries = vec![];
+                        let id = &row.id;
+                        entries
+                            .push(crate::spacetimedsl::delete::DeletionResultEntry {
+                                table_name: "book".into(),
+                                column_name: "author_id".into(),
+                                strategy: crate::spacetimedsl::OnDeleteStrategy::Error,
+                                row_value: format!("{}", BookId::new(id.clone())).into(),
+                                child_entries,
+                            });
+                    }
+                }
+                crate::spacetimedsl::OnDeleteStrategy::Delete => {}
+                crate::spacetimedsl::OnDeleteStrategy::SetZero => {}
+                crate::spacetimedsl::OnDeleteStrategy::Ignore => {}
+            };
+        }
+        match error {
+            false => Ok(entries),
+            true => Err(entries),
+        }
+    }
+}

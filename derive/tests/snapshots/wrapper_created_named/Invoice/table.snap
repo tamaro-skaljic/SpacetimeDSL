@@ -1,0 +1,135 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct InvoiceNumber {
+    value: u64,
+}
+impl Default for InvoiceNumber {
+    fn default() -> InvoiceNumber {
+        InvoiceNumber {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for InvoiceNumber {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "InvoiceNumber", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, InvoiceNumber> for InvoiceNumber {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Invoice> for InvoiceNumber {
+    fn from(value: &Invoice) -> Self {
+        InvoiceNumber {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Invoice> for Option<InvoiceNumber> {
+    fn from(value: &Invoice) -> Option<InvoiceNumber> {
+        Some(InvoiceNumber {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&InvoiceNumber> for Option<InvoiceNumber> {
+    fn from(value: &InvoiceNumber) -> Option<InvoiceNumber> {
+        use spacetimedsl::Wrapper;
+        Some(InvoiceNumber::new(value.value()))
+    }
+}
+impl From<&InvoiceNumber> for InvoiceNumber {
+    fn from(value: &InvoiceNumber) -> Self {
+        use spacetimedsl::Wrapper;
+        InvoiceNumber::new(value.value())
+    }
+}
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct InvoiceReference {
+    value: String,
+}
+impl Default for InvoiceReference {
+    fn default() -> InvoiceReference {
+        InvoiceReference {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for InvoiceReference {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "InvoiceReference", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<String, InvoiceReference> for InvoiceReference {
+    fn new(value: String) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> String {
+        self.value.clone()
+    }
+}
+impl From<&Invoice> for InvoiceReference {
+    fn from(value: &Invoice) -> Self {
+        InvoiceReference {
+            value: value.reference.clone(),
+        }
+    }
+}
+impl From<&Invoice> for Option<InvoiceReference> {
+    fn from(value: &Invoice) -> Option<InvoiceReference> {
+        Some(InvoiceReference {
+            value: value.reference.clone(),
+        })
+    }
+}
+impl From<&InvoiceReference> for Option<InvoiceReference> {
+    fn from(value: &InvoiceReference) -> Option<InvoiceReference> {
+        use spacetimedsl::Wrapper;
+        Some(InvoiceReference::new(value.value()))
+    }
+}
+impl From<&InvoiceReference> for InvoiceReference {
+    fn from(value: &InvoiceReference) -> Self {
+        use spacetimedsl::Wrapper;
+        InvoiceReference::new(value.value())
+    }
+}
+impl Invoice {
+    ///
+    pub fn get_id(&self) -> InvoiceNumber {
+        use spacetimedsl::Wrapper;
+        InvoiceNumber::new(self.id.clone())
+    }
+    ///
+    pub fn get_reference(&self) -> InvoiceReference {
+        use spacetimedsl::Wrapper;
+        InvoiceReference::new(self.reference.clone())
+    }
+    ///
+    pub fn set_reference(&mut self, reference: String) -> InvoiceReference {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.reference, reference);
+        InvoiceReference::new(old_value)
+    }
+}
+///
+pub struct CreateInvoice {
+    pub reference: String,
+}
+
+// Generated DSL methods:
+// count_of_all_invoices
+// create_invoice
+// delete_invoice_by_id
+// delete_invoice_by_reference
+// get_all_invoices
+// get_invoice_by_id
+// get_invoice_by_reference
+// update_invoice_by_id

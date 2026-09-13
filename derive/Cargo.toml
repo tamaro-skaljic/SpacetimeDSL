@@ -36,3 +36,8 @@ rust-format = { version = "0.3.4", features = [
 
 # https://crates.io/crates/spacetimedsl_derive-input Contains structs which represent the output of SpacetimeDSL. Can be used by other proc-macro crates to build Macros which utilize SpacetimeDSL under the hood.
 spacetimedsl_derive-input = { version = "0.22.0", path = "../derive-input" }
+
+[dev-dependencies]
+# https://crates.io/crates/insta A snapshot testing library for Rust
+insta = { version = "=1.48.0", features = [] }
+
