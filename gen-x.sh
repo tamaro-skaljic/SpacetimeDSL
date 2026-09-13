@@ -114,7 +114,7 @@ generate_header() {
         cat << 'EOF'
 param(
     [Parameter(Position=0)]
-    [ValidateSet("test", "format", "debug", "loc")]
+    [ValidateSet("test", "unit-test", "format", "debug", "loc")]
     [string]$Command
 )
 EOF
@@ -123,6 +123,8 @@ EOF
     echo
 }
 
+# Every `spacetime` command passes `--yes`, because CI runs this case on a runner
+# which is not logged in and has no terminal to answer a prompt on.
 generate_test() {
     local shell="$1"
 
@@ -130,16 +132,16 @@ generate_test() {
     cmd_echo "$shell" "Building module..."
     cmd_echo "$shell"
     cmd_cd "$shell" "examples/test"
-    cmd_spacetime "publish --server local spacetimedsl"
+    cmd_spacetime "publish --yes --server local spacetimedsl"
     cmd_echo "$shell"
     echo
     cmd_echo "$shell" "Testing module..."
     cmd_echo "$shell"
-    cmd_spacetime "call --server local spacetimedsl tester"
+    cmd_spacetime "call --yes --server local spacetimedsl tester"
     echo
     cmd_echo "$shell" "Showing logs..."
     cmd_echo "$shell"
-    cmd_spacetime "logs --server local spacetimedsl"
+    cmd_spacetime "logs --yes --server local spacetimedsl"
     cmd_echo "$shell"
     echo
     cmd_echo "$shell" "Cleaning up module..."
@@ -150,12 +152,12 @@ generate_test() {
     cmd_echo "$shell" "Building module..."
     cmd_echo "$shell"
     cmd_cd "$shell" "examples/blackholio"
-    cmd_spacetime "publish --server local blackholio"
+    cmd_spacetime "publish --yes --server local blackholio"
     cmd_echo "$shell"
     echo
     cmd_echo "$shell" "Showing logs..."
     cmd_echo "$shell"
-    cmd_spacetime "logs --server local blackholio"
+    cmd_spacetime "logs --yes --server local blackholio"
     cmd_echo "$shell"
     echo
     cmd_echo "$shell" "Cleaning up module..."
@@ -163,6 +165,22 @@ generate_test() {
     cmd_spacetime "delete --yes --server local blackholio"
     cmd_cd "$shell" "../.."
 
+    switch_case_end "$shell"
+    echo
+}
+
+generate_unit_test() {
+    local shell="$1"
+
+    switch_case "$shell" "unit-test"
+    cmd_echo "$shell" "Snapshotting the generated code..."
+    cmd_echo "$shell"
+    cmd_cargo "test -p spacetimedsl_derive"
+    cmd_echo "$shell"
+    echo
+    cmd_echo "$shell" "Checking the diagnostics for rejected tables..."
+    cmd_echo "$shell"
+    cmd_cargo "test -p spacetimedsl_compile_tests"
     switch_case_end "$shell"
     echo
 }
@@ -334,13 +352,14 @@ generate_usage() {
     local shell="$1"
 
     switch_default "$shell"
-    cmd_echo "$shell" "Usage: $(script_usage "$shell") {test|format|debug|loc}"
+    cmd_echo "$shell" "Usage: $(script_usage "$shell") {test|unit-test|format|debug|loc}"
     cmd_echo "$shell"
     cmd_echo "$shell" "Commands:"
-    cmd_echo "$shell" "  test    - Build, test, show logs, and clean up the module"
-    cmd_echo "$shell" "  format  - Run cargo fmt check and clippy fixes"
-    cmd_echo "$shell" "  debug   - Expand macros and generate AST output"
-    cmd_echo "$shell" "  loc     - Count lines of Rust code grouped by directory"
+    cmd_echo "$shell" "  test      - Build, test, show logs, and clean up the module"
+    cmd_echo "$shell" "  unit-test - Run the snapshot and compile tests of the generator"
+    cmd_echo "$shell" "  format    - Run cargo fmt check and clippy fixes"
+    cmd_echo "$shell" "  debug     - Expand macros and generate AST output"
+    cmd_echo "$shell" "  loc       - Count lines of Rust code grouped by directory"
     echo "        exit 1"
     switch_case_end "$shell"
 }
@@ -352,6 +371,7 @@ generate() {
     generate_header "$shell"
     switch_start "$shell"
     generate_test "$shell"
+    generate_unit_test "$shell"
     generate_format "$shell"
     generate_debug "$shell"
     generate_loc "$shell"

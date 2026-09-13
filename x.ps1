@@ -2,7 +2,7 @@
 
 param(
     [Parameter(Position=0)]
-    [ValidateSet("test", "format", "debug", "loc")]
+    [ValidateSet("test", "unit-test", "format", "debug", "loc")]
     [string]$Command
 )
 
@@ -11,16 +11,16 @@ switch ($Command) {
         Write-Output "Building module..."
         Write-Output ""
         Set-Location examples\test
-        spacetime publish --server local spacetimedsl
+        spacetime publish --yes --server local spacetimedsl
         Write-Output ""
 
         Write-Output "Testing module..."
         Write-Output ""
-        spacetime call --server local spacetimedsl tester
+        spacetime call --yes --server local spacetimedsl tester
 
         Write-Output "Showing logs..."
         Write-Output ""
-        spacetime logs --server local spacetimedsl
+        spacetime logs --yes --server local spacetimedsl
         Write-Output ""
 
         Write-Output "Cleaning up module..."
@@ -30,18 +30,29 @@ switch ($Command) {
         Write-Output "Building module..."
         Write-Output ""
         Set-Location examples\blackholio
-        spacetime publish --server local blackholio
+        spacetime publish --yes --server local blackholio
         Write-Output ""
 
         Write-Output "Showing logs..."
         Write-Output ""
-        spacetime logs --server local blackholio
+        spacetime logs --yes --server local blackholio
         Write-Output ""
 
         Write-Output "Cleaning up module..."
         Write-Output ""
         spacetime delete --yes --server local blackholio
         Set-Location ..\..
+    }
+
+    "unit-test" {
+        Write-Output "Snapshotting the generated code..."
+        Write-Output ""
+        cargo test -p spacetimedsl_derive
+        Write-Output ""
+
+        Write-Output "Checking the diagnostics for rejected tables..."
+        Write-Output ""
+        cargo test -p spacetimedsl_compile_tests
     }
 
     "format" {
@@ -130,13 +141,14 @@ switch ($Command) {
     }
 
     default {
-        Write-Output "Usage: .\x.ps1 {test|format|debug|loc}"
+        Write-Output "Usage: .\x.ps1 {test|unit-test|format|debug|loc}"
         Write-Output ""
         Write-Output "Commands:"
-        Write-Output "  test    - Build, test, show logs, and clean up the module"
-        Write-Output "  format  - Run cargo fmt check and clippy fixes"
-        Write-Output "  debug   - Expand macros and generate AST output"
-        Write-Output "  loc     - Count lines of Rust code grouped by directory"
+        Write-Output "  test      - Build, test, show logs, and clean up the module"
+        Write-Output "  unit-test - Run the snapshot and compile tests of the generator"
+        Write-Output "  format    - Run cargo fmt check and clippy fixes"
+        Write-Output "  debug     - Expand macros and generate AST output"
+        Write-Output "  loc       - Count lines of Rust code grouped by directory"
         exit 1
     }
 }
