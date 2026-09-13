@@ -1,0 +1,50 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `session` table.
+    pub fn create_session<'a>(
+        &'a self,
+        session: CreateSession,
+    ) -> Result<Session, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let token = session.token;
+        let device_id = session.device_id;
+        let region_id = session.region_id;
+        let shard_id = session.shard_id;
+        let session = Session {
+            id,
+            token,
+            device_id,
+            region_id,
+            shard_id,
+        };
+        match self.db().session().try_insert(session.clone()) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "session".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ session : {:?} }}", session
+                            )
+                                .into(),
+                        })
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "session".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

@@ -50,7 +50,10 @@ fn direct_index() {
     snapshot_fixture("direct_index");
 }
 
-// FIXME: hash index
+#[test]
+fn hash_index() {
+    snapshot_fixture("hash_index");
+}
 
 #[test]
 fn string_index_column() {

@@ -11,9 +11,11 @@ The central problem is that one module, and inside it one function, owns every d
 Two consequences are already visible in the code rather than merely predicted:
 
 - Knowledge that exists in more than one place has **drifted apart**, and at least one of the drifted copies produces a defect (see `column_names_and_row_values`).
-- Branches exist that cannot ever have been executed, because the tokens they emit are not valid Rust (see the wrapper-type option mapper).
+- Branches existed that cannot ever have been executed, because the tokens they emitted were not valid Rust. The wrapper-type option mapper was one; `81ada87` has since fixed it, and the `wrapper_optional_index` fixture now pins the corrected emission so it cannot regress unnoticed.
 
-Neither of these could have been caught, because the crate has no automated tests at all. `examples/test` is a `cdylib` that exercises the macro by compiling against it; it proves the happy paths compile, it asserts nothing, and it does not cover branches that no example happens to trigger.
+Neither of these could have been caught when this report was written, because the crate then had no automated tests at all. `examples/test` is a `cdylib` that exercises the macro by compiling against it; it proves the happy paths compile, it asserts nothing, and it does not cover branches that no example happens to trigger — which is exactly how both defects survived.
+
+That gap is now closed by [`.ai/plans/1_ADD_CHARACTERIZATION_TESTS.md`](.ai/plans/1_ADD_CHARACTERIZATION_TESTS.md): snapshot tests pin the generated output for every table shape the generator supports, and compile tests pin the diagnostics it emits for the definitions it rejects. Both run with `./x.sh unit-test`. What that suite found while it was being written is collected under [Defects found by the characterization tests](#defects-found-by-the-characterization-tests).
 
 The violations below are described individually, but they share a single root: the module never paid the abstraction cost that its duplication had already earned.
 
@@ -121,7 +123,7 @@ The format string that describes "these columns had these values", used in `NotF
 
 The copies have already drifted into a defect. In `for_method`, the opening brace is pushed first and then the single-column branches push a separator-prefixed column segment, so single-column indices produce a message with a stray leading comma before the first column name. The multi-column branch pushes its first column without the separator and is correct (developer decision). This is precisely the failure mode duplication causes: one copy was fixed, the other was not.
 
-Recommendation: this is a case where the logic has drifted and carries an invariant — the format string's placeholder count must always match the row-value getter list. The developers should first understand the differences between the copies and decide which output format is the intended one (braced (developer decision) or unbraced, and what the correct separator placement is), because the messages are user-facing and changing them changes what users see. Once decided, extract a single builder that emits the format string **and** the matching getter list together as one value, so the two can no longer disagree. Add a test pinning the exact message text for a single-column index, a multi-column index, and a direct index before changing anything, so the fix is provably a fix.
+Recommendation: this is a case where the logic has drifted and carries an invariant — the format string's placeholder count must always match the row-value getter list. The developers should first understand the differences between the copies and decide which output format is the intended one (braced (developer decision) or unbraced, and what the correct separator placement is), because the messages are user-facing and changing them changes what users see. Once decided, extract a single builder that emits the format string **and** the matching getter list together as one value, so the two can no longer disagree. The snapshots already pin the exact message text for a single-column index, a multi-column index and a direct index, including the stray comma, so the fix will be provable the moment it is made.
 
 ### `method.rs`: the `DeleteOne` and `DeleteMany` implementation assembly
 
@@ -275,66 +277,15 @@ The module panics in two distinct situations that it does not distinguish:
 - **Internal invariants** — "should already be processed", "When this code is called, it should be a single column index", and the many `expect` calls on collection lookups. These are the generator asserting its own consistency.
 - **User input errors** — mismatched foreign key column types and mismatched foreign key paths both `panic!` with a prose message. These are reachable purely by a user writing a valid-looking but unsupported attribute combination, and the result is a proc-macro panic with no span, rather than a compiler error pointing at the offending attribute.
 
+Both user-input panics are now pinned by `compile-tests/tests/ui/foreign_keys_with_mismatched_types.rs` and `foreign_keys_with_mismatched_paths.rs`. Their `.stderr` files show what the user actually sees today: `custom attribute panicked`, the prose message demoted to a `help:` note, and a span covering the whole `#[dsl]` attribute rather than the offending column. Converting them to spanned `syn::Error`s will change those two files, which is what makes the change visible in review.
+
 Recommendation: separate the two. (developer decision) User input errors should become `syn::Error` values carrying the span of the offending field or attribute, surfaced through the `syn::Result` that the entry point already returns but never uses (see the `try_parse` entry above — the two changes belong together). Internal invariants may remain panics, but each should state the invariant it protects. The developers should audit which of the current `expect` calls are genuinely unreachable and which are user-reachable; that audit is the deciding input, and it cannot be made from the message text alone.
-
-### `method.rs`: unverified branches and an apparently non-compiling emission
-
-**Violates:** Testing & Verification (entire checklist); F.I.R.S.T Principles of Testing; Arrange, Act, Assert
-
-The crate contains no unit tests. `examples/test` is a `cdylib` compiled against the macro; it demonstrates that the paths those examples exercise produce compilable output, and asserts nothing about the output's content. Any generated-code branch not reached by an example is entirely unverified.
-
-At least one such branch appears to be broken. The wrapper-type option mapper generated for an optional, wrapper-typed index column emits a `match` whose final arm is terminated with a semicolon inside the braces and whose overall expression is not terminated — tokens that would not compile if a user ever triggered that path. This branch cannot have been exercised.
-
-```rust
-wrapper_type_option_to_wrapped_type_option_mapper = quote! {
-    let #column_name = match #column_name.into() {
-        None => None,
-        Some(#column_name) => Some(Into::<#wrapper_type_ty>::into(#column_name).value()); // wrong ;
-    } // missing ;
-};
-```
-
-Note from developer START: The reason why this path was never emitted is that Spacetime **DB** currently doesn't support indices on types wrapped in an `Option<T>`. I have added a column to the "Test" table in the example which is an wrapped non-String Option and when I've added a index, it produced the currently implemented panic handler for such a case:
-
-```rust
-custom attribute panicked
-message: 
-
-Congratulations, you have found a bug in SpacetimeDSL!
-
-We would be very pleased if you can create an issue in our GitHub repository: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/new
-
-Please include your table definition as well as the following, malformed, code generation result - thank you very much!
-
-impl < T : crate :: spacetimedsl :: WriteContext > crate :: spacetimedsl :: DSL < '_, T > { #[allow(clippy :: needless_lifetimes, clippy :: too_many_arguments)] pub fn get_tests_by_wrapped_timestamp_option < 'a > (& 'a self, wrapped_timestamp_option : & impl Into < Option < TestWrappedTimestampOption >>) -> impl Iterator < Item = Test > { use :: spacetimedsl :: Wrapper; use spacetimedb :: { CtxDbRead, CtxDbWrite, Table as _ }; let wrapped_timestamp_option = match wrapped_timestamp_option.into() { None => None, Some(wrapped_timestamp_option) => Some(Into :: < TestWrappedTimestampOption > :: into(wrapped_timestamp_option).value()), } self.db().test().wrapped_timestamp_option().filter(wrapped_timestamp_option) } }
-```
-
-Note that there is another bug which only appears when adding a `#[unique]` rather than a `#[index(btree)]` to the column:
-
-```txt
-`Option<Option<spacetimedb::Timestamp>>` doesn't implement `std::fmt::Display`
-the trait `std::fmt::Display` is not implemented for `Option<Option<spacetimedb::Timestamp>>`
-in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
-required for `&Option<Option<spacetimedb::Timestamp>>` to implement `std::fmt::Display`
-macros.rs(114, 33): Actual error occurred here
-macros.rs(114, 33): Error originated from macro call here
-```
-
-This is a defect of SpacetimeDSL and must be traced to its origin, so that it will work flawlessly when SpacetimeDB implements indices for option types.
-
-Note from developer END.
-
-The `Update` path also carries an unanswered correctness question in a comment, noting that the `String` handling was written for single-column indices and asking whether it works for multi-column indices. That question has been left in the source rather than answered.
-
-Recommendation: this is the highest-leverage item in the report, because every other recommendation here is a refactoring, and `AGENTS.md` requires tests before refactoring. Add tests that generate token streams for representative table shapes and assert on the output — snapshot tests over the formatted generated code are the usual fit for a proc-macro and make assertions binary without manual inspection. Cover at minimum: a plain table, a table with a unique single-column index, a unique multi-column index, a `String` index column, a wrapper-typed index column, an optional wrapper-typed index column (the suspected-broken branch), a singleton, and a foreign-key/referenced-by pair. Complement these with compile-failure tests for the user-input error cases so the diagnostics themselves are pinned.
-
-Once the optional-wrapper branch has a test, confirm whether it is broken; if it is, the developers must decide whether to fix the emission or remove the branch as an unsupported combination that should instead produce a clear compiler error.
 
 ### `method.rs`: unresolved `FIXME` and `TODO` markers
 
 **Violates:** Documentation & Communication Clarity (_Future ideas captured outside codebase_, _Log blockers to future cleanups for retrospectives_); Refactoring & Change Containment
 
-The module carries a mix of markers. Some are linked to tracked issues — the `try_update` replacement, the `SetNone` strategy, doc comments influenced by foreign-key attributes. Others are not linked to anything: an unnecessary clone in the create path, an error message that shows all columns where only the unique ones are relevant, row-value getters for wrapper types described as being built in the wrong shape, a hook error that is swallowed because propagating it would require a signature change, and the multi-column `String` handling question noted above.
+The module carries a mix of markers. Some are linked to tracked issues — the `try_update` replacement, the `SetNone` strategy, doc comments influenced by foreign-key attributes. Others are not linked to anything: an unnecessary clone in the create path, an error message that shows all columns where only the unique ones are relevant, row-value getters for wrapper types described as being built in the wrong shape, a hook error that is swallowed because propagating it would require a signature change, and an unanswered correctness question in the `Update` path asking whether the `String` handling, written for single-column indices, also holds for multi-column ones. That last question has an answer now: `string_index_column` pins the single-column shapes and `multiple_dsl_attributes` pins a unique multi-column index over `[database_id, name]` where `name` is a `String`. Its snapshots show the column arriving as `&str` and reaching `filter` as part of the tuple, so the question can be settled by reading them rather than by reasoning about the code.
 
 Several of these markers are inside `quote!` bodies and are therefore emitted into the code users read.
 
@@ -342,12 +293,54 @@ Recommendation: open issues for the unlinked markers and reduce each in-source m
 
 ---
 
+## Defects found by the characterization tests
+
+Writing the suite described in [`.ai/plans/1_ADD_CHARACTERIZATION_TESTS.md`](.ai/plans/1_ADD_CHARACTERIZATION_TESTS.md) surfaced three behaviors that no example module exercises and that the report could not have found by reading `method.rs` alone. Each is pinned by a fixture, so whichever way the developers decide it, the decision shows up as a snapshot diff.
+
+### `method(delete = false)` disables no delete method
+
+**Violates:** Principle of Least Astonishment; Code For The Maintainer (_names state what the thing does_)
+
+`#[dsl(method(delete = false))]` reads as the counterpart of `method(update = false)`, and `update = false` does what it says: no setters, no update methods. `delete = false` removes nothing. The fixture `derive/tests/fixtures/methods_disabled.rs` declares both flags, and its `table.snap` manifest still lists `delete_audit_entry_by_id` and `delete_audit_entries_by_actor_id`.
+
+The flag reaches only two decisions, neither of which is method generation: `foreign_key.rs:115` rejects an `on_delete = Delete` foreign key while it is set, and `internal.rs:177`/`internal.rs:184` reject a before- or after-delete hook. `method.rs` never reads `has_delete_method` at all. Those two rejections are the flag's entire user-visible effect, and both are pinned by `compile-tests/tests/ui/before_delete_hook_without_delete_method.rs` and `after_delete_hook_without_delete_method.rs`.
+
+Recommendation: decide which of the two readings is intended. Making the flag suppress the delete methods matches its name and its sibling, but it is a breaking change for any module that sets `delete = false` and calls a delete method today (developer decision). Renaming it — to something naming the constraint it actually imposes, such as forbidding cascading deletes and delete hooks — keeps behavior and fixes the surprise. What should not survive is the current pairing, where two flags spelled the same way mean different kinds of thing.
+
+### A `#[unique]` column gets no update method, but a unique multi-column index does
+
+**Violates:** Principle of Least Astonishment; Don't Repeat Yourself (_One authoritative source for each business rule_); Connascence of Algorithm
+
+Both index shapes produce the same `SpacetimeDSLColumnMethodsForUniqueIndex` value, and each decides independently whether to fill its `update` field. The single-column path at `method.rs:163` requires `has_update_method && method_is_for_primary_key`; the multi-column path at `method.rs:366` requires `has_update_method` alone. So a row can be updated by a unique multi-column index but not by a unique single-column one.
+
+The fixtures show it directly: `unique_single_column_index` generates `get_account_by_external_id` and `delete_account_by_external_id` but no `update_account_by_external_id`, while `unique_multi_column_index` generates `update_seat_by_row_and_number` alongside its getter and deleter. It holds across the whole suite. Every other fixture with a non-primary-key unique column — `direct_index`, `string_index_column`, `wrapper_created_named`, `wrapper_created_unnamed`, `wrapper_used`, `hooks_all_six` and `delete_hooks_with_foreign_key_on_unique_index` — generates a getter and a deleter for that column and no updater, while `multiple_dsl_attributes`, the only other fixture with a unique multi-column index, generates `update_module1_by_database_and_name` exactly as `Seat` does.
+
+Recommendation: the rule "which indices can update a row" is currently expressed twice, in two places that disagree. Decide it once — either a unique index of any width may update(developer decision), or only the primary key may — and have both paths read that one decision. Note that this is not only a cleanup: if the multi-column behavior is the intended one, single-column unique indices are missing a method users can reasonably expect(developer decision), and if the single-column behavior is intended, the multi-column path is generating a method that should not exist.
+
+A third case falls out of the defect below: a unique _hash_ column takes the multi-column path by accident, so it does get an update method (developer decision: it should!). Fixing that routing will silently change which of the two rules applies to it, which is a further reason to settle the rule first.
+
+### A single-column hash index is routed through the multi-column path
+
+**Violates:** Principle of Least Astonishment; Duplication Control & Reuse; Unused scaffolding removed immediately
+
+`db/column.rs:63` walks the table's indices to find the one belonging to the column being processed, and moves it onto that column as `single_column_index`. The loop matches `BTreeSingleColumn` and `Direct`. It does not match `HashSingleColumn`.
+
+A `#[index(hash)]` column therefore never gets a `single_column_index`, `SpacetimeDSLColumnMethods::map` returns `None` for it, and the index stays in `multi_column_indices` — where the loop at `method.rs:329` branches on `is_unique` alone, without checking that the index has more than one column. The methods that come out are named correctly, which is why this has gone unnoticed, but they are generated by the wrong branch.
+
+Two consequences are visible in the `hash_index` fixture. `device_id`, which is `#[index(hash)] #[unique]`, gets `update_session_by_device_id` — the method the section above shows a unique _btree_ or _direct_ column does not get, because the multi-column path omits the primary-key condition. And the `HashSingleColumn` arm at `method.rs:156` is dead: it tests whether a single-column hash index is the primary key, and no single-column hash index ever reaches it.
+
+Independently of the routing, every doc comment the fixture generates calls the index a btree index — `method.rs:925` and `method.rs:935` hard-code that word in arms which also handle `HashSingleColumn` and `HashMultiColumn`. This one is a straightforward defect with no decision attached: the text is simply wrong for hash indices, and it is emitted into the documentation users read.
+
+Recommendation: add `HashSingleColumn` to the extraction loop, which routes hash columns like every other single-column index and makes the dead arm live. Do it together with the update-rule decision above, because it changes which rule applies to unique hash columns. Then either gate the `multi_column_indices` loop on the index actually being multi-column, or accept that it is the generic path and rename it — a list called `multi_column_indices` that holds single-column indices is exactly the kind of naming that hid this. The hard-coded `"btree index"` should be derived from the index type in both arms and can be fixed on its own.
+
+---
+
 ## Recommended Resolution Order
 
-1. **Add characterization tests for the generator.** Snapshot the generated output for the table shapes listed above, plus compile-failure tests for invalid attribute usage. Nothing else in this list can be done safely first — `AGENTS.md` requires tests before refactoring, and this module currently has none.
+1. **Add characterization tests for the generator.** Done — see [`.ai/plans/1_ADD_CHARACTERIZATION_TESTS.md`](.ai/plans/1_ADD_CHARACTERIZATION_TESTS.md). Snapshot tests over the generated output and compile tests over the rejection diagnostics now run with `./x.sh unit-test`, so every step below has the safety net `AGENTS.md` requires before refactoring.
 2. **Resolve the dead code.** `additional_paths_to_use`, `get_referencing_table_trait_name` and its discarded call, and `strategy_before_all`. Each requires a developer decision on whether the code is genuinely obsolete or whether its disuse is a bug; make that call explicitly, then delete or restore in a single pass including downstream emission.
 3. **Delete the commented-out `set_none_strategy` blocks and the in-`quote!` markers**, moving any detail they carry into the existing issue first. This shrinks several functions immediately and makes the following steps easier to read.
-4. **Investigate and fix the defects the tests expose.** The stray leading comma in the single-column `column_names_and_row_values` format, and the apparently non-compiling optional-wrapper-type mapper. Both are user-visible; both need the tests from step 1 to confirm the fix.
+4. **Investigate and fix the defects the tests expose.** The stray leading comma in the single-column `column_names_and_row_values` format, which the snapshots now pin, and the `Option<T>` column carrying both a wrapper and a `#[unique]` index, which `compile-tests/tests/ui/wrapper_optional_unique_index.rs` pins as a compile failure. Both are user-visible. The non-compiling optional-wrapper-type mapper this step used to name was fixed separately in `81ada87`.
 5. **Extract the mechanical duplication.** Hook token emission, wrapper-type struct path resolution, and the repeated fully qualified runtime paths. These copies are genuinely identical, so no behavioural decision is needed, and removing them materially reduces the size of the functions analysed in later steps.
 6. **Replace string-based type classification** with a classification resolved once onto `InternalColumn`. Do this before the structural split, so the split does not carry the string comparisons into several new modules.
 7. **Clean up signatures.** Slices instead of `&Vec`, `&str` instead of `&String`, flattened reference nesting, named enums instead of boolean parameters, named structs instead of unlabeled tuple returns, corrected visibility, and the `process_columns_for_create_and_update_method` rename. Mechanical, and it makes the call graph legible before it is rearranged.
@@ -358,3 +351,6 @@ Recommendation: open issues for the unlinked markers and reduce each in-source m
 12. **Consolidate singleton handling** behind a single definition of the singleton contract, once the per-variant generators from step 9 make the special cases visible side by side.
 13. **Split the module into domain modules**, and regroup the long paired field names behind small structs. Last, because the seams are only clean once the preceding steps have separated the responsibilities.
 14. **File issues for the unlinked `TODO`/`FIXME` markers** and reduce each in-source marker to an issue reference, triaging the swallowed hook error as a defect rather than a cleanup.
+15. **Decide what `method(delete = false)` means** — either suppress the delete methods(developer decision), or rename the flag to the constraint it actually imposes. Appended after the original fourteen so their numbering keeps its existing references; in priority it is independent of steps 2 through 14 and can be taken at any point, because the `methods_disabled` fixture records whichever answer is chosen.
+16. **Unify the rule for which unique indices may update a row**, so the single-column and multi-column paths stop deciding it separately. Best taken with step 11, which consolidates the rest of the drifted duplication. (developer decision: all get one, so single-column path must get a unique DSL method too)
+17. **Route single-column hash indices like every other single-column index**, by adding `HashSingleColumn` to the extraction loop, and derive the `"btree index"` wording from the index type instead of hard-coding it. The routing change belongs with step 16, because it decides which update rule applies to unique hash columns; the doc-comment wording is independent and can be fixed immediately.
