@@ -1,0 +1,128 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct PotionId {
+    value: u64,
+}
+impl Default for PotionId {
+    fn default() -> PotionId {
+        PotionId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for PotionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "PotionId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, PotionId> for PotionId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Potion> for PotionId {
+    fn from(value: &Potion) -> Self {
+        PotionId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Potion> for Option<PotionId> {
+    fn from(value: &Potion) -> Option<PotionId> {
+        Some(PotionId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&PotionId> for Option<PotionId> {
+    fn from(value: &PotionId) -> Option<PotionId> {
+        use spacetimedsl::Wrapper;
+        Some(PotionId::new(value.value()))
+    }
+}
+impl From<&PotionId> for PotionId {
+    fn from(value: &PotionId) -> Self {
+        use spacetimedsl::Wrapper;
+        PotionId::new(value.value())
+    }
+}
+impl Potion {
+    ///
+    pub fn get_id(&self) -> PotionId {
+        use spacetimedsl::Wrapper;
+        PotionId::new(self.id.clone())
+    }
+    ///
+    pub fn get_name(&self) -> &String {
+        use spacetimedsl::Wrapper;
+        &self.name
+    }
+    ///
+    pub fn get_name_mut(&mut self) -> &mut String {
+        use spacetimedsl::Wrapper;
+        &mut self.name
+    }
+    ///
+    pub fn set_name(&mut self, name: String) -> String {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.name, name);
+        old_value
+    }
+}
+///
+pub struct CreatePotion {
+    pub name: String,
+}
+pub trait BeforePotionInsertHook<T: crate::spacetimedsl::WriteContext> {
+    fn before_potion_insert(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        create_potion_request: CreatePotion,
+    ) -> Result<CreatePotion, crate::spacetimedsl::SpacetimeDSLError>;
+}
+pub trait BeforePotionUpdateHook<T: crate::spacetimedsl::WriteContext> {
+    fn before_potion_update(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_potion: &Potion,
+        new_potion: Potion,
+    ) -> Result<Potion, crate::spacetimedsl::SpacetimeDSLError>;
+}
+pub trait BeforePotionDeleteHook<T: crate::spacetimedsl::WriteContext> {
+    fn before_potion_delete(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_potion: &Potion,
+    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError>;
+}
+pub trait AfterPotionInsertHook<T: crate::spacetimedsl::WriteContext> {
+    fn after_potion_insert(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        new_potion: &Potion,
+    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError>;
+}
+pub trait AfterPotionUpdateHook<T: crate::spacetimedsl::WriteContext> {
+    fn after_potion_update(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_potion: &Potion,
+        new_potion: &Potion,
+    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError>;
+}
+pub trait AfterPotionDeleteHook<T: crate::spacetimedsl::WriteContext> {
+    fn after_potion_delete(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_potion: &Potion,
+    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError>;
+}
+
+// Generated DSL methods:
+// count_of_all_potions
+// create_potion
+// delete_potion_by_id
+// delete_potion_by_name
+// get_all_potions
+// get_potion_by_id
+// get_potion_by_name
+// update_potion_by_id

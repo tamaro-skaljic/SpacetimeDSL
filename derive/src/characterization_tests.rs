@@ -5,16 +5,18 @@
 //! Each fixture in `tests/fixtures` isolates one feature and names the branch it covers.
 //! Its snapshots live in `tests/snapshots/<fixture>/<StructName>`: `table.snap` holds
 //! everything the macro emits that is not a DSL method, plus a manifest of the generated
-//! method names, and one `<method_name>.snap` holds each DSL method.
+//! method names, and one `<method_name>.snap` holds each DSL method. A struct carrying
+//! more than one `#[dsl]` attribute is expanded once per attribute and snapshotted into
+//! a `pass_<n>` directory per expansion.
 //!
 //! Run `cargo insta review` to inspect and accept changed snapshots.
 
 use std::{collections::BTreeSet, fs, path::PathBuf};
 
 use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
+use quote::ToTokens;
 use rust_format::{Formatter, PrettyPlease};
-use syn::{Attribute, Item, ItemStruct};
+use syn::{Attribute, DeriveInput, Item};
 
 use crate::{ExpandedDSLAttribute, expand_dsl_attribute_parts, output::GeneratedOutput};
 
@@ -23,66 +25,263 @@ fn plain_table() {
     snapshot_fixture("plain_table");
 }
 
-/// Expands every struct of the fixture the way the attribute macro would
-/// and snapshots the generated output of each.
+#[test]
+fn unique_single_column_index() {
+    snapshot_fixture("unique_single_column_index");
+}
+
+#[test]
+fn non_unique_single_column_index() {
+    snapshot_fixture("non_unique_single_column_index");
+}
+
+#[test]
+fn unique_multi_column_index() {
+    snapshot_fixture("unique_multi_column_index");
+}
+
+#[test]
+fn non_unique_multi_column_index() {
+    snapshot_fixture("non_unique_multi_column_index");
+}
+
+#[test]
+fn direct_index() {
+    snapshot_fixture("direct_index");
+}
+
+// FIXME: hash index
+
+#[test]
+fn string_index_column() {
+    snapshot_fixture("string_index_column");
+}
+
+#[test]
+fn wrapper_created_unnamed() {
+    snapshot_fixture("wrapper_created_unnamed");
+}
+
+#[test]
+fn wrapper_created_named() {
+    snapshot_fixture("wrapper_created_named");
+}
+
+#[test]
+fn wrapper_used() {
+    snapshot_fixture("wrapper_used");
+}
+
+#[test]
+fn wrapper_optional_index() {
+    snapshot_fixture("wrapper_optional_index");
+}
+
+#[test]
+fn singleton() {
+    snapshot_fixture("singleton");
+}
+
+#[test]
+fn foreign_key_and_referenced_by() {
+    snapshot_fixture("foreign_key_and_referenced_by");
+}
+
+#[test]
+fn on_delete_error() {
+    snapshot_fixture("on_delete_error");
+}
+
+#[test]
+fn on_delete_delete() {
+    snapshot_fixture("on_delete_delete");
+}
+
+#[test]
+fn on_delete_set_zero() {
+    snapshot_fixture("on_delete_set_zero");
+}
+
+#[test]
+fn on_delete_ignore() {
+    snapshot_fixture("on_delete_ignore");
+}
+
+#[test]
+fn hooks_all_six() {
+    snapshot_fixture("hooks_all_six");
+}
+
+#[test]
+fn methods_disabled() {
+    snapshot_fixture("methods_disabled");
+}
+
+#[test]
+fn timestamps() {
+    snapshot_fixture("timestamps");
+}
+
+#[test]
+fn scheduled_table() {
+    snapshot_fixture("scheduled_table");
+}
+
+#[test]
+fn multiple_dsl_attributes() {
+    snapshot_fixture("multiple_dsl_attributes");
+}
+
+#[test]
+fn multiple_table_attributes() {
+    snapshot_fixture("multiple_table_attributes");
+}
+
+#[test]
+fn delete_hooks_with_foreign_key_on_unique_index() {
+    snapshot_fixture("delete_hooks_with_foreign_key_on_unique_index");
+}
+
+/// Expanding the same fixture twice must produce byte-identical output, otherwise the
+/// snapshots above would fail at random and a regenerated module would differ from the
+/// previous one for no reason.
+///
+/// Repeating the expansion inside a single process is enough to catch that: every
+/// `HashMap` and `HashSet` draws its own seed from a per-thread counter, so a collection
+/// whose iteration order reaches the output reorders it between expansions of the same
+/// run - not only between runs.
+#[test]
+fn expansion_is_deterministic() {
+    /// The fixture with the most order-sensitive input: several foreign keys,
+    /// several referencing tables and more than one on-delete strategy.
+    const FIXTURE_NAME: &str = "foreign_key_and_referenced_by";
+
+    const EXPANSION_COUNT: usize = 50;
+
+    let first_expansion = expand_fixture_to_string(FIXTURE_NAME);
+
+    for expansion_number in 2..=EXPANSION_COUNT {
+        assert_eq!(
+            expand_fixture_to_string(FIXTURE_NAME),
+            first_expansion,
+            "expansion {expansion_number} of `{FIXTURE_NAME}.rs` should be identical to the first one"
+        );
+    }
+}
+
+/// One `#[dsl]` expansion of one struct of a fixture.
+struct FixtureExpansion {
+    struct_name: String,
+    /// Which `#[dsl]` attribute of the struct produced this expansion, counted from the
+    /// outermost one - which is the one the compiler expands first.
+    pass_number: usize,
+    /// How many `#[dsl]` attributes the struct carries in total.
+    pass_count: usize,
+    generated_output: GeneratedOutput,
+}
+
 fn snapshot_fixture(fixture_name: &str) {
+    for expansion in expand_fixture(fixture_name) {
+        let FixtureExpansion {
+            struct_name,
+            pass_number,
+            pass_count,
+            generated_output,
+        } = expansion;
+
+        // Structs with a single `#[dsl]` attribute - almost all of them - would otherwise
+        // get a `pass_1` directory which never has a sibling.
+        let snapshot_directory = match pass_count {
+            1 => format!("../tests/snapshots/{fixture_name}/{struct_name}"),
+            _ => format!("../tests/snapshots/{fixture_name}/{struct_name}/pass_{pass_number}"),
+        };
+
+        insta::with_settings!({
+            snapshot_path => snapshot_directory,
+            prepend_module_to_snapshot => false,
+            omit_expression => true,
+        }, {
+            insta::assert_snapshot!("table", table_snapshot(&generated_output, &struct_name));
+
+            for dsl_method in &generated_output.dsl_methods {
+                insta::assert_snapshot!(
+                    dsl_method.method_name.to_string(),
+                    format_tokens(&dsl_method.tokens)
+                );
+            }
+        });
+    }
+}
+
+/// Expands every struct of the fixture the way the attribute macro would, once per
+/// `#[dsl]` attribute the struct carries.
+///
+/// Each pass receives the item the previous pass echoed back, exactly as the compiler
+/// feeds one attribute macro's output into the next one. The second and later passes
+/// therefore see the `derive(SpacetimeDSL)` helper already present, which is what makes
+/// `first_dsl_attribute` false and suppresses the wrapper types and the accessors.
+fn expand_fixture(fixture_name: &str) -> Vec<FixtureExpansion> {
     let fixture = read_fixture(fixture_name);
     let fixture: syn::File = syn::parse_str(&fixture)
         .unwrap_or_else(|error| panic!("`{fixture_name}.rs` should be parsable Rust: {error}"));
 
-    let mut snapshotted_struct_names = vec![];
+    let mut expansions = vec![];
 
     for item in fixture.items {
-        let Item::Struct(mut item_struct) = item else {
+        let Item::Struct(item_struct) = item else {
             continue;
         };
 
-        let Some(dsl_attribute_args) = take_first_dsl_attribute_args(&mut item_struct) else {
-            continue;
-        };
+        let mut derive_input: DeriveInput = syn::parse2(item_struct.to_token_stream())
+            .unwrap_or_else(|error| panic!("a `struct` item should be a `DeriveInput`: {error}"));
 
-        snapshotted_struct_names.push(item_struct.ident.to_string());
+        let struct_name = derive_input.ident.to_string();
+        let pass_count = derive_input
+            .attrs
+            .iter()
+            .filter(|attribute| is_dsl_attribute(attribute))
+            .count();
 
-        snapshot_struct(
-            fixture_name,
-            &item_struct.ident.to_string(),
-            dsl_attribute_args,
-            quote!(#item_struct),
-        );
+        for pass_number in 1..=pass_count {
+            let dsl_attribute_args = take_first_dsl_attribute_args(&mut derive_input.attrs)
+                .expect("the `#[dsl]` attributes of the struct were just counted");
+
+            let ExpandedDSLAttribute {
+                derive_input: echoed_item,
+                generated_output,
+            } = expand_dsl_attribute_parts(dsl_attribute_args, derive_input.to_token_stream())
+                .unwrap_or_else(|error| {
+                    panic!(
+                        "`{fixture_name}.rs` / `{struct_name}` should expand in pass {pass_number}: {error}"
+                    )
+                });
+
+            expansions.push(FixtureExpansion {
+                struct_name: struct_name.clone(),
+                pass_number,
+                pass_count,
+                generated_output,
+            });
+
+            derive_input = echoed_item;
+        }
     }
 
     assert!(
-        !snapshotted_struct_names.is_empty(),
+        !expansions.is_empty(),
         "`{fixture_name}.rs` should contain at least one struct with a `#[dsl]` attribute"
     );
+
+    expansions
 }
 
-fn snapshot_struct(
-    fixture_name: &str,
-    struct_name: &str,
-    dsl_attribute_args: TokenStream,
-    item: TokenStream,
-) {
-    let ExpandedDSLAttribute {
-        generated_output, ..
-    } = expand_dsl_attribute_parts(dsl_attribute_args, item).unwrap_or_else(|error| {
-        panic!("`{fixture_name}.rs` / `{struct_name}` should expand: {error}")
-    });
-
-    insta::with_settings!({
-        snapshot_path => format!("../tests/snapshots/{fixture_name}/{struct_name}"),
-        prepend_module_to_snapshot => false,
-        omit_expression => true,
-    }, {
-        insta::assert_snapshot!("table", table_snapshot(&generated_output, struct_name));
-
-        for dsl_method in &generated_output.dsl_methods {
-            insta::assert_snapshot!(
-                dsl_method.method_name.to_string(),
-                format_tokens(&dsl_method.tokens)
-            );
-        }
-    });
+/// Everything the fixture generates, concatenated - the whole output, not only the parts
+/// the snapshots split out.
+fn expand_fixture_to_string(fixture_name: &str) -> String {
+    expand_fixture(fixture_name)
+        .into_iter()
+        .map(|expansion| expansion.generated_output.into_token_stream().to_string())
+        .collect()
 }
 
 /// Everything the macro emits that is not a DSL method, followed by a manifest of the
@@ -110,13 +309,13 @@ fn table_snapshot(generated_output: &GeneratedOutput, struct_name: &str) -> Stri
     format!("{items_outside_dsl_methods}\n// Generated DSL methods:\n{manifest}")
 }
 
-/// The args of the first `#[dsl]` attribute, removed from the item - which is exactly
-/// what the item looks like when the attribute macro receives it, because an attribute
-/// macro strips only itself.
-fn take_first_dsl_attribute_args(item_struct: &mut ItemStruct) -> Option<TokenStream> {
-    let position = item_struct.attrs.iter().position(is_dsl_attribute)?;
+/// The args of the first `#[dsl]` attribute, removed from the attributes - which is
+/// exactly what the item looks like when the attribute macro receives it, because an
+/// attribute macro strips only itself.
+fn take_first_dsl_attribute_args(attributes: &mut Vec<Attribute>) -> Option<TokenStream> {
+    let position = attributes.iter().position(is_dsl_attribute)?;
 
-    let dsl_attribute = item_struct.attrs.remove(position);
+    let dsl_attribute = attributes.remove(position);
 
     Some(
         dsl_attribute

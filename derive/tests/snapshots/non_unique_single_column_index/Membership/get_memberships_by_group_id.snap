@@ -1,0 +1,27 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Membership` iterator that contains all rows in the `membership` table whose value matches the value from the single-column btree index on the `group_id` column.
+    pub fn get_memberships_by_group_id<'a>(
+        &'a self,
+        group_id: &'a u64,
+    ) -> impl Iterator<Item = Membership> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().membership().group_id().filter(group_id)
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Membership` iterator that contains all rows in the `membership` table whose value matches the value from the single-column btree index on the `group_id` column.
+    pub fn get_memberships_by_group_id<'a>(
+        &'a self,
+        group_id: &'a u64,
+    ) -> impl Iterator<Item = Membership> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().membership().group_id().filter(group_id)
+    }
+}

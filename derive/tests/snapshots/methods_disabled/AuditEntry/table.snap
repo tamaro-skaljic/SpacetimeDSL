@@ -1,0 +1,84 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct AuditEntryId {
+    value: u64,
+}
+impl Default for AuditEntryId {
+    fn default() -> AuditEntryId {
+        AuditEntryId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for AuditEntryId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "AuditEntryId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, AuditEntryId> for AuditEntryId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&AuditEntry> for AuditEntryId {
+    fn from(value: &AuditEntry) -> Self {
+        AuditEntryId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&AuditEntry> for Option<AuditEntryId> {
+    fn from(value: &AuditEntry) -> Option<AuditEntryId> {
+        Some(AuditEntryId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&AuditEntryId> for Option<AuditEntryId> {
+    fn from(value: &AuditEntryId) -> Option<AuditEntryId> {
+        use spacetimedsl::Wrapper;
+        Some(AuditEntryId::new(value.value()))
+    }
+}
+impl From<&AuditEntryId> for AuditEntryId {
+    fn from(value: &AuditEntryId) -> Self {
+        use spacetimedsl::Wrapper;
+        AuditEntryId::new(value.value())
+    }
+}
+impl AuditEntry {
+    ///
+    pub fn get_id(&self) -> AuditEntryId {
+        use spacetimedsl::Wrapper;
+        AuditEntryId::new(self.id.clone())
+    }
+    ///
+    pub fn get_actor_id(&self) -> &u64 {
+        use spacetimedsl::Wrapper;
+        &self.actor_id
+    }
+    ///
+    pub fn get_message(&self) -> &String {
+        use spacetimedsl::Wrapper;
+        &self.message
+    }
+}
+///
+pub struct CreateAuditEntry {
+    pub actor_id: u64,
+    pub message: String,
+}
+
+// Generated DSL methods:
+// count_of_all_audit_entries
+// create_audit_entry
+// delete_audit_entries_by_actor_id
+// delete_audit_entry_by_id
+// get_all_audit_entries
+// get_audit_entries_by_actor_id
+// get_audit_entry_by_id

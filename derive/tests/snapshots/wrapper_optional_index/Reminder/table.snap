@@ -1,0 +1,142 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct ReminderId {
+    value: u64,
+}
+impl Default for ReminderId {
+    fn default() -> ReminderId {
+        ReminderId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for ReminderId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "ReminderId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, ReminderId> for ReminderId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Reminder> for ReminderId {
+    fn from(value: &Reminder) -> Self {
+        ReminderId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Reminder> for Option<ReminderId> {
+    fn from(value: &Reminder) -> Option<ReminderId> {
+        Some(ReminderId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&ReminderId> for Option<ReminderId> {
+    fn from(value: &ReminderId) -> Option<ReminderId> {
+        use spacetimedsl::Wrapper;
+        Some(ReminderId::new(value.value()))
+    }
+}
+impl From<&ReminderId> for ReminderId {
+    fn from(value: &ReminderId) -> Self {
+        use spacetimedsl::Wrapper;
+        ReminderId::new(value.value())
+    }
+}
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct ReminderAcknowledgedAt {
+    value: Option<Timestamp>,
+}
+impl Default for ReminderAcknowledgedAt {
+    fn default() -> ReminderAcknowledgedAt {
+        ReminderAcknowledgedAt {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for ReminderAcknowledgedAt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "ReminderAcknowledgedAt", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<Option<Timestamp>, ReminderAcknowledgedAt>
+for ReminderAcknowledgedAt {
+    fn new(value: Option<Timestamp>) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> Option<Timestamp> {
+        self.value.clone()
+    }
+}
+impl From<&Reminder> for ReminderAcknowledgedAt {
+    fn from(value: &Reminder) -> Self {
+        ReminderAcknowledgedAt {
+            value: value.acknowledged_at.clone(),
+        }
+    }
+}
+impl From<&Reminder> for Option<ReminderAcknowledgedAt> {
+    fn from(value: &Reminder) -> Option<ReminderAcknowledgedAt> {
+        Some(ReminderAcknowledgedAt {
+            value: value.acknowledged_at.clone(),
+        })
+    }
+}
+impl From<&ReminderAcknowledgedAt> for Option<ReminderAcknowledgedAt> {
+    fn from(value: &ReminderAcknowledgedAt) -> Option<ReminderAcknowledgedAt> {
+        use spacetimedsl::Wrapper;
+        Some(ReminderAcknowledgedAt::new(value.value()))
+    }
+}
+impl From<&ReminderAcknowledgedAt> for ReminderAcknowledgedAt {
+    fn from(value: &ReminderAcknowledgedAt) -> Self {
+        use spacetimedsl::Wrapper;
+        ReminderAcknowledgedAt::new(value.value())
+    }
+}
+impl Reminder {
+    ///
+    pub fn get_id(&self) -> ReminderId {
+        use spacetimedsl::Wrapper;
+        ReminderId::new(self.id.clone())
+    }
+    ///
+    pub fn get_acknowledged_at(&self) -> Option<ReminderAcknowledgedAt> {
+        use spacetimedsl::Wrapper;
+        match &self.acknowledged_at {
+            None => None,
+            Some(value) => Some(ReminderAcknowledgedAt::new(Some(value.clone()))),
+        }
+    }
+    ///
+    pub fn set_acknowledged_at(
+        &mut self,
+        acknowledged_at: Option<Timestamp>,
+    ) -> ReminderAcknowledgedAt {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.acknowledged_at, acknowledged_at);
+        ReminderAcknowledgedAt::new(old_value)
+    }
+}
+///
+pub struct CreateReminder {
+    pub acknowledged_at: Option<Timestamp>,
+}
+
+// Generated DSL methods:
+// count_of_all_reminders
+// create_reminder
+// delete_reminder_by_id
+// delete_reminders_by_acknowledged_at
+// get_all_reminders
+// get_reminder_by_id
+// get_reminders_by_acknowledged_at
+// update_reminder_by_id

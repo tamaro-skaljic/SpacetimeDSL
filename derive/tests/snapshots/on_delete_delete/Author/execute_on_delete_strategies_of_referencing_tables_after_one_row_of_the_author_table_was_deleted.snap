@@ -1,0 +1,40 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl crate::spacetimedsl::internal::DSLInternals {
+    ///Execute On Delete Strategies of all referencing tables after one row of the referenced table `author` was deleted.
+    pub fn execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_author_table_was_deleted<
+        'a,
+        T: crate::spacetimedsl::WriteContext,
+    >(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+    > {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use self::this_compilation_error_occurs_because_the_book_table_has_no_foreign_key_attribute_referencing_the_author_table;
+        let mut entries = vec![];
+        let mut error = false;
+        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_the_book_table_after_one_row_of_the_author_table_was_deleted(
+            dsl,
+            &strategy,
+            primary_key_value_of_a_row_to_delete,
+        ) {
+            Err(mut child_entries) => {
+                entries.append(&mut child_entries);
+                error = true;
+            }
+            Ok(mut child_entries) => {
+                entries.append(&mut child_entries);
+            }
+        };
+        match error {
+            false => Ok(entries),
+            true => Err(entries),
+        }
+    }
+}

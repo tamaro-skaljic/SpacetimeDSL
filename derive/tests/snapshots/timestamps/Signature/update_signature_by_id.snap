@@ -1,0 +1,20 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Signature` row of the `signature` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_signature_by_id<'a>(
+        &'a self,
+        signature: Signature,
+    ) -> Result<Signature, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut signature = signature;
+        signature.modified_at = self.ctx().timestamp()?;
+        let signature = self.db().signature().id().update(signature);
+        Ok(signature)
+    }
+}

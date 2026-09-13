@@ -1,0 +1,64 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Inspection` row of the `inspection` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_inspection_by_id<'a>(
+        &'a self,
+        inspection: Inspection,
+    ) -> Result<Inspection, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut inspection = inspection;
+        let mut the_same_or_another_inspection: Option<Inspection> = None;
+        let warehouse_id = inspection.get_warehouse_id().value();
+        if warehouse_id.ne(&0) {
+            if the_same_or_another_inspection.is_none() {
+                the_same_or_another_inspection = match self
+                    .db()
+                    .inspection()
+                    .id()
+                    .find(inspection.get_id().value())
+                {
+                    Some(inspection) => Some(inspection),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "inspection".into(),
+                            column_names_and_row_values: format!(
+                                "{{ , id : {}  }}", warehouse_id
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_inspection
+                .as_ref()
+                .expect("field_name_for_found_value should be Some(_)")
+                .get_warehouse_id()
+                .ne(&inspection.get_warehouse_id())
+            {
+                match self.get_warehouse_by_id(inspection.get_warehouse_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "inspection".into(),
+                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", "warehouse_id", warehouse_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        let inspection = self.db().inspection().id().update(inspection);
+        Ok(inspection)
+    }
+}

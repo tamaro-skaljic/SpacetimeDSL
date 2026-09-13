@@ -1,0 +1,53 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Slot` from the `slot` table whose value matches the unique single-column direct index on the `position` column.*/
+    pub fn get_slot_by_position<'a>(
+        &'a self,
+        position: &u8,
+    ) -> Result<Slot, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().slot().position().find(position) {
+            Some(slot) => Ok(slot),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "slot".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , position : {}  }}", position
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Slot` from the `slot` table whose value matches the unique single-column direct index on the `position` column.*/
+    pub fn get_slot_by_position<'a>(
+        &'a self,
+        position: &u8,
+    ) -> Result<Slot, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().slot().position().find(position) {
+            Some(slot) => Ok(slot),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "slot".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , position : {}  }}", position
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

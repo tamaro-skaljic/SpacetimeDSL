@@ -1,0 +1,71 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `child_marker` table.
+    pub fn create_child_marker<'a>(
+        &'a self,
+        child_marker: CreateChildMarker,
+    ) -> Result<ChildMarker, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use self::BeforeChildMarkerInsertHook;
+        let child_marker = crate::spacetimedsl::DSLMethodHooks::before_child_marker_insert(
+            self,
+            child_marker,
+        )?;
+        let id = u64::default();
+        let parent_id = child_marker.parent_id.value();
+        let child_marker = ChildMarker { id, parent_id };
+        let mut the_same_or_another_child_marker: Option<ChildMarker> = None;
+        if parent_id.ne(&0) {
+            match self.get_parent_record_by_id(child_marker.get_parent_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "child_marker".into(),
+                            create_or_update: crate::spacetimedsl::error::Action::Create,
+                            column_names_and_row_values: format!(
+                                "{{ {} : {} }}", parent_id, child_marker.get_parent_id()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        match self.db().child_marker().try_insert(child_marker.clone()) {
+            Ok(entity) => {
+                use self::AfterChildMarkerInsertHook;
+                crate::spacetimedsl::DSLMethodHooks::after_child_marker_insert(
+                    self,
+                    &entity,
+                )?;
+                Ok(entity)
+            }
+            Err(error) => {
+                match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "child_marker".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ child_marker : {:?} }}", child_marker
+                            )
+                                .into(),
+                        })
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "child_marker".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

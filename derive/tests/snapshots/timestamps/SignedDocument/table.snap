@@ -1,0 +1,93 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct SignedDocumentId {
+    value: u64,
+}
+impl Default for SignedDocumentId {
+    fn default() -> SignedDocumentId {
+        SignedDocumentId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for SignedDocumentId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "SignedDocumentId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, SignedDocumentId> for SignedDocumentId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&SignedDocument> for SignedDocumentId {
+    fn from(value: &SignedDocument) -> Self {
+        SignedDocumentId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&SignedDocument> for Option<SignedDocumentId> {
+    fn from(value: &SignedDocument) -> Option<SignedDocumentId> {
+        Some(SignedDocumentId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&SignedDocumentId> for Option<SignedDocumentId> {
+    fn from(value: &SignedDocumentId) -> Option<SignedDocumentId> {
+        use spacetimedsl::Wrapper;
+        Some(SignedDocumentId::new(value.value()))
+    }
+}
+impl From<&SignedDocumentId> for SignedDocumentId {
+    fn from(value: &SignedDocumentId) -> Self {
+        use spacetimedsl::Wrapper;
+        SignedDocumentId::new(value.value())
+    }
+}
+impl SignedDocument {
+    ///
+    pub fn get_id(&self) -> SignedDocumentId {
+        use spacetimedsl::Wrapper;
+        SignedDocumentId::new(self.id.clone())
+    }
+    ///
+    pub fn get_title(&self) -> &String {
+        use spacetimedsl::Wrapper;
+        &self.title
+    }
+    ///
+    pub fn get_signature(&self) -> &SignatureId {
+        use spacetimedsl::Wrapper;
+        &self.signature
+    }
+    ///
+    pub fn get_created_at(&self) -> &Timestamp {
+        use spacetimedsl::Wrapper;
+        &self.created_at
+    }
+    ///
+    pub fn get_modified_at(&self) -> &Option<Timestamp> {
+        use spacetimedsl::Wrapper;
+        &self.modified_at
+    }
+}
+///
+pub struct CreateSignedDocument {
+    pub title: String,
+    pub signature: SignatureId,
+}
+
+// Generated DSL methods:
+// count_of_all_signed_documents
+// create_signed_document
+// delete_signed_document_by_id
+// get_all_signed_documents
+// get_signed_document_by_id
+// update_signed_document_by_id

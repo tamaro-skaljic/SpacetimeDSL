@@ -1,0 +1,90 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct MembershipId {
+    value: u64,
+}
+impl Default for MembershipId {
+    fn default() -> MembershipId {
+        MembershipId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for MembershipId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "MembershipId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, MembershipId> for MembershipId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Membership> for MembershipId {
+    fn from(value: &Membership) -> Self {
+        MembershipId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Membership> for Option<MembershipId> {
+    fn from(value: &Membership) -> Option<MembershipId> {
+        Some(MembershipId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&MembershipId> for Option<MembershipId> {
+    fn from(value: &MembershipId) -> Option<MembershipId> {
+        use spacetimedsl::Wrapper;
+        Some(MembershipId::new(value.value()))
+    }
+}
+impl From<&MembershipId> for MembershipId {
+    fn from(value: &MembershipId) -> Self {
+        use spacetimedsl::Wrapper;
+        MembershipId::new(value.value())
+    }
+}
+impl Membership {
+    ///
+    pub fn get_id(&self) -> MembershipId {
+        use spacetimedsl::Wrapper;
+        MembershipId::new(self.id.clone())
+    }
+    ///
+    pub fn get_group_id(&self) -> &u64 {
+        use spacetimedsl::Wrapper;
+        &self.group_id
+    }
+    ///
+    pub fn get_group_id_mut(&mut self) -> &mut u64 {
+        use spacetimedsl::Wrapper;
+        &mut self.group_id
+    }
+    ///
+    pub fn set_group_id(&mut self, group_id: u64) -> u64 {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.group_id, group_id);
+        old_value
+    }
+}
+///
+pub struct CreateMembership {
+    pub group_id: u64,
+}
+
+// Generated DSL methods:
+// count_of_all_memberships
+// create_membership
+// delete_membership_by_id
+// delete_memberships_by_group_id
+// get_all_memberships
+// get_membership_by_id
+// get_memberships_by_group_id
+// update_membership_by_id

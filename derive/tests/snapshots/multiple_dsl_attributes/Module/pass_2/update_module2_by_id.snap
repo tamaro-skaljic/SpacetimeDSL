@@ -1,0 +1,61 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Module` row of the `module2` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_module2_by_id<'a>(
+        &'a self,
+        module2: Module,
+    ) -> Result<Module, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use ::spacetimedsl::itertools::Itertools;
+        let mut module2 = module2;
+        let mut the_same_or_another_module2: Option<Module> = None;
+        the_same_or_another_module2 = match self
+            .db()
+            .module2()
+            .name_and_database()
+            .filter((&module2.name, module2.database_id))
+            .at_most_one()
+        {
+            Ok(module2) => module2,
+            Err(_) => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                    table_name: "module2".into(),
+                    action: crate::spacetimedsl::error::Action::Update,
+                    error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    column_names_and_row_values: format!(
+                        "name : {} , database_id : {}", & module2.name, module2
+                        .database_id
+                    )
+                        .into(),
+                });
+            }
+        };
+        match &the_same_or_another_module2 {
+            Some(the_same_or_another_module2) => {
+                if the_same_or_another_module2.id.ne(&module2.id) {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                        table_name: "module2".into(),
+                        action: crate::spacetimedsl::error::Action::Update,
+                        error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
+                        one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                        column_names_and_row_values: format!(
+                            "name : {} , database_id : {}", & module2.name, module2
+                            .database_id
+                        )
+                            .into(),
+                    });
+                }
+            }
+            _ => {}
+        };
+        let module2 = self.db().module2().id().update(module2);
+        Ok(module2)
+    }
+}

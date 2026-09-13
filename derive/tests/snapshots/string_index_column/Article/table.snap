@@ -1,0 +1,221 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct ArticleId {
+    value: u64,
+}
+impl Default for ArticleId {
+    fn default() -> ArticleId {
+        ArticleId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for ArticleId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "ArticleId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, ArticleId> for ArticleId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Article> for ArticleId {
+    fn from(value: &Article) -> Self {
+        ArticleId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Article> for Option<ArticleId> {
+    fn from(value: &Article) -> Option<ArticleId> {
+        Some(ArticleId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&ArticleId> for Option<ArticleId> {
+    fn from(value: &ArticleId) -> Option<ArticleId> {
+        use spacetimedsl::Wrapper;
+        Some(ArticleId::new(value.value()))
+    }
+}
+impl From<&ArticleId> for ArticleId {
+    fn from(value: &ArticleId) -> Self {
+        use spacetimedsl::Wrapper;
+        ArticleId::new(value.value())
+    }
+}
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct ArticleSlug {
+    value: String,
+}
+impl Default for ArticleSlug {
+    fn default() -> ArticleSlug {
+        ArticleSlug {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for ArticleSlug {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "ArticleSlug", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<String, ArticleSlug> for ArticleSlug {
+    fn new(value: String) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> String {
+        self.value.clone()
+    }
+}
+impl From<&Article> for ArticleSlug {
+    fn from(value: &Article) -> Self {
+        ArticleSlug {
+            value: value.slug.clone(),
+        }
+    }
+}
+impl From<&Article> for Option<ArticleSlug> {
+    fn from(value: &Article) -> Option<ArticleSlug> {
+        Some(ArticleSlug {
+            value: value.slug.clone(),
+        })
+    }
+}
+impl From<&ArticleSlug> for Option<ArticleSlug> {
+    fn from(value: &ArticleSlug) -> Option<ArticleSlug> {
+        use spacetimedsl::Wrapper;
+        Some(ArticleSlug::new(value.value()))
+    }
+}
+impl From<&ArticleSlug> for ArticleSlug {
+    fn from(value: &ArticleSlug) -> Self {
+        use spacetimedsl::Wrapper;
+        ArticleSlug::new(value.value())
+    }
+}
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct ArticleTags {
+    value: Option<String>,
+}
+impl Default for ArticleTags {
+    fn default() -> ArticleTags {
+        ArticleTags {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for ArticleTags {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "ArticleTags", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<Option<String>, ArticleTags> for ArticleTags {
+    fn new(value: Option<String>) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> Option<String> {
+        self.value.clone()
+    }
+}
+impl From<&Article> for ArticleTags {
+    fn from(value: &Article) -> Self {
+        ArticleTags {
+            value: value.tags.clone(),
+        }
+    }
+}
+impl From<&Article> for Option<ArticleTags> {
+    fn from(value: &Article) -> Option<ArticleTags> {
+        Some(ArticleTags {
+            value: value.tags.clone(),
+        })
+    }
+}
+impl From<&ArticleTags> for Option<ArticleTags> {
+    fn from(value: &ArticleTags) -> Option<ArticleTags> {
+        use spacetimedsl::Wrapper;
+        Some(ArticleTags::new(value.value()))
+    }
+}
+impl From<&ArticleTags> for ArticleTags {
+    fn from(value: &ArticleTags) -> Self {
+        use spacetimedsl::Wrapper;
+        ArticleTags::new(value.value())
+    }
+}
+impl Article {
+    ///
+    pub fn get_id(&self) -> ArticleId {
+        use spacetimedsl::Wrapper;
+        ArticleId::new(self.id.clone())
+    }
+    ///
+    pub fn get_slug(&self) -> ArticleSlug {
+        use spacetimedsl::Wrapper;
+        ArticleSlug::new(self.slug.clone())
+    }
+    ///
+    pub fn set_slug(&mut self, slug: String) -> ArticleSlug {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.slug, slug);
+        ArticleSlug::new(old_value)
+    }
+    ///
+    pub fn get_category(&self) -> &String {
+        use spacetimedsl::Wrapper;
+        &self.category
+    }
+    ///
+    pub fn get_category_mut(&mut self) -> &mut String {
+        use spacetimedsl::Wrapper;
+        &mut self.category
+    }
+    ///
+    pub fn set_category(&mut self, category: String) -> String {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.category, category);
+        old_value
+    }
+    ///
+    pub fn get_tags(&self) -> Option<ArticleTags> {
+        use spacetimedsl::Wrapper;
+        match &self.tags {
+            None => None,
+            Some(value) => Some(ArticleTags::new(Some(value.clone()))),
+        }
+    }
+    ///
+    pub fn set_tags(&mut self, tags: Option<String>) -> ArticleTags {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.tags, tags);
+        ArticleTags::new(old_value)
+    }
+}
+///
+pub struct CreateArticle {
+    pub slug: String,
+    pub category: String,
+    pub tags: Option<String>,
+}
+
+// Generated DSL methods:
+// count_of_all_articles
+// create_article
+// delete_article_by_id
+// delete_article_by_slug
+// delete_articles_by_category
+// delete_articles_by_tags
+// get_all_articles
+// get_article_by_id
+// get_article_by_slug
+// get_articles_by_category
+// get_articles_by_tags
+// update_article_by_id

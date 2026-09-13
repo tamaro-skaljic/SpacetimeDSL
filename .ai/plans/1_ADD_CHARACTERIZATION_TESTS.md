@@ -461,11 +461,6 @@ Line 347 currently reads:
 Replace with a one-line pointer to this plan. Keep the numbering 1–14 intact so
 items 2–14 keep their existing references.
 
-### 5.5 Copy this plan into the repo
-
-`.ai/plans/01-characterization-tests.md`, so the content moved out of the report
-stays version-controlled beside it.
-
 ---
 
 ## Commit sequence

@@ -1,0 +1,105 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Warning: The unique multi-column index feature of SpacetimeDSL is experimental.
+- It will be removed if unique multi-column indices are implemented in SpacetimeDB.
+- SpacetimeDSL is only able to enforce referential integrity if you never use the (mutating) `insert`, `update` and `delete` methods of `spacetimedb::ReducerContext` yourself.
+
+Try to get a `Module` from the `module2` table whose values match the values from the unique multi-column btree index `name_and_database` on the columns `name` and `database_id`.*/
+    pub fn get_module2_by_name_and_database<'a>(
+        &'a self,
+        name: &str,
+        database_id: &u64,
+    ) -> Result<Module, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use ::spacetimedsl::itertools::Itertools;
+        let mut the_same_or_another_module2: Option<Module> = None;
+        the_same_or_another_module2 = match self
+            .db()
+            .module2()
+            .name_and_database()
+            .filter((name, database_id))
+            .at_most_one()
+        {
+            Ok(module2) => module2,
+            Err(_) => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                    table_name: "module2".into(),
+                    action: crate::spacetimedsl::error::Action::Get,
+                    error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    column_names_and_row_values: format!(
+                        "{{ name : {} , database_id : {} }}", name, database_id
+                    )
+                        .into(),
+                });
+            }
+        };
+        match the_same_or_another_module2 {
+            Some(module2) => Ok(module2),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "module2".into(),
+                    column_names_and_row_values: format!(
+                        "{{ name : {} , database_id : {} }}", name, database_id
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Warning: The unique multi-column index feature of SpacetimeDSL is experimental.
+- It will be removed if unique multi-column indices are implemented in SpacetimeDB.
+- SpacetimeDSL is only able to enforce referential integrity if you never use the (mutating) `insert`, `update` and `delete` methods of `spacetimedb::ReducerContext` yourself.
+
+Try to get a `Module` from the `module2` table whose values match the values from the unique multi-column btree index `name_and_database` on the columns `name` and `database_id`.*/
+    pub fn get_module2_by_name_and_database<'a>(
+        &'a self,
+        name: &str,
+        database_id: &u64,
+    ) -> Result<Module, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use ::spacetimedsl::itertools::Itertools;
+        let mut the_same_or_another_module2: Option<Module> = None;
+        the_same_or_another_module2 = match self
+            .db()
+            .module2()
+            .name_and_database()
+            .filter((name, database_id))
+            .at_most_one()
+        {
+            Ok(module2) => module2,
+            Err(_) => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                    table_name: "module2".into(),
+                    action: crate::spacetimedsl::error::Action::Get,
+                    error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    column_names_and_row_values: format!(
+                        "{{ name : {} , database_id : {} }}", name, database_id
+                    )
+                        .into(),
+                });
+            }
+        };
+        match the_same_or_another_module2 {
+            Some(module2) => Ok(module2),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "module2".into(),
+                    column_names_and_row_values: format!(
+                        "{{ name : {} , database_id : {} }}", name, database_id
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

@@ -1,0 +1,53 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `ParentRecord` from the `parent_record` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn get_parent_record_by_id<'a>(
+        &'a self,
+        id: impl Into<ParentRecordId> + Clone,
+    ) -> Result<ParentRecord, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().parent_record().id().find(id.clone().into().value()) {
+            Some(parent_record) => Ok(parent_record),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "parent_record".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , id : {}  }}", id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `ParentRecord` from the `parent_record` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn get_parent_record_by_id<'a>(
+        &'a self,
+        id: impl Into<ParentRecordId> + Clone,
+    ) -> Result<ParentRecord, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().parent_record().id().find(id.clone().into().value()) {
+            Some(parent_record) => Ok(parent_record),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "parent_record".into(),
+                    column_names_and_row_values: format!(
+                        "{{ , id : {}  }}", id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

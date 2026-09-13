@@ -1,0 +1,42 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl Shipment {
+    ///
+    pub fn get_id(&self) -> OrderId {
+        use spacetimedsl::Wrapper;
+        OrderId::new(self.id.clone())
+    }
+    ///
+    pub fn get_warehouse_id(&self) -> crate::warehouse::WarehouseId {
+        use spacetimedsl::Wrapper;
+        crate::warehouse::WarehouseId::new(self.warehouse_id.clone())
+    }
+    ///
+    pub fn set_warehouse_id(
+        &mut self,
+        warehouse_id: impl Into<crate::warehouse::WarehouseId>,
+    ) -> crate::warehouse::WarehouseId {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(
+            &mut self.warehouse_id,
+            warehouse_id.into().value(),
+        );
+        crate::warehouse::WarehouseId::new(old_value)
+    }
+}
+///
+pub struct CreateShipment {
+    pub id: OrderId,
+    pub warehouse_id: crate::warehouse::WarehouseId,
+}
+
+// Generated DSL methods:
+// count_of_all_shipments
+// create_shipment
+// delete_shipment_by_id
+// delete_shipment_by_warehouse_id
+// get_all_shipments
+// get_shipment_by_id
+// get_shipment_by_warehouse_id
+// update_shipment_by_id

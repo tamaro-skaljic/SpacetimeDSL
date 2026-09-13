@@ -1,0 +1,33 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Shipment` iterator that contains all rows in the `shipment` table whose value matches the value from the single-column btree index on the `destination_warehouse_id` column.
+    pub fn get_shipments_by_destination_warehouse_id<'a>(
+        &'a self,
+        destination_warehouse_id: impl Into<WarehouseId>,
+    ) -> impl Iterator<Item = Shipment> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db()
+            .shipment()
+            .destination_warehouse_id()
+            .filter(destination_warehouse_id.into().value())
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Shipment` iterator that contains all rows in the `shipment` table whose value matches the value from the single-column btree index on the `destination_warehouse_id` column.
+    pub fn get_shipments_by_destination_warehouse_id<'a>(
+        &'a self,
+        destination_warehouse_id: impl Into<WarehouseId>,
+    ) -> impl Iterator<Item = Shipment> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db()
+            .shipment()
+            .destination_warehouse_id()
+            .filter(destination_warehouse_id.into().value())
+    }
+}

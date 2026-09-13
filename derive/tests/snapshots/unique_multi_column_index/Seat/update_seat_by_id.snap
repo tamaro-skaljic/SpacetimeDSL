@@ -1,0 +1,59 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Seat` row of the `seat` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_seat_by_id<'a>(
+        &'a self,
+        seat: Seat,
+    ) -> Result<Seat, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use ::spacetimedsl::itertools::Itertools;
+        let mut seat = seat;
+        let mut the_same_or_another_seat: Option<Seat> = None;
+        the_same_or_another_seat = match self
+            .db()
+            .seat()
+            .row_and_number()
+            .filter((seat.row_id, seat.number))
+            .at_most_one()
+        {
+            Ok(seat) => seat,
+            Err(_) => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                    table_name: "seat".into(),
+                    action: crate::spacetimedsl::error::Action::Update,
+                    error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    column_names_and_row_values: format!(
+                        "row_id : {} , number : {}", seat.row_id, seat.number
+                    )
+                        .into(),
+                });
+            }
+        };
+        match &the_same_or_another_seat {
+            Some(the_same_or_another_seat) => {
+                if the_same_or_another_seat.id.ne(&seat.id) {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                        table_name: "seat".into(),
+                        action: crate::spacetimedsl::error::Action::Update,
+                        error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
+                        one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                        column_names_and_row_values: format!(
+                            "row_id : {} , number : {}", seat.row_id, seat.number
+                        )
+                            .into(),
+                    });
+                }
+            }
+            _ => {}
+        };
+        let seat = self.db().seat().id().update(seat);
+        Ok(seat)
+    }
+}

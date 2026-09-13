@@ -1,0 +1,18 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Try to update the `Configuration` row of the singleton `configuration` table.
+    pub fn update_configuration<'a>(
+        &'a self,
+        configuration: Configuration,
+    ) -> Result<Configuration, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut configuration = configuration;
+        configuration.id = 0u8;
+        let configuration = self.db().configuration().id().update(configuration);
+        Ok(configuration)
+    }
+}

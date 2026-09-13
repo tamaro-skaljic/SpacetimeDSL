@@ -1,0 +1,82 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `module2` table.
+    pub fn create_module2<'a>(
+        &'a self,
+        module2: CreateModule2,
+    ) -> Result<Module, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use ::spacetimedsl::itertools::Itertools;
+        let id = u64::default();
+        let database_id = module2.database_id;
+        let name = module2.name;
+        let module2 = Module { id, database_id, name };
+        let mut the_same_or_another_module2: Option<Module> = None;
+        the_same_or_another_module2 = match self
+            .db()
+            .module2()
+            .name_and_database()
+            .filter((&module2.name, module2.database_id))
+            .at_most_one()
+        {
+            Ok(module2) => module2,
+            Err(_) => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                    table_name: "module2".into(),
+                    action: crate::spacetimedsl::error::Action::Create,
+                    error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    column_names_and_row_values: format!(
+                        "name : {} , database_id : {}", & module2.name, module2
+                        .database_id
+                    )
+                        .into(),
+                });
+            }
+        };
+        match &the_same_or_another_module2 {
+            Some(the_same_or_another_module2) => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                    table_name: "module2".into(),
+                    action: crate::spacetimedsl::error::Action::Create,
+                    error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    column_names_and_row_values: format!(
+                        "name : {} , database_id : {}", & module2.name, module2
+                        .database_id
+                    )
+                        .into(),
+                });
+            }
+            _ => {}
+        };
+        match self.db().module2().try_insert(module2.clone()) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "module2".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ module2 : {:?} }}", module2
+                            )
+                                .into(),
+                        })
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "module2".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

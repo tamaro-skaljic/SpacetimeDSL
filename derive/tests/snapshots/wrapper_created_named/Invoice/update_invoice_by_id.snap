@@ -1,0 +1,19 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Invoice` row of the `invoice` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_invoice_by_id<'a>(
+        &'a self,
+        invoice: Invoice,
+    ) -> Result<Invoice, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut invoice = invoice;
+        let invoice = self.db().invoice().id().update(invoice);
+        Ok(invoice)
+    }
+}

@@ -1,0 +1,83 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `shipment` table.
+    pub fn create_shipment<'a>(
+        &'a self,
+        shipment: CreateShipment,
+    ) -> Result<Shipment, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let origin_warehouse_id = shipment.origin_warehouse_id.value();
+        let destination_warehouse_id = shipment.destination_warehouse_id.value();
+        let shipment = Shipment {
+            id,
+            origin_warehouse_id,
+            destination_warehouse_id,
+        };
+        let mut the_same_or_another_shipment: Option<Shipment> = None;
+        if origin_warehouse_id.ne(&0) {
+            match self.get_warehouse_by_id(shipment.get_origin_warehouse_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "shipment".into(),
+                            create_or_update: crate::spacetimedsl::error::Action::Create,
+                            column_names_and_row_values: format!(
+                                "{{ {} : {} }}", origin_warehouse_id, shipment
+                                .get_origin_warehouse_id()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        if destination_warehouse_id.ne(&0) {
+            match self.get_warehouse_by_id(shipment.get_destination_warehouse_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "shipment".into(),
+                            create_or_update: crate::spacetimedsl::error::Action::Create,
+                            column_names_and_row_values: format!(
+                                "{{ {} : {} }}", destination_warehouse_id, shipment
+                                .get_destination_warehouse_id()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        match self.db().shipment().try_insert(shipment.clone()) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "shipment".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ shipment : {:?} }}", shipment
+                            )
+                                .into(),
+                        })
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "shipment".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}
