@@ -18,7 +18,7 @@ Try to get a `ChildMarker` from the `child_marker` table whose value matches the
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "child_marker".into(),
                     column_names_and_row_values: format!(
-                        "{{ , id : {}  }}", id.clone().into().value()
+                        "{{ id : {} }}", id.clone().into().value()
                     )
                         .into(),
                 });
@@ -43,7 +43,7 @@ Try to get a `ChildMarker` from the `child_marker` table whose value matches the
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "child_marker".into(),
                     column_names_and_row_values: format!(
-                        "{{ , id : {}  }}", id.clone().into().value()
+                        "{{ id : {} }}", id.clone().into().value()
                     )
                         .into(),
                 });

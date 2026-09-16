@@ -23,7 +23,7 @@ Try to delete a `Slot` row in the `slot` table whose value matches the unique si
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "slot".into(),
                     column_names_and_row_values: format!(
-                        "{{ , position : {}  }}", & position
+                        "{{ position : {} }}", & position
                     )
                         .into(),
                 });

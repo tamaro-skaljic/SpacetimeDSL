@@ -28,7 +28,7 @@ Try to update a `Inspection` row of the `inspection` table whose value matches t
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                             table_name: "inspection".into(),
                             column_names_and_row_values: format!(
-                                "{{ , id : {}  }}", warehouse_id
+                                "{{ id : {} }}", warehouse_id
                             )
                                 .into(),
                         });

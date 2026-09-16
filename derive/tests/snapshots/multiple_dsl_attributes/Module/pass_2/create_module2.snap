@@ -31,7 +31,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                     error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
                     one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
                     column_names_and_row_values: format!(
-                        "name : {} , database_id : {}", & module2.name, module2
+                        "{{ name : {}, database_id : {} }}", & module2.name, module2
                         .database_id
                     )
                         .into(),
@@ -46,7 +46,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                     error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
                     one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
                     column_names_and_row_values: format!(
-                        "name : {} , database_id : {}", & module2.name, module2
+                        "{{ name : {}, database_id : {} }}", & module2.name, module2
                         .database_id
                     )
                         .into(),

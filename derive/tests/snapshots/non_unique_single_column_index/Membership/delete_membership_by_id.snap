@@ -22,7 +22,7 @@ Try to delete a `Membership` row in the `membership` table whose value matches t
             None => {
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "membership".into(),
-                    column_names_and_row_values: format!("{{ , id : {}  }}", & id).into(),
+                    column_names_and_row_values: format!("{{ id : {} }}", & id).into(),
                 });
             }
             Some(row_to_delete) => row_to_delete,

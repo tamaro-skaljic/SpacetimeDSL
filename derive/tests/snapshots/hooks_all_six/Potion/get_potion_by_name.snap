@@ -18,7 +18,7 @@ Try to get a `Potion` from the `potion` table whose value matches the value from
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "potion".into(),
                     column_names_and_row_values: format!(
-                        "{{ , name : {}  }}", name.to_string()
+                        "{{ name : {} }}", name.to_string()
                     )
                         .into(),
                 });
@@ -43,7 +43,7 @@ Try to get a `Potion` from the `potion` table whose value matches the value from
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "potion".into(),
                     column_names_and_row_values: format!(
-                        "{{ , name : {}  }}", name.to_string()
+                        "{{ name : {} }}", name.to_string()
                     )
                         .into(),
                 });

@@ -22,7 +22,7 @@ Try to delete a `Label` row in the `label` table whose value matches the value f
             None => {
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "label".into(),
-                    column_names_and_row_values: format!("{{ , code : {}  }}", & code)
+                    column_names_and_row_values: format!("{{ code : {} }}", & code)
                         .into(),
                 });
             }

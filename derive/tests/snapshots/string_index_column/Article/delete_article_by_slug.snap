@@ -22,7 +22,7 @@ Try to delete a `Article` row in the `article` table whose value matches the val
             None => {
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "article".into(),
-                    column_names_and_row_values: format!("{{ , slug : {}  }}", & slug)
+                    column_names_and_row_values: format!("{{ slug : {} }}", & slug)
                         .into(),
                 });
             }

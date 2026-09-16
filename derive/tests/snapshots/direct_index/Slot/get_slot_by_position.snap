@@ -17,9 +17,7 @@ Try to get a `Slot` from the `slot` table whose value matches the unique single-
             None => {
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "slot".into(),
-                    column_names_and_row_values: format!(
-                        "{{ , position : {}  }}", position
-                    )
+                    column_names_and_row_values: format!("{{ position : {} }}", position)
                         .into(),
                 });
             }
@@ -42,9 +40,7 @@ Try to get a `Slot` from the `slot` table whose value matches the unique single-
             None => {
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "slot".into(),
-                    column_names_and_row_values: format!(
-                        "{{ , position : {}  }}", position
-                    )
+                    column_names_and_row_values: format!("{{ position : {} }}", position)
                         .into(),
                 });
             }

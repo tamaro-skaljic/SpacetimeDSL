@@ -23,7 +23,7 @@ Try to delete a `Invoice` row in the `invoice` table whose value matches the val
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "invoice".into(),
                     column_names_and_row_values: format!(
-                        "{{ , reference : {}  }}", & reference
+                        "{{ reference : {} }}", & reference
                     )
                         .into(),
                 });

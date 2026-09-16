@@ -29,7 +29,7 @@ Try to update a `Shipment` row of the `shipment` table whose value matches the v
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                             table_name: "shipment".into(),
                             column_names_and_row_values: format!(
-                                "{{ , id : {}  }}", origin_warehouse_id
+                                "{{ id : {} }}", origin_warehouse_id
                             )
                                 .into(),
                         });
@@ -72,7 +72,7 @@ Try to update a `Shipment` row of the `shipment` table whose value matches the v
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                             table_name: "shipment".into(),
                             column_names_and_row_values: format!(
-                                "{{ , id : {}  }}", destination_warehouse_id
+                                "{{ id : {} }}", destination_warehouse_id
                             )
                                 .into(),
                         });

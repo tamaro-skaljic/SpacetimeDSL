@@ -920,8 +920,8 @@ pub(in crate::internal) fn for_method(
                     single_or_multi = "single";
                     index_documentation = "btree index".to_string();
                     documentation_on_column_or_columns = format!("`{column}` column");
-                    column_names_and_row_values.push_str(&format!(", {column} : "));
-                    column_names_and_row_values.push_str("{} ");
+                    column_names_and_row_values.push_str(&format!("{column} : "));
+                    column_names_and_row_values.push_str("{}");
                 }
                 IndexType::BTreeMultiColumn { columns }
                 | IndexType::HashMultiColumn { columns } => {
@@ -945,14 +945,14 @@ pub(in crate::internal) fn for_method(
 
                     documentation_on_column_or_columns.push_str(&format!(" `{first_column}`"));
                     column_names_and_row_values.push_str(&format!("{first_column} : "));
-                    column_names_and_row_values.push_str("{} ");
+                    column_names_and_row_values.push_str("{}");
                     index_columns.push(first_column);
 
                     for any_other_column in any_other_column {
                         documentation_on_column_or_columns
                             .push_str(&format!(", `{any_other_column}`"));
                         column_names_and_row_values.push_str(&format!(", {any_other_column} : "));
-                        column_names_and_row_values.push_str("{} ");
+                        column_names_and_row_values.push_str("{}");
                         index_columns.push(any_other_column);
                     }
 
@@ -968,8 +968,8 @@ pub(in crate::internal) fn for_method(
                     single_or_multi = "single";
                     index_documentation = "direct index".to_string();
                     documentation_on_column_or_columns = format!("`{column}` column");
-                    column_names_and_row_values.push_str(&format!(", {column} : "));
-                    column_names_and_row_values.push_str("{} ");
+                    column_names_and_row_values.push_str(&format!("{column} : "));
+                    column_names_and_row_values.push_str("{}");
                 }
             };
             column_names_and_row_values.push_str(" }}");
@@ -2394,8 +2394,9 @@ fn multi_column_index_checks(
 
         let any_other_column_name = index_column_names;
 
+        column_names_and_row_values.push_str("{{ ");
         column_names_and_row_values.push_str(&format!("{first_column_name} : "));
-        column_names_and_row_values.push_str("{} ");
+        column_names_and_row_values.push_str("{}");
         row_value_getters.push(get_row_value_getter(
             &column_type_by_name,
             singular_table_name,
@@ -2404,7 +2405,7 @@ fn multi_column_index_checks(
 
         for any_other_column_name in any_other_column_name {
             column_names_and_row_values.push_str(&format!(", {any_other_column_name} : "));
-            column_names_and_row_values.push_str("{} ");
+            column_names_and_row_values.push_str("{}");
             row_value_getters.push(get_row_value_getter(
                 &column_type_by_name,
                 singular_table_name,
@@ -2414,6 +2415,7 @@ fn multi_column_index_checks(
 
         column_names_and_row_values.push_str(&format!(", {last_column_name} : "));
         column_names_and_row_values.push_str("{}");
+        column_names_and_row_values.push_str(" }}");
         row_value_getters.push(get_row_value_getter(
             &column_type_by_name,
             singular_table_name,

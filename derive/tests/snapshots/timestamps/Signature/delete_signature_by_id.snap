@@ -22,7 +22,7 @@ Try to delete a `Signature` row in the `signature` table whose value matches the
             None => {
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "signature".into(),
-                    column_names_and_row_values: format!("{{ , id : {}  }}", & id).into(),
+                    column_names_and_row_values: format!("{{ id : {} }}", & id).into(),
                 });
             }
             Some(row_to_delete) => row_to_delete,
