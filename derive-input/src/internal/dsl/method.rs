@@ -132,7 +132,7 @@ impl SpacetimeDSLColumnMethods {
         spacetimedb_table: &SpacetimeDBTable,
         spacetimedsl_table: &mut SpacetimeDSLTable,
         spacetimedb_column: &SpacetimeDBColumn,
-        internal_columns: &Vec<InternalColumn>,
+        internal_columns: &[InternalColumn],
         primary_key_column: &InternalColumn,
     ) -> Option<SpacetimeDSLColumnMethods> {
         let index = match &spacetimedb_column.single_column_index {
@@ -230,7 +230,7 @@ impl SpacetimeDSLTableMethods {
         spacetimedb_table: &SpacetimeDBTable,
         mut spacetimedsl_table: SpacetimeDSLTable,
         columns: &[Column],
-        internal_columns: &Vec<InternalColumn>,
+        internal_columns: &[InternalColumn],
         primary_key_column: &InternalColumn,
     ) -> syn::Result<(SpacetimeDSLTableMethods, SpacetimeDSLTable)> {
         let is_singleton = spacetimedsl_table.is_singleton;
@@ -323,7 +323,7 @@ impl SpacetimeDSLTableMethods {
                 columns_with_foreign_keys_by_table
                     .get_mut(name_of_another_table)
                     .expect("key should exist in BTreeMap")
-                    .push(c);
+                    .push(*c);
             });
 
             columns_with_foreign_keys_by_table
@@ -641,7 +641,7 @@ pub(in crate::internal) fn for_method(
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &mut SpacetimeDSLTable,
-    internal_columns: &Vec<InternalColumn>,
+    internal_columns: &[InternalColumn],
     primary_key_column: &InternalColumn,
 ) -> SpacetimeDSLMethod {
     let struct_name = &rust_struct.name;
@@ -2256,8 +2256,8 @@ fn hook_tokens(
 fn reference_integrity_checks_on_create_or_update(
     create_or_update_dsl_method: CreateOrUpdate,
     spacetimedb_table: &SpacetimeDBTable,
-    columns: &Vec<InternalColumn>,
-    column_names_and_row_values_and_column_names: Option<(&String, &Vec<Ident>)>,
+    columns: &[InternalColumn],
+    column_names_and_row_values_and_column_names: Option<(&str, &[Ident])>,
     one_or_multiple: &OneOrMultiple,
     primary_key_column: &InternalColumn,
 ) -> Vec<TokenStream> {
@@ -2534,12 +2534,12 @@ fn get_row_value_getter(
     }
 }
 
-pub(in crate::internal::dsl::method) fn get_unique_multi_column_index_check(
+fn get_unique_multi_column_index_check(
     action: &Action,
     singular_table_name: &Ident,
     index_name: &Ident,
-    column_names_and_row_values: &String,
-    row_value_getters: &Vec<TokenStream>,
+    column_names_and_row_values: &str,
+    row_value_getters: &[TokenStream],
 ) -> TokenStream {
     let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
 
@@ -2748,7 +2748,7 @@ fn for_foreign_key(
     referencing_tables: ReferencingTables,
     spacetimedb_table: &SpacetimeDBTable,
     referenced_table_name: &syn::Ident,
-    columns_with_foreign_key: &Vec<&&Column>,
+    columns_with_foreign_key: &[&Column],
     primary_key_column: &InternalColumn,
     spacetimedsl_table: &mut SpacetimeDSLTable,
 ) -> SpacetimeDSLMethod {
@@ -2819,7 +2819,7 @@ fn for_foreign_key(
         columns_by_on_delete_strategies
             .get_mut(on_delete_strategy)
             .expect("The key OnDeleteStrategy should exist!")
-            .push(column_with_foreign_key);
+            .push(*column_with_foreign_key);
     }
 
     let singular_table_name = &spacetimedb_table.singular_name;
@@ -2983,7 +2983,7 @@ fn get_on_delete_strategy_implementation(
     referencing_tables: ReferencingTables,
     singular_table_name: &Ident,
     on_delete_strategy: &OnDeleteStrategy,
-    columns_by_on_delete_strategy: Vec<&&&Column>,
+    columns_by_on_delete_strategy: Vec<&Column>,
     one_or_multiple: &OneOrMultiple,
     primary_key_column: &InternalColumn,
 ) -> TokenStream {
