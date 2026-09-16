@@ -1,0 +1,58 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `document` table.
+    pub fn create_document<'a>(
+        &'a self,
+        document: CreateDocument,
+    ) -> Result<Document, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let bare_title = document.bare_title;
+        let qualified_title = document.qualified_title;
+        let bare_note = document.bare_note;
+        let qualified_note = document.qualified_note.value();
+        let mut bare_note_option = None;
+        if bare_note.is_some() {
+            bare_note_option = Some(
+                Into::<DocumentBareNote>::into(bare_note.expect("value should exist"))
+                    .value(),
+            );
+        }
+        let bare_note = bare_note_option;
+        let document = Document {
+            id,
+            bare_title,
+            qualified_title,
+            bare_note,
+            qualified_note,
+        };
+        match self.db().document().try_insert(document.clone()) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "document".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ document : {:?} }}", document
+                            )
+                                .into(),
+                        })
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "document".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

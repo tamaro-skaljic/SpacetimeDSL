@@ -1,0 +1,164 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct DocumentId {
+    value: u64,
+}
+impl Default for DocumentId {
+    fn default() -> DocumentId {
+        DocumentId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for DocumentId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "DocumentId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, DocumentId> for DocumentId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Document> for DocumentId {
+    fn from(value: &Document) -> Self {
+        DocumentId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Document> for Option<DocumentId> {
+    fn from(value: &Document) -> Option<DocumentId> {
+        Some(DocumentId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&DocumentId> for Option<DocumentId> {
+    fn from(value: &DocumentId) -> Option<DocumentId> {
+        use spacetimedsl::Wrapper;
+        Some(DocumentId::new(value.value()))
+    }
+}
+impl From<&DocumentId> for DocumentId {
+    fn from(value: &DocumentId) -> Self {
+        use spacetimedsl::Wrapper;
+        DocumentId::new(value.value())
+    }
+}
+impl Document {
+    ///
+    pub fn get_id(&self) -> DocumentId {
+        use spacetimedsl::Wrapper;
+        DocumentId::new(self.id.clone())
+    }
+    ///
+    pub fn get_bare_title(&self) -> &String {
+        use spacetimedsl::Wrapper;
+        &self.bare_title
+    }
+    ///
+    pub fn get_bare_title_mut(&mut self) -> &mut String {
+        use spacetimedsl::Wrapper;
+        &mut self.bare_title
+    }
+    ///
+    pub fn set_bare_title(&mut self, bare_title: String) -> String {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.bare_title, bare_title);
+        old_value
+    }
+    ///
+    pub fn get_qualified_title(&self) -> &std::string::String {
+        use spacetimedsl::Wrapper;
+        &self.qualified_title
+    }
+    ///
+    pub fn get_qualified_title_mut(&mut self) -> &mut std::string::String {
+        use spacetimedsl::Wrapper;
+        &mut self.qualified_title
+    }
+    ///
+    pub fn set_qualified_title(
+        &mut self,
+        qualified_title: std::string::String,
+    ) -> std::string::String {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.qualified_title, qualified_title);
+        old_value
+    }
+    ///
+    pub fn get_bare_note(&self) -> Option<DocumentBareNote> {
+        use spacetimedsl::Wrapper;
+        match &self.bare_note {
+            None => None,
+            Some(value) => Some(DocumentBareNote::new(value.clone())),
+        }
+    }
+    ///
+    pub fn set_bare_note(
+        &mut self,
+        bare_note: impl Into<Option<DocumentBareNote>>,
+    ) -> Option<DocumentBareNote> {
+        use spacetimedsl::Wrapper;
+        let bare_note = bare_note.into();
+        let mut bare_note_option = None;
+        if bare_note.is_some() {
+            bare_note_option = Some(
+                Into::<DocumentBareNote>::into(bare_note.expect("value should exist"))
+                    .value(),
+            );
+        }
+        let bare_note = bare_note_option;
+        let old_value = std::mem::replace(&mut self.bare_note, bare_note);
+        match old_value {
+            Some(old_value) => Some(DocumentBareNote::new(old_value)),
+            None => None,
+        }
+    }
+    ///
+    pub fn get_qualified_note(&self) -> DocumentQualifiedNote {
+        use spacetimedsl::Wrapper;
+        DocumentQualifiedNote::new(self.qualified_note.clone())
+    }
+    ///
+    pub fn set_qualified_note(
+        &mut self,
+        qualified_note: impl Into<DocumentQualifiedNote>,
+    ) -> DocumentQualifiedNote {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(
+            &mut self.qualified_note,
+            qualified_note.into().value(),
+        );
+        DocumentQualifiedNote::new(old_value)
+    }
+}
+///
+pub struct CreateDocument {
+    pub bare_title: String,
+    pub qualified_title: std::string::String,
+    pub bare_note: Option<DocumentBareNote>,
+    pub qualified_note: DocumentQualifiedNote,
+}
+
+// Generated DSL methods:
+// count_of_all_documents
+// create_document
+// delete_document_by_id
+// delete_documents_by_bare_note
+// delete_documents_by_bare_title
+// delete_documents_by_qualified_note
+// delete_documents_by_qualified_title
+// get_all_documents
+// get_document_by_id
+// get_documents_by_bare_note
+// get_documents_by_bare_title
+// get_documents_by_qualified_note
+// get_documents_by_qualified_title
+// update_document_by_id

@@ -61,6 +61,11 @@ fn string_index_column() {
 }
 
 #[test]
+fn qualified_type_spellings() {
+    snapshot_fixture("qualified_type_spellings");
+}
+
+#[test]
 fn wrapper_created_unnamed() {
     snapshot_fixture("wrapper_created_unnamed");
 }
