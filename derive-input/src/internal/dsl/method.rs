@@ -12,6 +12,7 @@ use crate::{
                 SpacetimeDSLColumnMethodsForUniqueIndex,
             },
             foreign_key::OnDeleteStrategy,
+            hook::SpacetimeDSLMethodHook,
             method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
             table::{CreateDSLMethodArg, SpacetimeDSLTable, SpacetimeDSLTableMethods},
             wrapper::WrapperType,
@@ -790,31 +791,23 @@ pub(in crate::internal) fn for_method(
                     }
                 };
 
-            let before_insert_hook = match &spacetimedsl_table.hooks.before_insert {
-                None => TokenStream::default(),
-                Some(before_insert_hook) => {
-                    let hook_trait_name = &before_insert_hook.trait_name;
-                    let hook_function_name = &before_insert_hook.function_name;
-
+            let before_insert_hook = hook_tokens(
+                &spacetimedsl_table.hooks.before_insert,
+                |hook_function_name| {
                     quote! {
-                        use self::#hook_trait_name;
                         let #singular_table_name = crate::spacetimedsl::DSLMethodHooks::#hook_function_name(self, #singular_table_name)?;
                     }
-                }
-            };
+                },
+            );
 
-            let after_insert_hook = match &spacetimedsl_table.hooks.after_insert {
-                None => TokenStream::default(),
-                Some(after_insert_hook) => {
-                    let hook_trait_name = &after_insert_hook.trait_name;
-                    let hook_function_name = &after_insert_hook.function_name;
-
+            let after_insert_hook = hook_tokens(
+                &spacetimedsl_table.hooks.after_insert,
+                |hook_function_name| {
                     quote! {
-                        use self::#hook_trait_name;
                         crate::spacetimedsl::DSLMethodHooks::#hook_function_name(self, &entity)?;
                     }
-                }
-            };
+                },
+            );
 
             method_impl = quote! {
                 #use_itertools
@@ -1190,47 +1183,50 @@ pub(in crate::internal) fn for_method(
                         false => index_name,
                     };
 
-                    let before_update_hook = match &spacetimedsl_table.hooks.before_update {
-                        None => TokenStream::default(),
-                        Some(before_update_hook) => {
-                            let hook_trait_name = &before_update_hook.trait_name;
-                            let hook_function_name = &before_update_hook.function_name;
-
+                    // The found-value prelude has to run before the import, so this site
+                    // places both itself instead of taking them already joined.
+                    let (use_before_update_hook_trait, before_update_hook_call) = hook_use_and_call(
+                        &spacetimedsl_table.hooks.before_update,
+                        |hook_function_name| {
                             quote! {
-                                if #field_name_for_found_value.is_none() {
-                                    #field_name_for_found_value = Some(
-                                        self.db().#singular_table_name().#primary_key_column_name()
-                                            .find(#singular_table_name.#primary_key_column_name)
-                                            .expect("Row should exist for update")
-                                    )
-                                }
-
-                                use self::#hook_trait_name;
                                 let #singular_table_name = crate::spacetimedsl::DSLMethodHooks::#hook_function_name(
                                     self,
                                     #field_name_for_found_value.as_ref().unwrap(),
                                     #singular_table_name
                                 )?;
                             }
+                        },
+                    );
+
+                    let before_update_hook = if before_update_hook_call.is_empty() {
+                        TokenStream::default()
+                    } else {
+                        quote! {
+                            if #field_name_for_found_value.is_none() {
+                                #field_name_for_found_value = Some(
+                                    self.db().#singular_table_name().#primary_key_column_name()
+                                        .find(#singular_table_name.#primary_key_column_name)
+                                        .expect("Row should exist for update")
+                                )
+                            }
+
+                            #use_before_update_hook_trait
+                            #before_update_hook_call
                         }
                     };
 
-                    let after_update_hook = match &spacetimedsl_table.hooks.after_update {
-                        None => TokenStream::default(),
-                        Some(after_update_hook) => {
-                            let hook_trait_name = &after_update_hook.trait_name;
-                            let hook_function_name = &after_update_hook.function_name;
-
+                    let after_update_hook = hook_tokens(
+                        &spacetimedsl_table.hooks.after_update,
+                        |hook_function_name| {
                             quote! {
-                                use self::#hook_trait_name;
                                 crate::spacetimedsl::DSLMethodHooks::#hook_function_name(
                                     self,
                                     #field_name_for_found_value.as_ref().unwrap(),
                                     &#singular_table_name
                                 )?;
                             }
-                        }
-                    };
+                        },
+                    );
 
                     let set_singleton_id_to_zero = if is_singleton_pk {
                         quote! { #singular_table_name.id = 0u8; }
@@ -1562,35 +1558,27 @@ pub(in crate::internal) fn for_method(
                                 }
                             };
 
-                            let before_delete_hook = match &spacetimedsl_table.hooks.before_delete {
-                                None => TokenStream::default(),
-                                Some(before_delete_hook) => {
-                                    let hook_trait_name = &before_delete_hook.trait_name;
-                                    let hook_function_name = &before_delete_hook.function_name;
-
+                            let before_delete_hook = hook_tokens(
+                                &spacetimedsl_table.hooks.before_delete,
+                                |hook_function_name| {
                                     quote! {
-                                        use self::#hook_trait_name;
                                         for row_to_delete in &rows_to_delete {
                                             crate::spacetimedsl::DSLMethodHooks::#hook_function_name(self, &row_to_delete)?;
                                         }
                                     }
-                                }
-                            };
+                                },
+                            );
 
-                            let after_delete_hook = match &spacetimedsl_table.hooks.after_delete {
-                                None => TokenStream::default(),
-                                Some(after_delete_hook) => {
-                                    let hook_trait_name = &after_delete_hook.trait_name;
-                                    let hook_function_name = &after_delete_hook.function_name;
-
+                            let after_delete_hook = hook_tokens(
+                                &spacetimedsl_table.hooks.after_delete,
+                                |hook_function_name| {
                                     quote! {
-                                        use self::#hook_trait_name;
                                         for row_to_delete in &rows_to_delete {
                                             crate::spacetimedsl::DSLMethodHooks::#hook_function_name(self, &row_to_delete)?;
                                         }
                                     }
-                                }
-                            };
+                                },
+                            );
 
                             let delete_many_impl = quote! {
                                 let count_of_rows_to_delete: u64 = rows_to_delete
@@ -1799,32 +1787,22 @@ pub(in crate::internal) fn for_method(
                         },
                         DSLMethod::DeleteOne(_) => {
                             if is_singleton_pk {
-                                let before_delete_hook = match &spacetimedsl_table
-                                    .hooks
-                                    .before_delete
-                                {
-                                    None => TokenStream::default(),
-                                    Some(before_delete_hook) => {
-                                        let hook_trait_name = &before_delete_hook.trait_name;
-                                        let hook_function_name = &before_delete_hook.function_name;
+                                let before_delete_hook = hook_tokens(
+                                    &spacetimedsl_table.hooks.before_delete,
+                                    |hook_function_name| {
                                         quote! {
-                                            use self::#hook_trait_name;
                                             crate::spacetimedsl::DSLMethodHooks::#hook_function_name(self, &row_to_delete)?;
                                         }
-                                    }
-                                };
-                                let after_delete_hook = match &spacetimedsl_table.hooks.after_delete
-                                {
-                                    None => TokenStream::default(),
-                                    Some(after_delete_hook) => {
-                                        let hook_trait_name = &after_delete_hook.trait_name;
-                                        let hook_function_name = &after_delete_hook.function_name;
+                                    },
+                                );
+                                let after_delete_hook = hook_tokens(
+                                    &spacetimedsl_table.hooks.after_delete,
+                                    |hook_function_name| {
                                         quote! {
-                                            use self::#hook_trait_name;
                                             crate::spacetimedsl::DSLMethodHooks::#hook_function_name(self, &row_to_delete)?;
                                         }
-                                    }
-                                };
+                                    },
+                                );
                                 method_impl = quote! {
                                     use ::spacetimedsl::itertools::Itertools;
 
@@ -1983,35 +1961,23 @@ pub(in crate::internal) fn for_method(
                                     };
                                 };
 
-                                let before_delete_hook = match &spacetimedsl_table
-                                    .hooks
-                                    .before_delete
-                                {
-                                    None => TokenStream::default(),
-                                    Some(before_delete_hook) => {
-                                        let hook_trait_name = &before_delete_hook.trait_name;
-                                        let hook_function_name = &before_delete_hook.function_name;
-
+                                let before_delete_hook = hook_tokens(
+                                    &spacetimedsl_table.hooks.before_delete,
+                                    |hook_function_name| {
                                         quote! {
-                                            use self::#hook_trait_name;
                                             crate::spacetimedsl::DSLMethodHooks::#hook_function_name(self, &row_to_delete)?;
                                         }
-                                    }
-                                };
+                                    },
+                                );
 
-                                let after_delete_hook = match &spacetimedsl_table.hooks.after_delete
-                                {
-                                    None => TokenStream::default(),
-                                    Some(after_delete_hook) => {
-                                        let hook_trait_name = &after_delete_hook.trait_name;
-                                        let hook_function_name = &after_delete_hook.function_name;
-
+                                let after_delete_hook = hook_tokens(
+                                    &spacetimedsl_table.hooks.after_delete,
+                                    |hook_function_name| {
                                         quote! {
-                                            use self::#hook_trait_name;
                                             crate::spacetimedsl::DSLMethodHooks::#hook_function_name(self, &row_to_delete)?;
                                         }
-                                    }
-                                };
+                                    },
+                                );
 
                                 let return_result_impl = quote! {
                                     return Ok(crate::spacetimedsl::delete::DeletionResult {
@@ -2202,6 +2168,40 @@ fn get_referenced_table_function_call_for_dsl_method(
                 };
             }
         }
+    }
+}
+
+/// The `use self::<trait>;` import and the call `build_call` produces, kept apart so a
+/// caller can place the import itself - before a prelude that has to run first, or outside
+/// the loop the call sits in. Both are empty when the table declares no such hook.
+fn hook_use_and_call(
+    hook: &Option<SpacetimeDSLMethodHook>,
+    build_call: impl FnOnce(&Ident) -> TokenStream,
+) -> (TokenStream, TokenStream) {
+    match hook {
+        None => (TokenStream::default(), TokenStream::default()),
+        Some(hook) => {
+            let hook_trait_name = &hook.trait_name;
+
+            (
+                quote! { use self::#hook_trait_name; },
+                build_call(&hook.function_name),
+            )
+        }
+    }
+}
+
+/// `use self::<trait>;` followed by the call `build_call` produces, or nothing when the
+/// table declares no such hook.
+fn hook_tokens(
+    hook: &Option<SpacetimeDSLMethodHook>,
+    build_call: impl FnOnce(&Ident) -> TokenStream,
+) -> TokenStream {
+    let (use_hook_trait, hook_call) = hook_use_and_call(hook, build_call);
+
+    quote! {
+        #use_hook_trait
+        #hook_call
     }
 }
 
@@ -3064,16 +3064,12 @@ fn get_on_delete_strategy_implementation(
                 ));
             }
             OnDeleteStrategy::Delete => {
-                let before_delete_hook = match &spacetimedsl_table.hooks.before_delete {
-                    None => TokenStream::default(),
-                    Some(before_delete_hook) => {
-                        let hook_trait_name = &before_delete_hook.trait_name;
-                        let hook_function_name = &before_delete_hook.function_name;
-
-                        strategy_for_before_hook = quote! {
-                            use self::#hook_trait_name;
-                        };
-
+                // These two imports have to escape the per-row loop their guard sits in,
+                // so they are hoisted into strategy_for_before_hook / _after_hook instead
+                // of being emitted next to the call.
+                let (use_before_delete_hook_trait, before_delete_hook) = hook_use_and_call(
+                    &spacetimedsl_table.hooks.before_delete,
+                    |hook_function_name| {
                         quote! {
                             if crate::spacetimedsl::DSLMethodHooks::#hook_function_name(&dsl, &row).is_err() {
                                 error = true;
@@ -3081,19 +3077,13 @@ fn get_on_delete_strategy_implementation(
                                 break 'outer;
                             }
                         }
-                    }
-                };
+                    },
+                );
+                strategy_for_before_hook = use_before_delete_hook_trait;
 
-                let after_delete_hook = match &spacetimedsl_table.hooks.after_delete {
-                    None => TokenStream::default(),
-                    Some(after_delete_hook) => {
-                        let hook_trait_name = &after_delete_hook.trait_name;
-                        let hook_function_name = &after_delete_hook.function_name;
-
-                        strategy_for_after_hook = quote! {
-                            use self::#hook_trait_name;
-                        };
-
+                let (use_after_delete_hook_trait, after_delete_hook) = hook_use_and_call(
+                    &spacetimedsl_table.hooks.after_delete,
+                    |hook_function_name| {
                         quote! {
                             if crate::spacetimedsl::DSLMethodHooks::#hook_function_name(&dsl, &row).is_err() {
                                 error = true;
@@ -3101,8 +3091,9 @@ fn get_on_delete_strategy_implementation(
                                 break 'outer;
                             }
                         }
-                    }
-                };
+                    },
+                );
+                strategy_for_after_hook = use_after_delete_hook_trait;
 
                 match has_referenced_bys {
                     false => strategy_by_column.push(strategy_by_row(
