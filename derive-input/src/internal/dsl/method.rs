@@ -419,86 +419,82 @@ impl SpacetimeDSLTableMethods {
     }
 }
 
-fn process_columns_for_create_and_update_method(
+/// The pieces the Create method needs from one column: the argument it contributes to the
+/// `Create<Table>` struct, the mapper that unwraps an optional wrapper, the `let` binding
+/// that feeds the row constructor, and the name that binding introduces.
+struct CreateMethodColumnParts {
+    arg: Option<SpacetimeDSLArg>,
+    wrapper_option_mapper: Option<TokenStream>,
+    constructor_arg: Option<TokenStream>,
+    constructor_arg_name: TokenStream,
+}
+
+fn create_method_column_parts(
     spacetimedsl_table: &SpacetimeDSLTable,
-    create_or_update: CreateOrUpdate,
     internal_column: &InternalColumn,
-) -> (
-    Option<SpacetimeDSLArg>,
-    Option<TokenStream>,
-    Option<TokenStream>,
-    TokenStream,
-) {
+) -> CreateMethodColumnParts {
     let mut arg = None;
-    let mut wrapper_type_option_to_wrapped_type_option_mapper = None;
+    let mut wrapper_option_mapper = None;
     let mut constructor_arg = None;
 
     let singular_table_name = &internal_column.spacetimedb_table_singular_name;
     let column_name = &internal_column.rust_field_name;
-    let getter_name = format_ident!("get_{column_name}");
     let constructor_arg_name = quote! { #column_name };
 
     let column_type = &internal_column.rust_field_type_name_or_path;
 
-    match create_or_update {
-        CreateOrUpdate::Create => {
-            // Singleton PK column (id: u8) is auto-filled with 0
-            if spacetimedsl_table.is_singleton
-                && internal_column.rust_field_name == "id"
-                && internal_column
-                    .rust_field_type_name_or_path
-                    .to_token_stream()
-                    .to_string()
-                    == "u8"
-            {
-                constructor_arg = Some(quote! {
-                    let #column_name = 0u8;
-                });
-                return (
-                    arg,
-                    wrapper_type_option_to_wrapped_type_option_mapper,
-                    constructor_arg,
-                    constructor_arg_name,
-                );
-            }
+    // Singleton PK column (id: u8) is auto-filled with 0
+    if spacetimedsl_table.is_singleton
+        && internal_column.rust_field_name == "id"
+        && internal_column
+            .rust_field_type_name_or_path
+            .to_token_stream()
+            .to_string()
+            == "u8"
+    {
+        return CreateMethodColumnParts {
+            arg,
+            wrapper_option_mapper,
+            constructor_arg: Some(quote! {
+                let #column_name = 0u8;
+            }),
+            constructor_arg_name,
+        };
+    }
 
-            if internal_column.spacetimedb_column_is_auto_inc {
-                constructor_arg = Some(quote! {
-                    let #column_name = #column_type::default();
-                });
-            } else if let Some(column_name) =
-                &spacetimedsl_table.on_insert_set_current_timestamp_column_name
-                && { internal_column.rust_field_name.eq(column_name) }
-            {
-                constructor_arg = Some(quote! {
-                    let #column_name = self.ctx().timestamp()?;
-                });
-            } else if let Some(column_name) =
-                &spacetimedsl_table.on_update_set_current_timestamp_column_name
-                && { internal_column.rust_field_name.eq(column_name) }
-            {
-                let timestamp_value =
-                    if internal_column.rust_field_type_kind == ColumnTypeKind::Optional {
-                        quote! { None }
-                    } else {
-                        quote! { self.ctx().timestamp()? }
-                    };
-                constructor_arg = Some(quote! {
-                    let #column_name = #timestamp_value;
-                });
-            }
+    if internal_column.spacetimedb_column_is_auto_inc {
+        constructor_arg = Some(quote! {
+            let #column_name = #column_type::default();
+        });
+    } else if let Some(column_name) =
+        &spacetimedsl_table.on_insert_set_current_timestamp_column_name
+        && { internal_column.rust_field_name.eq(column_name) }
+    {
+        constructor_arg = Some(quote! {
+            let #column_name = self.ctx().timestamp()?;
+        });
+    } else if let Some(column_name) =
+        &spacetimedsl_table.on_update_set_current_timestamp_column_name
+        && { internal_column.rust_field_name.eq(column_name) }
+    {
+        let timestamp_value = if internal_column.rust_field_type_kind == ColumnTypeKind::Optional {
+            quote! { None }
+        } else {
+            quote! { self.ctx().timestamp()? }
+        };
+        constructor_arg = Some(quote! {
+            let #column_name = #timestamp_value;
+        });
+    }
 
-            if constructor_arg.is_some() {
-                return (
-                    arg,
-                    wrapper_type_option_to_wrapped_type_option_mapper,
-                    constructor_arg,
-                    constructor_arg_name,
-                );
-            }
-        }
-        CreateOrUpdate::Update => {}
-    };
+    if constructor_arg.is_some() {
+        return CreateMethodColumnParts {
+            arg,
+            wrapper_option_mapper,
+            constructor_arg,
+            constructor_arg_name,
+        };
+    }
 
     match &internal_column.spacetimedsl_column_wrapper_type {
         Some(wrapper_type) => match wrapper_type {
@@ -509,18 +505,6 @@ fn process_columns_for_create_and_update_method(
                         arg_name: column_name.clone(),
                         arg_type: SpacetimeDSLArgType::Normal(quote! { String }),
                     });
-                    match create_or_update {
-                        CreateOrUpdate::Create => {
-                            constructor_arg = Some(quote! {
-                                let #column_name = #singular_table_name.#column_name;
-                            });
-                        }
-                        CreateOrUpdate::Update => {
-                            constructor_arg = Some(quote! {
-                                let #column_name = #singular_table_name.#getter_name();
-                            });
-                        }
-                    };
                 } else {
                     arg = Some(SpacetimeDSLArg {
                         is_option: false,
@@ -529,11 +513,11 @@ fn process_columns_for_create_and_update_method(
                             WrapperType::map_to_wrapped_type(wrapper_type).to_token_stream(),
                         ),
                     });
-
-                    constructor_arg = Some(quote! {
-                        let #column_name = #singular_table_name.#column_name;
-                    });
                 }
+
+                constructor_arg = Some(quote! {
+                    let #column_name = #singular_table_name.#column_name;
+                });
             }
             WrapperType::Used(_) => {
                 let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
@@ -551,11 +535,10 @@ fn process_columns_for_create_and_update_method(
                     constructor_arg = Some(quote! {
                         let #column_name = #singular_table_name.#column_name;
                     });
-                    wrapper_type_option_to_wrapped_type_option_mapper =
-                        Some(map_wrapper_type_option_to_wrapped_type_option(
-                            column_name,
-                            wrapper_type_name_or_path,
-                        ));
+                    wrapper_option_mapper = Some(map_wrapper_type_option_to_wrapped_type_option(
+                        column_name,
+                        wrapper_type_name_or_path,
+                    ));
                 } else {
                     let wrapped_type =
                         WrapperType::map_to_wrapped_type(wrapper_type).to_token_stream();
@@ -569,18 +552,9 @@ fn process_columns_for_create_and_update_method(
                         },
                     });
 
-                    match create_or_update {
-                        CreateOrUpdate::Create => {
-                            constructor_arg = Some(quote! {
-                                let #column_name = #singular_table_name.#column_name.value();
-                            });
-                        }
-                        CreateOrUpdate::Update => {
-                            constructor_arg = Some(quote! {
-                                let #column_name = #singular_table_name.#getter_name().value();
-                            });
-                        }
-                    };
+                    constructor_arg = Some(quote! {
+                        let #column_name = #singular_table_name.#column_name.value();
+                    });
                 }
             }
         },
@@ -591,38 +565,49 @@ fn process_columns_for_create_and_update_method(
                     arg_name: column_name.clone(),
                     arg_type: SpacetimeDSLArgType::Normal(quote! { String }),
                 });
-
-                match create_or_update {
-                    CreateOrUpdate::Create => {
-                        constructor_arg = Some(quote! {
-                            let #column_name = #singular_table_name.#column_name;
-                        });
-                    }
-                    CreateOrUpdate::Update => {
-                        constructor_arg = Some(quote! {
-                            let #column_name = #singular_table_name.#getter_name();
-                        });
-                    }
-                };
             } else {
                 arg = Some(SpacetimeDSLArg {
                     is_option: internal_column.spacetimedsl_column_is_option,
                     arg_name: column_name.clone(),
                     arg_type: SpacetimeDSLArgType::Normal(quote! { #column_type }),
                 });
-                constructor_arg = Some(quote! {
-                    let #column_name = #singular_table_name.#column_name;
-                });
             }
+
+            constructor_arg = Some(quote! {
+                let #column_name = #singular_table_name.#column_name;
+            });
         }
     };
 
-    (
+    CreateMethodColumnParts {
         arg,
-        wrapper_type_option_to_wrapped_type_option_mapper,
+        wrapper_option_mapper,
         constructor_arg,
         constructor_arg_name,
-    )
+    }
+}
+
+/// The `let` binding the Update method's reference-integrity checks read a column's value
+/// through. Unlike the Create path there is always one, and the wrapper handling the Create
+/// path needs is irrelevant here, because Update reads the row rather than building it.
+fn update_method_row_value_getter(internal_column: &InternalColumn) -> TokenStream {
+    let singular_table_name = &internal_column.spacetimedb_table_singular_name;
+    let column_name = &internal_column.rust_field_name;
+    let getter_name = format_ident!("get_{column_name}");
+
+    let is_string = internal_column.rust_field_type_kind == ColumnTypeKind::String;
+
+    match &internal_column.spacetimedsl_column_wrapper_type {
+        Some(WrapperType::Used(_)) if !internal_column.spacetimedsl_column_is_option => quote! {
+            let #column_name = #singular_table_name.#getter_name().value();
+        },
+        Some(WrapperType::Created(_)) | None if is_string => quote! {
+            let #column_name = #singular_table_name.#getter_name();
+        },
+        _ => quote! {
+            let #column_name = #singular_table_name.#column_name;
+        },
+    }
 }
 
 pub(in crate::internal) fn for_method(
@@ -680,26 +665,19 @@ pub(in crate::internal) fn for_method(
             let mut constructor_arg_names = vec![];
 
             for internal_column in internal_columns {
-                let (
-                    method_arg_member,
-                    wrapper_type_option_to_wrapped_type_option_mapper,
+                let CreateMethodColumnParts {
+                    arg,
+                    wrapper_option_mapper,
                     constructor_arg,
                     constructor_arg_name,
-                ) = process_columns_for_create_and_update_method(
-                    spacetimedsl_table,
-                    CreateOrUpdate::Create,
-                    internal_column,
-                );
+                } = create_method_column_parts(spacetimedsl_table, internal_column);
 
-                if let Some(method_arg_member) = method_arg_member {
-                    method_arg_members.push(method_arg_member)
+                if let Some(arg) = arg {
+                    method_arg_members.push(arg)
                 }
 
-                if let Some(wrapper_type_option_to_wrapped_type_option_mapper) =
-                    wrapper_type_option_to_wrapped_type_option_mapper
-                {
-                    wrapper_type_option_to_wrapped_type_option_mappers
-                        .push(wrapper_type_option_to_wrapped_type_option_mapper)
+                if let Some(wrapper_option_mapper) = wrapper_option_mapper {
+                    wrapper_type_option_to_wrapped_type_option_mappers.push(wrapper_option_mapper)
                 }
 
                 if let Some(constructor_arg) = constructor_arg {
@@ -1106,15 +1084,7 @@ pub(in crate::internal) fn for_method(
                                     .ne(&RustVisibility::Private.to_string())
                         })
                         .for_each(|internal_column| {
-                            let (_, _, column_getter, _) =
-                                process_columns_for_create_and_update_method(
-                                    spacetimedsl_table,
-                                    CreateOrUpdate::Update,
-                                    internal_column,
-                                );
-                            if let Some(column_getter) = column_getter {
-                                row_value_getters.push(column_getter)
-                            };
+                            row_value_getters.push(update_method_row_value_getter(internal_column));
                         });
 
                     let on_update_set_current_timestamp = match &spacetimedsl_table
