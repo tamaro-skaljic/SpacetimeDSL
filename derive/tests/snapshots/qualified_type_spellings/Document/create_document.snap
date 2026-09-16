@@ -14,7 +14,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         let bare_title = document.bare_title;
         let qualified_title = document.qualified_title;
         let bare_note = document.bare_note;
-        let qualified_note = document.qualified_note.value();
+        let qualified_note = document.qualified_note;
         let mut bare_note_option = None;
         if bare_note.is_some() {
             bare_note_option = Some(
@@ -23,6 +23,16 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             );
         }
         let bare_note = bare_note_option;
+        let mut qualified_note_option = None;
+        if qualified_note.is_some() {
+            qualified_note_option = Some(
+                Into::<
+                    DocumentQualifiedNote,
+                >::into(qualified_note.expect("value should exist"))
+                    .value(),
+            );
+        }
+        let qualified_note = qualified_note_option;
         let document = Document {
             id,
             bare_title,

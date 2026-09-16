@@ -72,6 +72,7 @@ pub(in crate::internal) fn try_parse(
             rust_field_visibility: rust_field.visibility.clone(),
             rust_field_name: rust_field.name.clone(),
             rust_field_type_name_or_path: rust_field.type_name_or_path.clone(),
+            rust_field_type_kind: ColumnTypeKind::of(&rust_field.type_name_or_path),
             spacetimedsl_column_foreign_key: spacetimedsl_column.foreign_key.clone(),
             spacetimedb_column_is_auto_inc: spacetimedb_column.is_auto_inc,
             spacetimedsl_column_is_option: spacetimedsl_column.is_option,
@@ -134,12 +135,58 @@ pub(in crate::internal) fn try_parse(
     ))
 }
 
+/// What the generators need to know about a column's type.
+///
+/// The kinds are mutually exclusive because every question the generators ask is asked of
+/// the *whole* type: `Option<String>` is `Optional`, not `String`.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(in crate::internal) enum ColumnTypeKind {
+    String,
+    UnsignedInteger,
+    Optional,
+    Other,
+}
+
+impl ColumnTypeKind {
+    /// Classifies a column's type by the path's last segment, accepting it only when the
+    /// path is bare or rooted in the standard library. So `String`, `std::string::String`
+    /// and `alloc::string::String` all classify as `String`, and `Option<_>`,
+    /// `std::option::Option<_>` and `core::option::Option<_>` all as `Optional`, while a
+    /// user's own `my_crate::String` stays `Other`.
+    ///
+    /// Unsigned integers are matched bare only: they are primitives, so a qualified
+    /// spelling would not be the same type.
+    pub(in crate::internal) fn of(type_name_or_path: &Path) -> ColumnTypeKind {
+        let Some(last_segment) = type_name_or_path.segments.last() else {
+            return ColumnTypeKind::Other;
+        };
+
+        let is_bare = type_name_or_path.segments.len() == 1;
+        let is_rooted_in_std = matches!(
+            type_name_or_path.segments[0].ident.to_string().as_str(),
+            "std" | "core" | "alloc"
+        );
+
+        if !is_bare && !is_rooted_in_std {
+            return ColumnTypeKind::Other;
+        }
+
+        match last_segment.ident.to_string().as_str() {
+            "String" => ColumnTypeKind::String,
+            "Option" => ColumnTypeKind::Optional,
+            "u8" | "u16" | "u32" | "u64" | "u128" if is_bare => ColumnTypeKind::UnsignedInteger,
+            _ => ColumnTypeKind::Other,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub(in crate::internal) struct InternalColumn {
     pub spacetimedb_table_singular_name: Ident,
     pub rust_field_visibility: RustVisibility,
     pub rust_field_name: Ident,
     pub rust_field_type_name_or_path: Path,
+    pub rust_field_type_kind: ColumnTypeKind,
     pub spacetimedb_column_is_auto_inc: bool,
     pub spacetimedsl_column_is_option: bool,
     pub spacetimedsl_column_foreign_key: Option<ForeignKey>,

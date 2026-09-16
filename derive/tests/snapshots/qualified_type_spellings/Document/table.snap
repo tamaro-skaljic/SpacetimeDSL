@@ -122,29 +122,43 @@ impl Document {
         }
     }
     ///
-    pub fn get_qualified_note(&self) -> DocumentQualifiedNote {
+    pub fn get_qualified_note(&self) -> Option<DocumentQualifiedNote> {
         use spacetimedsl::Wrapper;
-        DocumentQualifiedNote::new(self.qualified_note.clone())
+        match &self.qualified_note {
+            None => None,
+            Some(value) => Some(DocumentQualifiedNote::new(value.clone())),
+        }
     }
     ///
     pub fn set_qualified_note(
         &mut self,
-        qualified_note: impl Into<DocumentQualifiedNote>,
-    ) -> DocumentQualifiedNote {
+        qualified_note: impl Into<Option<DocumentQualifiedNote>>,
+    ) -> Option<DocumentQualifiedNote> {
         use spacetimedsl::Wrapper;
-        let old_value = std::mem::replace(
-            &mut self.qualified_note,
-            qualified_note.into().value(),
-        );
-        DocumentQualifiedNote::new(old_value)
+        let qualified_note = qualified_note.into();
+        let mut qualified_note_option = None;
+        if qualified_note.is_some() {
+            qualified_note_option = Some(
+                Into::<
+                    DocumentQualifiedNote,
+                >::into(qualified_note.expect("value should exist"))
+                    .value(),
+            );
+        }
+        let qualified_note = qualified_note_option;
+        let old_value = std::mem::replace(&mut self.qualified_note, qualified_note);
+        match old_value {
+            Some(old_value) => Some(DocumentQualifiedNote::new(old_value)),
+            None => None,
+        }
     }
 }
 ///
 pub struct CreateDocument {
     pub bare_title: String,
-    pub qualified_title: std::string::String,
+    pub qualified_title: String,
     pub bare_note: Option<DocumentBareNote>,
-    pub qualified_note: DocumentQualifiedNote,
+    pub qualified_note: Option<DocumentQualifiedNote>,
 }
 
 // Generated DSL methods:

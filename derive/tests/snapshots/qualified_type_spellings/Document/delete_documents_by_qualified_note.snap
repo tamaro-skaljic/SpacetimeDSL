@@ -6,7 +6,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     ///Try to delete all `Document` rows in the `document` table whose value matches the value from the single-column btree index on the `qualified_note` column.
     pub fn delete_documents_by_qualified_note<'a>(
         &'a self,
-        qualified_note: impl Into<DocumentQualifiedNote>,
+        qualified_note: &impl Into<Option<DocumentQualifiedNote>>,
     ) -> Result<
         crate::spacetimedsl::delete::DeletionResult,
         crate::spacetimedsl::error::SpacetimeDSLError,
@@ -14,7 +14,13 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         use ::spacetimedsl::Wrapper;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use ::spacetimedsl::itertools::Itertools;
-        let qualified_note = qualified_note.into().value();
+        let qualified_note = match qualified_note.into() {
+            None => None,
+            Some(qualified_note) => {
+                Some(Into::<DocumentQualifiedNote>::into(qualified_note).value())
+            }
+        };
+        let qualified_note = qualified_note;
         let rows_to_delete: Vec<Document> = self
             .db()
             .document()

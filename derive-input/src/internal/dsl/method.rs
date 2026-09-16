@@ -20,7 +20,7 @@ use crate::{
         rust::{table::RustStruct, visibility::RustVisibility},
     },
     internal::{
-        column::InternalColumn,
+        column::{ColumnTypeKind, InternalColumn},
         dsl::{
             generated_runtime as runtime, wrapper::map_wrapper_type_option_to_wrapped_type_option,
         },
@@ -31,7 +31,7 @@ use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, TokenStreamExt, format_ident, quote};
 use std::{
-    collections::{BTreeMap, HashMap, VecDeque},
+    collections::{BTreeMap, VecDeque},
     fmt::{self, Display},
 };
 use strum::IntoEnumIterator;
@@ -477,15 +477,12 @@ fn process_columns_for_create_and_update_method(
                 &spacetimedsl_table.on_update_set_current_timestamp_column_name
                 && { internal_column.rust_field_name.eq(column_name) }
             {
-                let column_type_str = internal_column
-                    .rust_field_type_name_or_path
-                    .to_token_stream()
-                    .to_string();
-                let timestamp_value = if column_type_str.starts_with("Option") {
-                    quote! { None }
-                } else {
-                    quote! { self.ctx().timestamp()? }
-                };
+                let timestamp_value =
+                    if internal_column.rust_field_type_kind == ColumnTypeKind::Optional {
+                        quote! { None }
+                    } else {
+                        quote! { self.ctx().timestamp()? }
+                    };
                 constructor_arg = Some(quote! {
                     let #column_name = #timestamp_value;
                 });
@@ -506,12 +503,7 @@ fn process_columns_for_create_and_update_method(
     match &internal_column.spacetimedsl_column_wrapper_type {
         Some(wrapper_type) => match wrapper_type {
             WrapperType::Created(_) => {
-                if internal_column
-                    .rust_field_type_name_or_path
-                    .to_token_stream()
-                    .to_string()
-                    .eq(&"String")
-                {
+                if internal_column.rust_field_type_kind == ColumnTypeKind::String {
                     arg = Some(SpacetimeDSLArg {
                         is_option: false,
                         arg_name: column_name.clone(),
@@ -593,12 +585,7 @@ fn process_columns_for_create_and_update_method(
             }
         },
         None => {
-            if internal_column
-                .rust_field_type_name_or_path
-                .to_token_stream()
-                .to_string()
-                .eq(&"String")
-            {
+            if internal_column.rust_field_type_kind == ColumnTypeKind::String {
                 arg = Some(SpacetimeDSLArg {
                     is_option: false,
                     arg_name: column_name.clone(),
@@ -1142,12 +1129,10 @@ pub(in crate::internal) fn for_method(
                                     panic!("{column_name} column should exist in internal columns")
                                 });
 
-                            let column_type_str = on_update_set_current_timestamp_column
-                                .rust_field_type_name_or_path
-                                .to_token_stream()
-                                .to_string();
-
-                            let timestamp_value = if column_type_str.starts_with("Option") {
+                            let timestamp_value = if on_update_set_current_timestamp_column
+                                .rust_field_type_kind
+                                == ColumnTypeKind::Optional
+                            {
                                 quote! { Some(self.ctx().timestamp()?) }
                             } else {
                                 quote! { self.ctx().timestamp()? }
@@ -1298,11 +1283,8 @@ pub(in crate::internal) fn for_method(
                             .find(|c| c.rust_field_name == *column_name)
                             .expect("Column should exist in internal columns");
 
-                        let column_is_string = column
-                            .rust_field_type_name_or_path
-                            .to_token_stream()
-                            .to_string()
-                            .eq(&"String");
+                        let column_is_string =
+                            column.rust_field_type_kind == ColumnTypeKind::String;
 
                         let wrapper_type_option_to_wrapped_type_option_mapper;
                         let method_arg;
@@ -1930,8 +1912,14 @@ pub(in crate::internal) fn for_method(
                                     }
                                     false => {
                                         let column_name = &index_columns[0];
-                                        let column_type = &internal_columns.iter().find(|c| c.rust_field_name.eq(column_name)).expect("The index should have a column in the internal columns").rust_field_type_name_or_path;
-                                        if column_type.to_token_stream().to_string().eq(&"String") {
+                                        let column_type_kind = internal_columns
+                                            .iter()
+                                            .find(|c| c.rust_field_name.eq(column_name))
+                                            .expect(
+                                                "The index should have a column in the internal columns",
+                                            )
+                                            .rust_field_type_kind;
+                                        if column_type_kind == ColumnTypeKind::String {
                                             get_row_to_delete = quote! {
                                                 let #index_name = #(#row_value_getters),*;
 
@@ -2310,11 +2298,6 @@ fn reference_integrity_checks_on_create_or_update(
         let referencing_table_column_getter_name =
             format_ident!("get_{referencing_table_column_name}");
 
-        let referencing_table_column_type = column
-            .rust_field_type_name_or_path
-            .to_token_stream()
-            .to_string();
-
         let field_name_for_found_value =
             format_ident!("the_same_or_another_{referencing_table_name}");
 
@@ -2399,25 +2382,20 @@ fn reference_integrity_checks_on_create_or_update(
             }
         };
 
-        reference_integrity_checks.push(match referencing_table_column_type.trim() {
-            "u8" | "u16" | "u32" | "u64" | "u128" => quote! {
+        reference_integrity_checks.push(match column.rust_field_type_kind {
+            ColumnTypeKind::UnsignedInteger => quote! {
                 if #referencing_table_column_name.ne(&0) {
                     #check
                 }
             },
-            column_type => {
-                if column_type.starts_with("Option") {
-                    quote! {
-                        if #referencing_table_column_name.is_some() {
-                            #check
-                        }
-                    }
-                } else {
-                    quote! {
-                        #check
-                    }
+            ColumnTypeKind::Optional => quote! {
+                if #referencing_table_column_name.is_some() {
+                    #check
                 }
-            }
+            },
+            ColumnTypeKind::String | ColumnTypeKind::Other => quote! {
+                #check
+            },
         });
     }
 
@@ -2446,17 +2424,12 @@ fn multi_column_index_checks(
             continue;
         }
 
-        let mut column_type_by_name = HashMap::new();
-
-        for column in internal_columns {
-            column_type_by_name.insert(
-                column.rust_field_name.to_string(),
-                column
-                    .rust_field_type_name_or_path
-                    .to_token_stream()
-                    .to_string(),
-            );
-        }
+        let internal_column_named = |column_name: &Ident| {
+            internal_columns
+                .iter()
+                .find(|c| c.rust_field_name.eq(column_name))
+                .expect("A multi-column index column should exist in the internal columns")
+        };
 
         let index_name = &multi_column_index.name;
 
@@ -2477,18 +2450,16 @@ fn multi_column_index_checks(
         column_names_and_row_values.push_str(&format!("{first_column_name} : "));
         column_names_and_row_values.push_str("{}");
         row_value_getters.push(get_row_value_getter(
-            &column_type_by_name,
+            internal_column_named(&first_column_name),
             singular_table_name,
-            &first_column_name,
         ));
 
         for any_other_column_name in any_other_column_name {
             column_names_and_row_values.push_str(&format!(", {any_other_column_name} : "));
             column_names_and_row_values.push_str("{}");
             row_value_getters.push(get_row_value_getter(
-                &column_type_by_name,
+                internal_column_named(&any_other_column_name),
                 singular_table_name,
-                &any_other_column_name,
             ));
         }
 
@@ -2496,9 +2467,8 @@ fn multi_column_index_checks(
         column_names_and_row_values.push_str("{}");
         column_names_and_row_values.push_str(" }}");
         row_value_getters.push(get_row_value_getter(
-            &column_type_by_name,
+            internal_column_named(&last_column_name),
             singular_table_name,
-            &last_column_name,
         ));
 
         let mut multi_column_index_check = get_unique_multi_column_index_check(
@@ -2556,15 +2526,12 @@ fn multi_column_index_checks(
 }
 
 fn get_row_value_getter(
-    column_type_by_name: &HashMap<String, String>,
+    internal_column: &InternalColumn,
     singular_table_name: &Ident,
-    column_name: &Ident,
 ) -> TokenStream {
-    if column_type_by_name
-        .get(&column_name.to_string())
-        .expect("Column should exist")
-        .eq("String")
-    {
+    let column_name = &internal_column.rust_field_name;
+
+    if internal_column.rust_field_type_kind == ColumnTypeKind::String {
         quote! { &#singular_table_name.#column_name }
     } else {
         quote! { #singular_table_name.#column_name }
