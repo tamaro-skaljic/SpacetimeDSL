@@ -2945,6 +2945,7 @@ fn get_on_delete_strategy_implementation(
 
     let singular_table_name_as_string = singular_table_name.to_string();
 
+    // Deliberate empty slot, symmetric with strategy_after_all.
     let strategy_before_all = quote! {};
     let mut strategy_for_before_hook = TokenStream::default();
     let mut strategy_for_after_hook = TokenStream::default();
