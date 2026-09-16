@@ -68,7 +68,7 @@ error[E0277]: `Option<Option<spacetimedb::Timestamp>>` doesn't implement `std::f
    |             ^^^^^^^^^^^^^^^ `Option<Option<spacetimedb::Timestamp>>` cannot be formatted with the default formatter
    |
    = help: the trait `std::fmt::Display` is not implemented for `Option<Option<spacetimedb::Timestamp>>`
-   = note: in format strings you may be able to use `{:?}` (or `{:#?}` for pretty-print) instead
+   = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
    = note: this error originates in the macro `$crate::__export::format_args` which comes from the expansion of the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: `&'a Option<spacetimedb::Timestamp>` cannot appear as an argument to an index filtering operation
@@ -121,6 +121,6 @@ error[E0277]: `Option<Option<spacetimedb::Timestamp>>` doesn't implement `std::f
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Option<Option<spacetimedb::Timestamp>>` cannot be formatted with the default formatter
    |
    = help: the trait `std::fmt::Display` is not implemented for `Option<Option<spacetimedb::Timestamp>>`
-   = note: in format strings you may be able to use `{:?}` (or `{:#?}` for pretty-print) instead
+   = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
    = note: required for `&Option<Option<spacetimedb::Timestamp>>` to implement `std::fmt::Display`
    = note: this error originates in the macro `$crate::__export::format_args` which comes from the expansion of the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

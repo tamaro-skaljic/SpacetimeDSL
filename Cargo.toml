@@ -10,6 +10,8 @@ repository = "https://github.com/tamaro-skaljic/SpacetimeDSL"
 publish = true
 include = ["README.md", "/src/**"]
 keywords = ["dsl", "spacetime", "macro", "codegen", "boilerplate"]
+resolver = "3"
+rust-version = "1.93.0"
 
 [dependencies]
 spacetimedb.workspace = true

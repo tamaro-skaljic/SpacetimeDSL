@@ -1,6 +1,6 @@
 [toolchain]
 # Pinned exactly so the `trybuild` `.stderr` files in `compile-tests/` stay reproducible
-# between local development and CI. Bumping this regenerates them.
-channel = "nightly-2026-09-12"
-components = ["clippy", "rustfmt"]
+# between local development and CI. Bumping this means they must be regenerated.
+channel = "1.93.0"
+components = ["clippy", "rustfmt", "rust-analyzer"]
 targets = ["wasm32-unknown-unknown"]
