@@ -34,6 +34,11 @@ use std::{
 use strum::IntoEnumIterator;
 use syn::{Ident, parse_str};
 
+/// The invariant `internal/dsl/column.rs` enforces: every primary key column except a
+/// singleton's injected `id: u8` carries a wrapper type.
+const PRIMARY_KEY_WRAPPER_TYPE_INVARIANT: &str =
+    "A non-singleton primary key column must have a wrapper type";
+
 pub(in crate::internal) enum DSLMethod<'a> {
     Create,
     GetAll,
@@ -1528,18 +1533,11 @@ pub(in crate::internal) fn for_method(
                                 }
                             };
 
-                            let wrapper_type_struct_name_or_path = match primary_key_column
+                            let wrapper_type_struct_name_or_path = primary_key_column
                                 .spacetimedsl_column_wrapper_type
                                 .as_ref()
-                                .expect("Should have a wrapper type")
-                            {
-                                WrapperType::Created(wrap) => {
-                                    wrap.wrapper_struct_name.to_token_stream()
-                                }
-                                WrapperType::Used(wrapped) => {
-                                    wrapped.wrapper_struct_name_or_path.to_token_stream()
-                                }
-                            };
+                                .expect(PRIMARY_KEY_WRAPPER_TYPE_INVARIANT)
+                                .struct_name_or_path_tokens();
 
                             let map_rows_to_delete_to_deletion_result_entries = quote! {
                                 let mut deletion_result_entries = std::collections::HashMap::new();
@@ -1921,18 +1919,11 @@ pub(in crate::internal) fn for_method(
                                     #return_error_on_is_none
                                 };
 
-                                let wrapper_type_struct_name_or_path = match primary_key_column
+                                let wrapper_type_struct_name_or_path = primary_key_column
                                     .spacetimedsl_column_wrapper_type
                                     .as_ref()
-                                    .expect("should have a wrapper type")
-                                {
-                                    WrapperType::Created(wrap) => {
-                                        wrap.wrapper_struct_name.to_token_stream()
-                                    }
-                                    WrapperType::Used(wrapped) => {
-                                        wrapped.wrapper_struct_name_or_path.to_token_stream()
-                                    }
-                                };
+                                    .expect(PRIMARY_KEY_WRAPPER_TYPE_INVARIANT)
+                                    .struct_name_or_path_tokens();
 
                                 let map_row_to_delete_to_deletion_result_entry = quote! {
                                     let mut deletion_result_entry = crate::spacetimedsl::delete::DeletionResultEntry {
@@ -3012,14 +3003,11 @@ fn get_on_delete_strategy_implementation(
             // Singleton PK is u8(0) with no wrapper type
             quote! { "0".to_string() }
         } else {
-            let wrapper_type_struct_name_or_path = match primary_key_column
+            let wrapper_type_struct_name_or_path = primary_key_column
                 .spacetimedsl_column_wrapper_type
                 .as_ref()
-                .expect("Wrapper Type should exist")
-            {
-                WrapperType::Created(wrap) => wrap.wrapper_struct_name.to_token_stream(),
-                WrapperType::Used(wrapped) => wrapped.wrapper_struct_name_or_path.to_token_stream(),
-            };
+                .expect(PRIMARY_KEY_WRAPPER_TYPE_INVARIANT)
+                .struct_name_or_path_tokens();
             quote! { format!("{}", #wrapper_type_struct_name_or_path::new(#primary_key_column_name.clone())) }
         };
 
