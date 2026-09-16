@@ -105,6 +105,27 @@ impl Display for Action {
     }
 }
 
+/// How the generated code binds the row it iterates over or matches on.
+#[derive(Clone, Copy)]
+enum RowBinding {
+    Immutable,
+    Mutable,
+}
+
+/// Whether the index the generated code looks a row up through yields at most one row.
+#[derive(Clone, Copy)]
+enum IndexUniqueness {
+    Unique,
+    NonUnique,
+}
+
+/// Whether any other table declares a foreign key referencing the table being generated.
+#[derive(Clone, Copy)]
+enum ReferencingTables {
+    Present,
+    Absent,
+}
+
 impl SpacetimeDSLColumnMethods {
     pub(in crate::internal) fn map(
         rust_struct: &RustStruct,
@@ -308,10 +329,15 @@ impl SpacetimeDSLTableMethods {
             columns_with_foreign_keys_by_table
                 .into_iter()
                 .for_each(|(referenced_table_name, columns_with_foreign_key)| {
+                    let referencing_tables = match spacetimedsl_table.referencing_tables.is_empty() {
+                        true => ReferencingTables::Absent,
+                        false => ReferencingTables::Present,
+                    };
+
                     execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted.push(
                         for_foreign_key(
                             &OneOrMultiple::One,
-                            !spacetimedsl_table.referencing_tables.is_empty(),
+                            referencing_tables,
                             spacetimedb_table,
                             referenced_table_name,
                             &columns_with_foreign_key,
@@ -322,7 +348,7 @@ impl SpacetimeDSLTableMethods {
                     execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted.push(
                         for_foreign_key(
                             &OneOrMultiple::Multiple,
-                            !spacetimedsl_table.referencing_tables.is_empty(),
+                            referencing_tables,
                             spacetimedb_table,
                             referenced_table_name,
                             &columns_with_foreign_key,
@@ -2719,7 +2745,7 @@ fn for_referenced_by(
 
 fn for_foreign_key(
     one_or_multiple: &OneOrMultiple,
-    has_referenced_bys: bool,
+    referencing_tables: ReferencingTables,
     spacetimedb_table: &SpacetimeDBTable,
     referenced_table_name: &syn::Ident,
     columns_with_foreign_key: &Vec<&&Column>,
@@ -2890,7 +2916,7 @@ fn for_foreign_key(
             let implementation = match columns_by_on_delete_strategies.remove(&on_delete_strategy) {
                 Some(columns_by_on_delete_strategy) => get_on_delete_strategy_implementation(
                     spacetimedsl_table,
-                    has_referenced_bys,
+                    referencing_tables,
                     singular_table_name,
                     &on_delete_strategy,
                     columns_by_on_delete_strategy,
@@ -2954,7 +2980,7 @@ fn for_foreign_key(
 
 fn get_on_delete_strategy_implementation(
     spacetimedsl_table: &SpacetimeDSLTable,
-    has_referenced_bys: bool,
+    referencing_tables: ReferencingTables,
     singular_table_name: &Ident,
     on_delete_strategy: &OnDeleteStrategy,
     columns_by_on_delete_strategy: Vec<&&&Column>,
@@ -2988,15 +3014,20 @@ fn get_on_delete_strategy_implementation(
         let column_name_as_string = column_name.to_string();
 
         // Singletons don't have indices on FK columns; use .id().find(&0u8) instead
-        let is_unique_index = if is_singleton {
-            true // Singleton has at most 1 row, treat as unique
+        let index_uniqueness = if is_singleton {
+            // Singleton has at most 1 row, treat as unique
+            IndexUniqueness::Unique
         } else {
-            column
+            match column
                 .spacetimedb_column
                 .single_column_index
                 .as_ref()
                 .expect("Index should exist")
                 .is_unique
+            {
+                true => IndexUniqueness::Unique,
+                false => IndexUniqueness::NonUnique,
+            }
         };
 
         let row_finder = if is_singleton {
@@ -3005,13 +3036,13 @@ fn get_on_delete_strategy_implementation(
                 #spacetimedb_call_prefix.id().find(&0u8).filter(|row| row.#column_name == *primary_key_value_of_a_row_of_another_table_to_delete)
             }
         } else {
-            match is_unique_index {
-                true => {
+            match index_uniqueness {
+                IndexUniqueness::Unique => {
                     quote! {
                         #spacetimedb_call_prefix.#column_name().find(primary_key_value_of_a_row_of_another_table_to_delete)
                     }
                 }
-                false => {
+                IndexUniqueness::NonUnique => {
                     quote! {
                         #spacetimedb_call_prefix.#column_name().filter(primary_key_value_of_a_row_of_another_table_to_delete)
                     }
@@ -3057,8 +3088,8 @@ fn get_on_delete_strategy_implementation(
         match on_delete_strategy {
             OnDeleteStrategy::Error => {
                 strategy_by_column.push(strategy_by_row(
-                    false,
-                    is_unique_index,
+                    RowBinding::Immutable,
+                    index_uniqueness,
                     &row_finder,
                     quote! {
                         error = true;
@@ -3111,10 +3142,10 @@ fn get_on_delete_strategy_implementation(
                 );
                 strategy_for_after_hook = use_after_delete_hook_trait;
 
-                match has_referenced_bys {
-                    false => strategy_by_column.push(strategy_by_row(
-                        false,
-                        is_unique_index,
+                match referencing_tables {
+                    ReferencingTables::Absent => strategy_by_column.push(strategy_by_row(
+                        RowBinding::Immutable,
+                        index_uniqueness,
                         &row_finder,
                         quote! {
                             let child_entries = vec![];
@@ -3130,7 +3161,7 @@ fn get_on_delete_strategy_implementation(
                             #after_delete_hook
                         },
                     )),
-                    true => {
+                    ReferencingTables::Present => {
                         let format_str = format!(
                             "{primary_key_column_name} should exist in child_entries_by_primary_key_value_of_row_to_delete."
                         );
@@ -3248,8 +3279,8 @@ fn get_on_delete_strategy_implementation(
                         };
 
                         strategy_by_column.push(strategy_by_row(
-                            false,
-                            is_unique_index,
+                            RowBinding::Immutable,
+                            index_uniqueness,
                             &row_finder,
                             strategy_for_each_row,
                         ));
@@ -3258,8 +3289,8 @@ fn get_on_delete_strategy_implementation(
             }
             OnDeleteStrategy::SetZero => {
                 strategy_by_column.push(strategy_by_row(
-                    true,
-                    is_unique_index,
+                    RowBinding::Mutable,
+                    index_uniqueness,
                     &row_finder,
                     quote! {
                         row.#column_name = 0;
@@ -3275,8 +3306,8 @@ fn get_on_delete_strategy_implementation(
             }
             OnDeleteStrategy::Ignore => {
                 strategy_by_column.push(strategy_by_row(
-                    false,
-                    is_unique_index,
+                    RowBinding::Immutable,
+                    index_uniqueness,
                     &row_finder,
                     quote! {
                         let child_entries = vec![];
@@ -3315,32 +3346,32 @@ fn get_on_delete_strategy_implementation(
 }
 
 fn strategy_by_row(
-    mut_row: bool,
-    is_unique_index: bool,
+    row_binding: RowBinding,
+    index_uniqueness: IndexUniqueness,
     row_finder: &TokenStream,
-    strategy_by_row: TokenStream,
+    strategy_for_each_row: TokenStream,
 ) -> TokenStream {
-    let row_or_mut_row = match mut_row {
-        true => quote! {
+    let row_or_mut_row = match row_binding {
+        RowBinding::Mutable => quote! {
             mut row
         },
-        false => quote! {
+        RowBinding::Immutable => quote! {
             row
         },
     };
 
-    match is_unique_index {
-        true => quote! {
+    match index_uniqueness {
+        IndexUniqueness::Unique => quote! {
             match #row_finder {
                 None => {}
                 Some(#row_or_mut_row) => {
-                    #strategy_by_row
+                    #strategy_for_each_row
                 }
             };
         },
-        false => quote! {
+        IndexUniqueness::NonUnique => quote! {
             for #row_or_mut_row in #row_finder {
-                #strategy_by_row
+                #strategy_for_each_row
             }
         },
     }
