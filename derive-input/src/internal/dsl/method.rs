@@ -2528,11 +2528,6 @@ fn for_referenced_by(
     primary_key_column: &InternalColumn,
 ) -> SpacetimeDSLMethod {
     let singular_table_name = &spacetimedb_table.singular_name;
-    let singular_table_name_pascal_case = format_ident!(
-        "{}",
-        RenameRule::PascalCase.apply_to_field(spacetimedb_table.singular_name.to_string())
-    );
-
     let primary_key_column_type = &primary_key_column.rust_field_type_name_or_path;
 
     let doc_comment;
@@ -2616,11 +2611,6 @@ fn for_referenced_by(
     for referencing_table in &spacetimedsl_table.referencing_tables {
         let referencing_table_name = &referencing_table.table_name;
 
-        let referencing_table_name_pascal_case = format_ident!(
-            "{}",
-            RenameRule::PascalCase.apply_to_field(referencing_table_name.to_string())
-        );
-
         let referencing_table_path = &referencing_table.path;
 
         let compile_error_check =
@@ -2635,19 +2625,12 @@ fn for_referenced_by(
             use #referencing_table_path::#compile_error_check;
         });
 
-        let referencing_table_trait_name = get_referencing_table_trait_name(
-            one_or_multiple,
-            &referencing_table_name_pascal_case,
-            &singular_table_name_pascal_case,
-        );
-
         let referencing_table_function_name = get_referencing_table_function_name(
             one_or_multiple,
             referencing_table_name,
             singular_table_name,
         );
 
-        let _ = &referencing_table_trait_name; // trait no longer generated; inherent impl used instead
         strategy_calls.push(
             match one_or_multiple {
                 OneOrMultiple::One => {
@@ -3397,25 +3380,6 @@ fn get_referenced_table_function_name(
         OneOrMultiple::Multiple => {
             format_ident!(
                 "execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_{referenced_table_name}_table_were_deleted"
-            )
-        }
-    }
-}
-
-fn get_referencing_table_trait_name(
-    one_or_multiple: &OneOrMultiple,
-    referencing_table_name_pascal_case: &Ident,
-    referenced_table_name_pascal_case: &Ident,
-) -> Ident {
-    match one_or_multiple {
-        OneOrMultiple::One => {
-            format_ident!(
-                "ExecuteOnDeleteStrategiesOfThe{referencing_table_name_pascal_case}TableAfterOneRowOfThe{referenced_table_name_pascal_case}TableWasDeleted"
-            )
-        }
-        OneOrMultiple::Multiple => {
-            format_ident!(
-                "ExecuteOnDeleteStrategiesOfThe{referencing_table_name_pascal_case}TableAfterMultipleRowsOfThe{referenced_table_name_pascal_case}TableWereDeleted"
             )
         }
     }
