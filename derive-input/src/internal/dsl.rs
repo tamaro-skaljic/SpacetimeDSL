@@ -18,6 +18,8 @@ pub mod mut_getter;
 
 pub mod setter;
 
+pub mod generated_runtime;
+
 pub mod method;
 
 symbol!(table);
