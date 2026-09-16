@@ -12,7 +12,19 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let id = u64::default();
         let acknowledged_at = reminder.acknowledged_at;
-        let reminder = Reminder { id, acknowledged_at };
+        let due_at = reminder.due_at;
+        let mut due_at_option = None;
+        if due_at.is_some() {
+            due_at_option = Some(
+                Into::<ReminderDueAt>::into(due_at.expect("value should exist")).value(),
+            );
+        }
+        let due_at = due_at_option;
+        let reminder = Reminder {
+            id,
+            acknowledged_at,
+            due_at,
+        };
         match self.db().reminder().try_insert(reminder.clone()) {
             Ok(entity) => Ok(entity),
             Err(error) => {

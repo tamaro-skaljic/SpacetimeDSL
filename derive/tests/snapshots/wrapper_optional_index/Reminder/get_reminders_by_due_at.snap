@@ -1,0 +1,35 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Reminder` iterator that contains all rows in the `reminder` table whose value matches the value from the single-column btree index on the `due_at` column.
+    pub fn get_reminders_by_due_at<'a>(
+        &'a self,
+        due_at: &impl Into<Option<ReminderDueAt>>,
+    ) -> impl Iterator<Item = Reminder> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let due_at = match due_at.into() {
+            None => None,
+            Some(due_at) => Some(Into::<ReminderDueAt>::into(due_at).value()),
+        };
+        self.db().reminder().due_at().filter(due_at)
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Reminder` iterator that contains all rows in the `reminder` table whose value matches the value from the single-column btree index on the `due_at` column.
+    pub fn get_reminders_by_due_at<'a>(
+        &'a self,
+        due_at: &impl Into<Option<ReminderDueAt>>,
+    ) -> impl Iterator<Item = Reminder> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let due_at = match due_at.into() {
+            None => None,
+            Some(due_at) => Some(Into::<ReminderDueAt>::into(due_at).value()),
+        };
+        self.db().reminder().due_at().filter(due_at)
+    }
+}
