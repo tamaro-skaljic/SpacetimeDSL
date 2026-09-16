@@ -12,7 +12,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let tags = match tags.into() {
             None => None,
-            Some(tags) => Some(Into::<ArticleTags>::into(tags).value()),
+            Some(tags) => Into::<ArticleTags>::into(tags).value(),
         };
         self.db().article().tags().filter(tags)
     }
@@ -28,7 +28,7 @@ impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let tags = match tags.into() {
             None => None,
-            Some(tags) => Some(Into::<ArticleTags>::into(tags).value()),
+            Some(tags) => Into::<ArticleTags>::into(tags).value(),
         };
         self.db().article().tags().filter(tags)
     }

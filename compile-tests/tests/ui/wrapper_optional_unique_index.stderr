@@ -1,24 +1,24 @@
 error[E0277]: the trait bound `ReminderAcknowledgedAt: From<&impl Into<Option<ReminderAcknowledgedAt>>>` is not satisfied
-  --> tests/ui/wrapper_optional_unique_index.rs:34:13
+  --> tests/ui/wrapper_optional_unique_index.rs:37:13
    |
-24 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
+27 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
    |     -------------------------------------------------------------------- required by a bound introduced by this call
 ...
-34 |         pub acknowledged_at: Option<Timestamp>,
+37 |         pub acknowledged_at: Option<Timestamp>,
    |             ^^^^^^^^^^^^^^^ unsatisfied trait bound
    |
 help: the trait `From<&impl Into<Option<ReminderAcknowledgedAt>>>` is not implemented for `ReminderAcknowledgedAt`
-  --> tests/ui/wrapper_optional_unique_index.rs:24:5
+  --> tests/ui/wrapper_optional_unique_index.rs:27:5
    |
-24 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
+27 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: required for `&impl Into<Option<ReminderAcknowledgedAt>>` to implement `Into<ReminderAcknowledgedAt>`
    = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: `&'a Option<spacetimedb::Timestamp>` cannot appear as an argument to an index filtering operation
-  --> tests/ui/wrapper_optional_unique_index.rs:24:5
+  --> tests/ui/wrapper_optional_unique_index.rs:27:5
    |
-24 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
+27 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ should be an integer type, `bool`, `String`, `&str`, `Identity`, `Uuid`, `Timestamp`, `ConnectionId`, `Hash` or a no-payload enum which derives `SpacetimeType`, not `&'a Option<spacetimedb::Timestamp>`
    |
    = help: the trait `for<'a> FilterableValue` is not implemented for `&'a Option<spacetimedb::Timestamp>`
@@ -43,38 +43,23 @@ note: required by a bound in `UniqueColumn::<Tbl, <Col as spacetimedb::table::Co
    |                                   ^^^^^^^^^^^^^^^ required by this bound in `UniqueColumn::<Tbl, <Col as Column>::ColType, Col>::find`
    = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0277]: the trait bound `Option<Option<spacetimedb::Timestamp>>: Borrow<Option<spacetimedb::Timestamp>>` is not satisfied
-  --> tests/ui/wrapper_optional_unique_index.rs:34:13
+error[E0277]: `Option<spacetimedb::Timestamp>` doesn't implement `std::fmt::Display`
+  --> tests/ui/wrapper_optional_unique_index.rs:37:13
    |
-24 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
-   |     -------------------------------------------------------------------- required by a bound introduced by this call
-...
-34 |         pub acknowledged_at: Option<Timestamp>,
-   |             ^^^^^^^^^^^^^^^ the trait `Borrow<Option<spacetimedb::Timestamp>>` is not implemented for `Option<Option<spacetimedb::Timestamp>>`
-   |
-note: required by a bound in `UniqueColumn::<Tbl, <Col as spacetimedb::table::Column>::ColType, Col>::find`
-  --> $CARGO/spacetimedb-$VERSION/src/table.rs
-   |
-   |     pub fn find(&self, col_val: impl Borrow<Col::ColType>) -> Option<Tbl::Row>
-   |                                      ^^^^^^^^^^^^^^^^^^^^ required by this bound in `UniqueColumn::<Tbl, <Col as Column>::ColType, Col>::find`
-
-error[E0277]: `Option<Option<spacetimedb::Timestamp>>` doesn't implement `std::fmt::Display`
-  --> tests/ui/wrapper_optional_unique_index.rs:34:13
-   |
-24 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
+27 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
    |     -------------------------------------------------------------------- in this attribute macro expansion
 ...
-34 |         pub acknowledged_at: Option<Timestamp>,
-   |             ^^^^^^^^^^^^^^^ `Option<Option<spacetimedb::Timestamp>>` cannot be formatted with the default formatter
+37 |         pub acknowledged_at: Option<Timestamp>,
+   |             ^^^^^^^^^^^^^^^ `Option<spacetimedb::Timestamp>` cannot be formatted with the default formatter
    |
-   = help: the trait `std::fmt::Display` is not implemented for `Option<Option<spacetimedb::Timestamp>>`
+   = help: the trait `std::fmt::Display` is not implemented for `Option<spacetimedb::Timestamp>`
    = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
    = note: this error originates in the macro `$crate::__export::format_args` which comes from the expansion of the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: `&'a Option<spacetimedb::Timestamp>` cannot appear as an argument to an index filtering operation
-  --> tests/ui/wrapper_optional_unique_index.rs:24:5
+  --> tests/ui/wrapper_optional_unique_index.rs:27:5
    |
-24 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
+27 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ should be an integer type, `bool`, `String`, `&str`, `Identity`, `Uuid`, `Timestamp`, `ConnectionId`, `Hash` or a no-payload enum which derives `SpacetimeType`, not `&'a Option<spacetimedb::Timestamp>`
    |
    = help: the trait `for<'a> FilterableValue` is not implemented for `&'a Option<spacetimedb::Timestamp>`
@@ -99,28 +84,13 @@ note: required by a bound in `UniqueColumnReadOnly::<Tbl, <Col as spacetimedb::t
    |                                   ^^^^^^^^^^^^^^^ required by this bound in `UniqueColumnReadOnly::<Tbl, <Col as Column>::ColType, Col>::find`
    = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0277]: the trait bound `Option<Option<spacetimedb::Timestamp>>: Borrow<Option<spacetimedb::Timestamp>>` is not satisfied
-  --> tests/ui/wrapper_optional_unique_index.rs:34:13
+error[E0277]: `Option<spacetimedb::Timestamp>` doesn't implement `std::fmt::Display`
+  --> tests/ui/wrapper_optional_unique_index.rs:27:5
    |
-24 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
-   |     -------------------------------------------------------------------- required by a bound introduced by this call
-...
-34 |         pub acknowledged_at: Option<Timestamp>,
-   |             ^^^^^^^^^^^^^^^ the trait `Borrow<Option<spacetimedb::Timestamp>>` is not implemented for `Option<Option<spacetimedb::Timestamp>>`
+27 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Option<spacetimedb::Timestamp>` cannot be formatted with the default formatter
    |
-note: required by a bound in `UniqueColumnReadOnly::<Tbl, <Col as spacetimedb::table::Column>::ColType, Col>::find`
-  --> $CARGO/spacetimedb-$VERSION/src/table.rs
-   |
-   |     pub fn find(&self, col_val: impl Borrow<Col::ColType>) -> Option<Tbl::Row>
-   |                                      ^^^^^^^^^^^^^^^^^^^^ required by this bound in `UniqueColumnReadOnly::<Tbl, <Col as Column>::ColType, Col>::find`
-
-error[E0277]: `Option<Option<spacetimedb::Timestamp>>` doesn't implement `std::fmt::Display`
-  --> tests/ui/wrapper_optional_unique_index.rs:24:5
-   |
-24 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Option<Option<spacetimedb::Timestamp>>` cannot be formatted with the default formatter
-   |
-   = help: the trait `std::fmt::Display` is not implemented for `Option<Option<spacetimedb::Timestamp>>`
+   = help: the trait `std::fmt::Display` is not implemented for `Option<spacetimedb::Timestamp>`
    = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
-   = note: required for `&Option<Option<spacetimedb::Timestamp>>` to implement `std::fmt::Display`
+   = note: required for `&Option<spacetimedb::Timestamp>` to implement `std::fmt::Display`
    = note: this error originates in the macro `$crate::__export::format_args` which comes from the expansion of the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

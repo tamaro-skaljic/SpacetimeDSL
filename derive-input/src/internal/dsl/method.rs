@@ -1333,12 +1333,25 @@ pub(in crate::internal) fn for_method(
                                         ),
                                     }
                                 } else if column.spacetimedsl_column_is_option {
-                                    wrapper_type_option_to_wrapped_type_option_mapper = quote! {
-                                        let #column_name = match #column_name.into() {
-                                            None => None,
-                                            Some(#column_name) => Some(Into::<#wrapper_type_ty>::into(#column_name).value()),
+                                    wrapper_type_option_to_wrapped_type_option_mapper =
+                                        match wrapper_type {
+                                            // A created wrapper wraps the whole Option, so
+                                            // value() already yields it.
+                                            WrapperType::Created(_) => quote! {
+                                                let #column_name = match #column_name.into() {
+                                                    None => None,
+                                                    Some(#column_name) => Into::<#wrapper_type_ty>::into(#column_name).value(),
+                                                };
+                                            },
+                                            // A used wrapper wraps the inner type, so the
+                                            // Option has to be rebuilt around value().
+                                            WrapperType::Used(_) => quote! {
+                                                let #column_name = match #column_name.into() {
+                                                    None => None,
+                                                    Some(#column_name) => Some(Into::<#wrapper_type_ty>::into(#column_name).value()),
+                                                };
+                                            },
                                         };
-                                    };
 
                                     method_arg = SpacetimeDSLArg {
                                         is_option: true,

@@ -16,7 +16,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         use ::spacetimedsl::itertools::Itertools;
         let tags = match tags.into() {
             None => None,
-            Some(tags) => Some(Into::<ArticleTags>::into(tags).value()),
+            Some(tags) => Into::<ArticleTags>::into(tags).value(),
         };
         let tags = tags;
         let rows_to_delete: Vec<Article> = self
