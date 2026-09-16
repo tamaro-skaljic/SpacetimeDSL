@@ -31,7 +31,7 @@ use std::{
     fmt::{self, Display},
 };
 use strum::IntoEnumIterator;
-use syn::{Ident, Path, parse_str};
+use syn::{Ident, parse_str};
 
 pub(in crate::internal) enum DSLMethod<'a> {
     Create,
@@ -657,7 +657,6 @@ pub(in crate::internal) fn for_method(
 
     let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
 
-    let mut additional_paths_to_use: Vec<syn::Path> = vec![];
     let mut method_args = vec![];
     let method_impl;
 
@@ -773,17 +772,14 @@ pub(in crate::internal) fn for_method(
                 TokenStream::default()
             };
 
-            let res = reference_integrity_checks_on_create_or_update(
+            let reference_integrity_checks = reference_integrity_checks_on_create_or_update(
                 CreateOrUpdate::Create,
                 spacetimedb_table,
                 internal_columns,
-                additional_paths_to_use,
                 None,
                 &OneOrMultiple::One,
                 primary_key_column,
             );
-            additional_paths_to_use = res.0;
-            let reference_integrity_checks = res.1;
 
             let let_field_name_for_found_value =
                 if multi_column_index_checks.is_empty() && reference_integrity_checks.is_empty() {
@@ -1168,17 +1164,14 @@ pub(in crate::internal) fn for_method(
                         true => OneOrMultiple::Multiple,
                     };
 
-                    let res = reference_integrity_checks_on_create_or_update(
+                    let reference_integrity_checks = reference_integrity_checks_on_create_or_update(
                         CreateOrUpdate::Update,
                         spacetimedb_table,
                         internal_columns,
-                        additional_paths_to_use,
                         Some((&column_names_and_row_values, &index_columns)),
                         &one_or_multiple,
                         primary_key_column,
                     );
-                    additional_paths_to_use = res.0;
-                    let reference_integrity_checks = res.1;
 
                     let let_field_name_for_found_value = if multi_column_index_checks.is_empty()
                         && reference_integrity_checks.is_empty()
@@ -2142,7 +2135,6 @@ pub(in crate::internal) fn for_method(
 
     SpacetimeDSLMethod {
         doc_comment,
-        additional_paths_to_use,
         method_name,
         method_args,
         return_type,
@@ -2204,11 +2196,10 @@ fn reference_integrity_checks_on_create_or_update(
     create_or_update_dsl_method: CreateOrUpdate,
     spacetimedb_table: &SpacetimeDBTable,
     columns: &Vec<InternalColumn>,
-    additional_paths_to_use: Vec<Path>,
     column_names_and_row_values_and_column_names: Option<(&String, &Vec<Ident>)>,
     one_or_multiple: &OneOrMultiple,
     primary_key_column: &InternalColumn,
-) -> (Vec<Path>, Vec<TokenStream>) {
+) -> Vec<TokenStream> {
     let mut reference_integrity_checks = vec![];
 
     for column in columns {
@@ -2351,7 +2342,7 @@ fn reference_integrity_checks_on_create_or_update(
         });
     }
 
-    (additional_paths_to_use, reference_integrity_checks)
+    reference_integrity_checks
 }
 
 fn multi_column_index_checks(
@@ -2547,7 +2538,6 @@ fn for_referenced_by(
     let doc_comment;
     let function_name = get_referenced_table_function_name(one_or_multiple, singular_table_name);
 
-    let additional_paths_to_use = vec![];
     let mut function_args = vec![
         SpacetimeDSLArg {
             is_option: false,
@@ -2713,7 +2703,6 @@ fn for_referenced_by(
 
     SpacetimeDSLMethod {
         doc_comment,
-        additional_paths_to_use,
         method_name: function_name,
         method_args: function_args,
         return_type,
@@ -2812,7 +2801,6 @@ fn for_foreign_key(
         &referenced_table_name,
     );
 
-    let additional_paths_to_use = vec![];
     let mut function_args = vec![
         SpacetimeDSLArg {
             is_option: false,
@@ -2947,7 +2935,6 @@ fn for_foreign_key(
 
     SpacetimeDSLMethod {
         doc_comment,
-        additional_paths_to_use,
         method_name: function_name,
         method_args: function_args,
         return_type,

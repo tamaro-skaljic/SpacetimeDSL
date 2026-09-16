@@ -119,14 +119,12 @@ fn render_impl(
 ) -> TokenStream {
     let method_name = &parts.method.method_name;
     let method_args = &parts.method_args;
-    let additional_paths_to_use = &parts.method.additional_paths_to_use;
     let return_type = &parts.method.return_type;
     let method_impl = &parts.method.method_impl;
     // FIXME: We should probably only import one of CtxDbRead or CtxDbWrite per method implementation.
     let method_impl = quote! {
         use ::spacetimedsl::Wrapper;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        #(use #additional_paths_to_use as _;)*
         #method_impl
     };
     let doc_comment = doc_comment.map(|doc_comment| quote! { #[doc = #doc_comment] });
