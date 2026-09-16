@@ -185,21 +185,16 @@ generate_unit_test() {
     echo
 }
 
+# Clippy runs once over the whole workspace rather than once per directory, because
+# `cargo clippy` does not lint dependencies: running it in `derive/` checks that package
+# only, which left `derive-input/` -- the crate holding most of the generator -- unlinted.
 generate_format() {
     local shell="$1"
 
     switch_case "$shell" "format"
     cmd_cargo "fmt --all"
     echo
-    cmd_cd "$shell" "derive"
-    cmd_cargo "clippy --fix --allow-dirty --all-features"
-    echo
-    cmd_cd "$shell" "../examples/test"
-    cmd_cargo "clippy --fix --allow-dirty --all-features"
-    echo
-    cmd_cd "$shell" "../blackholio"
-    cmd_cargo "clippy --fix --allow-dirty --all-features"
-    [ "$shell" = "powershell" ] && cmd_cd "$shell" "../.."
+    cmd_cargo "clippy --workspace --all-targets --all-features --fix --allow-dirty"
     switch_case_end "$shell"
     echo
 }

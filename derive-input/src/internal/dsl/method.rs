@@ -2406,7 +2406,7 @@ fn multi_column_index_checks(
     action: Action,
     singular_table_name: &Ident,
     spacetimedb_table: &SpacetimeDBTable,
-    internal_columns: &Vec<InternalColumn>,
+    internal_columns: &[InternalColumn],
     primary_key_column_name: &Ident,
 ) -> Vec<TokenStream> {
     let mut multi_column_index_checks = vec![];
