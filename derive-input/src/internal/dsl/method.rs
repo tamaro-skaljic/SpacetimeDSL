@@ -11,7 +11,7 @@ use crate::{
                 SpacetimeDSLColumnMethods, SpacetimeDSLColumnMethodsForIndex,
                 SpacetimeDSLColumnMethodsForUniqueIndex,
             },
-            foreign_key::OnDeleteStrategy,
+            foreign_key::{ForeignKey, OnDeleteStrategy},
             hook::SpacetimeDSLMethodHook,
             method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
             table::{CreateDSLMethodArg, SpacetimeDSLTable, SpacetimeDSLTableMethods},
@@ -66,12 +66,6 @@ impl quote::ToTokens for OneOrMultiple {
         };
         tokens.extend(variant);
     }
-}
-
-#[derive(strum::Display)]
-enum CreateOrUpdate {
-    Create,
-    Update,
 }
 
 #[derive(PartialEq, strum::Display)]
@@ -747,14 +741,8 @@ pub(in crate::internal) fn for_method(
                 TokenStream::default()
             };
 
-            let reference_integrity_checks = reference_integrity_checks_on_create_or_update(
-                CreateOrUpdate::Create,
-                spacetimedb_table,
-                internal_columns,
-                None,
-                &OneOrMultiple::One,
-                primary_key_column,
-            );
+            let reference_integrity_checks =
+                reference_integrity_checks_on_create(spacetimedb_table, internal_columns);
 
             let let_field_name_for_found_value =
                 if multi_column_index_checks.is_empty() && reference_integrity_checks.is_empty() {
@@ -1130,11 +1118,11 @@ pub(in crate::internal) fn for_method(
                         true => OneOrMultiple::Multiple,
                     };
 
-                    let reference_integrity_checks = reference_integrity_checks_on_create_or_update(
-                        CreateOrUpdate::Update,
+                    let reference_integrity_checks = reference_integrity_checks_on_update(
                         spacetimedb_table,
                         internal_columns,
-                        Some((&column_names_and_row_values, &index_columns)),
+                        &column_names_and_row_values,
+                        &index_columns,
                         &one_or_multiple,
                         primary_key_column,
                     );
@@ -2230,21 +2218,15 @@ fn hook_tokens(
     }
 }
 
-fn reference_integrity_checks_on_create_or_update(
-    create_or_update_dsl_method: CreateOrUpdate,
-    spacetimedb_table: &SpacetimeDBTable,
+/// The scaffolding both reference-integrity builders share: skip the columns the mode does
+/// not check, skip the columns without a foreign key, and wrap the mode's own check in the
+/// guard that keeps it from running on a column that holds no reference yet.
+fn reference_integrity_checks(
     columns: &[InternalColumn],
-    column_names_and_row_values_and_column_names: Option<(&str, &[Ident])>,
-    one_or_multiple: &OneOrMultiple,
-    primary_key_column: &InternalColumn,
+    skip_private_columns: bool,
+    build_check: impl Fn(&InternalColumn, &ForeignKey) -> TokenStream,
 ) -> Vec<TokenStream> {
     let mut reference_integrity_checks = vec![];
-
-    // Checks of private columns only need to happen in checks for create methods, because they can't be changed, they don't need to be checked during updates
-    let skip_private_columns = match create_or_update_dsl_method {
-        CreateOrUpdate::Create => false,
-        CreateOrUpdate::Update => true,
-    };
 
     for column in columns {
         if skip_private_columns
@@ -2257,108 +2239,13 @@ fn reference_integrity_checks_on_create_or_update(
         }
 
         let foreign_key = match &column.spacetimedsl_column_foreign_key {
-            Some(fk) => fk,
+            Some(foreign_key) => foreign_key,
             None => continue,
         };
 
-        let referenced_table_name = &foreign_key.table_name;
+        let check = build_check(column, foreign_key);
 
-        let primary_key_column_name_of_referenced_table = &foreign_key.primary_key_column_name;
-        let get_row_of_referenced_table_by_primary_key_method_name = format_ident!(
-            "get_{referenced_table_name}_by_{primary_key_column_name_of_referenced_table}"
-        );
-
-        let referencing_table_name = &spacetimedb_table.singular_name;
-        let referencing_table_name_as_string = referencing_table_name.to_string();
         let referencing_table_column_name = &column.rust_field_name;
-        let referencing_table_column_name_as_string = referencing_table_column_name.to_string();
-        let primary_key_column_name_of_referencing_table = &primary_key_column.rust_field_name;
-        let referencing_table_column_getter_name =
-            format_ident!("get_{referencing_table_column_name}");
-
-        let field_name_for_found_value =
-            format_ident!("the_same_or_another_{referencing_table_name}");
-
-        let check = match &create_or_update_dsl_method {
-            CreateOrUpdate::Create => {
-                let reference_integrity_violation_error =
-                    runtime::reference_integrity_violation_on_create_or_update(
-                        &referencing_table_name_as_string,
-                        &quote! { Create },
-                        &quote! {
-                            format!("{{ {} : {} }}", #referencing_table_column_name, #referencing_table_name.#referencing_table_column_getter_name())
-                        },
-                    );
-
-                quote! {
-                    match self.#get_row_of_referenced_table_by_primary_key_method_name(#referencing_table_name.#referencing_table_column_getter_name()) {
-                        Ok(_) => {},
-                        Err(_) => {
-                            return Err(#reference_integrity_violation_error);
-                        }
-                    };
-                }
-            }
-            CreateOrUpdate::Update => {
-                let column_names_and_row_value_getters =
-                    column_names_and_row_values_and_column_names.expect(
-                        "DSLMethod::Update should have column names and row value getters!",
-                    );
-                let column_names_and_row_values = column_names_and_row_value_getters.0;
-                let column_names = column_names_and_row_value_getters.1;
-                let row_value_getters = column_names
-                    .iter()
-                    .map(|cn| {
-                        quote! {
-                            #referencing_table_name.#cn
-                        }
-                    })
-                    .collect_vec();
-
-                let format_for_not_found_error = match one_or_multiple {
-                    OneOrMultiple::One => quote! {
-                        format!(#column_names_and_row_values, #referencing_table_column_name)
-                    },
-                    OneOrMultiple::Multiple => quote! {
-                        format!(#column_names_and_row_values, #(#row_value_getters),*)
-                    },
-                };
-
-                let getter_name =
-                    format_ident!("get_{primary_key_column_name_of_referencing_table}");
-
-                let not_found_error = runtime::not_found_error(
-                    &referencing_table_name_as_string,
-                    &format_for_not_found_error,
-                );
-
-                let reference_integrity_violation_error =
-                    runtime::reference_integrity_violation_on_create_or_update(
-                        &referencing_table_name_as_string,
-                        &quote! { Update },
-                        &quote! {
-                            format!("{{ {} : {} }}", #referencing_table_column_name_as_string, #referencing_table_column_name)
-                        },
-                    );
-
-                quote! {
-                    if #field_name_for_found_value.is_none() {
-                        #field_name_for_found_value = match self.db().#referencing_table_name().#primary_key_column_name_of_referencing_table().find(#referencing_table_name.#getter_name().value()) {
-                            Some(#referencing_table_name) => Some(#referencing_table_name),
-                            None => {
-                                return Err(#not_found_error);
-                            }
-                        };
-                    }
-                    if #field_name_for_found_value.as_ref().expect("field_name_for_found_value should be Some(_)").#referencing_table_column_getter_name().ne(&#referencing_table_name.#referencing_table_column_getter_name()) {
-                        match self.#get_row_of_referenced_table_by_primary_key_method_name(#referencing_table_name.#referencing_table_column_getter_name()) {
-                            Ok(_) => {},
-                            Err(_) => return Err(#reference_integrity_violation_error)
-                        };
-                    }
-                }
-            }
-        };
 
         reference_integrity_checks.push(match column.rust_field_type_kind {
             ColumnTypeKind::UnsignedInteger => quote! {
@@ -2378,6 +2265,124 @@ fn reference_integrity_checks_on_create_or_update(
     }
 
     reference_integrity_checks
+}
+
+fn reference_integrity_checks_on_create(
+    spacetimedb_table: &SpacetimeDBTable,
+    columns: &[InternalColumn],
+) -> Vec<TokenStream> {
+    reference_integrity_checks(columns, false, |column, foreign_key| {
+        let referenced_table_name = &foreign_key.table_name;
+
+        let primary_key_column_name_of_referenced_table = &foreign_key.primary_key_column_name;
+        let get_row_of_referenced_table_by_primary_key_method_name = format_ident!(
+            "get_{referenced_table_name}_by_{primary_key_column_name_of_referenced_table}"
+        );
+
+        let referencing_table_name = &spacetimedb_table.singular_name;
+        let referencing_table_name_as_string = referencing_table_name.to_string();
+        let referencing_table_column_name = &column.rust_field_name;
+        let referencing_table_column_getter_name =
+            format_ident!("get_{referencing_table_column_name}");
+
+        let reference_integrity_violation_error =
+            runtime::reference_integrity_violation_on_create_or_update(
+                &referencing_table_name_as_string,
+                &quote! { Create },
+                &quote! {
+                    format!("{{ {} : {} }}", #referencing_table_column_name, #referencing_table_name.#referencing_table_column_getter_name())
+                },
+            );
+
+        quote! {
+            match self.#get_row_of_referenced_table_by_primary_key_method_name(#referencing_table_name.#referencing_table_column_getter_name()) {
+                Ok(_) => {},
+                Err(_) => {
+                    return Err(#reference_integrity_violation_error);
+                }
+            };
+        }
+    })
+}
+
+fn reference_integrity_checks_on_update(
+    spacetimedb_table: &SpacetimeDBTable,
+    columns: &[InternalColumn],
+    column_names_and_row_values: &str,
+    index_columns: &[Ident],
+    one_or_multiple: &OneOrMultiple,
+    primary_key_column: &InternalColumn,
+) -> Vec<TokenStream> {
+    reference_integrity_checks(columns, true, |column, foreign_key| {
+        let referenced_table_name = &foreign_key.table_name;
+
+        let primary_key_column_name_of_referenced_table = &foreign_key.primary_key_column_name;
+        let get_row_of_referenced_table_by_primary_key_method_name = format_ident!(
+            "get_{referenced_table_name}_by_{primary_key_column_name_of_referenced_table}"
+        );
+
+        let referencing_table_name = &spacetimedb_table.singular_name;
+        let referencing_table_name_as_string = referencing_table_name.to_string();
+        let referencing_table_column_name = &column.rust_field_name;
+        let referencing_table_column_name_as_string = referencing_table_column_name.to_string();
+        let primary_key_column_name_of_referencing_table = &primary_key_column.rust_field_name;
+        let referencing_table_column_getter_name =
+            format_ident!("get_{referencing_table_column_name}");
+
+        let field_name_for_found_value =
+            format_ident!("the_same_or_another_{referencing_table_name}");
+
+        let row_value_getters = index_columns
+            .iter()
+            .map(|cn| {
+                quote! {
+                    #referencing_table_name.#cn
+                }
+            })
+            .collect_vec();
+
+        let format_for_not_found_error = match one_or_multiple {
+            OneOrMultiple::One => quote! {
+                format!(#column_names_and_row_values, #referencing_table_column_name)
+            },
+            OneOrMultiple::Multiple => quote! {
+                format!(#column_names_and_row_values, #(#row_value_getters),*)
+            },
+        };
+
+        let getter_name = format_ident!("get_{primary_key_column_name_of_referencing_table}");
+
+        let not_found_error = runtime::not_found_error(
+            &referencing_table_name_as_string,
+            &format_for_not_found_error,
+        );
+
+        let reference_integrity_violation_error =
+            runtime::reference_integrity_violation_on_create_or_update(
+                &referencing_table_name_as_string,
+                &quote! { Update },
+                &quote! {
+                    format!("{{ {} : {} }}", #referencing_table_column_name_as_string, #referencing_table_column_name)
+                },
+            );
+
+        quote! {
+            if #field_name_for_found_value.is_none() {
+                #field_name_for_found_value = match self.db().#referencing_table_name().#primary_key_column_name_of_referencing_table().find(#referencing_table_name.#getter_name().value()) {
+                    Some(#referencing_table_name) => Some(#referencing_table_name),
+                    None => {
+                        return Err(#not_found_error);
+                    }
+                };
+            }
+            if #field_name_for_found_value.as_ref().expect("field_name_for_found_value should be Some(_)").#referencing_table_column_getter_name().ne(&#referencing_table_name.#referencing_table_column_getter_name()) {
+                match self.#get_row_of_referenced_table_by_primary_key_method_name(#referencing_table_name.#referencing_table_column_getter_name()) {
+                    Ok(_) => {},
+                    Err(_) => return Err(#reference_integrity_violation_error)
+                };
+            }
+        }
+    })
 }
 
 fn multi_column_index_checks(
