@@ -5,7 +5,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to delete a `Session` row in the `session` table whose value matches the value from the unique single-column btree index on the `device_id` column.*/
+Try to delete a `Session` row in the `session` table whose value matches the value from the unique single-column hash index on the `device_id` column.*/
     pub fn delete_session_by_device_id<'a>(
         &'a self,
         device_id: &u64,

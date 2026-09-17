@@ -884,7 +884,7 @@ pub(in crate::internal) fn for_method(
                     index_columns.push(column.clone());
                     value_matches_or_values_match = "value matches the value from";
                     single_or_multi = "single";
-                    index_documentation = "btree index".to_string();
+                    index_documentation = format!("{} index", index_kind(&index.index_type));
                     documentation_on_column_or_columns = format!("`{column}` column");
                     column_names_and_row_values.push_str(&format!("{column} : "));
                     column_names_and_row_values.push_str("{}");
@@ -894,7 +894,8 @@ pub(in crate::internal) fn for_method(
                     is_multi_column_index = true;
                     value_matches_or_values_match = "values match the values from";
                     single_or_multi = "multi";
-                    index_documentation = format!("btree index `{index_name}`");
+                    index_documentation =
+                        format!("{} index `{index_name}`", index_kind(&index.index_type));
 
                     documentation_on_column_or_columns = String::new();
                     documentation_on_column_or_columns.push_str("columns");
@@ -932,7 +933,7 @@ pub(in crate::internal) fn for_method(
                     index_columns.push(column.clone());
                     value_matches_or_values_match = "value matches";
                     single_or_multi = "single";
-                    index_documentation = "direct index".to_string();
+                    index_documentation = format!("{} index", index_kind(&index.index_type));
                     documentation_on_column_or_columns = format!("`{column}` column");
                     column_names_and_row_values.push_str(&format!("{column} : "));
                     column_names_and_row_values.push_str("{}");
@@ -2116,6 +2117,15 @@ pub(in crate::internal) fn for_method(
         return_type,
         method_impl,
         read_context_compatible,
+    }
+}
+
+/// The kind of index, as the doc comments of the generated methods name it.
+fn index_kind(index_type: &IndexType) -> &'static str {
+    match index_type {
+        IndexType::BTreeSingleColumn { .. } | IndexType::BTreeMultiColumn { .. } => "btree",
+        IndexType::HashSingleColumn { .. } | IndexType::HashMultiColumn { .. } => "hash",
+        IndexType::Direct { .. } => "direct",
     }
 }
 
