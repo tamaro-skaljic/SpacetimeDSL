@@ -90,7 +90,7 @@ impl ForeignKey {
             let primary_key_column_name = primary_key_column_name
                 .ok_or_else(|| syn::Error::new_spanned(
                     &attr.meta,
-                    "PrimaryKeyColumnName must be set in `#[foreign_key(column = PrimaryKeyColumnName)]`, e.g. `column = my_column`. Supply the name of the primary key column in the referenced table.",
+                    "PrimaryKeyColumnName must be set in `#[foreign_key(column = PrimaryKeyColumnName)]`, e.g. `column = id`. Supply the name of the primary key column in the referenced table.",
                 ))?;
 
             let on_delete_strategy = on_delete_strategy

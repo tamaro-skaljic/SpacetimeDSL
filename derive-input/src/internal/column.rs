@@ -9,6 +9,7 @@ use crate::api::{
     },
     rust::{column::RustField, table::RustStruct, visibility::RustVisibility},
 };
+use crate::internal::dsl::method::MethodGenerationContext;
 use itertools::izip;
 use proc_macro2::Span;
 use spacetime_bindings_macro_input::table::ColumnArgs;
@@ -19,7 +20,7 @@ pub(in crate::internal) fn try_parse(
     column_args: &ColumnArgs,
     rust_struct: &RustStruct,
     mut spacetimedb_table: SpacetimeDBTable,
-    spacetimedsl_table: &mut SpacetimeDSLTable,
+    spacetimedsl_table: &SpacetimeDSLTable,
 ) -> syn::Result<(
     SpacetimeDBTable,
     Vec<Column>,
@@ -32,7 +33,7 @@ pub(in crate::internal) fn try_parse(
         None => {
             return Err(syn::Error::new(
                 Span::call_site(),
-                "The table should have a column with `#[primary_key]` helper attribute!",
+                "Your table should have a `#[primary_key]` column!",
             ));
         }
     };
@@ -95,17 +96,18 @@ pub(in crate::internal) fn try_parse(
         .expect("PK column should be present")
         .clone();
 
+    let context = MethodGenerationContext::new(
+        rust_struct,
+        &spacetimedb_table,
+        spacetimedsl_table,
+        &internal_columns,
+        &internal_primary_key_column,
+    );
+
     for (rust_field, spacetimedb_column, spacetimedsl_column) in
         izip!(rust_fields, spacetimedb_columns, spacetimedsl_columns)
     {
-        let spacetimedsl_methods = SpacetimeDSLColumnMethods::map(
-            rust_struct,
-            &spacetimedb_table,
-            spacetimedsl_table,
-            &spacetimedb_column,
-            &internal_columns,
-            &internal_primary_key_column,
-        );
+        let spacetimedsl_methods = SpacetimeDSLColumnMethods::map(&context, &spacetimedb_column);
 
         columns.push(Column {
             rust_field,

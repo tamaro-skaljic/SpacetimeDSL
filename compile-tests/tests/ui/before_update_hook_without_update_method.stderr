@@ -1,4 +1,4 @@
-error: Cannot have a `before_update` hook when the `update` method is disabled in `#[dsl(method(update = false))]`
+error: Cannot have a `before_update` hook when the `update` method is disabled with `#[dsl(method(update = false))]`
   --> tests/ui/before_update_hook_without_update_method.rs:7:5
    |
  7 | /     #[spacetimedsl::dsl(

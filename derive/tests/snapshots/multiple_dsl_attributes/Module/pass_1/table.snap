@@ -104,5 +104,4 @@ pub struct CreateModule1 {
 // get_all_modules1
 // get_module1_by_database_and_name
 // get_module1_by_id
-// update_module1_by_database_and_name
 // update_module1_by_id

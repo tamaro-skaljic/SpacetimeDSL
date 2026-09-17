@@ -1,4 +1,4 @@
-error: Cannot have a `before_delete` hook when the `delete` method is disabled in `#[dsl(method(delete = false))]`
+error: Cannot have a `before_delete` hook when the `delete` method is disabled with `#[dsl(method(delete = false))]`
   --> tests/ui/before_delete_hook_without_delete_method.rs:10:5
    |
 10 | /     #[spacetimedsl::dsl(

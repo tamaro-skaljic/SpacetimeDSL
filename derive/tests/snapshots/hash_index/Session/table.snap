@@ -142,5 +142,4 @@ pub struct CreateSession {
 // get_session_by_id
 // get_sessions_by_region_and_shard
 // get_sessions_by_token
-// update_session_by_device_id
 // update_session_by_id

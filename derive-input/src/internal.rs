@@ -159,13 +159,13 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         if before_update_hook.is_some() {
             return Err(syn::Error::new(
                 proc_macro2::Span::call_site(),
-                "Cannot have a `before_update` hook when the `update` method is disabled in `#[dsl(method(update = false))]`",
+                "Cannot have a `before_update` hook when the `update` method is disabled with `#[dsl(method(update = false))]`",
             ));
         }
         if after_update_hook.is_some() {
             return Err(syn::Error::new(
                 proc_macro2::Span::call_site(),
-                "Cannot have an `after_update` hook when the `update` method is disabled in `#[dsl(method(update = false))]`",
+                "Cannot have an `after_update` hook when the `update` method is disabled with `#[dsl(method(update = false))]`",
             ));
         }
     }
@@ -174,14 +174,14 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         if before_delete_hook.is_some() {
             return Err(syn::Error::new(
                 proc_macro2::Span::call_site(),
-                "Cannot have a `before_delete` hook when the `delete` method is disabled in `#[dsl(method(delete = false))]`",
+                "Cannot have a `before_delete` hook when the `delete` method is disabled with `#[dsl(method(delete = false))]`",
             ));
         }
 
         if after_delete_hook.is_some() {
             return Err(syn::Error::new(
                 proc_macro2::Span::call_site(),
-                "Cannot have an `after_delete` hook when the `delete` method is disabled in `#[dsl(method(delete = false))]`",
+                "Cannot have an `after_delete` hook when the `delete` method is disabled with `#[dsl(method(delete = false))]`",
             ));
         }
     }

@@ -3,7 +3,7 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Try to delete all `Session` rows in the `session` table whose values match the values from the multi-column btree index `region_and_shard` on the columns `region_id` and `shard_id`.
+    ///Try to delete all `Session` rows in the `session` table whose values match the values from the multi-column hash index `region_and_shard` on the columns `region_id` and `shard_id`.
     pub fn delete_sessions_by_region_and_shard<'a>(
         &'a self,
         region_id: &'a u64,

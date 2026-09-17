@@ -196,18 +196,23 @@ fn get_column_dsl_methods(
                 dsl_methods.push(build_public_dsl_method(method)?)
             };
 
-            dsl_methods.push(build_public_dsl_method(&methods.delete_one)?);
+            if let Some(method) = &methods.delete_one {
+                dsl_methods.push(build_public_dsl_method(method)?)
+            };
         }
         SpacetimeDSLColumnMethods::ForIndex(methods) => {
             dsl_methods.push(build_public_dsl_method(&methods.get_many)?);
 
-            dsl_methods.push(build_public_dsl_method(&methods.delete_many)?);
+            if let Some(method) = &methods.delete_many {
+                dsl_methods.push(build_public_dsl_method(method)?)
+            };
         }
     };
 
     Ok(dsl_methods)
 }
 
+// FIXME: We can also add the table definition directly to this malformed code generation result, so that it can just be copied and pasted for easier debugging.
 pub fn malformed_code_generation_result(result: String) -> String {
     let mut result = result.replace("\n", " ");
 
