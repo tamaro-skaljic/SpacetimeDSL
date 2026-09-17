@@ -135,7 +135,7 @@ implementation.
 | `delete = false` | Suppresses the delete methods. `#[referenced_by]` combined with `delete = false` becomes a rejection, spanned on the attribute, beside its sibling in `ReferencingTable::try_parse`. |
 | Hash verification | A hash table in `examples/test`, exercised by the `tester` reducer. **Revised during step 1.3** — the planned `trybuild` pass case cannot work, because a pass case links a native executable and the generated code needs WASM-only host symbols (`LNK2019: unresolved external symbol datastore_table_scan_bsatn`). `compile_fail` cases never link, which is why the existing cases are unaffected. |
 | Context | `MethodGenerationContext` holds the five references **plus** the names every generator re-derives, including `field_name_for_found_value`. Plain data carrier — no generation methods. |
-| Mutation | Carried all the way out: generators return what they want recorded, `generate` takes `&SpacetimeDSLTable`, `internal/table.rs:39` applies the recordings, and `column::try_parse` and `SpacetimeDSLColumnMethods::map` drop their `&mut` too. |
+| Mutation | Carried all the way out: generators return what they want contributed, `generate` takes `&SpacetimeDSLTable`, `internal/table.rs:39` applies the contributions, and `column::try_parse` and `SpacetimeDSLColumnMethods::map` drop their `&mut` too. |
 | `IndexShape` | One struct, with the four prose fragments pre-assembled into the single phrase all five doc comments build identically today. Built by the caller, once per index, and passed as `&IndexShape`. |
 | One-vs-many | The per-column argument loop is parameterised by `OneOrMultiple`, not by a new type — one row versus many rows is the concept `OneOrMultiple` exists for. |
 | Singleton contract | A new `internal/dsl/singleton.rs`. Not the deferred item 13: it adds a module rather than carving up `method.rs`. |
@@ -489,19 +489,19 @@ state.
 and these are internal methods.
 
 Make the writes part of the return value. Each generator returns its produced
-method together with whatever it wants recorded, and the single orchestrating
+method together with whatever it wants contributed, and the single orchestrating
 caller applies them:
 
 ```rust
-struct GeneratedTableRecordings {
+struct TableContributions {
     create_dsl_method_arg: Option<CreateDSLMethodArg>,
     compile_error_checks: BTreeSet<Ident>,
 }
 ```
 
 `SpacetimeDSLTableMethods::generate` then takes `&SpacetimeDSLTable` and returns
-`syn::Result<(SpacetimeDSLTableMethods, GeneratedTableRecordings)>`;
-`internal/table.rs:39` applies the recordings to the table it already owns. This
+`syn::Result<(SpacetimeDSLTableMethods, TableContributions)>`;
+`internal/table.rs:39` applies the contributions to the table it already owns. This
 also removes the reason `generate` currently takes the table by value and hands it
 back, which plan 2 deferred to here.
 

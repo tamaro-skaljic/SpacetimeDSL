@@ -117,20 +117,18 @@ impl<'a> MethodGenerationContext<'a> {
     }
 }
 
-/// What a generator wants written onto the table, returned instead of written.
-///
 /// The generators are named for what they produce and they produce a method; the table
 /// state they also need is part of their result rather than a side effect, so reordering
 /// two generator calls cannot change the table. `SpacetimeDSLTableMethods::generate`
 /// collects these and hands them to the one caller that owns the table.
 #[derive(Default)]
-pub(in crate::internal) struct GeneratedTableRecordings {
+pub(in crate::internal) struct TableContributions {
     pub create_dsl_method_arg: Option<CreateDSLMethodArg>,
     pub compile_error_checks: BTreeSet<Ident>,
 }
 
-impl GeneratedTableRecordings {
-    fn merge(&mut self, other: GeneratedTableRecordings) {
+impl TableContributions {
+    fn merge(&mut self, other: TableContributions) {
         if let Some(create_dsl_method_arg) = other.create_dsl_method_arg {
             self.create_dsl_method_arg = Some(create_dsl_method_arg);
         }
@@ -408,7 +406,7 @@ impl SpacetimeDSLTableMethods {
     pub(in crate::internal) fn generate(
         context: &MethodGenerationContext,
         columns: &[Column],
-    ) -> syn::Result<(SpacetimeDSLTableMethods, GeneratedTableRecordings)> {
+    ) -> syn::Result<(SpacetimeDSLTableMethods, TableContributions)> {
         let MethodGenerationContext {
             spacetimedb_table,
             spacetimedsl_table,
@@ -418,10 +416,10 @@ impl SpacetimeDSLTableMethods {
 
         let is_singleton = spacetimedsl_table.is_singleton;
 
-        let mut recordings = GeneratedTableRecordings::default();
+        let mut contributions = TableContributions::default();
 
-        let (create, create_recordings) = for_create(context);
-        recordings.merge(create_recordings);
+        let (create, create_contributions) = for_create(context);
+        contributions.merge(create_contributions);
 
         // A singleton holds one row, so iterating and counting have nothing to say.
         let get_all = match is_singleton {
@@ -442,23 +440,23 @@ impl SpacetimeDSLTableMethods {
                 None;
             execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted = None;
         } else {
-            let (after_one_row, after_one_row_recordings) = for_referenced_by(
+            let (after_one_row, after_one_row_contributions) = for_referenced_by(
                 &OneOrMultiple::One,
                 spacetimedb_table,
                 spacetimedsl_table,
                 primary_key_column,
             );
-            recordings.merge(after_one_row_recordings);
+            contributions.merge(after_one_row_contributions);
             execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted =
                 Some(after_one_row);
 
-            let (after_multiple_rows, after_multiple_rows_recordings) = for_referenced_by(
+            let (after_multiple_rows, after_multiple_rows_contributions) = for_referenced_by(
                 &OneOrMultiple::Multiple,
                 spacetimedb_table,
                 spacetimedsl_table,
                 primary_key_column,
             );
-            recordings.merge(after_multiple_rows_recordings);
+            contributions.merge(after_multiple_rows_contributions);
             execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted =
                 Some(after_multiple_rows);
         }
@@ -504,7 +502,7 @@ impl SpacetimeDSLTableMethods {
                     false => ReferencingTables::Present,
                 };
 
-                let (after_one_row, after_one_row_recordings) = for_foreign_key(
+                let (after_one_row, after_one_row_contributions) = for_foreign_key(
                     &OneOrMultiple::One,
                     referencing_tables,
                     spacetimedb_table,
@@ -513,11 +511,11 @@ impl SpacetimeDSLTableMethods {
                     primary_key_column,
                     spacetimedsl_table,
                 )?;
-                recordings.merge(after_one_row_recordings);
+                contributions.merge(after_one_row_contributions);
                 execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted
                     .push(after_one_row);
 
-                let (after_multiple_rows, after_multiple_rows_recordings) = for_foreign_key(
+                let (after_multiple_rows, after_multiple_rows_contributions) = for_foreign_key(
                     &OneOrMultiple::Multiple,
                     referencing_tables,
                     spacetimedb_table,
@@ -526,7 +524,7 @@ impl SpacetimeDSLTableMethods {
                     primary_key_column,
                     spacetimedsl_table,
                 )?;
-                recordings.merge(after_multiple_rows_recordings);
+                contributions.merge(after_multiple_rows_contributions);
                 execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted
                     .push(after_multiple_rows);
             }
@@ -560,7 +558,7 @@ impl SpacetimeDSLTableMethods {
             multi_column_indices,
         };
 
-        Ok((methods, recordings))
+        Ok((methods, contributions))
     }
 }
 
@@ -757,9 +755,9 @@ fn update_method_row_value_getter(internal_column: &InternalColumn) -> TokenStre
 
 /// `create_<table>`: insert one row, built from the columns the caller has to supply.
 ///
-/// This is the only generator that records something on the table: the argument struct it
+/// This is the only generator that contributes something on the table: the argument struct it
 /// invents when the table has more than zero columns to ask for.
-fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, GeneratedTableRecordings) {
+fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, TableContributions) {
     let MethodGenerationContext {
         spacetimedb_table,
         spacetimedsl_table,
@@ -773,7 +771,7 @@ fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Generat
         ..
     } = context;
 
-    let mut recordings = GeneratedTableRecordings::default();
+    let mut contributions = TableContributions::default();
     let mut method_args = vec![];
 
     let mut method_arg_members = vec![];
@@ -830,7 +828,7 @@ fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Generat
             })
             .collect_vec();
 
-        recordings.create_dsl_method_arg = Some(CreateDSLMethodArg {
+        contributions.create_dsl_method_arg = Some(CreateDSLMethodArg {
             struct_name: method_arg_name.clone(),
             struct_members: method_arg_members,
             struct_impl: quote! {
@@ -953,7 +951,7 @@ fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Generat
         read_context_compatible: false,
     };
 
-    (method, recordings)
+    (method, contributions)
 }
 
 /// `get_all_<tables>`: iterate every row of the table.
@@ -2658,8 +2656,8 @@ fn for_referenced_by(
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
     primary_key_column: &InternalColumn,
-) -> (SpacetimeDSLMethod, GeneratedTableRecordings) {
-    let mut recordings = GeneratedTableRecordings::default();
+) -> (SpacetimeDSLMethod, TableContributions) {
+    let mut contributions = TableContributions::default();
 
     let singular_table_name = &spacetimedb_table.singular_name;
     let primary_key_column_type = &primary_key_column.rust_field_type_name_or_path;
@@ -2749,7 +2747,7 @@ fn for_referenced_by(
 
         let compile_error_check =
             get_referenced_table_compile_error_check(singular_table_name, referencing_table_name);
-        recordings
+        contributions
             .compile_error_checks
             .insert(compile_error_check.clone());
 
@@ -2832,7 +2830,7 @@ fn for_referenced_by(
         read_context_compatible: false,
     };
 
-    (method, recordings)
+    (method, contributions)
 }
 
 fn for_foreign_key(
@@ -2843,8 +2841,8 @@ fn for_foreign_key(
     columns_with_foreign_key: &[&Column],
     primary_key_column: &InternalColumn,
     spacetimedsl_table: &SpacetimeDSLTable,
-) -> syn::Result<(SpacetimeDSLMethod, GeneratedTableRecordings)> {
-    let mut recordings = GeneratedTableRecordings::default();
+) -> syn::Result<(SpacetimeDSLMethod, TableContributions)> {
+    let mut contributions = TableContributions::default();
 
     let first_foreign_key_column = columns_with_foreign_key
         .first()
@@ -3033,7 +3031,7 @@ fn for_foreign_key(
     let compile_error_check =
         get_referencing_table_compile_error_check(singular_table_name, &referenced_table_name);
 
-    recordings
+    contributions
         .compile_error_checks
         .insert(compile_error_check.clone());
 
@@ -3073,7 +3071,7 @@ fn for_foreign_key(
         read_context_compatible: false,
     };
 
-    Ok((method, recordings))
+    Ok((method, contributions))
 }
 
 fn get_on_delete_strategy_implementation(

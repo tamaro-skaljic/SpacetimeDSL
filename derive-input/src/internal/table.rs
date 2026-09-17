@@ -44,10 +44,10 @@ pub(in crate::internal) fn try_parse(
         &internal_primary_key_column,
     );
 
-    let (spacetimedsl_methods, recordings) =
+    let (spacetimedsl_methods, contributions) =
         SpacetimeDSLTableMethods::generate(&context, &columns)?;
 
-    recordings.apply_to(&mut spacetimedsl_table);
+    contributions.apply_to(&mut spacetimedsl_table);
 
     Ok(Table {
         rust_struct,
