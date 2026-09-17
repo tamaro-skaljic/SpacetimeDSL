@@ -20,6 +20,8 @@ pub mod setter;
 
 pub mod method;
 
+pub mod one_or_multiple;
+
 pub mod singleton;
 
 symbol!(table);

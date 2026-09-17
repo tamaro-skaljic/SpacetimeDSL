@@ -22,130 +22,26 @@ use crate::{
             wrapper::WrapperType,
         },
         runtime,
-        rust::{table::RustStruct, visibility::RustVisibility},
+        rust::visibility::RustVisibility,
     },
     internal::{
         column::{ColumnTypeKind, InternalColumn},
-        dsl::{singleton, wrapper::map_wrapper_type_option_to_wrapped_type_option},
+        dsl::{
+            one_or_multiple::OneOrMultiple, singleton,
+            wrapper::map_wrapper_type_option_to_wrapped_type_option,
+        },
     },
 };
-use ident_case::RenameRule;
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, TokenStreamExt, format_ident, quote};
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 use strum::IntoEnumIterator;
 use syn::{Ident, parse_str};
 
-/// The invariant `internal/dsl/column.rs` enforces: every primary key column except a singleton's injected `id: u8` carries a wrapper type.
-const PRIMARY_KEY_WRAPPER_TYPE_INVARIANT: &str = "A primary key column must be accompanied by `#[create_wrapper]` or `#[use_wrapper(crate::path::to::MyIdType)]`";
+mod context;
 
-#[derive(Debug)]
-pub enum OneOrMultiple {
-    One,
-    Multiple,
-}
-
-impl quote::ToTokens for OneOrMultiple {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let variant = match self {
-            OneOrMultiple::One => runtime::one_or_multiple(&quote! { One }),
-            OneOrMultiple::Multiple => runtime::one_or_multiple(&quote! { Multiple }),
-        };
-        tokens.extend(variant);
-    }
-}
-
-/// Everything every method generator needs, under one name.
-///
-/// The five references used to travel as a positional bundle through the entry points and
-/// most helpers. Several are references to different-but-similar table types, so a
-/// transposed argument compiled in some call shapes, and adding one more piece of shared
-/// context meant editing every signature in the chain.
-///
-/// The derived names are resolved once here rather than in each generator.
-/// `field_name_for_found_value` in particular was built by the same `format_ident!` in
-/// four separate functions, which is a rule about a generated identifier that nothing kept
-/// in step.
-///
-/// This is a plain data carrier. It must not grow generation methods, or it becomes a
-/// second god object in place of the one this plan removes.
-pub(in crate::internal) struct MethodGenerationContext<'a> {
-    pub spacetimedb_table: &'a SpacetimeDBTable,
-    pub spacetimedsl_table: &'a SpacetimeDSLTable,
-    pub internal_columns: &'a [InternalColumn],
-    pub primary_key_column: &'a InternalColumn,
-
-    pub struct_name: Ident,
-    pub singular_table_name: Ident,
-    pub singular_table_name_as_string: String,
-    pub singular_table_name_pascal_case: String,
-    pub plural_table_name: Ident,
-    pub primary_key_column_name: Ident,
-    pub primary_key_column_name_as_string: String,
-    /// The local the generated code binds the row it looked up to.
-    pub field_name_for_found_value: Ident,
-}
-
-impl<'a> MethodGenerationContext<'a> {
-    pub(in crate::internal) fn new(
-        rust_struct: &'a RustStruct,
-        spacetimedb_table: &'a SpacetimeDBTable,
-        spacetimedsl_table: &'a SpacetimeDSLTable,
-        internal_columns: &'a [InternalColumn],
-        primary_key_column: &'a InternalColumn,
-    ) -> MethodGenerationContext<'a> {
-        let singular_table_name = spacetimedb_table.singular_name.clone();
-        let primary_key_column_name = primary_key_column.rust_field_name.clone();
-
-        MethodGenerationContext {
-            spacetimedb_table,
-            spacetimedsl_table,
-            internal_columns,
-            primary_key_column,
-
-            struct_name: rust_struct.name.clone(),
-            singular_table_name_as_string: singular_table_name.to_string(),
-            singular_table_name_pascal_case: RenameRule::PascalCase
-                .apply_to_field(singular_table_name.to_string()),
-            plural_table_name: spacetimedsl_table.plural_name.clone(),
-            primary_key_column_name_as_string: primary_key_column_name.to_string(),
-            field_name_for_found_value: format_ident!("the_same_or_another_{singular_table_name}"),
-            singular_table_name,
-            primary_key_column_name,
-        }
-    }
-}
-
-/// The generators are named for what they produce and they produce a method; the table
-/// state they also need is part of their result rather than a side effect, so reordering
-/// two generator calls cannot change the table. `SpacetimeDSLTableMethods::generate`
-/// collects these and hands them to the one caller that owns the table.
-#[derive(Default)]
-pub(in crate::internal) struct TableContributions {
-    pub create_dsl_method_arg: Option<CreateDSLMethodArg>,
-    pub compile_error_checks: BTreeSet<Ident>,
-}
-
-impl TableContributions {
-    fn merge(&mut self, other: TableContributions) {
-        if let Some(create_dsl_method_arg) = other.create_dsl_method_arg {
-            self.create_dsl_method_arg = Some(create_dsl_method_arg);
-        }
-
-        self.compile_error_checks.extend(other.compile_error_checks);
-    }
-
-    pub(in crate::internal) fn apply_to(self, spacetimedsl_table: &mut SpacetimeDSLTable) {
-        if let Some(create_dsl_method_arg) = self.create_dsl_method_arg {
-            spacetimedsl_table.create_dsl_method_arg = Some(create_dsl_method_arg);
-        }
-
-        spacetimedsl_table
-            .compile_error_checks
-            .extend(self.compile_error_checks);
-    }
-}
+pub(in crate::internal) use context::{MethodGenerationContext, TableContributions};
 
 #[derive(PartialEq, strum::Display)]
 enum Action {
@@ -1118,11 +1014,7 @@ fn for_delete_many(shape: &IndexShape, context: &MethodGenerationContext) -> Spa
         }
     };
 
-    let wrapper_type_struct_name_or_path = primary_key_column
-        .spacetimedsl_column_wrapper_type
-        .as_ref()
-        .expect(PRIMARY_KEY_WRAPPER_TYPE_INVARIANT)
-        .struct_name_or_path_tokens();
+    let wrapper_type_struct_name_or_path = context::primary_key_wrapper_type(primary_key_column);
 
     let deletion_result_entry_per_row = runtime::deletion_result_entry(
         singular_table_name_as_string,
@@ -1796,11 +1688,7 @@ fn for_delete_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
         #return_error_on_is_none
     };
 
-    let wrapper_type_struct_name_or_path = primary_key_column
-        .spacetimedsl_column_wrapper_type
-        .as_ref()
-        .expect(PRIMARY_KEY_WRAPPER_TYPE_INVARIANT)
-        .struct_name_or_path_tokens();
+    let wrapper_type_struct_name_or_path = context::primary_key_wrapper_type(primary_key_column);
 
     let deletion_result_entry_for_row = runtime::deletion_result_entry(
         singular_table_name_as_string,
@@ -3203,11 +3091,8 @@ fn get_on_delete_strategy_implementation(
 
             quote! { #rendered_primary_key_value.to_string() }
         } else {
-            let wrapper_type_struct_name_or_path = primary_key_column
-                .spacetimedsl_column_wrapper_type
-                .as_ref()
-                .expect(PRIMARY_KEY_WRAPPER_TYPE_INVARIANT)
-                .struct_name_or_path_tokens();
+            let wrapper_type_struct_name_or_path =
+                context::primary_key_wrapper_type(primary_key_column);
             quote! { format!("{}", #wrapper_type_struct_name_or_path::new(#primary_key_column_name.clone())) }
         };
 
