@@ -42,7 +42,10 @@ The safety net is [`1_ADD_CHARACTERIZATION_TESTS.md`](1_ADD_CHARACTERIZATION_TES
 335 snapshots over the generated output and 14 `trybuild` cases over the
 rejection diagnostics, all run by `./x.sh unit-test`.
 
-### Three findings this plan records that the report does not
+### Findings this plan records that the report does not
+
+The first three were found while planning. The fourth was found while implementing
+step 1.2, and it revised one of the locked decisions below.
 
 **Suppressing the strategy fanout breaks every child table.** The report's item 15
 treats `delete = false` as a question about which methods are generated. It is
@@ -62,7 +65,8 @@ the combination upstream instead.
 disagree.** The report records the disagreement between `method.rs:161` and the
 multi-column gate at `method.rs:371` as a defect to correct. Correcting both gates
 leaves two gates. Step 6 removes the second site entirely, so the rule cannot be
-stated twice again.
+stated twice again. Which way the rule was settled changed during implementation;
+see the fourth finding.
 
 **The singleton contract cannot be fully consolidated from `derive-input`.** The
 report asks for the sentinel primary key's name, type, value and rendered form to
@@ -72,6 +76,42 @@ unifies them. The fifth — the injection that *creates* the field — is
 `derive-input`'s public API, which is the same boundary plan 2 hit for the runtime
 paths and deliberately did not cross. Step 4 records the remaining site in a
 comment on both sides rather than pretending the contract is closed.
+
+### A fourth finding, from implementing step 1.2
+
+**`update` is a primary-key-only operation, and that is why the two paths disagreed.**
+Planning assumed SpacetimeDB offers `update` on any unique index, so item 16 was
+settled as "a unique index of any width may update a row", with the generated body
+keying on the index it is named for. It does not compile:
+
+```text
+error[E0277]: the trait bound
+`entity::_::__indices::name1: spacetimedb::table::PrimaryKey` is not satisfied
+help: the trait `spacetimedb::table::PrimaryKey` is not implemented for
+      `entity::_::__indices::name1`
+```
+
+A `#[unique]` non-primary-key index carries `find` and `delete`, not `update`. The
+unique multi-column path compiled only because it overrode the index name with the
+primary key at `method.rs:1354`, which made its generated method a second name for
+`update_<table>_by_<primary_key>`.
+
+The 27 snapshot tests passed against the uncompilable emission, because they pin
+tokens rather than compilability. `./x.sh test` caught it. This is the same gap
+step 1.3 flags for hash indices, arriving one step early, and it is why the gate
+runs all three commands rather than only `./x.sh unit-test`.
+
+**The developer settled it the other way:** only the primary key may update, so the
+multi-column path loses its update method rather than the single-column path
+gaining one. Step 1.2 below records what was actually done.
+
+Two consequences downstream:
+
+- `for_update` now only ever sees the primary key index, plus the singleton. The
+  `is_multi_column_index` index-name override at `method.rs:1354` is dead. Step 5.3
+  deletes it rather than carrying it into the new generator.
+- Step 6's shared builder gates `update` on `has_update_method` **and** on the index
+  being the primary key.
 
 ---
 
@@ -89,8 +129,8 @@ implementation.
 | Step order | Output-changing steps first (step 1), then the structural work (steps 2–7) strictly output-preserving. |
 | `DSLMethod` | Deleted entirely. No dispatcher, no replacement enum. Call sites call the generators directly. |
 | Generator names | `for_create`, `for_get_all`, `for_get_count`, `for_get_many`, `for_delete_many`, `for_get_one`, `for_update`, `for_delete_one`, matching the existing `for_referenced_by` / `for_foreign_key` prefix. |
-| Update rule | Any unique index may update a row, of any width. The single-column path drops its primary-key condition. |
-| Update body | The generated body keys on the unique index itself (`.external_id().update(row)`), which is what the existing single-column branch already emits. Not an alias for update-by-primary-key. |
+| Update rule | Only the primary key may update a row. The multi-column path drops its update method; the single-column path keeps its primary-key condition. **Revised during step 1.2** — see [A fourth finding, from implementing step 1.2](#a-fourth-finding-from-implementing-step-12). |
+| Update body | Unchanged: `self.db().<table>().<primary_key>().update(row)`. No other shape is possible — SpacetimeDB defines `update` on the primary key index only. |
 | Hash routing | `HashSingleColumn` joins the extraction loop in `internal/db/column.rs`. The `multi_column_indices` name is kept and the loop gains a guard, so a single-column index leaking into the list can no longer take the wrong path silently. |
 | `delete = false` | Suppresses the delete methods. `#[referenced_by]` combined with `delete = false` becomes a rejection, spanned on the attribute, beside its sibling in `ReferencingTable::try_parse`. |
 | Hash verification | A `trybuild` **pass** case in `compile-tests`, not a new table in `examples/test`. The open question is whether SpacetimeDB emits `find`/`update` accessors for a unique hash index, which is a compile question. |
@@ -179,7 +219,7 @@ is wrong — do not accept the snapshot.
 | Step | Output | May move |
 | --- | --- | --- |
 | 1.1 | **changing** | every doc comment in `hash_index/Session` |
-| 1.2 | **changing** | 8 new `.snap` files and their 8 `table.snap` manifests (listed in 1.2) |
+| 1.2 | **changing** | 4 `.snap` files deleted and their 4 `table.snap` manifests (listed in 1.2) |
 | 1.3 | **changing** | `hash_index/Session` bodies for `token` and `device_id`; one new `.rs` pass case |
 | 1.4 | **changing** | `methods_disabled/AuditEntry` loses 2 snapshots; one new `.stderr` |
 | 2–7 | preserving | **nothing** |
@@ -267,52 +307,50 @@ The fixtures show it directly: `unique_single_column_index` generates
 `update_seat_by_row_and_number` alongside its getter and deleter. It holds across
 the whole suite.
 
-**Developer decision:** a unique index of any width may update a row, so the
-single-column path must generate the method too. If the multi-column behaviour is
-the intended one, single-column unique indices are missing a method users can
-reasonably expect.
+**Developer decision, revised during implementation:** only the primary key may
+update a row. The first decision — a unique index of any width may update —
+produced code that does not compile, because SpacetimeDB defines `update` on the
+primary key index alone. See
+[A fourth finding, from implementing step 1.2](#a-fourth-finding-from-implementing-step-12).
 
-Delete `method_is_for_primary_key` from `SpacetimeDSLColumnMethods::map`. That
-also deletes the `IndexType` match that computes it, including its
-`panic!("A column's own index is always a single-column index")` arm — one panic
-removed before the refactor starts.
+So the multi-column path loses its update method rather than the single-column path
+gaining one. `SpacetimeDSLColumnMethods::map` keeps its `method_is_for_primary_key`
+condition, and the multi-column loop in `SpacetimeDSLTableMethods::generate`
+replaces its `has_update_method` gate with a plain `None` and a comment naming the
+reason.
 
-**Body semantics:** no code beyond the gate changes. The existing single-column
-branch already emits `self.db().<table>().<index>().update(row)`, because
-`method.rs:1354` only overrides the index name with the primary key when
-`is_multi_column_index` is true. The method therefore genuinely keys on the unique
-index it is named for. A caller cannot change `external_id` through
-`update_account_by_external_id`, because the row is located by the value the
-argument carries — which is the expected meaning of "update by unique key", and is
-why this is not made an alias for update-by-primary-key.
+The `panic!("A column's own index is always a single-column index")` arm goes with
+the change anyway: the multi-column loop no longer calls `for_method` with
+`DSLMethod::Update`, so `method_is_for_primary_key` is the only `IndexType` match
+left and it stays in the single-column path where every arm is reachable.
 
-**Moves:** eight new `.snap` files and the eight `table.snap` manifests that list
-them. Verified by scanning all 26 fixture manifests, not taken from the report:
+**Moves:** four snapshot files are deleted and four `table.snap` manifests lose one
+line each. Nothing is added.
 
-| Fixture / struct | New method |
+| Fixture / struct | Removed method |
 | --- | --- |
-| `unique_single_column_index/Account` | `update_account_by_external_id` |
-| `direct_index/Slot` | `update_slot_by_position` |
-| `string_index_column/Article` | `update_article_by_slug` |
-| `wrapper_created_named/Invoice` | `update_invoice_by_reference` |
-| `wrapper_created_unnamed/Label` | `update_label_by_code` |
-| `wrapper_used/Shipment` | `update_shipment_by_warehouse_id` |
-| `hooks_all_six/Potion` | `update_potion_by_name` |
-| `delete_hooks_with_foreign_key_on_unique_index/ChildMarker` | `update_child_marker_by_parent_id` |
+| `unique_multi_column_index/Seat` | `update_seat_by_row_and_number` |
+| `multiple_dsl_attributes/Module/pass_1` | `update_module1_by_database_and_name` |
+| `multiple_dsl_attributes/Module/pass_2` | `update_module2_by_name_and_database` |
+| `hash_index/Session` | `update_session_by_device_id` |
 
-Nothing else may move. Fixtures whose only non-primary-key getter/deleter pairs
-are plural (`non_unique_*`, `foreign_key_and_referenced_by`, `on_delete_*`,
-`timestamps`, `qualified_type_spellings`, `wrapper_optional_index`) describe
-non-unique indices and correctly get no updater; `methods_disabled`, `plain_table`,
-`scheduled_table` and `delete_hooks_with_foreign_key_on_unique_index/ParentRecord`
-set `update = false`.
+`hash_index/Session` is in the list because `device_id` is a single-column hash
+index that today reaches the multi-column loop by the routing defect step 1.3
+fixes. Its update method disappears now and does not come back after 1.3, which is
+consistent either way.
 
-**Also update:** `docs/DOCUMENTATION.md:906` currently states "Note that update
-methods are not generated for unique single column indices as of SpacetimeDB 2.0",
-which this step makes false. Replace it, and add the single-column case beside the
-existing "By Unique Multi-Column Index" subsection. Rewrite the
-`unique_single_column_index.rs` fixture header, which documents the old rule with
-a `(FIXME)`.
+Breaking for anyone calling the four removed methods. Nothing in `examples/`,
+`docs/` or `README.md` did — verified by grep before the change.
+
+**Also update:** `docs/DOCUMENTATION.md` states "Note that update methods are not
+generated for unique single column indices as of SpacetimeDB 2.0", which names the
+right rule for the wrong reason and omits multi-column indices. Replace it with the
+primary-key-only rule and the reason, delete the "By Unique Multi-Column Index"
+subsection, show the read-then-write-by-primary-key pattern instead, correct the
+`update_entity_relationship_by_parent_child_entity_id` call in the unique-index
+walkthrough, and change the method table's "Update by PK/unique" row to "Update by
+PK". Rewrite the `unique_single_column_index.rs` fixture header, which documents
+the old rule with a `(FIXME)`.
 
 ### 1.3 Route single-column hash indices like every other single-column index
 
@@ -342,9 +380,10 @@ unreachable rather than merely unvisited. Keep the list's name: after this chang
 it is accurate for every shape the fixtures cover.
 
 **Taken after 1.2 deliberately.** This step decides which update rule applies to a
-unique hash column. Taken before 1.2, `device_id` would lose its update method to
-the single-column rule and regain it one commit later — churn in the snapshots for
-no reason.
+unique hash column. With the rule settled on the primary key, `device_id` has
+already lost its update method in 1.2 and does not regain it here, so this step
+moves only the getter and deleter bodies. Taken before 1.2, the same snapshot would
+have moved twice.
 
 **Verification.** No example module and no compile test currently *compiles* a hash
 index; the fixtures only snapshot tokens. This step changes
@@ -722,10 +761,17 @@ Lift the rest out as `for_get_many`, `for_delete_many`, `for_get_one`, `for_upda
 and `for_delete_one`, each taking `(&IndexShape, &MethodGenerationContext)` and, for
 the four that need it, the `IndexColumnArguments` from 5.1.
 
+`for_update` is the exception to "move only": after step 1.2 it only ever sees the
+primary key index, so the `is_multi_column_index` override that swapped in the
+primary key at `method.rs:1354` is dead. Delete it rather than carrying it into the
+new generator, and check whether `IndexShape::is_multi_column` still has a reader
+in `for_update` afterwards.
+
 Do **not** merge `for_delete_one` and `for_delete_many`, and do not restructure
 their bodies while moving them; see
-[Settled findings](#settled-findings-that-constrain-this-plan). This sub-change
-moves code and rewrites its selection, nothing more.
+[Settled findings](#settled-findings-that-constrain-this-plan). Apart from the
+override above, this sub-change moves code and rewrites its selection, nothing
+more.
 
 ### 5.4 Delete `DSLMethod` and `for_method`
 
@@ -747,14 +793,14 @@ rule*); Connascence of Algorithm
 
 After step 1, `SpacetimeDSLColumnMethods::map` and the multi-column loop in
 `SpacetimeDSLTableMethods::generate` apply the same rule: a non-unique index earns
-`get_many` and `delete_many`, a unique index earns `get_one_option`, `update` and
-`delete_one`, and `delete` is gated on `has_delete_method` while `update` is gated
-on `has_update_method`. Today that rule is written out twice, in two `match
-index.is_unique` blocks that construct the same two struct variants. Writing it
-twice is what let the two copies disagree and produced the item-16 defect in the
-first place.
+`get_many` and `delete_many`; a unique index earns `get_one_option` and
+`delete_one`, plus `update` only when that index is the primary key. `delete` is
+gated on `has_delete_method` and `update` on `has_update_method`. Today that rule
+is written out twice, in two `match index.is_unique` blocks that construct the same
+two struct variants. Writing it twice is what let the two copies disagree and
+produced the item-16 defect in the first place.
 
-Correcting both gates in step 1.2 leaves two gates. Remove the second site:
+Step 1.2 corrected both sites but left two sites. Remove the second one:
 
 ```rust
 fn column_methods_for(
