@@ -14,7 +14,11 @@ use crate::{
             foreign_key::{ForeignKey, OnDeleteStrategy},
             hook::SpacetimeDSLMethodHook,
             method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
-            table::{CreateDSLMethodArg, SpacetimeDSLTable, SpacetimeDSLTableMethods},
+            table::{
+                CreateDSLMethodArg, OnDeleteStrategiesOfReferencingTables,
+                OnDeleteStrategiesOfTheReferencedTable, SpacetimeDSLTable,
+                SpacetimeDSLTableMethods,
+            },
             wrapper::WrapperType,
         },
         runtime,
@@ -431,41 +435,35 @@ impl SpacetimeDSLTableMethods {
             false => Some(for_get_count(context)),
         };
 
-        let execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted;
-        let execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted;
+        let on_delete_strategies_of_referencing_tables =
+            match spacetimedsl_table.referencing_tables.is_empty() {
+                true => None,
+                false => {
+                    let (after_one_row, after_one_row_contributions) = for_referenced_by(
+                        &OneOrMultiple::One,
+                        spacetimedb_table,
+                        spacetimedsl_table,
+                        primary_key_column,
+                    );
+                    contributions.merge(after_one_row_contributions);
 
-        if spacetimedsl_table.referencing_tables.is_empty() {
-            execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted =
-                None;
-            execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted = None;
-        } else {
-            let (after_one_row, after_one_row_contributions) = for_referenced_by(
-                &OneOrMultiple::One,
-                spacetimedb_table,
-                spacetimedsl_table,
-                primary_key_column,
-            );
-            contributions.merge(after_one_row_contributions);
-            execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted =
-                Some(after_one_row);
+                    let (after_multiple_rows, after_multiple_rows_contributions) =
+                        for_referenced_by(
+                            &OneOrMultiple::Multiple,
+                            spacetimedb_table,
+                            spacetimedsl_table,
+                            primary_key_column,
+                        );
+                    contributions.merge(after_multiple_rows_contributions);
 
-            let (after_multiple_rows, after_multiple_rows_contributions) = for_referenced_by(
-                &OneOrMultiple::Multiple,
-                spacetimedb_table,
-                spacetimedsl_table,
-                primary_key_column,
-            );
-            contributions.merge(after_multiple_rows_contributions);
-            execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted =
-                Some(after_multiple_rows);
-        }
+                    Some(OnDeleteStrategiesOfReferencingTables {
+                        after_one_row_of_this_table_was_deleted: after_one_row,
+                        after_multiple_rows_of_this_table_were_deleted: after_multiple_rows,
+                    })
+                }
+            };
 
-        let mut
-        execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted =
-            vec![];
-        let mut
-        execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted =
-            vec![];
+        let mut on_delete_strategies_of_this_table = vec![];
 
         let columns_with_foreign_keys: Vec<&Column> = columns
             .iter()
@@ -511,8 +509,6 @@ impl SpacetimeDSLTableMethods {
                     spacetimedsl_table,
                 )?;
                 contributions.merge(after_one_row_contributions);
-                execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted
-                    .push(after_one_row);
 
                 let (after_multiple_rows, after_multiple_rows_contributions) = for_foreign_key(
                     &OneOrMultiple::Multiple,
@@ -524,8 +520,11 @@ impl SpacetimeDSLTableMethods {
                     spacetimedsl_table,
                 )?;
                 contributions.merge(after_multiple_rows_contributions);
-                execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted
-                    .push(after_multiple_rows);
+
+                on_delete_strategies_of_this_table.push(OnDeleteStrategiesOfTheReferencedTable {
+                    after_one_row_was_deleted: after_one_row,
+                    after_multiple_rows_were_deleted: after_multiple_rows,
+                });
             }
         }
 
@@ -550,10 +549,8 @@ impl SpacetimeDSLTableMethods {
             create,
             get_all,
             get_count,
-            execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted,
-            execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted,
-            execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted,
-            execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted,
+            on_delete_strategies_of_referencing_tables,
+            on_delete_strategies_of_this_table,
             multi_column_indices,
         };
 

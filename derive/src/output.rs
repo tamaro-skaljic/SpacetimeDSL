@@ -76,28 +76,35 @@ pub(crate) fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<Gen
         dsl_methods.push(build_public_dsl_method(method)?);
     }
 
-    if let Some(method) = &input
+    if let Some(strategies) = &input
         .spacetimedsl_methods
-        .execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted
+        .on_delete_strategies_of_referencing_tables
     {
-        dsl_methods.push(build_internal_dsl_method(method)?);
-    }
-
-    if let Some(method) = &input
-        .spacetimedsl_methods
-        .execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted {
-        dsl_methods.push(build_internal_dsl_method(method)?);
-    }
-
-    for execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted in &input.spacetimedsl_methods.execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted {
         dsl_methods.push(build_internal_dsl_method(
-            execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted
+            &strategies.after_one_row_of_this_table_was_deleted,
+        )?);
+        dsl_methods.push(build_internal_dsl_method(
+            &strategies.after_multiple_rows_of_this_table_were_deleted,
         )?);
     }
 
-    for execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted in &input.spacetimedsl_methods.execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted {
+    // Two loops, not one: every one-row method is emitted before any many-row method, and a
+    // single loop over the pairs would interleave them.
+    for strategies in &input
+        .spacetimedsl_methods
+        .on_delete_strategies_of_this_table
+    {
         dsl_methods.push(build_internal_dsl_method(
-            execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted
+            &strategies.after_one_row_was_deleted,
+        )?);
+    }
+
+    for strategies in &input
+        .spacetimedsl_methods
+        .on_delete_strategies_of_this_table
+    {
+        dsl_methods.push(build_internal_dsl_method(
+            &strategies.after_multiple_rows_were_deleted,
         )?);
     }
 
