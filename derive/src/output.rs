@@ -208,6 +208,7 @@ fn get_column_dsl_methods(
     Ok(dsl_methods)
 }
 
+// FIXME: We can also add the table definition directly to this malformed code generation result, so that it can just be copied and pasted for easier debugging.
 pub fn malformed_code_generation_result(result: String) -> String {
     let mut result = result.replace("\n", " ");
 
