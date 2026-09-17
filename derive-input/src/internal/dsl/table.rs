@@ -77,8 +77,8 @@ impl SpacetimeDSLTable {
                 syn::Visibility::Public(_) | syn::Visibility::Restricted(_)
             ) {
                 if !has_update_method {
-                    return Err(syn::Error::new(
-                        Span::call_site(),
+                    return Err(syn::Error::new_spanned(
+                        field.vis,
                         format!(
                             "All columns in a table with disabled `update` DSL method should be private! Found: {:?}",
                             field.vis.to_token_stream().to_string()
@@ -92,15 +92,15 @@ impl SpacetimeDSLTable {
 
             if column_name.eq("created_at") || column_name.eq("inserted_at") {
                 if on_insert_set_current_timestamp_column_name.is_some() {
-                    return Err(syn::Error::new(
-                        Span::call_site(),
+                    return Err(syn::Error::new_spanned(
+                        field.ident.expect("a named field has an identifier"),
                         "Multiple columns for `on_insert_set_current_timestamp`: `created_at` and `inserted_at`! Only one column is allowed.".to_string(),
                     ));
                 };
                 let field_type = field.ty.to_token_stream().to_string();
                 if !field_type.eq("Timestamp") && !field_type.eq("spacetimedb :: Timestamp") {
-                    return Err(syn::Error::new(
-                        Span::call_site(),
+                    return Err(syn::Error::new_spanned(
+                        field.ty,
                         format!(
                             "A column with name `created_at` or `inserted_at` should have the type `spacetimedb::Timestamp`! Found: {field_type}"
                         ),
@@ -109,14 +109,14 @@ impl SpacetimeDSLTable {
 
                 match field.vis {
                     syn::Visibility::Public(_) => {
-                        return Err(syn::Error::new(
-                            Span::call_site(),
+                        return Err(syn::Error::new_spanned(
+                            field.vis,
                             "A column with name `created_at` or `inserted_at` should have `Visibility::Inherited`! Found: Visibility::Public",
                         ));
                     }
                     syn::Visibility::Restricted(_) => {
-                        return Err(syn::Error::new(
-                            Span::call_site(),
+                        return Err(syn::Error::new_spanned(
+                            field.vis,
                             "A column with name `created_at` or `inserted_at` should have `Visibility::Inherited`! Found: Visibility::Restricted",
                         ));
                     }
@@ -128,15 +128,15 @@ impl SpacetimeDSLTable {
             }
             if column_name.eq("modified_at") || column_name.eq("updated_at") {
                 if on_update_set_current_timestamp_column_name.is_some() {
-                    return Err(syn::Error::new(
-                        Span::call_site(),
+                    return Err(syn::Error::new_spanned(
+                        field.ident.expect("a named field has an identifier"),
                         "Multiple columns for `on_update_set_current_timestamp`: `modified_at` and `updated_at`! Only one column is allowed.".to_string(),
                     ));
                 };
 
                 if !has_update_method {
-                    return Err(syn::Error::new(
-                        Span::call_site(),
+                    return Err(syn::Error::new_spanned(
+                        field.ident.expect("a named field has an identifier"),
                         "A column with name `modified_at` or `updated_at` requires the `update` method to be enabled in `#[dsl(method(update = true))]`!".to_string(),
                     ));
                 }
@@ -147,8 +147,8 @@ impl SpacetimeDSLTable {
                     && !field_type.eq("Option < Timestamp >")
                     && !field_type.eq("Option < spacetimedb :: Timestamp >")
                 {
-                    return Err(syn::Error::new(
-                        Span::call_site(),
+                    return Err(syn::Error::new_spanned(
+                        field.ty,
                         format!(
                             "A column with name `modified_at` or `updated_at` should have the type `spacetimedb::Timestamp` or `Option<spacetimedb::Timestamp>`! Found: {field_type}"
                         ),
@@ -157,14 +157,14 @@ impl SpacetimeDSLTable {
 
                 match field.vis {
                     syn::Visibility::Public(_) => {
-                        return Err(syn::Error::new(
-                            Span::call_site(),
+                        return Err(syn::Error::new_spanned(
+                            field.vis,
                             "A column with name `modified_at` or `updated_at` should have `Visibility::Inherited`! Found: Visibility::Public",
                         ));
                     }
                     syn::Visibility::Restricted(_) => {
-                        return Err(syn::Error::new(
-                            Span::call_site(),
+                        return Err(syn::Error::new_spanned(
+                            field.vis,
                             "A column with name `modified_at` or `updated_at` should have `Visibility::Inherited`! Found: Visibility::Restricted",
                         ));
                     }

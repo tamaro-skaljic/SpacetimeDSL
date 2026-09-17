@@ -6,7 +6,6 @@ use crate::{
     },
     internal::table::rm_rsharp,
 };
-use proc_macro2::Span;
 use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::table::{
     IndexArg, IndexType as SpacetimeIndexType, ScheduledArg, TableAccess, TableArgs,
@@ -29,8 +28,8 @@ impl SpacetimeDBTable {
                 match &index.index_type {
                     IndexType::BTreeMultiColumn { columns }
                     | IndexType::HashMultiColumn { columns } => {
-                        return Err(Error::new(
-                            Span::call_site(),
+                        return Err(Error::new_spanned(
+                            &index.name,
                             format!(
                                 "Multi-column indices are not allowed on singleton tables! Found index `{}` on columns `{}`.",
                                 index.name,

@@ -2,7 +2,6 @@ use crate::api::{
     db::{column::SpacetimeDBColumn, index::IndexType, table::SpacetimeDBTable},
     rust::column::RustField,
 };
-use proc_macro2::Span;
 use syn::{Error, Ident};
 
 impl SpacetimeDBColumn {
@@ -22,8 +21,8 @@ impl SpacetimeDBColumn {
                 .to_string()
                 .starts_with(&spacetimedb_table.singular_name.to_string())
         {
-            return Err(Error::new(
-                Span::call_site(),
+            return Err(Error::new_spanned(
+                &rust_field.name,
                 format!(
                     "A #[primary_key] column must not be prefixed with the table's name! Use `{}` instead of `{}`.",
                     column_name
@@ -45,8 +44,8 @@ impl SpacetimeDBColumn {
                     | IndexType::Direct { column }
                     | IndexType::HashSingleColumn { column } => {
                         if column.eq(column_name) {
-                            return Err(Error::new(
-                                Span::call_site(),
+                            return Err(Error::new_spanned(
+                                &rust_field.name,
                                 format!(
                                     "`#[index]` and `#[unique]` are not allowed on singleton tables! Found index on column `{column_name}`.",
                                 ),
