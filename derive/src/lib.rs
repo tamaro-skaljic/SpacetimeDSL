@@ -1,7 +1,7 @@
 use ident_case::RenameRule;
 use proc_macro::TokenStream;
 use quote::{ToTokens, format_ident, quote};
-use spacetimedsl_derive_input::api::Table;
+use spacetimedsl_derive_input::api::{Table, runtime};
 
 #[cfg(test)]
 mod characterization_tests;
@@ -226,8 +226,11 @@ pub fn hook(_args: TokenStream, item: TokenStream) -> TokenStream {
             RenameRule::PascalCase.apply_to_field(function_input.sig.ident.to_string())
         );
 
+        let write_context = runtime::write_context();
+        let dsl_method_hooks_type = runtime::dsl_method_hooks_type();
+
         Ok(quote! {
-            impl<T: crate::spacetimedsl::WriteContext> #trait_name<T> for crate::spacetimedsl::DSLMethodHooks {
+            impl<T: #write_context> #trait_name<T> for #dsl_method_hooks_type {
                 #function_input
             }
         })

@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use spacetimedsl_derive_input::api::dsl::hook::SpacetimeDSLMethodHook;
+use spacetimedsl_derive_input::api::{dsl::hook::SpacetimeDSLMethodHook, runtime};
 
 use crate::output::map_args;
 
@@ -16,8 +16,10 @@ pub fn build(hook: &Option<SpacetimeDSLMethodHook>) -> syn::Result<TokenStream> 
     let function_args = map_args(&hook.function_args);
     let return_type = &hook.return_type;
 
+    let write_context = runtime::write_context();
+
     let method = quote! {
-        pub trait #trait_name<T: crate::spacetimedsl::WriteContext> {
+        pub trait #trait_name<T: #write_context> {
             fn #function_name(
                 #(#function_args),*
             ) -> #return_type;
