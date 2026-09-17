@@ -17,14 +17,12 @@ use crate::{
             table::{CreateDSLMethodArg, SpacetimeDSLTable, SpacetimeDSLTableMethods},
             wrapper::WrapperType,
         },
+        runtime,
         rust::{table::RustStruct, visibility::RustVisibility},
     },
     internal::{
         column::{ColumnTypeKind, InternalColumn},
-        dsl::{
-            generated_runtime as runtime, singleton,
-            wrapper::map_wrapper_type_option_to_wrapped_type_option,
-        },
+        dsl::{singleton, wrapper::map_wrapper_type_option_to_wrapped_type_option},
     },
 };
 use ident_case::RenameRule;

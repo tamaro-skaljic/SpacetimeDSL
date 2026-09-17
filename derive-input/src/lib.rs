@@ -5,6 +5,8 @@ pub mod api {
 
     pub mod dsl;
 
+    pub mod runtime;
+
     /**
      * The representation of a Rust struct with `#[table]` and `#[dsl]` attribute macros and its columns.
      */
