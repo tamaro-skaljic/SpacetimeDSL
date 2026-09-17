@@ -30,10 +30,7 @@ use ident_case::RenameRule;
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, TokenStreamExt, format_ident, quote};
-use std::{
-    collections::{BTreeMap, VecDeque},
-    fmt::{self, Display},
-};
+use std::collections::{BTreeMap, VecDeque};
 use strum::IntoEnumIterator;
 use syn::{Ident, parse_str};
 
@@ -71,38 +68,18 @@ impl quote::ToTokens for OneOrMultiple {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(strum::Display)]
 enum CreateOrUpdate {
     Create,
     Update,
 }
 
-impl Display for CreateOrUpdate {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            CreateOrUpdate::Create => write!(f, "Create"),
-            CreateOrUpdate::Update => write!(f, "Update"),
-        }
-    }
-}
-
-#[derive(PartialEq)]
+#[derive(PartialEq, strum::Display)]
 enum Action {
     Create,
     Get,
     Update,
     Delete,
-}
-
-impl Display for Action {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Action::Create => write!(f, "Create"),
-            Action::Get => write!(f, "Get"),
-            Action::Update => write!(f, "Update"),
-            Action::Delete => write!(f, "Delete"),
-        }
-    }
 }
 
 /// How the generated code binds the row it iterates over or matches on.
@@ -2263,9 +2240,14 @@ fn reference_integrity_checks_on_create_or_update(
 ) -> Vec<TokenStream> {
     let mut reference_integrity_checks = vec![];
 
+    // Checks of private columns only need to happen in checks for create methods, because they can't be changed, they don't need to be checked during updates
+    let skip_private_columns = match create_or_update_dsl_method {
+        CreateOrUpdate::Create => false,
+        CreateOrUpdate::Update => true,
+    };
+
     for column in columns {
-        // Checks of private columns only need to happen in checks for create methods, because they can't be changed, they don't need to be checked during updates
-        if create_or_update_dsl_method.eq(&CreateOrUpdate::Update)
+        if skip_private_columns
             && column
                 .rust_field_visibility
                 .to_string()
