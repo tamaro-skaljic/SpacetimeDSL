@@ -39,6 +39,7 @@ mod get;
 mod hook_call;
 mod index;
 mod reference_integrity;
+mod singleton_table;
 mod update;
 
 pub(in crate::internal) use context::{MethodGenerationContext, TableContributions};
@@ -46,8 +47,9 @@ pub(in crate::internal) use context::{MethodGenerationContext, TableContribution
 use create::for_create;
 use delete::{for_delete_many, for_delete_one};
 use get::{for_get_all, for_get_count, for_get_many, for_get_one};
-use hook_call::{hook_tokens, hook_use_and_call};
+use hook_call::hook_use_and_call;
 use index::IndexShape;
+use singleton_table::{for_singleton_delete, for_singleton_get};
 use update::for_update;
 
 /// How the generated code binds the row it iterates over or matches on.
@@ -69,144 +71,6 @@ enum IndexUniqueness {
 enum ReferencingTables {
     Present,
     Absent,
-}
-
-/// `get_<table>`: the one row of a singleton table.
-///
-/// A singleton is found by its injected primary key rather than by an index the caller
-/// supplies a value for, so this takes no arguments and renders no row values.
-fn for_singleton_get(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
-    let MethodGenerationContext {
-        struct_name,
-        singular_table_name,
-        singular_table_name_as_string,
-        ..
-    } = context;
-
-    let primary_key = singleton::primary_key_ident();
-    let primary_key_value = singleton::primary_key_value();
-
-    let not_found_error = runtime::not_found_error(
-        singular_table_name_as_string,
-        &singleton::rendered_primary_key(),
-    );
-
-    SpacetimeDSLMethod {
-        doc_comment: format!(
-            "Try to get the `{struct_name}` from the singleton `{singular_table_name}` table."
-        ),
-        method_name: format_ident!("get_{singular_table_name}"),
-        method_args: vec![],
-        return_type: runtime::error_result_type(struct_name),
-        method_impl: quote! {
-            match self.db().#singular_table_name().#primary_key().find(&#primary_key_value) {
-                Some(#singular_table_name) => Ok(#singular_table_name),
-                None => return Err(#not_found_error)
-            }
-        },
-        read_context_compatible: true,
-    }
-}
-
-/// `delete_<table>`: delete the one row of a singleton table.
-fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
-    let MethodGenerationContext {
-        spacetimedsl_table,
-        struct_name,
-        singular_table_name,
-        singular_table_name_as_string,
-        ..
-    } = context;
-
-    let primary_key = singleton::primary_key_ident();
-    let primary_key_value = singleton::primary_key_value();
-
-    let before_delete_hook = hook_tokens(
-        &spacetimedsl_table.hooks.before_delete,
-        |hook_function_name| {
-            let hook_call = runtime::dsl_method_hooks_call(
-                hook_function_name,
-                &quote! { self, &row_to_delete },
-            );
-
-            quote! {
-                #hook_call?;
-            }
-        },
-    );
-
-    let after_delete_hook = hook_tokens(
-        &spacetimedsl_table.hooks.after_delete,
-        |hook_function_name| {
-            let hook_call = runtime::dsl_method_hooks_call(
-                hook_function_name,
-                &quote! { self, &row_to_delete },
-            );
-
-            quote! {
-                #hook_call?;
-            }
-        },
-    );
-
-    let not_found_error = runtime::not_found_error(
-        singular_table_name_as_string,
-        &singleton::rendered_primary_key(),
-    );
-
-    let deletion_result_entry = runtime::deletion_result_entry(
-        singular_table_name_as_string,
-        &singleton::PRIMARY_KEY_NAME,
-        &runtime::on_delete_strategy(&quote! { Delete }),
-        &singleton::rendered_primary_key_value(),
-        &quote! { child_entries: vec![], },
-    );
-
-    let count_mismatch_error = runtime::generic_error(&quote! {
-        "Delete One Error: `count_of_rows_to_delete ( 1 ) != ( 0 ) count_of_deleted_rows`!".to_string()
-    });
-
-    let single_entry_deletion_result = runtime::deletion_result(
-        singular_table_name_as_string,
-        &OneOrMultiple::One,
-        &quote! { vec![deletion_result_entry] },
-        &quote! { None },
-    );
-
-    let itertools_import = runtime::itertools_import();
-
-    SpacetimeDSLMethod {
-        doc_comment: format!(
-            "Try to delete the `{struct_name}` row from the singleton `{singular_table_name}` table."
-        ),
-        method_name: format_ident!("delete_{singular_table_name}"),
-        method_args: vec![],
-        return_type: runtime::error_result_type(&runtime::deletion_result_type()),
-        method_impl: quote! {
-            #itertools_import
-
-            let row_to_delete = match self.db().#singular_table_name().#primary_key().find(&#primary_key_value) {
-                None => return Err(#not_found_error),
-                Some(row_to_delete) => row_to_delete,
-            };
-
-            let mut deletion_result_entry = #deletion_result_entry;
-
-            #before_delete_hook
-
-            match self.db().#singular_table_name().#primary_key().delete(&#primary_key_value) {
-                false => {
-                    return Err(#count_mismatch_error);
-                },
-                true => {},
-            };
-
-            #after_delete_hook
-
-            return Ok(#single_entry_deletion_result);
-        },
-        read_context_compatible: false,
-    }
 }
 
 /// The update method an index earns, if any.
