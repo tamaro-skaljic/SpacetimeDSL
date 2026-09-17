@@ -71,7 +71,10 @@ fn select_table_with_heuristics<'a>(
     let all_tables = get_all_table_attributes(input)?;
 
     if all_tables.is_empty() {
-        return Err(Error::new(Span::call_site(), "No table attributes found"));
+        return Err(Error::new(
+            Span::call_site(),
+            "No `#[table]`/`#[spacetimedb::table]` attribute macro found",
+        ));
     }
 
     // If only one table, return it

@@ -34,10 +34,8 @@ use std::collections::{BTreeMap, VecDeque};
 use strum::IntoEnumIterator;
 use syn::{Ident, parse_str};
 
-/// The invariant `internal/dsl/column.rs` enforces: every primary key column except a
-/// singleton's injected `id: u8` carries a wrapper type.
-const PRIMARY_KEY_WRAPPER_TYPE_INVARIANT: &str =
-    "A non-singleton primary key column must have a wrapper type";
+/// The invariant `internal/dsl/column.rs` enforces: every primary key column except a singleton's injected `id: u8` carries a wrapper type.
+const PRIMARY_KEY_WRAPPER_TYPE_INVARIANT: &str = "A primary key column must be accompanied by `#[create_wrapper]` or `#[use_wrapper(crate::path::to::MyIdType)]`";
 
 pub(in crate::internal) enum DSLMethod<'a> {
     Create,
@@ -3009,7 +3007,7 @@ fn get_on_delete_strategy_implementation(
                 .spacetimedb_column
                 .single_column_index
                 .as_ref()
-                .expect("A foreign key column of a non-singleton table always has a single-column index")
+                .expect("A foreign key column always has a single-column index, except in singleton-tables")
                 .is_unique
             {
                 true => IndexUniqueness::Unique,

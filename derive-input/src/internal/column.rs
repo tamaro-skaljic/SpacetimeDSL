@@ -32,7 +32,7 @@ pub(in crate::internal) fn try_parse(
         None => {
             return Err(syn::Error::new(
                 Span::call_site(),
-                "The table should have a column with `#[primary_key]` helper attribute!",
+                "Your table should have a `#[primary_key]` column!",
             ));
         }
     };
