@@ -178,17 +178,67 @@ enum ReferencingTables {
     Absent,
 }
 
+/// Which DSL methods an index earns.
+///
+/// A non-unique index yields many rows, so it earns `get_many` and `delete_many`. A
+/// unique index yields at most one, so it earns `get_one_option` and `delete_one`, plus
+/// `update` when it is the primary key. The `method(...)` flags suppress the delete and
+/// update methods on top of that.
+///
+/// Single-column and multi-column indices read this rule from here, which is the point:
+/// it used to be written out once for each, and the two copies disagreed about which
+/// unique index may update a row.
+fn column_methods_for(
+    index: &Index,
+    context: &MethodGenerationContext,
+) -> SpacetimeDSLColumnMethods {
+    let MethodGenerationContext {
+        spacetimedsl_table,
+        primary_key_column,
+        ..
+    } = context;
+
+    let shape = IndexShape::of(index, context);
+
+    match index.is_unique {
+        false => SpacetimeDSLColumnMethods::ForIndex(SpacetimeDSLColumnMethodsForIndex {
+            get_many: for_get_many(&shape, context),
+            delete_many: match spacetimedsl_table.has_delete_method {
+                false => None,
+                true => Some(for_delete_many(&shape, context)),
+            },
+        }),
+        true => {
+            // Only the primary key can update a row: SpacetimeDB's `update` lives on the
+            // primary key index, and no other index implements `PrimaryKey`.
+            let is_primary_key_index = match &index.index_type {
+                IndexType::BTreeSingleColumn { column }
+                | IndexType::HashSingleColumn { column }
+                | IndexType::Direct { column } => *column == primary_key_column.rust_field_name,
+                // A primary key is one column, so a multi-column index is never it.
+                IndexType::BTreeMultiColumn { .. } | IndexType::HashMultiColumn { .. } => false,
+            };
+
+            SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
+                get_one_option: for_get_one(&shape, context),
+                update: match spacetimedsl_table.has_update_method && is_primary_key_index {
+                    false => None,
+                    true => Some(for_update(&shape, context)),
+                },
+                delete_one: match spacetimedsl_table.has_delete_method {
+                    false => None,
+                    true => Some(for_delete_one(&shape, context)),
+                },
+            })
+        }
+    }
+}
+
 impl SpacetimeDSLColumnMethods {
     pub(in crate::internal) fn map(
         context: &MethodGenerationContext,
         spacetimedb_column: &SpacetimeDBColumn,
     ) -> Option<SpacetimeDSLColumnMethods> {
-        let MethodGenerationContext {
-            spacetimedsl_table,
-            primary_key_column,
-            ..
-        } = context;
-
         let index = match &spacetimedb_column.single_column_index {
             None => {
                 return None;
@@ -196,58 +246,14 @@ impl SpacetimeDSLColumnMethods {
             Some(index) => index,
         };
 
-        let shape = IndexShape::of(index, context);
+        // `internal/db/column.rs` rejects `#[index]` and `#[unique]` on a singleton's own
+        // columns, so the only index a singleton reaches here with is its injected primary
+        // key, which is unique.
+        if context.spacetimedsl_table.is_singleton && !index.is_unique {
+            return None;
+        }
 
-        let methods = match index.is_unique {
-            false => {
-                if spacetimedsl_table.is_singleton {
-                    return None;
-                }
-
-                let get_many = for_get_many(&shape, context);
-
-                let delete_many = match spacetimedsl_table.has_delete_method {
-                    false => None,
-                    true => Some(for_delete_many(&shape, context)),
-                };
-
-                SpacetimeDSLColumnMethods::ForIndex(SpacetimeDSLColumnMethodsForIndex {
-                    get_many,
-                    delete_many,
-                })
-            }
-            true => {
-                let get_one_option = for_get_one(&shape, context);
-
-                let method_is_for_primary_key = match &index.index_type {
-                    IndexType::BTreeSingleColumn { column }
-                    | IndexType::HashSingleColumn { column }
-                    | IndexType::Direct { column } => column
-                        .to_string()
-                        .eq(&primary_key_column.rust_field_name.to_string()),
-                    _ => panic!("A column's own index is always a single-column index"),
-                };
-
-                let update = match spacetimedsl_table.has_update_method && method_is_for_primary_key
-                {
-                    false => None,
-                    true => Some(for_update(&shape, context)),
-                };
-
-                let delete_one = match spacetimedsl_table.has_delete_method {
-                    false => None,
-                    true => Some(for_delete_one(&shape, context)),
-                };
-
-                SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
-                    get_one_option,
-                    update,
-                    delete_one,
-                })
-            }
-        };
-
-        Some(methods)
+        Some(column_methods_for(index, context))
     }
 }
 
@@ -393,45 +399,7 @@ impl SpacetimeDSLTableMethods {
                 continue;
             }
 
-            let shape = IndexShape::of(multi_column_index, context);
-
-            match multi_column_index.is_unique {
-                false => {
-                    let get_many = for_get_many(&shape, context);
-
-                    let delete_many = match spacetimedsl_table.has_delete_method {
-                        false => None,
-                        true => Some(for_delete_many(&shape, context)),
-                    };
-
-                    multi_column_indices.push(SpacetimeDSLColumnMethods::ForIndex(
-                        SpacetimeDSLColumnMethodsForIndex {
-                            get_many,
-                            delete_many,
-                        },
-                    ));
-                }
-                true => {
-                    let get_one_option = for_get_one(&shape, context);
-
-                    // Only the primary key can update a row: SpacetimeDB's `update` lives on
-                    // the primary key index, and no other index implements `PrimaryKey`.
-                    let update = None;
-
-                    let delete_one = match spacetimedsl_table.has_delete_method {
-                        false => None,
-                        true => Some(for_delete_one(&shape, context)),
-                    };
-
-                    multi_column_indices.push(SpacetimeDSLColumnMethods::ForUniqueIndex(
-                        SpacetimeDSLColumnMethodsForUniqueIndex {
-                            get_one_option,
-                            update,
-                            delete_one,
-                        },
-                    ));
-                }
-            };
+            multi_column_indices.push(column_methods_for(multi_column_index, context));
         }
 
         let methods = SpacetimeDSLTableMethods {
