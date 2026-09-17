@@ -2534,8 +2534,8 @@ fn multi_column_index_checks(
     let singular_table_name_as_string = singular_table_name.to_string();
 
     for multi_column_index in &spacetimedb_table.multi_column_indices {
-        let mut index_column_names: VecDeque<Ident> = match &multi_column_index.index_type {
-            IndexType::BTreeMultiColumn { columns } => columns.clone().into(),
+        let index_column_names: &[Ident] = match &multi_column_index.index_type {
+            IndexType::BTreeMultiColumn { columns } => columns,
             _ => {
                 continue;
             }
@@ -2554,43 +2554,15 @@ fn multi_column_index_checks(
 
         let index_name = &multi_column_index.name;
 
-        let mut row_value_getters = vec![];
-        let mut column_names_and_row_values = String::new();
-
-        let first_column_name = index_column_names.pop_front().expect(
-            "A multi-column index is only built from two or more columns, so it has a first one",
-        );
-
-        let last_column_name = index_column_names.pop_back().expect(
-            "A multi-column index is only built from two or more columns, so it has a last one",
-        );
-
-        let any_other_column_name = index_column_names;
-
-        column_names_and_row_values.push_str("{{ ");
-        column_names_and_row_values.push_str(&format!("{first_column_name} : "));
-        column_names_and_row_values.push_str("{}");
-        row_value_getters.push(get_row_value_getter(
-            internal_column_named(&first_column_name),
-            singular_table_name,
-        ));
-
-        for any_other_column_name in any_other_column_name {
-            column_names_and_row_values.push_str(&format!(", {any_other_column_name} : "));
-            column_names_and_row_values.push_str("{}");
-            row_value_getters.push(get_row_value_getter(
-                internal_column_named(&any_other_column_name),
-                singular_table_name,
-            ));
-        }
-
-        column_names_and_row_values.push_str(&format!(", {last_column_name} : "));
-        column_names_and_row_values.push_str("{}");
-        column_names_and_row_values.push_str(" }}");
-        row_value_getters.push(get_row_value_getter(
-            internal_column_named(&last_column_name),
-            singular_table_name,
-        ));
+        // Built from the same ordered column list, so the placeholder count and the
+        // getter count cannot drift apart.
+        let column_names_and_row_values = column_names_and_row_values(index_column_names);
+        let row_value_getters = index_column_names
+            .iter()
+            .map(|column_name| {
+                get_row_value_getter(internal_column_named(column_name), singular_table_name)
+            })
+            .collect_vec();
 
         let mut multi_column_index_check = get_unique_multi_column_index_check(
             &action,
