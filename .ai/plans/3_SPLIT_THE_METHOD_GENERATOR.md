@@ -239,7 +239,9 @@ rg -n 'fn for_method|enum DSLMethod|DSLMethod::' derive-input/src        # 0 mat
 rg -n 'handled before this match' derive-input/src                       # 0 matches
 
 # 3. The variant is never re-derived.
-rg -n 'dsl_method' derive-input/src                                      # 0 matches
+#    (Word-bounded: `create_dsl_method_arg`, `dsl_method_hooks_call` and
+#     `get_referenced_table_function_call_for_dsl_method` are unrelated names.)
+rg -nw 'dsl_method' derive-input/src                                     # 0 matches
 
 # 4. The table is written in one place.
 #    (`apply_to` is that place, and `internal/table.rs` is its only caller.)

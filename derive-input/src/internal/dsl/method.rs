@@ -38,14 +38,6 @@ use syn::{Ident, parse_str};
 /// The invariant `internal/dsl/column.rs` enforces: every primary key column except a singleton's injected `id: u8` carries a wrapper type.
 const PRIMARY_KEY_WRAPPER_TYPE_INVARIANT: &str = "A primary key column must be accompanied by `#[create_wrapper]` or `#[use_wrapper(crate::path::to::MyIdType)]`";
 
-pub(in crate::internal) enum DSLMethod<'a> {
-    GetMany(&'a Index),
-    DeleteMany(&'a Index),
-    GetOne(&'a Index),
-    Update(&'a Index),
-    DeleteOne(&'a Index),
-}
-
 #[derive(Debug)]
 pub enum OneOrMultiple {
     One,
@@ -138,10 +130,6 @@ pub(in crate::internal) struct GeneratedTableRecordings {
 }
 
 impl GeneratedTableRecordings {
-    fn is_empty(&self) -> bool {
-        self.create_dsl_method_arg.is_none() && self.compile_error_checks.is_empty()
-    }
-
     fn merge(&mut self, other: GeneratedTableRecordings) {
         if let Some(create_dsl_method_arg) = other.create_dsl_method_arg {
             self.create_dsl_method_arg = Some(create_dsl_method_arg);
@@ -201,20 +189,6 @@ impl SpacetimeDSLColumnMethods {
             ..
         } = context;
 
-        /// `for_method` records something only for `DSLMethod::Create`, which a column's
-        /// methods never include, so there is nothing here for the table to keep.
-        /// `SpacetimeDSLTableMethods::generate` is the caller that has to apply them.
-        fn method_only(
-            (method, recordings): (SpacetimeDSLMethod, GeneratedTableRecordings),
-        ) -> SpacetimeDSLMethod {
-            debug_assert!(
-                recordings.is_empty(),
-                "A column's methods never record anything on the table"
-            );
-
-            method
-        }
-
         let index = match &spacetimedb_column.single_column_index {
             None => {
                 return None;
@@ -222,20 +196,19 @@ impl SpacetimeDSLColumnMethods {
             Some(index) => index,
         };
 
+        let shape = IndexShape::of(index, context);
+
         let methods = match index.is_unique {
             false => {
                 if spacetimedsl_table.is_singleton {
                     return None;
                 }
 
-                let get_many = method_only(for_method(DSLMethod::GetMany(index), context));
+                let get_many = for_get_many(&shape, context);
 
                 let delete_many = match spacetimedsl_table.has_delete_method {
                     false => None,
-                    true => Some(method_only(for_method(
-                        DSLMethod::DeleteMany(index),
-                        context,
-                    ))),
+                    true => Some(for_delete_many(&shape, context)),
                 };
 
                 SpacetimeDSLColumnMethods::ForIndex(SpacetimeDSLColumnMethodsForIndex {
@@ -244,7 +217,7 @@ impl SpacetimeDSLColumnMethods {
                 })
             }
             true => {
-                let get_one_option = method_only(for_method(DSLMethod::GetOne(index), context));
+                let get_one_option = for_get_one(&shape, context);
 
                 let method_is_for_primary_key = match &index.index_type {
                     IndexType::BTreeSingleColumn { column }
@@ -258,15 +231,12 @@ impl SpacetimeDSLColumnMethods {
                 let update = match spacetimedsl_table.has_update_method && method_is_for_primary_key
                 {
                     false => None,
-                    true => Some(method_only(for_method(DSLMethod::Update(index), context))),
+                    true => Some(for_update(&shape, context)),
                 };
 
                 let delete_one = match spacetimedsl_table.has_delete_method {
                     false => None,
-                    true => Some(method_only(for_method(
-                        DSLMethod::DeleteOne(index),
-                        context,
-                    ))),
+                    true => Some(for_delete_one(&shape, context)),
                 };
 
                 SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
@@ -423,19 +393,15 @@ impl SpacetimeDSLTableMethods {
                 continue;
             }
 
+            let shape = IndexShape::of(multi_column_index, context);
+
             match multi_column_index.is_unique {
                 false => {
-                    let (get_many, get_many_recordings) =
-                        for_method(DSLMethod::GetMany(multi_column_index), context);
-                    recordings.merge(get_many_recordings);
+                    let get_many = for_get_many(&shape, context);
+
                     let delete_many = match spacetimedsl_table.has_delete_method {
                         false => None,
-                        true => {
-                            let (method, method_recordings) =
-                                for_method(DSLMethod::DeleteMany(multi_column_index), context);
-                            recordings.merge(method_recordings);
-                            Some(method)
-                        }
+                        true => Some(for_delete_many(&shape, context)),
                     };
 
                     multi_column_indices.push(SpacetimeDSLColumnMethods::ForIndex(
@@ -446,9 +412,7 @@ impl SpacetimeDSLTableMethods {
                     ));
                 }
                 true => {
-                    let (get_one_option, get_one_option_recordings) =
-                        for_method(DSLMethod::GetOne(multi_column_index), context);
-                    recordings.merge(get_one_option_recordings);
+                    let get_one_option = for_get_one(&shape, context);
 
                     // Only the primary key can update a row: SpacetimeDB's `update` lives on
                     // the primary key index, and no other index implements `PrimaryKey`.
@@ -456,12 +420,7 @@ impl SpacetimeDSLTableMethods {
 
                     let delete_one = match spacetimedsl_table.has_delete_method {
                         false => None,
-                        true => {
-                            let (method, method_recordings) =
-                                for_method(DSLMethod::DeleteOne(multi_column_index), context);
-                            recordings.merge(method_recordings);
-                            Some(method)
-                        }
+                        true => Some(for_delete_one(&shape, context)),
                     };
 
                     multi_column_indices.push(SpacetimeDSLColumnMethods::ForUniqueIndex(
@@ -1930,22 +1889,6 @@ fn for_delete_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
         method_impl,
         read_context_compatible: false,
     }
-}
-
-/// Routes a `DSLMethod` to the generator that produces it.
-fn for_method(
-    dsl_method: DSLMethod,
-    context: &MethodGenerationContext,
-) -> (SpacetimeDSLMethod, GeneratedTableRecordings) {
-    let method = match dsl_method {
-        DSLMethod::GetMany(index) => for_get_many(&IndexShape::of(index, context), context),
-        DSLMethod::DeleteMany(index) => for_delete_many(&IndexShape::of(index, context), context),
-        DSLMethod::GetOne(index) => for_get_one(&IndexShape::of(index, context), context),
-        DSLMethod::Update(index) => for_update(&IndexShape::of(index, context), context),
-        DSLMethod::DeleteOne(index) => for_delete_one(&IndexShape::of(index, context), context),
-    };
-
-    (method, GeneratedTableRecordings::default())
 }
 
 /// Everything the five index-based generators derive from the index they are given.
