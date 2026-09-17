@@ -1,4 +1,4 @@
-use super::get_referenced_table_function_call_for_dsl_method;
+use super::referenced_by::get_referenced_table_function_call_for_dsl_method;
 use super::{
     context::{self, MethodGenerationContext},
     hook_call::hook_tokens,
