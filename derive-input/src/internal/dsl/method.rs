@@ -22,7 +22,8 @@ use crate::{
     internal::{
         column::{ColumnTypeKind, InternalColumn},
         dsl::{
-            generated_runtime as runtime, wrapper::map_wrapper_type_option_to_wrapped_type_option,
+            generated_runtime as runtime, singleton,
+            wrapper::map_wrapper_type_option_to_wrapped_type_option,
         },
     },
 };
@@ -523,20 +524,20 @@ fn create_method_column_parts(
 
     let column_type = &internal_column.rust_field_type_name_or_path;
 
-    // Singleton PK column (id: u8) is auto-filled with 0
+    // A singleton table does not ask for its injected primary key, it fills it in.
     if spacetimedsl_table.is_singleton
-        && internal_column.rust_field_name == "id"
-        && internal_column
-            .rust_field_type_name_or_path
-            .to_token_stream()
-            .to_string()
-            == "u8"
+        && singleton::is_primary_key_column(
+            &internal_column.rust_field_name,
+            &internal_column.rust_field_type_name_or_path,
+        )
     {
+        let primary_key_value = singleton::primary_key_value();
+
         return CreateMethodColumnParts {
             arg,
             wrapper_option_mapper,
             constructor_arg: Some(quote! {
-                let #column_name = 0u8;
+                let #column_name = #primary_key_value;
             }),
             constructor_arg_name,
         };
@@ -1207,7 +1208,10 @@ pub(in crate::internal) fn for_method(
                     );
 
                     let set_singleton_id_to_zero = if is_singleton_pk {
-                        quote! { #singular_table_name.id = 0u8; }
+                        let primary_key = singleton::primary_key_ident();
+                        let primary_key_value = singleton::primary_key_value();
+
+                        quote! { #singular_table_name.#primary_key = #primary_key_value; }
                     } else {
                         TokenStream::default()
                     };
@@ -1739,7 +1743,7 @@ pub(in crate::internal) fn for_method(
                             false => {
                                 let singleton_not_found_error = runtime::not_found_error(
                                     &singular_table_name_as_string,
-                                    &quote! { "{ id : 0 }" },
+                                    &singleton::rendered_primary_key(),
                                 );
                                 let not_found_error = runtime::not_found_error(
                                     &singular_table_name_as_string,
@@ -1749,8 +1753,11 @@ pub(in crate::internal) fn for_method(
                                 );
 
                                 if is_singleton_pk {
+                                    let primary_key = singleton::primary_key_ident();
+                                    let primary_key_value = singleton::primary_key_value();
+
                                     method_impl = quote! {
-                                        match self.db().#singular_table_name().id().find(&0u8) {
+                                        match self.db().#singular_table_name().#primary_key().find(&#primary_key_value) {
                                             Some(#singular_table_name) => Ok(#singular_table_name),
                                             None => return Err(#singleton_not_found_error)
                                         }
@@ -1769,6 +1776,9 @@ pub(in crate::internal) fn for_method(
                         },
                         DSLMethod::DeleteOne(_) => {
                             if is_singleton_pk {
+                                let primary_key = singleton::primary_key_ident();
+                                let primary_key_value = singleton::primary_key_value();
+
                                 let before_delete_hook = hook_tokens(
                                     &spacetimedsl_table.hooks.before_delete,
                                     |hook_function_name| {
@@ -1797,14 +1807,14 @@ pub(in crate::internal) fn for_method(
                                 );
                                 let singleton_not_found_error = runtime::not_found_error(
                                     &singular_table_name_as_string,
-                                    &quote! { "{ id : 0 }" },
+                                    &singleton::rendered_primary_key(),
                                 );
                                 let singleton_deletion_result_entry =
                                     runtime::deletion_result_entry(
                                         &singular_table_name_as_string,
-                                        &quote! { "id" },
+                                        &singleton::PRIMARY_KEY_NAME,
                                         &runtime::on_delete_strategy(&quote! { Delete }),
-                                        &quote! { "0" },
+                                        &singleton::rendered_primary_key_value(),
                                         &quote! { child_entries: vec![], },
                                     );
                                 let count_mismatch_error = runtime::generic_error(&quote! {
@@ -1819,7 +1829,7 @@ pub(in crate::internal) fn for_method(
                                 method_impl = quote! {
                                     use ::spacetimedsl::itertools::Itertools;
 
-                                    let row_to_delete = match self.db().#singular_table_name().id().find(&0u8) {
+                                    let row_to_delete = match self.db().#singular_table_name().#primary_key().find(&#primary_key_value) {
                                         None => return Err(#singleton_not_found_error),
                                         Some(row_to_delete) => row_to_delete,
                                     };
@@ -1828,7 +1838,7 @@ pub(in crate::internal) fn for_method(
 
                                     #before_delete_hook
 
-                                    match self.db().#singular_table_name().id().delete(&0u8) {
+                                    match self.db().#singular_table_name().#primary_key().delete(&#primary_key_value) {
                                         false => {
                                             return Err(#count_mismatch_error);
                                         },
@@ -3120,7 +3130,8 @@ fn get_on_delete_strategy_implementation(
         let column_name = &column.rust_field.name;
         let column_name_as_string = column_name.to_string();
 
-        // Singletons don't have indices on FK columns; use .id().find(&0u8) instead
+        // A singleton has no index on a foreign key column, so find its one row by the
+        // injected primary key and check the column afterwards.
         let index_uniqueness = if is_singleton {
             // Singleton has at most 1 row, treat as unique
             IndexUniqueness::Unique
@@ -3139,8 +3150,11 @@ fn get_on_delete_strategy_implementation(
 
         let row_finder = if is_singleton {
             // For singletons, find the single row by PK and check FK column manually
+            let primary_key = singleton::primary_key_ident();
+            let primary_key_value = singleton::primary_key_value();
+
             quote! {
-                #spacetimedb_call_prefix.id().find(&0u8).filter(|row| row.#column_name == *primary_key_value_of_a_row_of_another_table_to_delete)
+                #spacetimedb_call_prefix.#primary_key().find(&#primary_key_value).filter(|row| row.#column_name == *primary_key_value_of_a_row_of_another_table_to_delete)
             }
         } else {
             match index_uniqueness {
@@ -3158,8 +3172,10 @@ fn get_on_delete_strategy_implementation(
         };
 
         let row_value_format = if is_singleton {
-            // Singleton PK is u8(0) with no wrapper type
-            quote! { "0".to_string() }
+            // The injected primary key has no wrapper type to render it.
+            let rendered_primary_key_value = singleton::rendered_primary_key_value();
+
+            quote! { #rendered_primary_key_value.to_string() }
         } else {
             let wrapper_type_struct_name_or_path = primary_key_column
                 .spacetimedsl_column_wrapper_type

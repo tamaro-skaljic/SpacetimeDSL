@@ -22,6 +22,8 @@ pub mod generated_runtime;
 
 pub mod method;
 
+pub mod singleton;
+
 symbol!(table);
 symbol!(singleton);
 symbol!(plural_name);

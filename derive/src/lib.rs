@@ -170,6 +170,11 @@ fn is_last_dsl_attribute(derive_input: &syn::DeriveInput) -> bool {
 
 /// For singleton tables, inject `#[primary_key] id: u8` as the first field.
 /// Errors if the user already has a field named `id`.
+///
+/// The name, the type and the value this field is filled with are spelled out again in
+/// `derive-input`'s `internal::dsl::singleton`, which is what generates the DSL methods
+/// that read it. The two crates do not share the definition, so a change here needs the
+/// same change there.
 fn inject_singleton_primary_key(derive_input: &mut syn::DeriveInput) -> syn::Result<()> {
     if let syn::Data::Struct(data_struct) = &mut derive_input.data
         && let syn::Fields::Named(fields) = &mut data_struct.fields

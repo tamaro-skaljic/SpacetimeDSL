@@ -241,8 +241,9 @@ rg -n 'handled before this match' derive-input/src                       # 0 mat
 # 3. The variant is never re-derived.
 rg -n 'dsl_method' derive-input/src                                      # 0 matches
 
-# 4. The table is immutable outside the orchestrator.
-rg -n '&mut SpacetimeDSLTable' derive-input/src                          # only internal/table.rs
+# 4. The table is written in one place.
+#    (`apply_to` is that place, and `internal/table.rs` is its only caller.)
+rg -n '&mut SpacetimeDSLTable' derive-input/src                          # 1 match
 
 # 5. The singleton magic values have one home in derive-input.
 #    (10 matches today, all in method.rs. Do not widen this to a bare `"id"`:
@@ -664,13 +665,30 @@ Define the contract once:
 
 pub(in crate::internal) const PRIMARY_KEY_NAME: &str = "id";
 pub(in crate::internal) fn primary_key_ident() -> Ident;
-pub(in crate::internal) fn primary_key_type() -> TokenStream;            // u8
-pub(in crate::internal) fn primary_key_value() -> TokenStream;           // 0u8
-pub(in crate::internal) fn rendered_primary_key() -> &'static str;       // "{ id : 0 }"
+pub(in crate::internal) fn primary_key_value() -> Literal;               // 0u8
+pub(in crate::internal) fn rendered_primary_key_value() -> String;       // "0"
+pub(in crate::internal) fn rendered_primary_key() -> String;             // "{ id : 0 }"
+pub(in crate::internal) fn is_primary_key_column(name: &Ident, type_name_or_path: &Path) -> bool;
 ```
 
-and have `internal/db/column.rs`, `internal/dsl/column.rs` and
-`internal/dsl/method.rs` read from it.
+and have `internal/dsl/method.rs` read from it.
+
+**Amended while implementing.** The sketch above named a `primary_key_type()`
+emitter, but nothing in `derive-input` ever writes the injected key's type — the
+create path only asks whether a column *is* that key, which
+`is_primary_key_column` now answers, keeping both the name and the type literal
+inside the module. The value is a `Literal` rather than a `TokenStream` so the
+module can build `0u8` from the `u8` it means, and the rendered forms are `String`
+for the same reason: `"{ id : 0 }"` is assembled from the name and the value rather
+than written out a second time.
+
+`internal/db/column.rs` and `internal/dsl/column.rs` turned out to have nothing to
+read. Both special-case singletons, but they do it through `is_singleton` and
+`is_primary_key` flags alone — neither names the injected column, its type or its
+value. The `"id"` in `internal/db/column.rs:32` is the *suggestion* an error
+message makes when a non-singleton's primary key is prefixed with its table's name;
+it is the same word for an unrelated rule, which is why acceptance criterion 5 does
+not match it.
 
 **Taken before the split deliberately** — for the same reason plan 2 resolved
 column-type classification before its own restructuring: the split must not carry
