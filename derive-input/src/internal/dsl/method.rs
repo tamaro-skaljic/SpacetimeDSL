@@ -951,6 +951,7 @@ pub(in crate::internal) fn for_method(
         | DSLMethod::GetOne(index)
         | DSLMethod::Update(index)
         | DSLMethod::DeleteOne(index) => {
+            let shape = IndexShape::of(index, context);
             let IndexShape {
                 index_name,
                 index_columns,
@@ -959,8 +960,9 @@ pub(in crate::internal) fn for_method(
                 column_names_and_row_values,
                 described_as,
                 unique_multi_column_hint: unique_multi_column_index_hint,
-            } = IndexShape::of(index, context);
-            let index_name = &index_name;
+            } = &shape;
+            let is_multi_column_index = *is_multi_column_index;
+            let is_singleton_pk = *is_singleton_pk;
 
             doc_comment = match dsl_method {
                 DSLMethod::GetMany(_) => format!(
@@ -1129,8 +1131,8 @@ pub(in crate::internal) fn for_method(
                     let reference_integrity_checks = reference_integrity_checks_on_update(
                         spacetimedb_table,
                         internal_columns,
-                        &column_names_and_row_values,
-                        &index_columns,
+                        column_names_and_row_values,
+                        index_columns,
                         &one_or_multiple,
                         primary_key_column,
                     );
@@ -1246,208 +1248,24 @@ pub(in crate::internal) fn for_method(
                     };
                 }
                 dsl_method => {
-                    let mut wrapper_type_option_to_wrapped_type_option_mappers = vec![];
-                    let mut row_value_getters = vec![];
-
-                    for column_name in &index_columns {
-                        let column = internal_columns
-                            .iter()
-                            .find(|c| c.rust_field_name == *column_name)
-                            .expect("An index column is always one of the table's columns");
-
-                        let column_is_string =
-                            column.rust_field_type_kind == ColumnTypeKind::String;
-
-                        let wrapper_type_option_to_wrapped_type_option_mapper;
-                        let method_arg;
-                        let row_value_getter;
-
-                        match &column.spacetimedsl_column_wrapper_type {
-                            Some(wrapper_type) => {
-                                let wrapper_type_ty = &WrapperType::map(wrapper_type);
-
-                                if column_is_string {
-                                    wrapper_type_option_to_wrapped_type_option_mapper =
-                                        TokenStream::default();
-
-                                    match &dsl_method {
-                                        DSLMethod::GetMany(_) | DSLMethod::DeleteMany(_) => {
-                                            method_arg = SpacetimeDSLArg {
-                                                is_option: false,
-                                                arg_name: column_name.clone(),
-                                                arg_type: SpacetimeDSLArgType::Normal(
-                                                    quote! { &str },
-                                                ),
-                                            };
-                                            row_value_getter = quote! { #column_name };
-                                        }
-                                        DSLMethod::GetOne(_) | DSLMethod::DeleteOne(_) => {
-                                            method_arg = SpacetimeDSLArg {
-                                                is_option: false,
-                                                arg_name: column_name.clone(),
-                                                arg_type: SpacetimeDSLArgType::Normal(
-                                                    quote! { &str },
-                                                ),
-                                            };
-                                            if is_multi_column_index {
-                                                row_value_getter = quote! { #column_name };
-                                            } else {
-                                                row_value_getter =
-                                                    quote! { #column_name.to_string() };
-                                            }
-                                        }
-                                        DSLMethod::Update(_) => {
-                                            panic!(
-                                                "`DSLMethod::Update` is handled before this match"
-                                            )
-                                        }
-                                        DSLMethod::Create
-                                        | DSLMethod::GetAll
-                                        | DSLMethod::GetCount => panic!(
-                                            "`DSLMethod::Create`, `GetAll` and `GetCount` are handled before this match"
-                                        ),
-                                    }
-                                } else if column.spacetimedsl_column_is_option {
-                                    wrapper_type_option_to_wrapped_type_option_mapper =
-                                        match wrapper_type {
-                                            // A created wrapper wraps the whole Option, so
-                                            // value() already yields it.
-                                            WrapperType::Created(_) => quote! {
-                                                let #column_name = match #column_name.into() {
-                                                    None => None,
-                                                    Some(#column_name) => Into::<#wrapper_type_ty>::into(#column_name).value(),
-                                                };
-                                            },
-                                            // A used wrapper wraps the inner type, so the
-                                            // Option has to be rebuilt around value().
-                                            WrapperType::Used(_) => quote! {
-                                                let #column_name = match #column_name.into() {
-                                                    None => None,
-                                                    Some(#column_name) => Some(Into::<#wrapper_type_ty>::into(#column_name).value()),
-                                                };
-                                            },
-                                        };
-
-                                    method_arg = SpacetimeDSLArg {
-                                        is_option: true,
-                                        arg_name: column_name.clone(),
-                                        arg_type: SpacetimeDSLArgType::Wrapped {
-                                            wrapped_type: WrapperType::map_to_wrapped_type(
-                                                wrapper_type,
-                                            )
-                                            .to_token_stream(),
-                                            actual_type: quote! { &impl Into<Option<#wrapper_type_ty>> },
-                                        },
-                                    };
-
-                                    row_value_getter = quote! { #column_name };
-                                } else {
-                                    wrapper_type_option_to_wrapped_type_option_mapper =
-                                        TokenStream::default();
-
-                                    match &dsl_method {
-                                        DSLMethod::GetMany(_) | DSLMethod::DeleteMany(_) => {
-                                            method_arg = SpacetimeDSLArg {
-                                                is_option: false,
-                                                arg_name: column_name.clone(),
-                                                arg_type: SpacetimeDSLArgType::Wrapped {
-                                                    wrapped_type: WrapperType::map_to_wrapped_type(
-                                                        wrapper_type,
-                                                    )
-                                                    .to_token_stream(),
-                                                    actual_type: quote! { impl Into<#wrapper_type_ty> },
-                                                },
-                                            };
-                                            row_value_getter =
-                                                quote! { #column_name.into().value() };
-                                        }
-                                        DSLMethod::GetOne(_) | DSLMethod::DeleteOne(_) => {
-                                            method_arg = SpacetimeDSLArg {
-                                                is_option: false,
-                                                arg_name: column_name.clone(),
-                                                arg_type: SpacetimeDSLArgType::Wrapped {
-                                                    wrapped_type: WrapperType::map_to_wrapped_type(
-                                                        wrapper_type,
-                                                    )
-                                                    .to_token_stream(),
-                                                    actual_type: quote! { impl Into<#wrapper_type_ty> + Clone },
-                                                },
-                                            };
-                                            row_value_getter =
-                                                quote! { #column_name.clone().into().value() };
-                                        }
-                                        DSLMethod::Update(_) => {
-                                            panic!(
-                                                "`DSLMethod::Update` is handled before this match"
-                                            )
-                                        }
-                                        DSLMethod::Create
-                                        | DSLMethod::GetAll
-                                        | DSLMethod::GetCount => panic!(
-                                            "`DSLMethod::Create`, `GetAll` and `GetCount` are handled before this match"
-                                        ),
-                                    }
-                                }
-                            }
-                            None => {
-                                wrapper_type_option_to_wrapped_type_option_mapper =
-                                    TokenStream::default();
-
-                                // TODO: string stuff was only in the single column index implementation, does that work for multi column indices?
-                                let column_type = if column_is_string {
-                                    parse_str("str").expect("`str` is a valid type path")
-                                } else {
-                                    column.rust_field_type_name_or_path.clone()
-                                };
-
-                                match dsl_method {
-                                    DSLMethod::GetMany(_) | DSLMethod::DeleteMany(_) => {
-                                        method_arg = SpacetimeDSLArg {
-                                            is_option: column.spacetimedsl_column_is_option,
-                                            arg_name: column_name.clone(),
-                                            arg_type: SpacetimeDSLArgType::Normal(
-                                                quote! { &'a #column_type },
-                                            ),
-                                        };
-
-                                        row_value_getter = quote! { #column_name };
-                                    }
-                                    DSLMethod::GetOne(_) | DSLMethod::DeleteOne(_) => {
-                                        method_arg = SpacetimeDSLArg {
-                                            is_option: column.spacetimedsl_column_is_option,
-                                            arg_name: column_name.clone(),
-                                            arg_type: SpacetimeDSLArgType::Normal(
-                                                quote! { &#column_type },
-                                            ),
-                                        };
-
-                                        if is_multi_column_index {
-                                            row_value_getter = quote! { #column_name };
-                                        } else if column_is_string {
-                                            row_value_getter = quote! { #column_name.to_string() };
-                                        } else {
-                                            row_value_getter = quote! { #column_name };
-                                        }
-                                    }
-                                    DSLMethod::Update(_) => {
-                                        panic!("`DSLMethod::Update` is handled before this match")
-                                    }
-                                    DSLMethod::Create | DSLMethod::GetAll | DSLMethod::GetCount => {
-                                        panic!(
-                                            "`DSLMethod::Create`, `GetAll` and `GetCount` are handled before this match"
-                                        )
-                                    }
-                                }
-                            }
+                    let one_or_multiple = match dsl_method {
+                        DSLMethod::GetMany(_) | DSLMethod::DeleteMany(_) => OneOrMultiple::Multiple,
+                        DSLMethod::GetOne(_) | DSLMethod::DeleteOne(_) => OneOrMultiple::One,
+                        DSLMethod::Update(_) => {
+                            panic!("`DSLMethod::Update` is handled before this match")
                         }
+                        DSLMethod::Create | DSLMethod::GetAll | DSLMethod::GetCount => panic!(
+                            "`DSLMethod::Create`, `GetAll` and `GetCount` are handled before this match"
+                        ),
+                    };
 
-                        wrapper_type_option_to_wrapped_type_option_mappers
-                            .push(wrapper_type_option_to_wrapped_type_option_mapper);
-                        if !is_singleton_pk {
-                            method_args.push(method_arg);
-                            row_value_getters.push(row_value_getter);
-                        }
-                    }
+                    let IndexColumnArguments {
+                        method_args: index_column_method_args,
+                        row_value_getters,
+                        wrapper_option_mappers: wrapper_type_option_to_wrapped_type_option_mappers,
+                    } = index_column_arguments(&shape, &one_or_multiple, context);
+
+                    method_args.extend(index_column_method_args);
 
                     let method_impl_prefix = quote! {
                         self
@@ -1712,7 +1530,7 @@ pub(in crate::internal) fn for_method(
                                     &Action::Get,
                                     singular_table_name,
                                     index_name,
-                                    &column_names_and_row_values,
+                                    column_names_and_row_values,
                                     &row_value_getters,
                                 );
 
@@ -1860,7 +1678,7 @@ pub(in crate::internal) fn for_method(
                                                 &Action::Delete,
                                                 singular_table_name,
                                                 index_name,
-                                                &column_names_and_row_values,
+                                                column_names_and_row_values,
                                                 &row_value_getters,
                                             );
 
@@ -2223,6 +2041,189 @@ impl IndexShape {
             is_multi_column,
         }
     }
+}
+
+/// What an index's columns contribute to the method that looks rows up by them.
+///
+/// The three lists are built from one walk over the index's columns, in index order, so
+/// the n-th argument, the n-th row value and the n-th mapper all belong to the same
+/// column.
+struct IndexColumnArguments {
+    method_args: Vec<SpacetimeDSLArg>,
+    /// How the body reads each argument back out when it renders a not-found message.
+    row_value_getters: Vec<TokenStream>,
+    /// The `let` that unwraps an optional wrapper argument, or empty for a column that
+    /// needs no unwrapping.
+    wrapper_option_mappers: Vec<TokenStream>,
+}
+
+/// The arguments the four index-based lookup generators take.
+///
+/// `for_get_many`, `for_delete_many`, `for_get_one` and `for_delete_one` differ here in
+/// one thing: whether the method returns many rows or one. A many-row method borrows its
+/// arguments for the iterator that outlives the call, while a one-row method also renders
+/// its arguments into a not-found message, so a wrapped argument has to be cloned before
+/// it is consumed and a single-column string has to be owned.
+///
+/// A singleton's primary key takes no arguments at all: there is only one row to find.
+fn index_column_arguments(
+    shape: &IndexShape,
+    one_or_multiple: &OneOrMultiple,
+    context: &MethodGenerationContext,
+) -> IndexColumnArguments {
+    let mut arguments = IndexColumnArguments {
+        method_args: vec![],
+        row_value_getters: vec![],
+        wrapper_option_mappers: vec![],
+    };
+
+    for column_name in &shape.index_columns {
+        let column = context
+            .internal_columns
+            .iter()
+            .find(|c| c.rust_field_name == *column_name)
+            .expect("An index column is always one of the table's columns");
+
+        let column_is_string = column.rust_field_type_kind == ColumnTypeKind::String;
+
+        let wrapper_option_mapper;
+        let method_arg;
+        let row_value_getter;
+
+        match &column.spacetimedsl_column_wrapper_type {
+            Some(wrapper_type) => {
+                let wrapper_type_ty = &WrapperType::map(wrapper_type);
+
+                if column_is_string {
+                    wrapper_option_mapper = TokenStream::default();
+
+                    method_arg = SpacetimeDSLArg {
+                        is_option: false,
+                        arg_name: column_name.clone(),
+                        arg_type: SpacetimeDSLArgType::Normal(quote! { &str }),
+                    };
+
+                    row_value_getter = match one_or_multiple {
+                        OneOrMultiple::Multiple => quote! { #column_name },
+                        // A multi-column message renders the whole tuple with `{:?}`,
+                        // which a `&str` already satisfies.
+                        OneOrMultiple::One => match shape.is_multi_column {
+                            true => quote! { #column_name },
+                            false => quote! { #column_name.to_string() },
+                        },
+                    };
+                } else if column.spacetimedsl_column_is_option {
+                    wrapper_option_mapper = match wrapper_type {
+                        // A created wrapper wraps the whole Option, so
+                        // value() already yields it.
+                        WrapperType::Created(_) => quote! {
+                            let #column_name = match #column_name.into() {
+                                None => None,
+                                Some(#column_name) => Into::<#wrapper_type_ty>::into(#column_name).value(),
+                            };
+                        },
+                        // A used wrapper wraps the inner type, so the
+                        // Option has to be rebuilt around value().
+                        WrapperType::Used(_) => quote! {
+                            let #column_name = match #column_name.into() {
+                                None => None,
+                                Some(#column_name) => Some(Into::<#wrapper_type_ty>::into(#column_name).value()),
+                            };
+                        },
+                    };
+
+                    method_arg = SpacetimeDSLArg {
+                        is_option: true,
+                        arg_name: column_name.clone(),
+                        arg_type: SpacetimeDSLArgType::Wrapped {
+                            wrapped_type: WrapperType::map_to_wrapped_type(wrapper_type)
+                                .to_token_stream(),
+                            actual_type: quote! { &impl Into<Option<#wrapper_type_ty>> },
+                        },
+                    };
+
+                    row_value_getter = quote! { #column_name };
+                } else {
+                    wrapper_option_mapper = TokenStream::default();
+
+                    let wrapped_type =
+                        WrapperType::map_to_wrapped_type(wrapper_type).to_token_stream();
+
+                    match one_or_multiple {
+                        OneOrMultiple::Multiple => {
+                            method_arg = SpacetimeDSLArg {
+                                is_option: false,
+                                arg_name: column_name.clone(),
+                                arg_type: SpacetimeDSLArgType::Wrapped {
+                                    wrapped_type,
+                                    actual_type: quote! { impl Into<#wrapper_type_ty> },
+                                },
+                            };
+
+                            row_value_getter = quote! { #column_name.into().value() };
+                        }
+                        // `into()` consumes the argument, and the not-found message needs
+                        // it afterwards.
+                        OneOrMultiple::One => {
+                            method_arg = SpacetimeDSLArg {
+                                is_option: false,
+                                arg_name: column_name.clone(),
+                                arg_type: SpacetimeDSLArgType::Wrapped {
+                                    wrapped_type,
+                                    actual_type: quote! { impl Into<#wrapper_type_ty> + Clone },
+                                },
+                            };
+
+                            row_value_getter = quote! { #column_name.clone().into().value() };
+                        }
+                    }
+                }
+            }
+            None => {
+                wrapper_option_mapper = TokenStream::default();
+
+                // TODO: string stuff was only in the single column index implementation, does that work for multi column indices?
+                let column_type = if column_is_string {
+                    parse_str("str").expect("`str` is a valid type path")
+                } else {
+                    column.rust_field_type_name_or_path.clone()
+                };
+
+                match one_or_multiple {
+                    OneOrMultiple::Multiple => {
+                        method_arg = SpacetimeDSLArg {
+                            is_option: column.spacetimedsl_column_is_option,
+                            arg_name: column_name.clone(),
+                            arg_type: SpacetimeDSLArgType::Normal(quote! { &'a #column_type }),
+                        };
+
+                        row_value_getter = quote! { #column_name };
+                    }
+                    OneOrMultiple::One => {
+                        method_arg = SpacetimeDSLArg {
+                            is_option: column.spacetimedsl_column_is_option,
+                            arg_name: column_name.clone(),
+                            arg_type: SpacetimeDSLArgType::Normal(quote! { &#column_type }),
+                        };
+
+                        row_value_getter = match column_is_string && !shape.is_multi_column {
+                            true => quote! { #column_name.to_string() },
+                            false => quote! { #column_name },
+                        };
+                    }
+                }
+            }
+        }
+
+        arguments.wrapper_option_mappers.push(wrapper_option_mapper);
+
+        if !shape.is_singleton_primary_key {
+            arguments.method_args.push(method_arg);
+            arguments.row_value_getters.push(row_value_getter);
+        }
+    }
+
+    arguments
 }
 
 /// "`a`, `b` and `c`", as the doc comment of a multi-column index names its columns.
