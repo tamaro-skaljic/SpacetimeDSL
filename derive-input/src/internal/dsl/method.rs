@@ -39,9 +39,6 @@ use syn::{Ident, parse_str};
 const PRIMARY_KEY_WRAPPER_TYPE_INVARIANT: &str = "A primary key column must be accompanied by `#[create_wrapper]` or `#[use_wrapper(crate::path::to::MyIdType)]`";
 
 pub(in crate::internal) enum DSLMethod<'a> {
-    Create,
-    GetAll,
-    GetCount,
     GetMany(&'a Index),
     DeleteMany(&'a Index),
     GetOne(&'a Index),
@@ -300,25 +297,18 @@ impl SpacetimeDSLTableMethods {
 
         let mut recordings = GeneratedTableRecordings::default();
 
-        let (create, create_recordings) = for_method(DSLMethod::Create, context);
+        let (create, create_recordings) = for_create(context);
         recordings.merge(create_recordings);
 
-        let get_all = if is_singleton {
-            None
-        } else {
-            let (get_all, get_all_recordings) = for_method(DSLMethod::GetAll, context);
-            recordings.merge(get_all_recordings);
-
-            Some(get_all)
+        // A singleton holds one row, so iterating and counting have nothing to say.
+        let get_all = match is_singleton {
+            true => None,
+            false => Some(for_get_all(context)),
         };
 
-        let get_count = if is_singleton {
-            None
-        } else {
-            let (get_count, get_count_recordings) = for_method(DSLMethod::GetCount, context);
-            recordings.merge(get_count_recordings);
-
-            Some(get_count)
+        let get_count = match is_singleton {
+            true => None,
+            false => Some(for_get_count(context)),
         };
 
         let execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted;
@@ -691,11 +681,265 @@ fn update_method_row_value_getter(internal_column: &InternalColumn) -> TokenStre
     }
 }
 
+/// `create_<table>`: insert one row, built from the columns the caller has to supply.
+///
+/// This is the only generator that records something on the table: the argument struct it
+/// invents when the table has more than zero columns to ask for.
+pub(in crate::internal) fn for_create(
+    context: &MethodGenerationContext,
+) -> (SpacetimeDSLMethod, GeneratedTableRecordings) {
+    let MethodGenerationContext {
+        spacetimedb_table,
+        spacetimedsl_table,
+        internal_columns,
+        struct_name,
+        singular_table_name,
+        singular_table_name_as_string,
+        singular_table_name_pascal_case,
+        primary_key_column_name,
+        field_name_for_found_value,
+        ..
+    } = context;
+
+    let mut recordings = GeneratedTableRecordings::default();
+    let mut method_args = vec![];
+
+    let mut method_arg_members = vec![];
+
+    let mut wrapper_type_option_to_wrapped_type_option_mappers = vec![];
+    let mut constructor_args = vec![];
+    let mut constructor_arg_names = vec![];
+
+    for internal_column in *internal_columns {
+        let CreateMethodColumnParts {
+            arg,
+            wrapper_option_mapper,
+            constructor_arg,
+            constructor_arg_name,
+        } = create_method_column_parts(spacetimedsl_table, internal_column);
+
+        if let Some(arg) = arg {
+            method_arg_members.push(arg)
+        }
+
+        if let Some(wrapper_option_mapper) = wrapper_option_mapper {
+            wrapper_type_option_to_wrapped_type_option_mappers.push(wrapper_option_mapper)
+        }
+
+        if let Some(constructor_arg) = constructor_arg {
+            constructor_args.push(constructor_arg)
+        }
+
+        constructor_arg_names.push(constructor_arg_name)
+    }
+
+    if !method_arg_members.is_empty() {
+        let method_arg_name = format_ident!("Create{singular_table_name_pascal_case}");
+
+        method_args.push(SpacetimeDSLArg {
+            is_option: false,
+            arg_name: singular_table_name.clone(),
+            arg_type: SpacetimeDSLArgType::Normal(quote! {
+                #method_arg_name
+            }),
+        });
+
+        let method_arg_member_names_and_types = method_arg_members
+            .iter()
+            .map(|member| {
+                let member_name = &member.arg_name;
+                let member_type = match &member.arg_type {
+                    SpacetimeDSLArgType::Normal(member_type) => member_type,
+                    SpacetimeDSLArgType::Wrapped { actual_type, .. } => actual_type,
+                };
+                quote! {
+                    pub #member_name : #member_type
+                }
+            })
+            .collect_vec();
+
+        recordings.create_dsl_method_arg = Some(CreateDSLMethodArg {
+            struct_name: method_arg_name.clone(),
+            struct_members: method_arg_members,
+            struct_impl: quote! {
+                pub struct #method_arg_name {
+                    #(#method_arg_member_names_and_types),*
+                }
+            },
+        });
+    }
+
+    // The row does not exist yet, so the message renders the whole struct rather than
+    // naming the columns a lookup was made on.
+    let column_names_and_row_values = format!("{{{{ {singular_table_name} : {{:?}} }}}}");
+
+    let multi_column_index_checks = multi_column_index_checks(
+        Action::Create,
+        singular_table_name,
+        spacetimedb_table,
+        internal_columns,
+        primary_key_column_name,
+    );
+
+    let use_itertools = if !multi_column_index_checks.is_empty() {
+        quote! {
+            use ::spacetimedsl::itertools::Itertools;
+        }
+    } else {
+        TokenStream::default()
+    };
+
+    let reference_integrity_checks =
+        reference_integrity_checks_on_create(spacetimedb_table, internal_columns);
+
+    let let_field_name_for_found_value =
+        if multi_column_index_checks.is_empty() && reference_integrity_checks.is_empty() {
+            TokenStream::default()
+        } else {
+            quote! {
+                let mut #field_name_for_found_value: Option<#struct_name> = None;
+            }
+        };
+
+    let before_insert_hook = hook_tokens(
+        &spacetimedsl_table.hooks.before_insert,
+        |hook_function_name| {
+            let hook_call = runtime::dsl_method_hooks_call(
+                hook_function_name,
+                &quote! { self, #singular_table_name },
+            );
+
+            quote! {
+                let #singular_table_name = #hook_call?;
+            }
+        },
+    );
+
+    let after_insert_hook = hook_tokens(
+        &spacetimedsl_table.hooks.after_insert,
+        |hook_function_name| {
+            let hook_call =
+                runtime::dsl_method_hooks_call(hook_function_name, &quote! { self, &entity });
+
+            quote! {
+                #hook_call?;
+            }
+        },
+    );
+
+    // FIXME: Only show unique columns here
+    let unique_constraint_violation_error = runtime::unique_constraint_violation(
+        singular_table_name_as_string,
+        &quote! { Create },
+        &quote! { SpacetimeDB },
+        &OneOrMultiple::One,
+        &quote! { format!(#column_names_and_row_values, #singular_table_name) },
+    );
+    let auto_inc_overflow_error = runtime::auto_inc_overflow(singular_table_name_as_string);
+
+    let method = SpacetimeDSLMethod {
+        doc_comment: format!("Create a row in the `{singular_table_name}` table."),
+        method_name: format_ident!("create_{}", singular_table_name),
+        method_args,
+        return_type: runtime::error_result_type(struct_name),
+        method_impl: quote! {
+            #use_itertools
+
+            #before_insert_hook
+
+            #(#constructor_args)*
+            #(#wrapper_type_option_to_wrapped_type_option_mappers)*
+            let #singular_table_name = #struct_name {
+                #(#constructor_arg_names),*
+            };
+
+            #let_field_name_for_found_value
+
+            #(#multi_column_index_checks)*
+
+            #(#reference_integrity_checks)*
+
+            match self
+                .db()
+                .#singular_table_name()
+                .try_insert(#singular_table_name.clone()) { // FIXME: No clone?
+                Ok(entity) => {
+                    #after_insert_hook
+
+                    Ok(entity)
+                },
+                Err(error) => match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(#unique_constraint_violation_error)
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(#auto_inc_overflow_error)
+                    }
+                },
+            }
+        },
+        read_context_compatible: false,
+    };
+
+    (method, recordings)
+}
+
+/// `get_all_<tables>`: iterate every row of the table.
+pub(in crate::internal) fn for_get_all(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
+    let MethodGenerationContext {
+        struct_name,
+        singular_table_name,
+        plural_table_name,
+        ..
+    } = context;
+
+    SpacetimeDSLMethod {
+        doc_comment: format!("Get all rows inside the `{singular_table_name}` table."),
+        method_name: format_ident!("get_all_{}", plural_table_name),
+        method_args: vec![],
+        return_type: quote! {
+            impl Iterator<Item = #struct_name>
+        },
+        method_impl: quote! {
+            self
+                .db()
+                .#singular_table_name()
+                .iter()
+        },
+        read_context_compatible: false,
+    }
+}
+
+/// `count_of_all_<tables>`: how many rows the table holds.
+pub(in crate::internal) fn for_get_count(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
+    let MethodGenerationContext {
+        singular_table_name,
+        plural_table_name,
+        ..
+    } = context;
+
+    SpacetimeDSLMethod {
+        doc_comment: format!("Count all rows inside the `{singular_table_name}` table."),
+        method_name: format_ident!("count_of_all_{}", plural_table_name),
+        method_args: vec![],
+        return_type: quote! {
+            u64
+        },
+        method_impl: quote! {
+            self
+                .db()
+                .#singular_table_name()
+                .count()
+        },
+        read_context_compatible: true,
+    }
+}
+
 pub(in crate::internal) fn for_method(
     dsl_method: DSLMethod,
     context: &MethodGenerationContext,
 ) -> (SpacetimeDSLMethod, GeneratedTableRecordings) {
-    let mut recordings = GeneratedTableRecordings::default();
+    let recordings = GeneratedTableRecordings::default();
 
     let MethodGenerationContext {
         spacetimedb_table,
@@ -705,11 +949,11 @@ pub(in crate::internal) fn for_method(
         struct_name,
         singular_table_name,
         singular_table_name_as_string,
-        singular_table_name_pascal_case,
         plural_table_name,
         primary_key_column_name,
         primary_key_column_name_as_string,
         field_name_for_found_value,
+        ..
     } = context;
 
     let one = OneOrMultiple::One;
@@ -724,228 +968,11 @@ pub(in crate::internal) fn for_method(
     let method_impl;
 
     let read_context_compatible = match &dsl_method {
-        DSLMethod::GetCount | DSLMethod::GetMany(_) | DSLMethod::GetOne(_) => true,
-        DSLMethod::Create
-        | DSLMethod::GetAll
-        | DSLMethod::Update(_)
-        | DSLMethod::DeleteOne(_)
-        | DSLMethod::DeleteMany(_) => false,
+        DSLMethod::GetMany(_) | DSLMethod::GetOne(_) => true,
+        DSLMethod::Update(_) | DSLMethod::DeleteOne(_) | DSLMethod::DeleteMany(_) => false,
     };
 
     match dsl_method {
-        DSLMethod::Create => {
-            doc_comment = format!("Create a row in the `{singular_table_name}` table.");
-
-            method_name = format_ident!("create_{}", singular_table_name);
-
-            return_type = runtime::error_result_type(struct_name);
-
-            let mut method_arg_members = vec![];
-
-            let mut wrapper_type_option_to_wrapped_type_option_mappers = vec![];
-            let mut constructor_args = vec![];
-            let mut constructor_arg_names = vec![];
-
-            for internal_column in *internal_columns {
-                let CreateMethodColumnParts {
-                    arg,
-                    wrapper_option_mapper,
-                    constructor_arg,
-                    constructor_arg_name,
-                } = create_method_column_parts(spacetimedsl_table, internal_column);
-
-                if let Some(arg) = arg {
-                    method_arg_members.push(arg)
-                }
-
-                if let Some(wrapper_option_mapper) = wrapper_option_mapper {
-                    wrapper_type_option_to_wrapped_type_option_mappers.push(wrapper_option_mapper)
-                }
-
-                if let Some(constructor_arg) = constructor_arg {
-                    constructor_args.push(constructor_arg)
-                }
-
-                constructor_arg_names.push(constructor_arg_name)
-            }
-
-            if !method_arg_members.is_empty() {
-                let method_arg_name = format_ident!("Create{singular_table_name_pascal_case}");
-
-                method_args.push(SpacetimeDSLArg {
-                    is_option: false,
-                    arg_name: singular_table_name.clone(),
-                    arg_type: SpacetimeDSLArgType::Normal(quote! {
-                        #method_arg_name
-                    }),
-                });
-
-                let method_arg_member_names_and_types = method_arg_members
-                    .iter()
-                    .map(|member| {
-                        let member_name = &member.arg_name;
-                        let member_type = match &member.arg_type {
-                            SpacetimeDSLArgType::Normal(member_type) => member_type,
-                            SpacetimeDSLArgType::Wrapped { actual_type, .. } => actual_type,
-                        };
-                        quote! {
-                            pub #member_name : #member_type
-                        }
-                    })
-                    .collect_vec();
-
-                recordings.create_dsl_method_arg = Some(CreateDSLMethodArg {
-                    struct_name: method_arg_name.clone(),
-                    struct_members: method_arg_members,
-                    struct_impl: quote! {
-                        pub struct #method_arg_name {
-                            #(#method_arg_member_names_and_types),*
-                        }
-                    },
-                });
-            }
-
-            let mut column_names_and_row_values = String::new();
-            column_names_and_row_values.push_str("{{ ");
-            column_names_and_row_values.push_str(&format!("{singular_table_name} : "));
-            column_names_and_row_values.push_str("{:?} }}");
-
-            let multi_column_index_checks = multi_column_index_checks(
-                Action::Create,
-                singular_table_name,
-                spacetimedb_table,
-                internal_columns,
-                primary_key_column_name,
-            );
-
-            let use_itertools = if !multi_column_index_checks.is_empty() {
-                quote! {
-                    use ::spacetimedsl::itertools::Itertools;
-                }
-            } else {
-                TokenStream::default()
-            };
-
-            let reference_integrity_checks =
-                reference_integrity_checks_on_create(spacetimedb_table, internal_columns);
-
-            let let_field_name_for_found_value =
-                if multi_column_index_checks.is_empty() && reference_integrity_checks.is_empty() {
-                    TokenStream::default()
-                } else {
-                    quote! {
-                        let mut #field_name_for_found_value: Option<#struct_name> = None;
-                    }
-                };
-
-            let before_insert_hook = hook_tokens(
-                &spacetimedsl_table.hooks.before_insert,
-                |hook_function_name| {
-                    let hook_call = runtime::dsl_method_hooks_call(
-                        hook_function_name,
-                        &quote! { self, #singular_table_name },
-                    );
-
-                    quote! {
-                        let #singular_table_name = #hook_call?;
-                    }
-                },
-            );
-
-            let after_insert_hook = hook_tokens(
-                &spacetimedsl_table.hooks.after_insert,
-                |hook_function_name| {
-                    let hook_call = runtime::dsl_method_hooks_call(
-                        hook_function_name,
-                        &quote! { self, &entity },
-                    );
-
-                    quote! {
-                        #hook_call?;
-                    }
-                },
-            );
-
-            // FIXME: Only show unique columns here
-            let unique_constraint_violation_error = runtime::unique_constraint_violation(
-                &singular_table_name_as_string,
-                &quote! { Create },
-                &quote! { SpacetimeDB },
-                &one,
-                &quote! { format!(#column_names_and_row_values, #singular_table_name) },
-            );
-            let auto_inc_overflow_error =
-                runtime::auto_inc_overflow(&singular_table_name_as_string);
-
-            method_impl = quote! {
-                #use_itertools
-
-                #before_insert_hook
-
-                #(#constructor_args)*
-                #(#wrapper_type_option_to_wrapped_type_option_mappers)*
-                let #singular_table_name = #struct_name {
-                    #(#constructor_arg_names),*
-                };
-
-                #let_field_name_for_found_value
-
-                #(#multi_column_index_checks)*
-
-                #(#reference_integrity_checks)*
-
-                match self
-                    .db()
-                    .#singular_table_name()
-                    .try_insert(#singular_table_name.clone()) { // FIXME: No clone?
-                    Ok(entity) => {
-                        #after_insert_hook
-
-                        Ok(entity)
-                    },
-                    Err(error) => match error {
-                        spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
-                            Err(#unique_constraint_violation_error)
-                        }
-                        spacetimedb::TryInsertError::AutoIncOverflow(_) => {
-                            Err(#auto_inc_overflow_error)
-                        }
-                    },
-                }
-            };
-        }
-        DSLMethod::GetAll => {
-            doc_comment = format!("Get all rows inside the `{singular_table_name}` table.");
-
-            method_name = format_ident!("get_all_{}", plural_table_name);
-
-            return_type = quote! {
-                impl Iterator<Item = #struct_name>
-            };
-
-            method_impl = quote! {
-                self
-                    .db()
-                    .#singular_table_name()
-                    .iter()
-            };
-        }
-        DSLMethod::GetCount => {
-            doc_comment = format!("Count all rows inside the `{singular_table_name}` table.");
-
-            method_name = format_ident!("count_of_all_{}", plural_table_name);
-
-            return_type = quote! {
-                u64
-            };
-
-            method_impl = quote! {
-                self
-                    .db()
-                    .#singular_table_name()
-                    .count()
-            };
-        }
         DSLMethod::GetMany(index)
         | DSLMethod::DeleteMany(index)
         | DSLMethod::GetOne(index)
@@ -1004,9 +1031,6 @@ pub(in crate::internal) fn for_method(
                         )
                     }
                 }
-                DSLMethod::Create | DSLMethod::GetAll | DSLMethod::GetCount => panic!(
-                    "`DSLMethod::Create`, `GetAll` and `GetCount` are handled before this match"
-                ),
             };
 
             method_name = match dsl_method {
@@ -1035,9 +1059,6 @@ pub(in crate::internal) fn for_method(
                         format_ident!("delete_{singular_table_name}_by_{index_name}")
                     }
                 }
-                DSLMethod::Create | DSLMethod::GetAll | DSLMethod::GetCount => panic!(
-                    "`DSLMethod::Create`, `GetAll` and `GetCount` are handled before this match"
-                ),
             };
 
             return_type = match dsl_method {
@@ -1052,9 +1073,6 @@ pub(in crate::internal) fn for_method(
                 DSLMethod::DeleteOne(_) => {
                     runtime::error_result_type(&runtime::deletion_result_type())
                 }
-                DSLMethod::Create | DSLMethod::GetAll | DSLMethod::GetCount => panic!(
-                    "`DSLMethod::Create`, `GetAll` and `GetCount` are handled before this match"
-                ),
             };
 
             match dsl_method {
@@ -1254,9 +1272,6 @@ pub(in crate::internal) fn for_method(
                         DSLMethod::Update(_) => {
                             panic!("`DSLMethod::Update` is handled before this match")
                         }
-                        DSLMethod::Create | DSLMethod::GetAll | DSLMethod::GetCount => panic!(
-                            "`DSLMethod::Create`, `GetAll` and `GetCount` are handled before this match"
-                        ),
                     };
 
                     let IndexColumnArguments {
@@ -1934,12 +1949,9 @@ pub(in crate::internal) fn for_method(
                                 }
                             } // closes else (non-singleton) block
                         }
-                        DSLMethod::Create
-                        | DSLMethod::GetAll
-                        | DSLMethod::GetCount
-                        | DSLMethod::Update(_) => panic!(
-                            "`DSLMethod::Create`, `GetAll`, `GetCount` and `Update` are handled before this match"
-                        ),
+                        DSLMethod::Update(_) => {
+                            panic!("`DSLMethod::Update` is handled before this match")
+                        }
                     };
                 }
             };
