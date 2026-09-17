@@ -62,19 +62,15 @@ impl SpacetimeDBColumn {
 
         for (i, index) in spacetimedb_table.multi_column_indices.iter().enumerate() {
             match &index.index_type {
-                IndexType::BTreeSingleColumn { column } => {
+                IndexType::BTreeSingleColumn { column }
+                | IndexType::HashSingleColumn { column }
+                | IndexType::Direct { column } => {
                     if column.eq(column_name) {
                         single_column_index = Some(i);
                         break;
                     }
                 }
-                IndexType::Direct { column } => {
-                    if column.eq(column_name) {
-                        single_column_index = Some(i);
-                        break;
-                    }
-                }
-                _ => {}
+                IndexType::BTreeMultiColumn { .. } | IndexType::HashMultiColumn { .. } => {}
             }
         }
 
