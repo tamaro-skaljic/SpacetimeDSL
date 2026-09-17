@@ -32,7 +32,7 @@ Try to get a `Seat` from the `seat` table whose values match the values from the
                     error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
                     one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
                     column_names_and_row_values: format!(
-                        "{{ row_id : {} , number : {} }}", row_id, number
+                        "{{ row_id : {}, number : {} }}", row_id, number
                     )
                         .into(),
                 });
@@ -44,7 +44,7 @@ Try to get a `Seat` from the `seat` table whose values match the values from the
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "seat".into(),
                     column_names_and_row_values: format!(
-                        "{{ row_id : {} , number : {} }}", row_id, number
+                        "{{ row_id : {}, number : {} }}", row_id, number
                     )
                         .into(),
                 });
@@ -83,7 +83,7 @@ Try to get a `Seat` from the `seat` table whose values match the values from the
                     error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
                     one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
                     column_names_and_row_values: format!(
-                        "{{ row_id : {} , number : {} }}", row_id, number
+                        "{{ row_id : {}, number : {} }}", row_id, number
                     )
                         .into(),
                 });
@@ -95,7 +95,7 @@ Try to get a `Seat` from the `seat` table whose values match the values from the
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "seat".into(),
                     column_names_and_row_values: format!(
-                        "{{ row_id : {} , number : {} }}", row_id, number
+                        "{{ row_id : {}, number : {} }}", row_id, number
                     )
                         .into(),
                 });

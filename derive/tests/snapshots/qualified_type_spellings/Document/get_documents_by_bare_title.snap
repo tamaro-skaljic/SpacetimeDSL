@@ -1,0 +1,27 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Document` iterator that contains all rows in the `document` table whose value matches the value from the single-column btree index on the `bare_title` column.
+    pub fn get_documents_by_bare_title<'a>(
+        &'a self,
+        bare_title: &'a str,
+    ) -> impl Iterator<Item = Document> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().document().bare_title().filter(bare_title)
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Document` iterator that contains all rows in the `document` table whose value matches the value from the single-column btree index on the `bare_title` column.
+    pub fn get_documents_by_bare_title<'a>(
+        &'a self,
+        bare_title: &'a str,
+    ) -> impl Iterator<Item = Document> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().document().bare_title().filter(bare_title)
+    }
+}

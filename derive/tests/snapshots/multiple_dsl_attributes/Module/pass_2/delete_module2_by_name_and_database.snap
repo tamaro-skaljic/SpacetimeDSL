@@ -35,7 +35,7 @@ Try to delete a `Module` row in the `module2` table whose values match the value
                     error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
                     one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
                     column_names_and_row_values: format!(
-                        "{{ name : {} , database_id : {} }}", name, database_id
+                        "{{ name : {}, database_id : {} }}", name, database_id
                     )
                         .into(),
                 });
@@ -47,7 +47,7 @@ Try to delete a `Module` row in the `module2` table whose values match the value
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "module2".into(),
                     column_names_and_row_values: format!(
-                        "{{ name : {} , database_id : {} }}", name, database_id
+                        "{{ name : {}, database_id : {} }}", name, database_id
                     )
                         .into(),
                 });

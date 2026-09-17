@@ -18,7 +18,7 @@ Try to get a `Account` from the `account` table whose value matches the value fr
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "account".into(),
                     column_names_and_row_values: format!(
-                        "{{ , external_id : {}  }}", external_id
+                        "{{ external_id : {} }}", external_id
                     )
                         .into(),
                 });
@@ -43,7 +43,7 @@ Try to get a `Account` from the `account` table whose value matches the value fr
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "account".into(),
                     column_names_and_row_values: format!(
-                        "{{ , external_id : {}  }}", external_id
+                        "{{ external_id : {} }}", external_id
                     )
                         .into(),
                 });

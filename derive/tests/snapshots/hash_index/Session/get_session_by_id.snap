@@ -18,7 +18,7 @@ Try to get a `Session` from the `session` table whose value matches the value fr
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "session".into(),
                     column_names_and_row_values: format!(
-                        "{{ , id : {}  }}", id.clone().into().value()
+                        "{{ id : {} }}", id.clone().into().value()
                     )
                         .into(),
                 });
@@ -43,7 +43,7 @@ Try to get a `Session` from the `session` table whose value matches the value fr
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "session".into(),
                     column_names_and_row_values: format!(
-                        "{{ , id : {}  }}", id.clone().into().value()
+                        "{{ id : {} }}", id.clone().into().value()
                     )
                         .into(),
                 });

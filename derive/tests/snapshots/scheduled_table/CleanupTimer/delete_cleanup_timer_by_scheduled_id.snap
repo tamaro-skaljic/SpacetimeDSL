@@ -23,7 +23,7 @@ Try to delete a `CleanupTimer` row in the `cleanup_timer` table whose value matc
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "cleanup_timer".into(),
                     column_names_and_row_values: format!(
-                        "{{ , scheduled_id : {}  }}", & scheduled_id
+                        "{{ scheduled_id : {} }}", & scheduled_id
                     )
                         .into(),
                 });

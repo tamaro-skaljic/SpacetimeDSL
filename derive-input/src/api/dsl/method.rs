@@ -1,10 +1,9 @@
 use proc_macro2::TokenStream;
-use syn::{Ident, Path};
+use syn::Ident;
 
 #[derive(Clone)]
 pub struct SpacetimeDSLMethod {
     pub doc_comment: String,
-    pub additional_paths_to_use: Vec<Path>,
     pub method_name: Ident,
     pub method_args: Vec<SpacetimeDSLArg>,
     pub return_type: TokenStream,

@@ -1,9 +1,11 @@
-//! Covers an `Option<Timestamp>` column carrying both `#[create_wrapper]` and an index -
+//! Covers an `Option<Timestamp>` column carrying an index under both wrapper kinds -
 //! the branch fixed in `81ada87`, which no table in `examples/test` reaches because the
 //! index there is commented out.
 //!
-//! The generated wrapper wraps the `Option`, so the index methods take
-//! `Option<Timestamp>` rather than `Timestamp`.
+//! `#[create_wrapper]` wraps the whole `Option`, so the generated wrapper's `value()`
+//! already yields an `Option`. `#[use_wrapper(...)]` reuses a wrapper another table
+//! wrote around the inner type, so its `value()` yields that inner type. The index path
+//! has to treat the two differently, and both are pinned here.
 
 use spacetimedb::Timestamp;
 
@@ -18,4 +20,8 @@ pub struct Reminder {
     #[index(btree)]
     #[create_wrapper]
     pub acknowledged_at: Option<Timestamp>,
+
+    #[index(btree)]
+    #[use_wrapper(ReminderDueAt)]
+    pub due_at: Option<Timestamp>,
 }

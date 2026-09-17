@@ -23,7 +23,7 @@ Try to get a `Shipment` from the `shipment` table whose value matches the value 
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "shipment".into(),
                     column_names_and_row_values: format!(
-                        "{{ , warehouse_id : {}  }}", warehouse_id.clone().into().value()
+                        "{{ warehouse_id : {} }}", warehouse_id.clone().into().value()
                     )
                         .into(),
                 });
@@ -53,7 +53,7 @@ Try to get a `Shipment` from the `shipment` table whose value matches the value 
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "shipment".into(),
                     column_names_and_row_values: format!(
-                        "{{ , warehouse_id : {}  }}", warehouse_id.clone().into().value()
+                        "{{ warehouse_id : {} }}", warehouse_id.clone().into().value()
                     )
                         .into(),
                 });

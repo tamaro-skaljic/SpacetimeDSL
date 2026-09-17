@@ -30,7 +30,7 @@ Try to update a `Module` row of the `module2` table whose value matches the valu
                     error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
                     one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
                     column_names_and_row_values: format!(
-                        "name : {} , database_id : {}", & module2.name, module2
+                        "{{ name : {}, database_id : {} }}", & module2.name, module2
                         .database_id
                     )
                         .into(),
@@ -46,7 +46,7 @@ Try to update a `Module` row of the `module2` table whose value matches the valu
                         error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
                         one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
                         column_names_and_row_values: format!(
-                            "name : {} , database_id : {}", & module2.name, module2
+                            "{{ name : {}, database_id : {} }}", & module2.name, module2
                             .database_id
                         )
                             .into(),

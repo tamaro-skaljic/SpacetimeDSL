@@ -28,7 +28,7 @@ Try to update a `Book` row of the `book` table whose value matches the value fro
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                             table_name: "book".into(),
                             column_names_and_row_values: format!(
-                                "{{ , id : {}  }}", author_id
+                                "{{ id : {} }}", author_id
                             )
                                 .into(),
                         });

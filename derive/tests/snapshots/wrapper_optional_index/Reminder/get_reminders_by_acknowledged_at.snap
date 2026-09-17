@@ -13,7 +13,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         let acknowledged_at = match acknowledged_at.into() {
             None => None,
             Some(acknowledged_at) => {
-                Some(Into::<ReminderAcknowledgedAt>::into(acknowledged_at).value())
+                Into::<ReminderAcknowledgedAt>::into(acknowledged_at).value()
             }
         };
         self.db().reminder().acknowledged_at().filter(acknowledged_at)
@@ -31,7 +31,7 @@ impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T
         let acknowledged_at = match acknowledged_at.into() {
             None => None,
             Some(acknowledged_at) => {
-                Some(Into::<ReminderAcknowledgedAt>::into(acknowledged_at).value())
+                Into::<ReminderAcknowledgedAt>::into(acknowledged_at).value()
             }
         };
         self.db().reminder().acknowledged_at().filter(acknowledged_at)

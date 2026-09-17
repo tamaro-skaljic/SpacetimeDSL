@@ -18,7 +18,7 @@ Try to get a `AuditEntry` from the `audit_entry` table whose value matches the v
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "audit_entry".into(),
                     column_names_and_row_values: format!(
-                        "{{ , id : {}  }}", id.clone().into().value()
+                        "{{ id : {} }}", id.clone().into().value()
                     )
                         .into(),
                 });
@@ -43,7 +43,7 @@ Try to get a `AuditEntry` from the `audit_entry` table whose value matches the v
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "audit_entry".into(),
                     column_names_and_row_values: format!(
-                        "{{ , id : {}  }}", id.clone().into().value()
+                        "{{ id : {} }}", id.clone().into().value()
                     )
                         .into(),
                 });

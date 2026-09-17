@@ -22,7 +22,7 @@ Try to delete a `ParentRecord` row in the `parent_record` table whose value matc
             None => {
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "parent_record".into(),
-                    column_names_and_row_values: format!("{{ , id : {}  }}", & id).into(),
+                    column_names_and_row_values: format!("{{ id : {} }}", & id).into(),
                 });
             }
             Some(row_to_delete) => row_to_delete,

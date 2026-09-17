@@ -18,7 +18,7 @@ Try to get a `SignedDocument` from the `signed_document` table whose value match
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "signed_document".into(),
                     column_names_and_row_values: format!(
-                        "{{ , id : {}  }}", id.clone().into().value()
+                        "{{ id : {} }}", id.clone().into().value()
                     )
                         .into(),
                 });
@@ -43,7 +43,7 @@ Try to get a `SignedDocument` from the `signed_document` table whose value match
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "signed_document".into(),
                     column_names_and_row_values: format!(
-                        "{{ , id : {}  }}", id.clone().into().value()
+                        "{{ id : {} }}", id.clone().into().value()
                     )
                         .into(),
                 });

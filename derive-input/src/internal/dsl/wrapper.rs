@@ -188,6 +188,19 @@ impl WrapperType {
         })
     }
 
+    /// The wrapper's own name as tokens - the generated struct's name for a created
+    /// wrapper, the user's path for a used one.
+    pub(in crate::internal) fn struct_name_or_path_tokens(&self) -> TokenStream {
+        match self {
+            WrapperType::Created(created_wrapper) => {
+                created_wrapper.wrapper_struct_name.to_token_stream()
+            }
+            WrapperType::Used(used_wrapper) => {
+                used_wrapper.wrapper_struct_name_or_path.to_token_stream()
+            }
+        }
+    }
+
     pub(in crate::internal) fn map(value: &WrapperType) -> Type {
         match value {
             WrapperType::Created(w) => parse_str(&w.wrapper_struct_name.to_token_stream().to_string()).unwrap_or_else(|_| panic!("Failed to parse {} as Ident in WrapperType::map_to_wrapper_type for WrapperType::Wrap.",

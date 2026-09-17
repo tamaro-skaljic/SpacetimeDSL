@@ -2,9 +2,9 @@
 //! method, which collects the referenced primary key values into a single collection. Two
 //! different column types cannot go into it.
 //!
-//! This is a `panic!`, not a `syn::Error`, so the pinned output is the generic
-//! `custom attribute panicked` message with no span on the offending column. Turning it
-//! into a spanned error is a follow-up; this file is what will prove it happened. (FIXME)
+//! The diagnostic is spanned on the second of the two columns, the one whose type
+//! contradicts the first. That is deliberately more precise than the `Span::call_site()`
+//! every other diagnostic in this crate carries.
 
 ::spacetimedsl::spacetimedsl!();
 

@@ -32,7 +32,7 @@ Try to update a `Seat` row of the `seat` table whose values match the values fro
                     error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
                     one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
                     column_names_and_row_values: format!(
-                        "row_id : {} , number : {}", seat.row_id, seat.number
+                        "{{ row_id : {}, number : {} }}", seat.row_id, seat.number
                     )
                         .into(),
                 });
@@ -47,7 +47,7 @@ Try to update a `Seat` row of the `seat` table whose values match the values fro
                         error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDSL,
                         one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
                         column_names_and_row_values: format!(
-                            "row_id : {} , number : {}", seat.row_id, seat.number
+                            "{{ row_id : {}, number : {} }}", seat.row_id, seat.number
                         )
                             .into(),
                     });

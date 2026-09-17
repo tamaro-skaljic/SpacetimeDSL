@@ -6,8 +6,8 @@ use crate::api::{
     },
     rust::{column::RustField, table::RustStruct},
 };
+use crate::internal::column::ColumnTypeKind;
 use proc_macro2::Span;
-use quote::ToTokens;
 use spacetime_bindings_macro_input::sats::SatsField;
 use syn::Error;
 
@@ -20,11 +20,8 @@ impl SpacetimeDSLColumn {
         rust_field: &RustField,
         spacetimedb_column: &SpacetimeDBColumn,
     ) -> syn::Result<SpacetimeDSLColumn> {
-        let is_option = field
-            .ty
-            .to_token_stream()
-            .to_string()
-            .starts_with("Option <");
+        let is_option =
+            ColumnTypeKind::of(&rust_field.type_name_or_path) == ColumnTypeKind::Optional;
 
         let wrapper_type = WrapperType::try_parse(rust_struct, rust_field, field)?;
 

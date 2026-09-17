@@ -28,7 +28,7 @@ Try to update a `ChildMarker` row of the `child_marker` table whose value matche
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                             table_name: "child_marker".into(),
                             column_names_and_row_values: format!(
-                                "{{ , id : {}  }}", parent_id
+                                "{{ id : {} }}", parent_id
                             )
                                 .into(),
                         });

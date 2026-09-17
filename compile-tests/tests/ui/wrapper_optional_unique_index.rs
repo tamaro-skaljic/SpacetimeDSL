@@ -1,13 +1,16 @@
-//! KNOWN DEFECT - this file pins a SpacetimeDSL bug, not a rule.
+//! UNSUPPORTED COMBINATION - this file pins a SpacetimeDB limitation, not a SpacetimeDSL
+//! bug and not a rule SpacetimeDSL enforces itself.
 //!
-//! A column typed `Option<T>` with both `#[create_wrapper]` and a unique index generates
-//! code which does not compile: the error message builder formats the column with `{}`
-//! after the wrapper has already wrapped it once, so it asks for
-//! `Option<Option<spacetimedb::Timestamp>>: Display`.
+//! A column typed `Option<T>` carrying a unique index cannot work against SpacetimeDB:
+//! `&Option<T>` does not implement `FilterableValue`, so `UniqueColumn::find` rejects it,
+//! and `Option<T>` does not implement `Display`, so the error message builder cannot
+//! format it. Neither is something SpacetimeDSL can generate its way out of, so this stays
+//! a `compile_fail` case.
 //!
-//! The defect is therefore *expected* here, and this test passes while it exists. Fixing
-//! it turns this test red. That is the signal to convert this file into a `t.pass()` case
-//! and move it out of `tests/ui`, not to regenerate the `.stderr`.
+//! The doubled `Option` this file used to pin - `Option<Option<spacetimedb::Timestamp>>`,
+//! produced by wrapping a created wrapper's `value()` in `Some` although that wrapper
+//! wraps the whole `Option` and `value()` already yields it - was a SpacetimeDSL bug. It
+//! is fixed, and the `.stderr` shrank accordingly.
 //!
 //! Maintenance note: unlike every other `.stderr` here, this one quotes source lines out
 //! of SpacetimeDB's own `src/table.rs` - the signature of `UniqueColumn::find` and the

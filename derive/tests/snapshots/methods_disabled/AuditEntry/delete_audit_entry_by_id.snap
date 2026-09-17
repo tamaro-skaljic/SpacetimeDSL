@@ -22,7 +22,7 @@ Try to delete a `AuditEntry` row in the `audit_entry` table whose value matches 
             None => {
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "audit_entry".into(),
-                    column_names_and_row_values: format!("{{ , id : {}  }}", & id).into(),
+                    column_names_and_row_values: format!("{{ id : {} }}", & id).into(),
                 });
             }
             Some(row_to_delete) => row_to_delete,

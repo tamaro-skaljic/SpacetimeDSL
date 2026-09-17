@@ -125,10 +125,39 @@ impl Reminder {
         let old_value = std::mem::replace(&mut self.acknowledged_at, acknowledged_at);
         ReminderAcknowledgedAt::new(old_value)
     }
+    ///
+    pub fn get_due_at(&self) -> Option<ReminderDueAt> {
+        use spacetimedsl::Wrapper;
+        match &self.due_at {
+            None => None,
+            Some(value) => Some(ReminderDueAt::new(value.clone())),
+        }
+    }
+    ///
+    pub fn set_due_at(
+        &mut self,
+        due_at: impl Into<Option<ReminderDueAt>>,
+    ) -> Option<ReminderDueAt> {
+        use spacetimedsl::Wrapper;
+        let due_at = due_at.into();
+        let mut due_at_option = None;
+        if due_at.is_some() {
+            due_at_option = Some(
+                Into::<ReminderDueAt>::into(due_at.expect("value should exist")).value(),
+            );
+        }
+        let due_at = due_at_option;
+        let old_value = std::mem::replace(&mut self.due_at, due_at);
+        match old_value {
+            Some(old_value) => Some(ReminderDueAt::new(old_value)),
+            None => None,
+        }
+    }
 }
 ///
 pub struct CreateReminder {
     pub acknowledged_at: Option<Timestamp>,
+    pub due_at: Option<ReminderDueAt>,
 }
 
 // Generated DSL methods:
@@ -136,7 +165,9 @@ pub struct CreateReminder {
 // create_reminder
 // delete_reminder_by_id
 // delete_reminders_by_acknowledged_at
+// delete_reminders_by_due_at
 // get_all_reminders
 // get_reminder_by_id
 // get_reminders_by_acknowledged_at
+// get_reminders_by_due_at
 // update_reminder_by_id

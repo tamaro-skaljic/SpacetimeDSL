@@ -23,7 +23,7 @@ Try to delete a `Shipment` row in the `shipment` table whose value matches the v
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                     table_name: "shipment".into(),
                     column_names_and_row_values: format!(
-                        "{{ , warehouse_id : {}  }}", & warehouse_id
+                        "{{ warehouse_id : {} }}", & warehouse_id
                     )
                         .into(),
                 });

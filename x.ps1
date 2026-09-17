@@ -58,15 +58,7 @@ switch ($Command) {
     "format" {
         cargo fmt --all
 
-        Set-Location derive
-        cargo clippy --fix --allow-dirty --all-features
-
-        Set-Location ..\examples\test
-        cargo clippy --fix --allow-dirty --all-features
-
-        Set-Location ..\blackholio
-        cargo clippy --fix --allow-dirty --all-features
-        Set-Location ..\..
+        cargo clippy --workspace --all-targets --all-features --fix --allow-dirty
     }
 
     "debug" {
