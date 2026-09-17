@@ -216,3 +216,83 @@ pub fn dsl_method_hooks_call(function_name: &impl ToTokens, args: &impl ToTokens
         crate::spacetimedsl::DSLMethodHooks::#function_name(#args)
     }
 }
+
+/// `error::OneOrMultiple::#variant`
+pub fn one_or_multiple(variant: &impl ToTokens) -> TokenStream {
+    quote! {
+        crate::spacetimedsl::error::OneOrMultiple::#variant
+    }
+}
+
+/// `WriteContext`, the bound on every DSL method that writes.
+pub fn write_context() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::WriteContext
+    }
+}
+
+/// `ReadContext`, the bound on every DSL method that only reads.
+pub fn read_context() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::ReadContext
+    }
+}
+
+/// `DSL<'_, T>`, the receiver of every public DSL method.
+pub fn dsl_type() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::DSL<'_, T>
+    }
+}
+
+/// `DSL<'_, T>`, behind a reference, as a cascade function's first argument takes it.
+pub fn dsl_reference_type() -> TokenStream {
+    let dsl_type = dsl_type();
+
+    quote! {
+        &#dsl_type
+    }
+}
+
+/// `ReadOnlyDSL<'_, T>`, the second receiver a read-compatible method is emitted on.
+pub fn read_only_dsl_type() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::ReadOnlyDSL<'_, T>
+    }
+}
+
+/// `internal::DSLInternals`, as a type rather than a call.
+pub fn dsl_internals_type() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::internal::DSLInternals
+    }
+}
+
+/// `DSLMethodHooks`, as a type rather than a call.
+pub fn dsl_method_hooks_type() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::DSLMethodHooks
+    }
+}
+
+/// `Wrapper<#wrapped_type, #wrapper_type>`, the trait a generated wrapper implements.
+pub fn wrapper_trait(wrapped_type: &impl ToTokens, wrapper_type: &impl ToTokens) -> TokenStream {
+    quote! {
+        crate::spacetimedsl::Wrapper<#wrapped_type, #wrapper_type>
+    }
+}
+
+/// `::spacetimedsl::Wrapper`, the `use` every method body opens with.
+pub fn wrapper_trait_path() -> TokenStream {
+    quote! {
+        ::spacetimedsl::Wrapper
+    }
+}
+
+/// `use ::spacetimedsl::itertools::Itertools;`, the import every body that calls
+/// `at_most_one`, `collect_vec` or `into_values().collect_vec()` opens with.
+pub fn itertools_import() -> TokenStream {
+    quote! {
+        use ::spacetimedsl::itertools::Itertools;
+    }
+}

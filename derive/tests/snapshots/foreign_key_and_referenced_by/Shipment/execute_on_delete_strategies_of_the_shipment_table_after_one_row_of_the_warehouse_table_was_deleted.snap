@@ -27,7 +27,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
         let mut error = false;
         'outer: {
             match &strategy {
-                crate::spacetimedsl::OnDeleteStrategy::Error => {
+                crate::spacetimedsl::delete::OnDeleteStrategy::Error => {
                     for row in dsl
                         .db()
                         .shipment()
@@ -41,14 +41,14 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             .push(crate::spacetimedsl::delete::DeletionResultEntry {
                                 table_name: "shipment".into(),
                                 column_name: "destination_warehouse_id".into(),
-                                strategy: crate::spacetimedsl::OnDeleteStrategy::Error,
+                                strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Error,
                                 row_value: format!("{}", ShipmentId::new(id.clone()))
                                     .into(),
                                 child_entries,
                             });
                     }
                 }
-                crate::spacetimedsl::OnDeleteStrategy::Delete => {
+                crate::spacetimedsl::delete::OnDeleteStrategy::Delete => {
                     for row in dsl
                         .db()
                         .shipment()
@@ -61,7 +61,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             .push(crate::spacetimedsl::delete::DeletionResultEntry {
                                 table_name: "shipment".into(),
                                 column_name: "origin_warehouse_id".into(),
-                                strategy: crate::spacetimedsl::OnDeleteStrategy::Delete,
+                                strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                 row_value: format!("{}", ShipmentId::new(id.clone()))
                                     .into(),
                                 child_entries,
@@ -69,8 +69,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
                         dsl.db().shipment().id().delete(row.id);
                     }
                 }
-                crate::spacetimedsl::OnDeleteStrategy::SetZero => {}
-                crate::spacetimedsl::OnDeleteStrategy::Ignore => {}
+                crate::spacetimedsl::delete::OnDeleteStrategy::SetZero => {}
+                crate::spacetimedsl::delete::OnDeleteStrategy::Ignore => {}
             };
         }
         match error {

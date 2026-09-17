@@ -1,5 +1,6 @@
 use super::{create_wrapper, use_wrapper};
 use crate::api::dsl::wrapper::{CreatedWrapper, UsedWrapper, WrapperType};
+use crate::api::runtime;
 use crate::api::rust::{column::RustField, table::RustStruct};
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
@@ -118,6 +119,8 @@ fn get_wrapper_impl(
 
     let wrapper_struct_name_as_str = wrapper_struct_name.to_string();
 
+    let wrapper_trait = runtime::wrapper_trait(&wrapped_type, wrapper_struct_name);
+
     quote! {
         #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
         pub struct #wrapper_struct_name {
@@ -136,7 +139,7 @@ fn get_wrapper_impl(
             }
         }
 
-        impl crate::spacetimedsl::Wrapper<#wrapped_type, #wrapper_struct_name> for #wrapper_struct_name {
+        impl #wrapper_trait for #wrapper_struct_name {
             fn new(value: #wrapped_type) -> Self {
                 Self { value }
             }

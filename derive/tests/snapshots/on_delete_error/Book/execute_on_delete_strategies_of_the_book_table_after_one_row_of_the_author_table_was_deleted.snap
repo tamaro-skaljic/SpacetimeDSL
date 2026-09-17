@@ -27,7 +27,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
         let mut error = false;
         'outer: {
             match &strategy {
-                crate::spacetimedsl::OnDeleteStrategy::Error => {
+                crate::spacetimedsl::delete::OnDeleteStrategy::Error => {
                     for row in dsl
                         .db()
                         .book()
@@ -41,15 +41,15 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             .push(crate::spacetimedsl::delete::DeletionResultEntry {
                                 table_name: "book".into(),
                                 column_name: "author_id".into(),
-                                strategy: crate::spacetimedsl::OnDeleteStrategy::Error,
+                                strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Error,
                                 row_value: format!("{}", BookId::new(id.clone())).into(),
                                 child_entries,
                             });
                     }
                 }
-                crate::spacetimedsl::OnDeleteStrategy::Delete => {}
-                crate::spacetimedsl::OnDeleteStrategy::SetZero => {}
-                crate::spacetimedsl::OnDeleteStrategy::Ignore => {}
+                crate::spacetimedsl::delete::OnDeleteStrategy::Delete => {}
+                crate::spacetimedsl::delete::OnDeleteStrategy::SetZero => {}
+                crate::spacetimedsl::delete::OnDeleteStrategy::Ignore => {}
             };
         }
         match error {

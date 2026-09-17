@@ -37,7 +37,7 @@ Try to delete a `ParentRecord` row in the `parent_record` table whose value matc
         };
         match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_parent_record_table_was_deleted(
             self,
-            crate::spacetimedsl::OnDeleteStrategy::Error,
+            crate::spacetimedsl::delete::OnDeleteStrategy::Error,
             &row_to_delete.id,
         ) {
             Err(failure) => {
@@ -75,7 +75,7 @@ Try to delete a `ParentRecord` row in the `parent_record` table whose value matc
         };
         match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_parent_record_table_was_deleted(
             self,
-            crate::spacetimedsl::OnDeleteStrategy::Delete,
+            crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
             &row_to_delete.id,
         ) {
             Err(failure) => {
@@ -102,7 +102,7 @@ Try to delete a `ParentRecord` row in the `parent_record` table whose value matc
         };
         match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_parent_record_table_was_deleted(
             self,
-            crate::spacetimedsl::OnDeleteStrategy::SetZero,
+            crate::spacetimedsl::delete::OnDeleteStrategy::SetZero,
             &row_to_delete.id,
         ) {
             Err(failure) => {
@@ -129,7 +129,7 @@ Try to delete a `ParentRecord` row in the `parent_record` table whose value matc
         };
         match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_parent_record_table_was_deleted(
             self,
-            crate::spacetimedsl::OnDeleteStrategy::Ignore,
+            crate::spacetimedsl::delete::OnDeleteStrategy::Ignore,
             &row_to_delete.id,
         ) {
             Err(failure) => {

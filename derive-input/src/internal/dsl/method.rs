@@ -45,10 +45,8 @@ pub enum OneOrMultiple {
 impl quote::ToTokens for OneOrMultiple {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let variant = match self {
-            OneOrMultiple::One => quote! { crate::spacetimedsl::error::OneOrMultiple::One },
-            OneOrMultiple::Multiple => {
-                quote! { crate::spacetimedsl::error::OneOrMultiple::Multiple }
-            }
+            OneOrMultiple::One => runtime::one_or_multiple(&quote! { One }),
+            OneOrMultiple::Multiple => runtime::one_or_multiple(&quote! { Multiple }),
         };
         tokens.extend(variant);
     }
@@ -276,6 +274,8 @@ fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMethod
         &quote! { None },
     );
 
+    let itertools_import = runtime::itertools_import();
+
     SpacetimeDSLMethod {
         doc_comment: format!(
             "Try to delete the `{struct_name}` row from the singleton `{singular_table_name}` table."
@@ -284,7 +284,7 @@ fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMethod
         method_args: vec![],
         return_type: runtime::error_result_type(&runtime::deletion_result_type()),
         method_impl: quote! {
-            use ::spacetimedsl::itertools::Itertools;
+            #itertools_import
 
             let row_to_delete = match self.db().#singular_table_name().#primary_key().find(&#primary_key_value) {
                 None => return Err(#not_found_error),
@@ -851,9 +851,7 @@ fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, TableCo
     );
 
     let use_itertools = if !multi_column_index_checks.is_empty() {
-        quote! {
-            use ::spacetimedsl::itertools::Itertools;
-        }
+        runtime::itertools_import()
     } else {
         TokenStream::default()
     };
@@ -1105,8 +1103,10 @@ fn for_delete_many(shape: &IndexShape, context: &MethodGenerationContext) -> Spa
         &quote! { None },
     );
 
+    let itertools_import = runtime::itertools_import();
+
     let impl_until_return_ok_on_is_empty = quote! {
-        use ::spacetimedsl::itertools::Itertools;
+        #itertools_import
 
         #(#wrapper_option_mappers)*
 
@@ -1372,10 +1372,12 @@ fn for_get_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spaceti
                 },
             );
 
+            let itertools_import = runtime::itertools_import();
+
             quote! {
                 #(#wrapper_option_mappers)*
 
-                use ::spacetimedsl::itertools::Itertools;
+                #itertools_import
 
                 let mut #field_name_for_found_value: Option<#struct_name> = None;
 
@@ -1498,9 +1500,7 @@ fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spacetim
     };
 
     let use_itertools = if !multi_column_index_checks.is_empty() {
-        quote! {
-            use ::spacetimedsl::itertools::Itertools;
-        }
+        runtime::itertools_import()
     } else {
         TokenStream::default()
     };
@@ -1787,8 +1787,10 @@ fn for_delete_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
         }
     };
 
+    let itertools_import = runtime::itertools_import();
+
     let impl_until_return_err_on_is_none = quote! {
-        use ::spacetimedsl::itertools::Itertools;
+        #itertools_import
 
         #(#wrapper_option_mappers)*
 
@@ -2690,7 +2692,7 @@ fn for_referenced_by(
         SpacetimeDSLArg {
             is_option: false,
             arg_name: format_ident!("dsl"),
-            arg_type: SpacetimeDSLArgType::Normal(quote! { &crate::spacetimedsl::DSL<'_, T> }),
+            arg_type: SpacetimeDSLArgType::Normal(runtime::dsl_reference_type()),
         },
         SpacetimeDSLArg {
             is_option: false,
@@ -2969,7 +2971,7 @@ fn for_foreign_key(
         SpacetimeDSLArg {
             is_option: false,
             arg_name: format_ident!("dsl"),
-            arg_type: SpacetimeDSLArgType::Normal(quote! { &crate::spacetimedsl::DSL<'_, T> }),
+            arg_type: SpacetimeDSLArgType::Normal(runtime::dsl_reference_type()),
         },
         SpacetimeDSLArg {
             is_option: false,
@@ -3087,10 +3089,12 @@ fn for_foreign_key(
     let failure =
         runtime::on_delete_strategy_failure(&quote! { entries }, &quote! { error_from_hook });
 
+    let itertools_import = runtime::itertools_import();
+
     let function_impl = quote! {
         #compile_error_check_usage
 
-        use ::spacetimedsl::itertools::Itertools;
+        #itertools_import
         #create_data_structure_for_child_entries
 
         #error_from_hook_declaration

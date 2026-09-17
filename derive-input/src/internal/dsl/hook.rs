@@ -2,9 +2,12 @@ use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-use crate::api::dsl::{
-    hook::{SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks},
-    method::{SpacetimeDSLArg, SpacetimeDSLArgType},
+use crate::api::{
+    dsl::{
+        hook::{SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks},
+        method::{SpacetimeDSLArg, SpacetimeDSLArgType},
+    },
+    runtime,
 };
 
 pub(crate) fn build(
@@ -210,18 +213,20 @@ fn get_return_type(
     operation: &Operation,
     singular_table_name_pascal_case: &syn::Ident,
 ) -> TokenStream {
+    let error_type = runtime::spacetimedsl_error_type();
+
     match (timing, operation) {
         (Timing::Before, Operation::Insert) => {
             let arg_type = format_ident!("Create{singular_table_name_pascal_case}");
             quote! {
-                Result<#arg_type, crate::spacetimedsl::SpacetimeDSLError>
+                Result<#arg_type, #error_type>
             }
         }
         (Timing::Before, Operation::Update) => quote! {
-            Result<#singular_table_name_pascal_case, crate::spacetimedsl::SpacetimeDSLError>
+            Result<#singular_table_name_pascal_case, #error_type>
         },
         _ => quote! {
-            Result<(), crate::spacetimedsl::SpacetimeDSLError>
+            Result<(), #error_type>
         },
     }
 }
@@ -238,8 +243,6 @@ fn build_dsl_function_arg() -> SpacetimeDSLArg {
     SpacetimeDSLArg {
         is_option: false,
         arg_name: format_ident!("dsl"),
-        arg_type: SpacetimeDSLArgType::Normal(quote! {
-            &crate::spacetimedsl::DSL<'_, T>
-        }),
+        arg_type: SpacetimeDSLArgType::Normal(runtime::dsl_reference_type()),
     }
 }

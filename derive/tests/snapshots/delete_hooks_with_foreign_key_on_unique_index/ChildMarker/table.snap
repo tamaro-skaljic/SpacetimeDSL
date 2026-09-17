@@ -81,39 +81,39 @@ pub trait BeforeChildMarkerInsertHook<T: crate::spacetimedsl::WriteContext> {
     fn before_child_marker_insert(
         dsl: &crate::spacetimedsl::DSL<'_, T>,
         create_child_marker_request: CreateChildMarker,
-    ) -> Result<CreateChildMarker, crate::spacetimedsl::SpacetimeDSLError>;
+    ) -> Result<CreateChildMarker, crate::spacetimedsl::error::SpacetimeDSLError>;
 }
 pub trait BeforeChildMarkerUpdateHook<T: crate::spacetimedsl::WriteContext> {
     fn before_child_marker_update(
         dsl: &crate::spacetimedsl::DSL<'_, T>,
         old_child_marker: &ChildMarker,
         new_child_marker: ChildMarker,
-    ) -> Result<ChildMarker, crate::spacetimedsl::SpacetimeDSLError>;
+    ) -> Result<ChildMarker, crate::spacetimedsl::error::SpacetimeDSLError>;
 }
 pub trait BeforeChildMarkerDeleteHook<T: crate::spacetimedsl::WriteContext> {
     fn before_child_marker_delete(
         dsl: &crate::spacetimedsl::DSL<'_, T>,
         old_child_marker: &ChildMarker,
-    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError>;
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
 }
 pub trait AfterChildMarkerInsertHook<T: crate::spacetimedsl::WriteContext> {
     fn after_child_marker_insert(
         dsl: &crate::spacetimedsl::DSL<'_, T>,
         new_child_marker: &ChildMarker,
-    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError>;
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
 }
 pub trait AfterChildMarkerUpdateHook<T: crate::spacetimedsl::WriteContext> {
     fn after_child_marker_update(
         dsl: &crate::spacetimedsl::DSL<'_, T>,
         old_child_marker: &ChildMarker,
         new_child_marker: &ChildMarker,
-    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError>;
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
 }
 pub trait AfterChildMarkerDeleteHook<T: crate::spacetimedsl::WriteContext> {
     fn after_child_marker_delete(
         dsl: &crate::spacetimedsl::DSL<'_, T>,
         old_child_marker: &ChildMarker,
-    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError>;
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
 }
 
 // Generated DSL methods:

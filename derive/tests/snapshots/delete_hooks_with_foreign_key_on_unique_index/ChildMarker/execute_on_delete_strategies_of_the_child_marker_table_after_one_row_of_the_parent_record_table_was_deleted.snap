@@ -27,8 +27,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
         let mut error = false;
         'outer: {
             match &strategy {
-                crate::spacetimedsl::OnDeleteStrategy::Error => {}
-                crate::spacetimedsl::OnDeleteStrategy::Delete => {
+                crate::spacetimedsl::delete::OnDeleteStrategy::Error => {}
+                crate::spacetimedsl::delete::OnDeleteStrategy::Delete => {
                     use self::BeforeChildMarkerDeleteHook;
                     use self::AfterChildMarkerDeleteHook;
                     match dsl
@@ -45,7 +45,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                 .push(crate::spacetimedsl::delete::DeletionResultEntry {
                                     table_name: "child_marker".into(),
                                     column_name: "parent_id".into(),
-                                    strategy: crate::spacetimedsl::OnDeleteStrategy::Delete,
+                                    strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                     row_value: format!("{}", ChildMarkerId::new(id.clone()))
                                         .into(),
                                     child_entries,
@@ -72,8 +72,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
                         }
                     };
                 }
-                crate::spacetimedsl::OnDeleteStrategy::SetZero => {}
-                crate::spacetimedsl::OnDeleteStrategy::Ignore => {}
+                crate::spacetimedsl::delete::OnDeleteStrategy::SetZero => {}
+                crate::spacetimedsl::delete::OnDeleteStrategy::Ignore => {}
             };
         }
         match error {
