@@ -33,17 +33,19 @@ pub(in crate::internal) fn try_parse(
         column_args,
         &rust_struct,
         spacetimedb_table,
-        &mut spacetimedsl_table,
+        &spacetimedsl_table,
     )?;
 
-    let (spacetimedsl_methods, spacetimedsl_table) = SpacetimeDSLTableMethods::generate(
+    let (spacetimedsl_methods, recordings) = SpacetimeDSLTableMethods::generate(
         &rust_struct,
         &spacetimedb_table,
-        spacetimedsl_table,
+        &spacetimedsl_table,
         &columns,
         &internal_columns,
         &internal_primary_key_column,
     )?;
+
+    recordings.apply_to(&mut spacetimedsl_table);
 
     Ok(Table {
         rust_struct,

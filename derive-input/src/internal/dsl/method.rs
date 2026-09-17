@@ -30,7 +30,7 @@ use ident_case::RenameRule;
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, TokenStreamExt, format_ident, quote};
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use strum::IntoEnumIterator;
 use syn::{Ident, parse_str};
 
@@ -63,6 +63,42 @@ impl quote::ToTokens for OneOrMultiple {
             }
         };
         tokens.extend(variant);
+    }
+}
+
+/// What a generator wants written onto the table, returned instead of written.
+///
+/// The generators are named for what they produce and they produce a method; the table
+/// state they also need is part of their result rather than a side effect, so reordering
+/// two generator calls cannot change the table. `SpacetimeDSLTableMethods::generate`
+/// collects these and hands them to the one caller that owns the table.
+#[derive(Default)]
+pub(in crate::internal) struct GeneratedTableRecordings {
+    pub create_dsl_method_arg: Option<CreateDSLMethodArg>,
+    pub compile_error_checks: BTreeSet<Ident>,
+}
+
+impl GeneratedTableRecordings {
+    fn is_empty(&self) -> bool {
+        self.create_dsl_method_arg.is_none() && self.compile_error_checks.is_empty()
+    }
+
+    fn merge(&mut self, other: GeneratedTableRecordings) {
+        if let Some(create_dsl_method_arg) = other.create_dsl_method_arg {
+            self.create_dsl_method_arg = Some(create_dsl_method_arg);
+        }
+
+        self.compile_error_checks.extend(other.compile_error_checks);
+    }
+
+    pub(in crate::internal) fn apply_to(self, spacetimedsl_table: &mut SpacetimeDSLTable) {
+        if let Some(create_dsl_method_arg) = self.create_dsl_method_arg {
+            spacetimedsl_table.create_dsl_method_arg = Some(create_dsl_method_arg);
+        }
+
+        spacetimedsl_table
+            .compile_error_checks
+            .extend(self.compile_error_checks);
     }
 }
 
@@ -99,11 +135,25 @@ impl SpacetimeDSLColumnMethods {
     pub(in crate::internal) fn map(
         rust_struct: &RustStruct,
         spacetimedb_table: &SpacetimeDBTable,
-        spacetimedsl_table: &mut SpacetimeDSLTable,
+        spacetimedsl_table: &SpacetimeDSLTable,
         spacetimedb_column: &SpacetimeDBColumn,
         internal_columns: &[InternalColumn],
         primary_key_column: &InternalColumn,
     ) -> Option<SpacetimeDSLColumnMethods> {
+        /// `for_method` records something only for `DSLMethod::Create`, which a column's
+        /// methods never include, so there is nothing here for the table to keep.
+        /// `SpacetimeDSLTableMethods::generate` is the caller that has to apply them.
+        fn method_only(
+            (method, recordings): (SpacetimeDSLMethod, GeneratedTableRecordings),
+        ) -> SpacetimeDSLMethod {
+            debug_assert!(
+                recordings.is_empty(),
+                "A column's methods never record anything on the table"
+            );
+
+            method
+        }
+
         let index = match &spacetimedb_column.single_column_index {
             None => {
                 return None;
@@ -117,25 +167,25 @@ impl SpacetimeDSLColumnMethods {
                     return None;
                 }
 
-                let get_many = for_method(
+                let get_many = method_only(for_method(
                     DSLMethod::GetMany(index),
                     rust_struct,
                     spacetimedb_table,
                     spacetimedsl_table,
                     internal_columns,
                     primary_key_column,
-                );
+                ));
 
                 let delete_many = match spacetimedsl_table.has_delete_method {
                     false => None,
-                    true => Some(for_method(
+                    true => Some(method_only(for_method(
                         DSLMethod::DeleteMany(index),
                         rust_struct,
                         spacetimedb_table,
                         spacetimedsl_table,
                         internal_columns,
                         primary_key_column,
-                    )),
+                    ))),
                 };
 
                 SpacetimeDSLColumnMethods::ForIndex(SpacetimeDSLColumnMethodsForIndex {
@@ -144,14 +194,14 @@ impl SpacetimeDSLColumnMethods {
                 })
             }
             true => {
-                let get_one_option = for_method(
+                let get_one_option = method_only(for_method(
                     DSLMethod::GetOne(index),
                     rust_struct,
                     spacetimedb_table,
                     spacetimedsl_table,
                     internal_columns,
                     primary_key_column,
-                );
+                ));
 
                 let method_is_for_primary_key = match &index.index_type {
                     IndexType::BTreeSingleColumn { column }
@@ -165,26 +215,26 @@ impl SpacetimeDSLColumnMethods {
                 let update = match spacetimedsl_table.has_update_method && method_is_for_primary_key
                 {
                     false => None,
-                    true => Some(for_method(
+                    true => Some(method_only(for_method(
                         DSLMethod::Update(index),
                         rust_struct,
                         spacetimedb_table,
                         spacetimedsl_table,
                         internal_columns,
                         primary_key_column,
-                    )),
+                    ))),
                 };
 
                 let delete_one = match spacetimedsl_table.has_delete_method {
                     false => None,
-                    true => Some(for_method(
+                    true => Some(method_only(for_method(
                         DSLMethod::DeleteOne(index),
                         rust_struct,
                         spacetimedb_table,
                         spacetimedsl_table,
                         internal_columns,
                         primary_key_column,
-                    )),
+                    ))),
                 };
 
                 SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
@@ -203,46 +253,55 @@ impl SpacetimeDSLTableMethods {
     pub(in crate::internal) fn generate(
         rust_struct: &RustStruct,
         spacetimedb_table: &SpacetimeDBTable,
-        mut spacetimedsl_table: SpacetimeDSLTable,
+        spacetimedsl_table: &SpacetimeDSLTable,
         columns: &[Column],
         internal_columns: &[InternalColumn],
         primary_key_column: &InternalColumn,
-    ) -> syn::Result<(SpacetimeDSLTableMethods, SpacetimeDSLTable)> {
+    ) -> syn::Result<(SpacetimeDSLTableMethods, GeneratedTableRecordings)> {
         let is_singleton = spacetimedsl_table.is_singleton;
 
-        let create = for_method(
+        let mut recordings = GeneratedTableRecordings::default();
+
+        let (create, create_recordings) = for_method(
             DSLMethod::Create,
             rust_struct,
             spacetimedb_table,
-            &mut spacetimedsl_table,
+            spacetimedsl_table,
             internal_columns,
             primary_key_column,
         );
+        recordings.merge(create_recordings);
 
         let get_all = if is_singleton {
             None
         } else {
-            Some(for_method(
+            let (get_all, get_all_recordings) = for_method(
                 DSLMethod::GetAll,
                 rust_struct,
                 spacetimedb_table,
-                &mut spacetimedsl_table,
+                spacetimedsl_table,
                 internal_columns,
                 primary_key_column,
-            ))
+            );
+            recordings.merge(get_all_recordings);
+
+            Some(get_all)
         };
 
         let get_count = if is_singleton {
             None
         } else {
-            Some(for_method(
+            let (get_count, get_count_recordings) = for_method(
                 DSLMethod::GetCount,
                 rust_struct,
                 spacetimedb_table,
-                &mut spacetimedsl_table,
+                spacetimedsl_table,
                 internal_columns,
                 primary_key_column,
-            ))
+            );
+            recordings.merge(get_count_recordings);
+
+            Some(get_count)
         };
 
         let execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted;
@@ -253,19 +312,25 @@ impl SpacetimeDSLTableMethods {
                 None;
             execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted = None;
         } else {
-            execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted = Some(for_referenced_by(
+            let (after_one_row, after_one_row_recordings) = for_referenced_by(
                 &OneOrMultiple::One,
                 spacetimedb_table,
-                &mut spacetimedsl_table,
+                spacetimedsl_table,
                 primary_key_column,
-            ));
+            );
+            recordings.merge(after_one_row_recordings);
+            execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted =
+                Some(after_one_row);
 
-            execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted = Some(for_referenced_by(
+            let (after_multiple_rows, after_multiple_rows_recordings) = for_referenced_by(
                 &OneOrMultiple::Multiple,
                 spacetimedb_table,
-                &mut spacetimedsl_table,
+                spacetimedsl_table,
                 primary_key_column,
-            ));
+            );
+            recordings.merge(after_multiple_rows_recordings);
+            execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted =
+                Some(after_multiple_rows);
         }
 
         let mut
@@ -309,28 +374,31 @@ impl SpacetimeDSLTableMethods {
                     false => ReferencingTables::Present,
                 };
 
-                execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted.push(
-                    for_foreign_key(
-                        &OneOrMultiple::One,
-                        referencing_tables,
-                        spacetimedb_table,
-                        referenced_table_name,
-                        &columns_with_foreign_key,
-                        primary_key_column,
-                        &mut spacetimedsl_table,
-                    )?
-                );
-                execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted.push(
-                    for_foreign_key(
-                        &OneOrMultiple::Multiple,
-                        referencing_tables,
-                        spacetimedb_table,
-                        referenced_table_name,
-                        &columns_with_foreign_key,
-                        primary_key_column,
-                        &mut spacetimedsl_table,
-                    )?
-                );
+                let (after_one_row, after_one_row_recordings) = for_foreign_key(
+                    &OneOrMultiple::One,
+                    referencing_tables,
+                    spacetimedb_table,
+                    referenced_table_name,
+                    &columns_with_foreign_key,
+                    primary_key_column,
+                    spacetimedsl_table,
+                )?;
+                recordings.merge(after_one_row_recordings);
+                execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted
+                    .push(after_one_row);
+
+                let (after_multiple_rows, after_multiple_rows_recordings) = for_foreign_key(
+                    &OneOrMultiple::Multiple,
+                    referencing_tables,
+                    spacetimedb_table,
+                    referenced_table_name,
+                    &columns_with_foreign_key,
+                    primary_key_column,
+                    spacetimedsl_table,
+                )?;
+                recordings.merge(after_multiple_rows_recordings);
+                execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted
+                    .push(after_multiple_rows);
             }
         }
 
@@ -350,24 +418,29 @@ impl SpacetimeDSLTableMethods {
 
             match multi_column_index.is_unique {
                 false => {
-                    let get_many = for_method(
+                    let (get_many, get_many_recordings) = for_method(
                         DSLMethod::GetMany(multi_column_index),
                         rust_struct,
                         spacetimedb_table,
-                        &mut spacetimedsl_table,
+                        spacetimedsl_table,
                         internal_columns,
                         primary_key_column,
                     );
+                    recordings.merge(get_many_recordings);
                     let delete_many = match spacetimedsl_table.has_delete_method {
                         false => None,
-                        true => Some(for_method(
-                            DSLMethod::DeleteMany(multi_column_index),
-                            rust_struct,
-                            spacetimedb_table,
-                            &mut spacetimedsl_table,
-                            internal_columns,
-                            primary_key_column,
-                        )),
+                        true => {
+                            let (method, method_recordings) = for_method(
+                                DSLMethod::DeleteMany(multi_column_index),
+                                rust_struct,
+                                spacetimedb_table,
+                                spacetimedsl_table,
+                                internal_columns,
+                                primary_key_column,
+                            );
+                            recordings.merge(method_recordings);
+                            Some(method)
+                        }
                     };
 
                     multi_column_indices.push(SpacetimeDSLColumnMethods::ForIndex(
@@ -378,14 +451,15 @@ impl SpacetimeDSLTableMethods {
                     ));
                 }
                 true => {
-                    let get_one_option = for_method(
+                    let (get_one_option, get_one_option_recordings) = for_method(
                         DSLMethod::GetOne(multi_column_index),
                         rust_struct,
                         spacetimedb_table,
-                        &mut spacetimedsl_table,
+                        spacetimedsl_table,
                         internal_columns,
                         primary_key_column,
                     );
+                    recordings.merge(get_one_option_recordings);
 
                     // Only the primary key can update a row: SpacetimeDB's `update` lives on
                     // the primary key index, and no other index implements `PrimaryKey`.
@@ -393,14 +467,18 @@ impl SpacetimeDSLTableMethods {
 
                     let delete_one = match spacetimedsl_table.has_delete_method {
                         false => None,
-                        true => Some(for_method(
-                            DSLMethod::DeleteOne(multi_column_index),
-                            rust_struct,
-                            spacetimedb_table,
-                            &mut spacetimedsl_table,
-                            internal_columns,
-                            primary_key_column,
-                        )),
+                        true => {
+                            let (method, method_recordings) = for_method(
+                                DSLMethod::DeleteOne(multi_column_index),
+                                rust_struct,
+                                spacetimedb_table,
+                                spacetimedsl_table,
+                                internal_columns,
+                                primary_key_column,
+                            );
+                            recordings.merge(method_recordings);
+                            Some(method)
+                        }
                     };
 
                     multi_column_indices.push(SpacetimeDSLColumnMethods::ForUniqueIndex(
@@ -425,7 +503,7 @@ impl SpacetimeDSLTableMethods {
             multi_column_indices,
         };
 
-        Ok((methods, spacetimedsl_table))
+        Ok((methods, recordings))
     }
 }
 
@@ -624,10 +702,12 @@ pub(in crate::internal) fn for_method(
     dsl_method: DSLMethod,
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
-    spacetimedsl_table: &mut SpacetimeDSLTable,
+    spacetimedsl_table: &SpacetimeDSLTable,
     internal_columns: &[InternalColumn],
     primary_key_column: &InternalColumn,
-) -> SpacetimeDSLMethod {
+) -> (SpacetimeDSLMethod, GeneratedTableRecordings) {
+    let mut recordings = GeneratedTableRecordings::default();
+
     let struct_name = &rust_struct.name;
     let singular_table_name = &spacetimedb_table.singular_name;
     let singular_table_name_as_string = singular_table_name.to_string();
@@ -722,7 +802,7 @@ pub(in crate::internal) fn for_method(
                     })
                     .collect_vec();
 
-                spacetimedsl_table.create_dsl_method_arg = Some(CreateDSLMethodArg {
+                recordings.create_dsl_method_arg = Some(CreateDSLMethodArg {
                     struct_name: method_arg_name.clone(),
                     struct_members: method_arg_members,
                     struct_impl: quote! {
@@ -2125,14 +2205,16 @@ pub(in crate::internal) fn for_method(
         }
     };
 
-    SpacetimeDSLMethod {
+    let method = SpacetimeDSLMethod {
         doc_comment,
         method_name,
         method_args,
         return_type,
         method_impl,
         read_context_compatible,
-    }
+    };
+
+    (method, recordings)
 }
 
 /// The kind of index, as the doc comments of the generated methods name it.
@@ -2576,9 +2658,11 @@ fn get_unique_multi_column_index_check(
 fn for_referenced_by(
     one_or_multiple: &OneOrMultiple,
     spacetimedb_table: &SpacetimeDBTable,
-    spacetimedsl_table: &mut SpacetimeDSLTable,
+    spacetimedsl_table: &SpacetimeDSLTable,
     primary_key_column: &InternalColumn,
-) -> SpacetimeDSLMethod {
+) -> (SpacetimeDSLMethod, GeneratedTableRecordings) {
+    let mut recordings = GeneratedTableRecordings::default();
+
     let singular_table_name = &spacetimedb_table.singular_name;
     let primary_key_column_type = &primary_key_column.rust_field_type_name_or_path;
 
@@ -2667,7 +2751,7 @@ fn for_referenced_by(
 
         let compile_error_check =
             get_referenced_table_compile_error_check(singular_table_name, referencing_table_name);
-        spacetimedsl_table
+        recordings
             .compile_error_checks
             .insert(compile_error_check.clone());
 
@@ -2741,14 +2825,16 @@ fn for_referenced_by(
         }
     };
 
-    SpacetimeDSLMethod {
+    let method = SpacetimeDSLMethod {
         doc_comment,
         method_name: function_name,
         method_args: function_args,
         return_type,
         method_impl: function_impl,
         read_context_compatible: false,
-    }
+    };
+
+    (method, recordings)
 }
 
 fn for_foreign_key(
@@ -2758,8 +2844,10 @@ fn for_foreign_key(
     referenced_table_name: &syn::Ident,
     columns_with_foreign_key: &[&Column],
     primary_key_column: &InternalColumn,
-    spacetimedsl_table: &mut SpacetimeDSLTable,
-) -> syn::Result<SpacetimeDSLMethod> {
+    spacetimedsl_table: &SpacetimeDSLTable,
+) -> syn::Result<(SpacetimeDSLMethod, GeneratedTableRecordings)> {
+    let mut recordings = GeneratedTableRecordings::default();
+
     let first_foreign_key_column = columns_with_foreign_key
         .first()
         .expect("A table grouped by referenced table must have at least one foreign key column");
@@ -2947,7 +3035,7 @@ fn for_foreign_key(
     let compile_error_check =
         get_referencing_table_compile_error_check(singular_table_name, &referenced_table_name);
 
-    spacetimedsl_table
+    recordings
         .compile_error_checks
         .insert(compile_error_check.clone());
 
@@ -2978,14 +3066,16 @@ fn for_foreign_key(
         }
     };
 
-    Ok(SpacetimeDSLMethod {
+    let method = SpacetimeDSLMethod {
         doc_comment,
         method_name: function_name,
         method_args: function_args,
         return_type,
         method_impl: function_impl,
         read_context_compatible: false,
-    })
+    };
+
+    Ok((method, recordings))
 }
 
 fn get_on_delete_strategy_implementation(
