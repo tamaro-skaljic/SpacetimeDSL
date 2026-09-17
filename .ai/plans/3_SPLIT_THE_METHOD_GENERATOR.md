@@ -133,7 +133,7 @@ implementation.
 | Update body | Unchanged: `self.db().<table>().<primary_key>().update(row)`. No other shape is possible — SpacetimeDB defines `update` on the primary key index only. |
 | Hash routing | `HashSingleColumn` joins the extraction loop in `internal/db/column.rs`. The `multi_column_indices` name is kept and the loop gains a guard, so a single-column index leaking into the list can no longer take the wrong path silently. |
 | `delete = false` | Suppresses the delete methods. `#[referenced_by]` combined with `delete = false` becomes a rejection, spanned on the attribute, beside its sibling in `ReferencingTable::try_parse`. |
-| Hash verification | A `trybuild` **pass** case in `compile-tests`, not a new table in `examples/test`. The open question is whether SpacetimeDB emits `find`/`update` accessors for a unique hash index, which is a compile question. |
+| Hash verification | A hash table in `examples/test`, exercised by the `tester` reducer. **Revised during step 1.3** — the planned `trybuild` pass case cannot work, because a pass case links a native executable and the generated code needs WASM-only host symbols (`LNK2019: unresolved external symbol datastore_table_scan_bsatn`). `compile_fail` cases never link, which is why the existing cases are unaffected. |
 | Context | `MethodGenerationContext` holds the five references **plus** the names every generator re-derives, including `field_name_for_found_value`. Plain data carrier — no generation methods. |
 | Mutation | Carried all the way out: generators return what they want recorded, `generate` takes `&SpacetimeDSLTable`, `internal/table.rs:39` applies the recordings, and `column::try_parse` and `SpacetimeDSLColumnMethods::map` drop their `&mut` too. |
 | `IndexShape` | One struct, with the four prose fragments pre-assembled into the single phrase all five doc comments build identically today. Built by the caller, once per index, and passed as `&IndexShape`. |
@@ -220,7 +220,7 @@ is wrong — do not accept the snapshot.
 | --- | --- | --- |
 | 1.1 | **changing** | every doc comment in `hash_index/Session` |
 | 1.2 | **changing** | 4 `.snap` files deleted and their 4 `table.snap` manifests (listed in 1.2) |
-| 1.3 | **changing** | `hash_index/Session` bodies for `token` and `device_id`; one new `.rs` pass case |
+| 1.3 | preserving | **nothing** — see 1.3; a new hash table in `examples/test` is the verification |
 | 1.4 | **changing** | `methods_disabled/AuditEntry` loses 2 snapshots; one new `.stderr` |
 | 2–7 | preserving | **nothing** |
 
@@ -385,21 +385,30 @@ already lost its update method in 1.2 and does not regain it here, so this step
 moves only the getter and deleter bodies. Taken before 1.2, the same snapshot would
 have moved twice.
 
-**Verification.** No example module and no compile test currently *compiles* a hash
-index; the fixtures only snapshot tokens. This step changes
-`get_session_by_device_id` from the emulated `at_most_one()` path to a real
-`.find()`, and `update_session_by_device_id` to `.device_id().update(row)`. Whether
-SpacetimeDB emits `find` and `update` accessors for a unique hash index is a
-compile question, so add a **pass** case to `compile-tests` covering a table with a
-`#[index(hash)]` column and an `#[index(hash)] #[unique]` column. Widen the
-crate's `description` in `compile-tests/Cargo.toml`, which currently says it pins
-diagnostics for *invalid* table definitions only.
+**Verification.** No example module and no compile test *compiled* a hash index
+before this step; the fixtures only snapshot tokens. A `trybuild` pass case cannot
+close that gap: `trybuild::pass` links a native executable, and the generated code
+reaches for WASM host imports that do not exist there, so it fails with
+`LNK2019: unresolved external symbol datastore_table_scan_bsatn` and sixteen more.
+The `compile_fail` cases are unaffected because they never reach the linker.
 
-**Moves:** `hash_index/Session` — the bodies for `token` (now the single-column
-`ForIndex` path) and for `device_id` (now the single-column `ForUniqueIndex` path).
-`create_session` must **not** move: `multi_column_index_checks` already skipped
-both indices, because it only handles `BTreeMultiColumn`. Rewrite the first bullet
-of the `hash_index.rs` fixture header.
+Add the table to `examples/test` instead. `cargo clippy --workspace --all-targets`
+in `./x.sh format` type-checks it without linking, and `./x.sh test` publishes it
+to WASM, where it links, and runs the `tester` reducer against it. Exercise all
+three shapes: `filter` through the non-unique single-column index, `find` and
+`delete` through the unique single-column one, and `filter` through the
+multi-column one.
+
+**Moves: nothing, and that is the expected result.** `for_method` already grouped
+`HashSingleColumn` with `BTreeSingleColumn` when it decided the body shape, so the
+multi-column loop and `map` emitted identical tokens for a single-column hash
+index. The routing defect's only user-visible consequence was the update method,
+and step 1.2 settled that.
+
+Verify the routing took effect by proof rather than by diff: the guard now skips
+both hash indices in `generate`'s loop, so if `hash_index/Session` still lists
+`get_sessions_by_token`, `get_session_by_device_id` and their deleters, `map` must
+be producing them. The `HashSingleColumn` arm in `map` is live for the first time.
 
 ### 1.4 `method(delete = false)` suppresses the delete methods
 
