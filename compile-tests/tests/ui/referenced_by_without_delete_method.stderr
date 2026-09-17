@@ -1,0 +1,6 @@
+error: `#[referenced_by]` is only allowed when the table has a delete method (`#[dsl(method(delete = true))]`)!
+       The on-delete strategies it declares run when a row of this table is deleted, which the DSL cannot do while the delete method is disabled.
+  --> tests/ui/referenced_by_without_delete_method.rs:25:9
+   |
+25 |         #[referenced_by(path = crate::shipment, table = shipment)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

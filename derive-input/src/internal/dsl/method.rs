@@ -126,14 +126,17 @@ impl SpacetimeDSLColumnMethods {
                     primary_key_column,
                 );
 
-                let delete_many = for_method(
-                    DSLMethod::DeleteMany(index),
-                    rust_struct,
-                    spacetimedb_table,
-                    spacetimedsl_table,
-                    internal_columns,
-                    primary_key_column,
-                );
+                let delete_many = match spacetimedsl_table.has_delete_method {
+                    false => None,
+                    true => Some(for_method(
+                        DSLMethod::DeleteMany(index),
+                        rust_struct,
+                        spacetimedb_table,
+                        spacetimedsl_table,
+                        internal_columns,
+                        primary_key_column,
+                    )),
+                };
 
                 SpacetimeDSLColumnMethods::ForIndex(SpacetimeDSLColumnMethodsForIndex {
                     get_many,
@@ -172,14 +175,17 @@ impl SpacetimeDSLColumnMethods {
                     )),
                 };
 
-                let delete_one = for_method(
-                    DSLMethod::DeleteOne(index),
-                    rust_struct,
-                    spacetimedb_table,
-                    spacetimedsl_table,
-                    internal_columns,
-                    primary_key_column,
-                );
+                let delete_one = match spacetimedsl_table.has_delete_method {
+                    false => None,
+                    true => Some(for_method(
+                        DSLMethod::DeleteOne(index),
+                        rust_struct,
+                        spacetimedb_table,
+                        spacetimedsl_table,
+                        internal_columns,
+                        primary_key_column,
+                    )),
+                };
 
                 SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
                     get_one_option,
@@ -352,14 +358,17 @@ impl SpacetimeDSLTableMethods {
                         internal_columns,
                         primary_key_column,
                     );
-                    let delete_many = for_method(
-                        DSLMethod::DeleteMany(multi_column_index),
-                        rust_struct,
-                        spacetimedb_table,
-                        &mut spacetimedsl_table,
-                        internal_columns,
-                        primary_key_column,
-                    );
+                    let delete_many = match spacetimedsl_table.has_delete_method {
+                        false => None,
+                        true => Some(for_method(
+                            DSLMethod::DeleteMany(multi_column_index),
+                            rust_struct,
+                            spacetimedb_table,
+                            &mut spacetimedsl_table,
+                            internal_columns,
+                            primary_key_column,
+                        )),
+                    };
 
                     multi_column_indices.push(SpacetimeDSLColumnMethods::ForIndex(
                         SpacetimeDSLColumnMethodsForIndex {
@@ -382,14 +391,17 @@ impl SpacetimeDSLTableMethods {
                     // the primary key index, and no other index implements `PrimaryKey`.
                     let update = None;
 
-                    let delete_one = for_method(
-                        DSLMethod::DeleteOne(multi_column_index),
-                        rust_struct,
-                        spacetimedb_table,
-                        &mut spacetimedsl_table,
-                        internal_columns,
-                        primary_key_column,
-                    );
+                    let delete_one = match spacetimedsl_table.has_delete_method {
+                        false => None,
+                        true => Some(for_method(
+                            DSLMethod::DeleteOne(multi_column_index),
+                            rust_struct,
+                            spacetimedb_table,
+                            &mut spacetimedsl_table,
+                            internal_columns,
+                            primary_key_column,
+                        )),
+                    };
 
                     multi_column_indices.push(SpacetimeDSLColumnMethods::ForUniqueIndex(
                         SpacetimeDSLColumnMethodsForUniqueIndex {

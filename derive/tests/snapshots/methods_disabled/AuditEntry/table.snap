@@ -77,8 +77,6 @@ pub struct CreateAuditEntry {
 // Generated DSL methods:
 // count_of_all_audit_entries
 // create_audit_entry
-// delete_audit_entries_by_actor_id
-// delete_audit_entry_by_id
 // get_all_audit_entries
 // get_audit_entries_by_actor_id
 // get_audit_entry_by_id

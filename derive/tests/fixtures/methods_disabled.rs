@@ -1,11 +1,13 @@
 //! Covers `method(update = false, delete = false)`.
 //!
-//! The snapshots pin what the two flags really do, which is less than their names
-//! suggest. `update = false` does remove the setters and every update method.
-//! `delete = false` removes nothing from the generated output: the delete methods are
-//! still there. It is only read by `foreign_key.rs:115`, to reject an
-//! `on_delete = Delete` foreign key, and by `internal.rs:177`, to reject a before- or
-//! after-delete hook - neither of which this table has. (FIXME)
+//! The snapshots pin what the two flags do, which is now the same kind of thing for
+//! both. `update = false` removes the setters and every update method; `delete = false`
+//! removes every delete method, so this table generates only `create`, the getters and
+//! the count.
+//!
+//! `delete = false` additionally rejects three things this table does not have: an
+//! `on_delete = Delete` foreign key, a before- or after-delete hook, and a
+//! `#[referenced_by]` attribute. Each is pinned by its own case in `compile-tests`.
 //!
 //! All columns are private, which is what `update = false` requires: a non-private column
 //! would get a setter and therefore need an update method.

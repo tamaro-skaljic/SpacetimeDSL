@@ -7,6 +7,7 @@ use syn::{Ident, Path};
 
 impl ReferencingTable {
     pub(in crate::internal) fn try_parse(
+        has_delete_method: &bool,
         field: &SatsField<'_>,
     ) -> syn::Result<Vec<ReferencingTable>> {
         let mut referencing_tables: Vec<ReferencingTable> = vec![];
@@ -28,6 +29,13 @@ impl ReferencingTable {
                 return Err(syn::Error::new_spanned(
                     attr,
                     "`#[referenced_by]` is only allowed in combination with `#[primary_key]`!",
+                ));
+            }
+
+            if !has_delete_method {
+                return Err(syn::Error::new_spanned(
+                    attr,
+                    "`#[referenced_by]` is only allowed when the table has a delete method (`#[dsl(method(delete = true))]`)!\nThe on-delete strategies it declares run when a row of this table is deleted, which the DSL cannot do while the delete method is disabled.",
                 ));
             }
 

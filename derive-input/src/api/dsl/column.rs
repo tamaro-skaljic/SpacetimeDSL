@@ -24,12 +24,15 @@ pub enum SpacetimeDSLColumnMethods {
 #[derive(Clone)]
 pub struct SpacetimeDSLColumnMethodsForUniqueIndex {
     pub get_one_option: SpacetimeDSLMethod,
+    // Only `Some(T)` if the table has an update method and this index is the primary key.
     pub update: Option<SpacetimeDSLMethod>,
-    pub delete_one: SpacetimeDSLMethod,
+    // Only `Some(T)` if the table has a delete method.
+    pub delete_one: Option<SpacetimeDSLMethod>,
 }
 
 #[derive(Clone)]
 pub struct SpacetimeDSLColumnMethodsForIndex {
     pub get_many: SpacetimeDSLMethod,
-    pub delete_many: SpacetimeDSLMethod,
+    // Only `Some(T)` if the table has a delete method.
+    pub delete_many: Option<SpacetimeDSLMethod>,
 }
