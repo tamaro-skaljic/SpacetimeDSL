@@ -101,4 +101,3 @@ pub struct CreateSeat {
 // get_seat_by_id
 // get_seat_by_row_and_number
 // update_seat_by_id
-// update_seat_by_row_and_number

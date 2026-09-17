@@ -367,17 +367,9 @@ impl SpacetimeDSLTableMethods {
                         primary_key_column,
                     );
 
-                    let update = match spacetimedsl_table.has_update_method {
-                        false => None,
-                        true => Some(for_method(
-                            DSLMethod::Update(multi_column_index),
-                            rust_struct,
-                            spacetimedb_table,
-                            &mut spacetimedsl_table,
-                            internal_columns,
-                            primary_key_column,
-                        )),
-                    };
+                    // Only the primary key can update a row: SpacetimeDB's `update` lives on
+                    // the primary key index, and no other index implements `PrimaryKey`.
+                    let update = None;
 
                     let delete_one = for_method(
                         DSLMethod::DeleteOne(multi_column_index),

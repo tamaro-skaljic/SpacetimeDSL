@@ -1,10 +1,10 @@
 //! Covers `#[unique]` on a single column: the `SpacetimeDSLColumnMethods::ForUniqueIndex`
 //! branch, which drives the single-row `get_one_option` and `delete_one`.
 //!
-//! `method(update = true)` is on, and the snapshots pin where the update method actually
-//! lands: on the primary key only. A `#[unique]` column which is not the primary key gets
-//! no `update_..._by_...` method - unlike the unique *multi*-column index in
-//! `unique_multi_column_index`, which does get one. (FIXME)
+//! `method(update = true)` is on, and the snapshots pin where the update method lands:
+//! on the primary key only. A `#[unique]` column which is not the primary key gets a
+//! getter and a deleter but no `update_..._by_...`, because SpacetimeDB's `update` lives
+//! on the primary key index and no other index implements `PrimaryKey`.
 
 #[spacetimedsl::dsl(plural_name = accounts, method(update = true))]
 #[spacetimedb::table(accessor = account, public)]

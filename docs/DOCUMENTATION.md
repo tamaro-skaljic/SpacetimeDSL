@@ -903,7 +903,7 @@ let module = dsl.get_module1_by_database_and_parent_id_and_name(&0, &0, "")?;
 
 Requires `method(update = true)` in `#[spacetimedsl::dsl]`.
 
-Note that update methods are not generated for unique single column indices as of **SpacetimeDB** 2.0.
+The update method is generated for the primary key only. A `#[unique]` column and a `unique_index(name = ...)` get a getter and a deleter, but no updater: **SpacetimeDB**'s `update` lives on the primary key index, and no other index implements `PrimaryKey`.
 
 #### By Primary Key
 
@@ -917,10 +917,14 @@ entity.set_name("new_name".to_string());
 let updated = dsl.update_entity_by_id(entity)?;
 ```
 
-#### By Unique Multi-Column Index
+To change a row you found through another unique index, read it with that index's getter and write it back with the primary key method:
 
 ```rust
-let updated = dsl.update_entity_relationship_by_parent_child_entity_id(relationship)?;
+let mut account = dsl.get_account_by_external_id(&external_id)?;
+
+account.set_name("new_name".to_string());
+
+let updated = dsl.update_account_by_id(account)?;
 ```
 
 #### Automatic Timestamp Refresh
@@ -1286,8 +1290,8 @@ pub struct EntityRelationship {
 // Get one (unique — returns Result, not iterator)
 dsl.get_entity_relationship_by_parent_child_entity_id(&parent_id, &child_id)?;
 
-// Update
-dsl.update_entity_relationship_by_parent_child_entity_id(relationship)?;
+// No update method — update through the primary key instead
+dsl.update_entity_relationship_by_id(relationship)?;
 
 // Delete one
 dsl.delete_entity_relationship_by_parent_child_entity_id(&parent_id, &child_id)?;
@@ -1536,7 +1540,7 @@ All generated traits follow consistent naming patterns. The table name used in t
 | Get by index (many)       | `Get{Table}RowsBy{Index}`       | `get_{plural}_by_{index}()`    | `GetPositionRowsByPlayerId` + `get_positions_by_id()` |
 | Get all                   | `GetAll{Table}Rows`             | `get_all_{plural}()`           | `GetAllEntityRows` + `get_all_entities()`             |
 | Count all                 | `CountOfAll{Table}Rows`         | `count_of_all_{plural}()`      | `CountOfAllEntityRows` + `count_of_all_entities()`    |
-| Update by PK/unique       | `Update{Table}RowBy{Column}`    | `update_{table}_by_{column}()` | `UpdateEntityRowById` + `update_entity_by_id()`       |
+| Update by PK              | `Update{Table}RowBy{Column}`    | `update_{table}_by_{column}()` | `UpdateEntityRowById` + `update_entity_by_id()`       |
 | Delete by PK/unique (one) | `Delete{Table}RowBy{Column}`    | `delete_{table}_by_{column}()` | `DeleteEntityRowById` + `delete_entity_by_id()`       |
 | Delete by index (many)    | `Delete{Table}RowsBy{Index}`    | `delete_{plural}_by_{index}()` | `DeletePositionRowsById` + `delete_positions_by_id()` |
 

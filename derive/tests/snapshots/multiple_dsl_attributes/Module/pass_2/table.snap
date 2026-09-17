@@ -17,4 +17,3 @@ pub struct CreateModule2 {
 // get_module2_by_id
 // get_module2_by_name_and_database
 // update_module2_by_id
-// update_module2_by_name_and_database
