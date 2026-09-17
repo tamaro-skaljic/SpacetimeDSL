@@ -275,6 +275,7 @@ fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMethod
         singular_table_name_as_string,
         &OneOrMultiple::One,
         &quote! { vec![deletion_result_entry] },
+        &quote! { None },
     );
 
     SpacetimeDSLMethod {
@@ -1103,6 +1104,7 @@ fn for_delete_many(shape: &IndexShape, context: &MethodGenerationContext) -> Spa
         singular_table_name_as_string,
         &OneOrMultiple::Multiple,
         &quote! { vec![] },
+        &quote! { None },
     );
 
     let impl_until_return_ok_on_is_empty = quote! {
@@ -1205,6 +1207,14 @@ fn for_delete_many(shape: &IndexShape, context: &MethodGenerationContext) -> Spa
         singular_table_name_as_string,
         &OneOrMultiple::Multiple,
         &quote! { deletion_result_entries.into_values().collect_vec() },
+        &quote! { None },
+    );
+
+    let deletion_result_from_entries_with_error_from_hook = runtime::deletion_result(
+        singular_table_name_as_string,
+        &OneOrMultiple::Multiple,
+        &quote! { deletion_result_entries.into_values().collect_vec() },
+        &quote! { error_from_hook },
     );
 
     let return_result_impl = quote! {
@@ -1226,14 +1236,14 @@ fn for_delete_many(shape: &IndexShape, context: &MethodGenerationContext) -> Spa
             #return_result_impl
         }
     } else {
-        let unknown_error_after_state_change = runtime::generic_error(&quote! {
-            format!("Delete Many Error: An unknown error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
+        let error_after_state_change = runtime::generic_error(&quote! {
+            format!("Delete Many Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
         });
 
         let on_error_handler = quote! {
-            let error = #deletion_result_from_entries;
+            let error = #deletion_result_from_entries_with_error_from_hook;
 
-            return Err(#unknown_error_after_state_change);
+            return Err(#error_after_state_change);
         };
 
         let reference_integrity_violation_on_delete_error =
@@ -1245,7 +1255,7 @@ fn for_delete_many(shape: &IndexShape, context: &MethodGenerationContext) -> Spa
             OnDeleteStrategy::Error,
             OneOrMultiple::Multiple,
             &quote! {
-                let error = #deletion_result_from_entries;
+                let error = #deletion_result_from_entries_with_error_from_hook;
 
                 return Err(#reference_integrity_violation_on_delete_error);
             },
@@ -1698,6 +1708,14 @@ fn for_delete_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
         singular_table_name_as_string,
         &OneOrMultiple::One,
         &quote! { vec![deletion_result_entry] },
+        &quote! { None },
+    );
+
+    let single_entry_deletion_result_with_error_from_hook = runtime::deletion_result(
+        singular_table_name_as_string,
+        &OneOrMultiple::One,
+        &quote! { vec![deletion_result_entry] },
+        &quote! { error_from_hook },
     );
 
     let get_row_to_delete;
@@ -1833,14 +1851,14 @@ fn for_delete_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
             #return_result_impl
         }
     } else {
-        let unknown_error_after_state_change = runtime::generic_error(&quote! {
-            format!("Delete One Error: An unknown error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
+        let error_after_state_change = runtime::generic_error(&quote! {
+            format!("Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
         });
 
         let on_error_handler = quote! {
-            let error = #single_entry_deletion_result;
+            let error = #single_entry_deletion_result_with_error_from_hook;
 
-            return Err(#unknown_error_after_state_change);
+            return Err(#error_after_state_change);
         };
 
         let reference_integrity_violation_on_delete_error =
@@ -1852,7 +1870,7 @@ fn for_delete_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
             OnDeleteStrategy::Error,
             OneOrMultiple::One,
             &quote! {
-                let error = #single_entry_deletion_result;
+                let error = #single_entry_deletion_result_with_error_from_hook;
 
                 return Err(#reference_integrity_violation_on_delete_error);
             },
@@ -2268,8 +2286,11 @@ fn get_referenced_table_function_call_for_dsl_method(
 
             quote! {
                 match #referenced_table_call {
-                    Err(mut child_entries) => {
+                    Err(failure) => {
+                        let mut child_entries = failure.entries;
                         deletion_result_entry.child_entries.append(&mut child_entries);
+
+                        let error_from_hook = failure.error_from_hook;
 
                         #on_error_handler
                     },
@@ -2293,10 +2314,12 @@ fn get_referenced_table_function_call_for_dsl_method(
 
             quote! {
                 match #referenced_table_call {
-                    Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
-                        for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
+                    Err(failure) => {
+                        for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure.entries {
                             deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries.")).child_entries.append(&mut child_entries);
                         }
+
+                        let error_from_hook = failure.error_from_hook;
 
                         #on_error_handler
                     },
@@ -2694,8 +2717,10 @@ fn for_referenced_by(
                 arg_type: SpacetimeDSLArgType::Normal(quote! { &#primary_key_column_type }),
             });
             let deletion_result_entry_type = runtime::deletion_result_entry_type();
+            let entries_type = quote! { Vec<#deletion_result_entry_type> };
+            let failure_type = runtime::on_delete_strategy_failure_type(&entries_type);
             return_type = quote! {
-                Result<Vec<#deletion_result_entry_type>, Vec<#deletion_result_entry_type>>
+                Result<#entries_type, #failure_type>
             };
         }
         OneOrMultiple::Multiple => {
@@ -2711,11 +2736,12 @@ fn for_referenced_by(
                 }),
             });
             let deletion_result_entry_type = runtime::deletion_result_entry_type();
+            let entries_type = quote! {
+                std::collections::HashMap<&'a #primary_key_column_type, Vec<#deletion_result_entry_type>>
+            };
+            let failure_type = runtime::on_delete_strategy_failure_type(&entries_type);
             return_type = quote! {
-                Result<
-                    std::collections::HashMap<&'a #primary_key_column_type, Vec<#deletion_result_entry_type>>,
-                    std::collections::HashMap<&'a #primary_key_column_type, Vec<#deletion_result_entry_type>>
-                >
+                Result<#entries_type, #failure_type>
             };
         }
     };
@@ -2773,8 +2799,13 @@ fn for_referenced_by(
                 OneOrMultiple::One => {
                     quote! {
                         match #referencing_table_call {
-                            Err(mut child_entries) => {
+                            Err(failure) => {
+                                let mut child_entries = failure.entries;
                                 entries.append(&mut child_entries);
+
+                                if error_from_hook.is_none() {
+                                    error_from_hook = failure.error_from_hook;
+                                }
 
                                 error = true;
                             },
@@ -2787,9 +2818,13 @@ fn for_referenced_by(
                 OneOrMultiple::Multiple => {
                     quote! {
                         match #referencing_table_call {
-                            Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
-                                for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
+                            Err(failure) => {
+                                for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure.entries {
                                     entries.get_mut(&primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in entries.")).append(&mut child_entries);
+                                }
+
+                                if error_from_hook.is_none() {
+                                    error_from_hook = failure.error_from_hook;
                                 }
 
                                 error = true;
@@ -2806,18 +2841,23 @@ fn for_referenced_by(
         );
     }
 
+    let error_from_hook_declaration = runtime::error_from_hook_declaration();
+    let failure =
+        runtime::on_delete_strategy_failure(&quote! { entries }, &quote! { error_from_hook });
+
     let function_impl = quote! {
         #(#compile_error_check_usages)*
 
         #create_entries
 
+        #error_from_hook_declaration
         let mut error = false;
 
         #(#strategy_calls)*
 
         match error {
             false => Ok(entries),
-            true => Err(entries),
+            true => Err(#failure),
         }
     };
 
@@ -2961,8 +3001,10 @@ fn for_foreign_key(
                 ),
             });
             let deletion_result_entry_type = runtime::deletion_result_entry_type();
+            let entries_type = quote! { Vec<#deletion_result_entry_type> };
+            let failure_type = runtime::on_delete_strategy_failure_type(&entries_type);
             return_type = quote! {
-                Result<Vec<#deletion_result_entry_type>, Vec<#deletion_result_entry_type>>
+                Result<#entries_type, #failure_type>
             };
         }
         OneOrMultiple::Multiple => {
@@ -2978,11 +3020,12 @@ fn for_foreign_key(
                 }),
             });
             let deletion_result_entry_type = runtime::deletion_result_entry_type();
+            let entries_type = quote! {
+                std::collections::HashMap<&'a #referenced_table_primary_key_column_type, Vec<#deletion_result_entry_type>>
+            };
+            let failure_type = runtime::on_delete_strategy_failure_type(&entries_type);
             return_type = quote! {
-                Result<
-                    std::collections::HashMap<&'a #referenced_table_primary_key_column_type, Vec<#deletion_result_entry_type>>,
-                    std::collections::HashMap<&'a #referenced_table_primary_key_column_type, Vec<#deletion_result_entry_type>>
-                >
+                Result<#entries_type, #failure_type>
             };
         }
     };
@@ -3042,12 +3085,17 @@ fn for_foreign_key(
         use #referenced_table_path::#compile_error_check;
     };
 
+    let error_from_hook_declaration = runtime::error_from_hook_declaration();
+    let failure =
+        runtime::on_delete_strategy_failure(&quote! { entries }, &quote! { error_from_hook });
+
     let function_impl = quote! {
         #compile_error_check_usage
 
         use ::spacetimedsl::itertools::Itertools;
         #create_data_structure_for_child_entries
 
+        #error_from_hook_declaration
         let mut error = false;
 
         'outer: {
@@ -3058,7 +3106,7 @@ fn for_foreign_key(
 
         match error {
             false => Ok(entries),
-            true => Err(entries),
+            true => Err(#failure),
         }
     };
 
@@ -3215,9 +3263,9 @@ fn get_on_delete_strategy_implementation(
                         );
 
                         quote! {
-                            if #hook_call.is_err() {
+                            if let Err(error_raised_by_the_hook) = #hook_call {
                                 error = true;
-                                // FIXME: This results in the error supplied by the hook being ignored, we should propagate it back to the caller but that requires changing the function signature.
+                                error_from_hook = Some(Box::new(error_raised_by_the_hook));
                                 break 'outer;
                             }
                         }
@@ -3234,9 +3282,9 @@ fn get_on_delete_strategy_implementation(
                         );
 
                         quote! {
-                            if #hook_call.is_err() {
+                            if let Err(error_raised_by_the_hook) = #hook_call {
                                 error = true;
-                                // FIXME: This results in the error supplied by the hook being ignored, we should propagate it back to the caller but that requires changing the function signature.
+                                error_from_hook = Some(Box::new(error_raised_by_the_hook));
                                 break 'outer;
                             }
                         }
@@ -3276,9 +3324,14 @@ fn get_on_delete_strategy_implementation(
                             }
                         };
 
+                        let failure = runtime::on_delete_strategy_failure(
+                            &quote! { entries },
+                            &quote! { error_from_hook },
+                        );
+
                         let on_error_handler = quote! {
                             #create_entries_and_add_them_to_entries
-                            return Err(entries);
+                            return Err(#failure);
                         };
 
                         let error_strategy =
@@ -3493,9 +3546,13 @@ fn get_referenced_table_function_call_for_strategy_implementation(
 
     quote! {
         match #referenced_table_call {
-            Err(child_entries_by_primary_key_value_of_a_row_to_delete) => {
-                for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
+            Err(failure) => {
+                for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure.entries {
                     child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in child_entries_by_primary_key_value_of_row_to_delete.")).append(&mut child_entries);
+                }
+
+                if error_from_hook.is_none() {
+                    error_from_hook = failure.error_from_hook;
                 }
 
                 #on_error_handler

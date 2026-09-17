@@ -49,6 +49,7 @@ Try to delete a `Signature` row in the `signature` table whose value matches the
             table_name: "signature".into(),
             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
             entries: vec![deletion_result_entry],
+            error_from_hook: None,
         });
     }
 }

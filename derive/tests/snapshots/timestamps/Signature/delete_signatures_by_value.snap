@@ -26,6 +26,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 table_name: "signature".into(),
                 one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
                 entries: vec![],
+                error_from_hook: None,
             });
         }
         let mut deletion_result_entries = std::collections::HashMap::new();
@@ -64,6 +65,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             table_name: "signature".into(),
             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
             entries: deletion_result_entries.into_values().collect_vec(),
+            error_from_hook: None,
         });
     }
 }

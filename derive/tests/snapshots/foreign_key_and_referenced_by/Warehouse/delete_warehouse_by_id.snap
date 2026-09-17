@@ -39,12 +39,15 @@ Try to delete a `Warehouse` row in the `warehouse` table whose value matches the
             crate::spacetimedsl::OnDeleteStrategy::Error,
             &row_to_delete.id,
         ) {
-            Err(mut child_entries) => {
+            Err(failure) => {
+                let mut child_entries = failure.entries;
                 deletion_result_entry.child_entries.append(&mut child_entries);
+                let error_from_hook = failure.error_from_hook;
                 let error = crate::spacetimedsl::delete::DeletionResult {
                     table_name: "warehouse".into(),
                     one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                     entries: vec![deletion_result_entry],
+                    error_from_hook: error_from_hook,
                 };
                 return Err(
                     crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(
@@ -74,17 +77,20 @@ Try to delete a `Warehouse` row in the `warehouse` table whose value matches the
             crate::spacetimedsl::OnDeleteStrategy::Delete,
             &row_to_delete.id,
         ) {
-            Err(mut child_entries) => {
+            Err(failure) => {
+                let mut child_entries = failure.entries;
                 deletion_result_entry.child_entries.append(&mut child_entries);
+                let error_from_hook = failure.error_from_hook;
                 let error = crate::spacetimedsl::delete::DeletionResult {
                     table_name: "warehouse".into(),
                     one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                     entries: vec![deletion_result_entry],
+                    error_from_hook: error_from_hook,
                 };
                 return Err(
                     crate::spacetimedsl::error::SpacetimeDSLError::Error(
                         format!(
-                            "Delete One Error: An unknown error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
+                            "Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
                         ),
                     ),
                 );
@@ -98,17 +104,20 @@ Try to delete a `Warehouse` row in the `warehouse` table whose value matches the
             crate::spacetimedsl::OnDeleteStrategy::SetZero,
             &row_to_delete.id,
         ) {
-            Err(mut child_entries) => {
+            Err(failure) => {
+                let mut child_entries = failure.entries;
                 deletion_result_entry.child_entries.append(&mut child_entries);
+                let error_from_hook = failure.error_from_hook;
                 let error = crate::spacetimedsl::delete::DeletionResult {
                     table_name: "warehouse".into(),
                     one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                     entries: vec![deletion_result_entry],
+                    error_from_hook: error_from_hook,
                 };
                 return Err(
                     crate::spacetimedsl::error::SpacetimeDSLError::Error(
                         format!(
-                            "Delete One Error: An unknown error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
+                            "Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
                         ),
                     ),
                 );
@@ -122,17 +131,20 @@ Try to delete a `Warehouse` row in the `warehouse` table whose value matches the
             crate::spacetimedsl::OnDeleteStrategy::Ignore,
             &row_to_delete.id,
         ) {
-            Err(mut child_entries) => {
+            Err(failure) => {
+                let mut child_entries = failure.entries;
                 deletion_result_entry.child_entries.append(&mut child_entries);
+                let error_from_hook = failure.error_from_hook;
                 let error = crate::spacetimedsl::delete::DeletionResult {
                     table_name: "warehouse".into(),
                     one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                     entries: vec![deletion_result_entry],
+                    error_from_hook: error_from_hook,
                 };
                 return Err(
                     crate::spacetimedsl::error::SpacetimeDSLError::Error(
                         format!(
-                            "Delete One Error: An unknown error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
+                            "Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
                         ),
                     ),
                 );
@@ -145,6 +157,7 @@ Try to delete a `Warehouse` row in the `warehouse` table whose value matches the
             table_name: "warehouse".into(),
             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
             entries: vec![deletion_result_entry],
+            error_from_hook: None,
         });
     }
 }

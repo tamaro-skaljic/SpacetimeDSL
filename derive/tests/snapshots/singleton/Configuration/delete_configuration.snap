@@ -44,6 +44,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             table_name: "configuration".into(),
             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
             entries: vec![deletion_result_entry],
+            error_from_hook: None,
         });
     }
 }

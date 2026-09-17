@@ -17,6 +17,13 @@ pub(in crate::internal) fn error_result_type(ok_type: &impl ToTokens) -> TokenSt
     }
 }
 
+/// `error::SpacetimeDSLError`, as a type rather than a value.
+pub(in crate::internal) fn spacetimedsl_error_type() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::error::SpacetimeDSLError
+    }
+}
+
 /// `SpacetimeDSLError::NotFoundError { .. }`
 pub(in crate::internal) fn not_found_error(
     table_name: &impl ToTokens,
@@ -121,13 +128,50 @@ pub(in crate::internal) fn deletion_result(
     table_name: &impl ToTokens,
     one_or_multiple: &impl ToTokens,
     entries: &impl ToTokens,
+    error_from_hook: &impl ToTokens,
 ) -> TokenStream {
     quote! {
         crate::spacetimedsl::delete::DeletionResult {
             table_name: #table_name.into(),
             one_or_multiple: #one_or_multiple,
             entries: #entries,
+            error_from_hook: #error_from_hook,
         }
+    }
+}
+
+/// `delete::OnDeleteStrategyFailure { entries, error_from_hook }`, the `Err` payload of
+/// every generated cascade function.
+pub(in crate::internal) fn on_delete_strategy_failure(
+    entries: &impl ToTokens,
+    error_from_hook: &impl ToTokens,
+) -> TokenStream {
+    quote! {
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure {
+            entries: #entries,
+            error_from_hook: #error_from_hook,
+        }
+    }
+}
+
+/// `delete::OnDeleteStrategyFailure<#entries_type>`, as a type rather than a value.
+pub(in crate::internal) fn on_delete_strategy_failure_type(
+    entries_type: &impl ToTokens,
+) -> TokenStream {
+    quote! {
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<#entries_type>
+    }
+}
+
+/// `let mut error_from_hook: Option<Box<SpacetimeDSLError>> = None;`
+///
+/// Annotated rather than inferred: a table whose strategies never assign to it would
+/// otherwise leave the type ambiguous.
+pub(in crate::internal) fn error_from_hook_declaration() -> TokenStream {
+    let error_type = spacetimedsl_error_type();
+
+    quote! {
+        let mut error_from_hook: Option<Box<#error_type>> = None;
     }
 }
 

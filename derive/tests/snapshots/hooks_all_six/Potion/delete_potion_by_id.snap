@@ -53,6 +53,7 @@ Try to delete a `Potion` row in the `potion` table whose value matches the value
             table_name: "potion".into(),
             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
             entries: vec![deletion_result_entry],
+            error_from_hook: None,
         });
     }
 }

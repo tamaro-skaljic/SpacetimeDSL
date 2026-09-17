@@ -49,6 +49,7 @@ Try to delete a `Module` row in the `module2` table whose value matches the valu
             table_name: "module2".into(),
             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
             entries: vec![deletion_result_entry],
+            error_from_hook: None,
         });
     }
 }
