@@ -950,101 +950,23 @@ pub(in crate::internal) fn for_method(
         | DSLMethod::GetOne(index)
         | DSLMethod::Update(index)
         | DSLMethod::DeleteOne(index) => {
-            let index_name = &index.name;
-
-            let is_unique_index = index.is_unique;
-            let is_multi_column_index;
-            let mut index_columns = vec![];
-
-            let value_matches_or_values_match;
-            let single_or_multi;
-            let index_documentation;
-            let mut documentation_on_column_or_columns;
-
-            let mut column_names_and_row_values = String::new();
-            column_names_and_row_values.push_str("{{ ");
-            match &index.index_type {
-                IndexType::BTreeSingleColumn { column }
-                | IndexType::HashSingleColumn { column } => {
-                    is_multi_column_index = false;
-                    index_columns.push(column.clone());
-                    value_matches_or_values_match = "value matches the value from";
-                    single_or_multi = "single";
-                    index_documentation = format!("{} index", index_kind(&index.index_type));
-                    documentation_on_column_or_columns = format!("`{column}` column");
-                    column_names_and_row_values.push_str(&format!("{column} : "));
-                    column_names_and_row_values.push_str("{}");
-                }
-                IndexType::BTreeMultiColumn { columns }
-                | IndexType::HashMultiColumn { columns } => {
-                    is_multi_column_index = true;
-                    value_matches_or_values_match = "values match the values from";
-                    single_or_multi = "multi";
-                    index_documentation =
-                        format!("{} index `{index_name}`", index_kind(&index.index_type));
-
-                    documentation_on_column_or_columns = String::new();
-                    documentation_on_column_or_columns.push_str("columns");
-
-                    let mut columns: VecDeque<Ident> = columns.clone().into();
-
-                    let first_column = columns.pop_front().expect(
-                        "A multi-column index is only built from two or more columns, so it has a first one",
-                    );
-                    let last_column = columns
-                        .pop_back()
-                        .expect("A multi-column index is only built from two or more columns, so it has a last one");
-                    let any_other_column = columns;
-
-                    documentation_on_column_or_columns.push_str(&format!(" `{first_column}`"));
-                    column_names_and_row_values.push_str(&format!("{first_column} : "));
-                    column_names_and_row_values.push_str("{}");
-                    index_columns.push(first_column);
-
-                    for any_other_column in any_other_column {
-                        documentation_on_column_or_columns
-                            .push_str(&format!(", `{any_other_column}`"));
-                        column_names_and_row_values.push_str(&format!(", {any_other_column} : "));
-                        column_names_and_row_values.push_str("{}");
-                        index_columns.push(any_other_column);
-                    }
-
-                    documentation_on_column_or_columns.push_str(&format!(" and `{last_column}`"));
-                    column_names_and_row_values.push_str(&format!(", {last_column} : "));
-                    column_names_and_row_values.push_str("{}");
-                    index_columns.push(last_column);
-                }
-                IndexType::Direct { column } => {
-                    is_multi_column_index = false;
-                    index_columns.push(column.clone());
-                    value_matches_or_values_match = "value matches";
-                    single_or_multi = "single";
-                    index_documentation = format!("{} index", index_kind(&index.index_type));
-                    documentation_on_column_or_columns = format!("`{column}` column");
-                    column_names_and_row_values.push_str(&format!("{column} : "));
-                    column_names_and_row_values.push_str("{}");
-                }
-            };
-            column_names_and_row_values.push_str(" }}");
-
-            let is_singleton_pk = spacetimedsl_table.is_singleton
-                && !is_multi_column_index
-                && index_columns
-                    .first()
-                    .is_some_and(|c| primary_key_column.rust_field_name == *c);
-
-            let unique_multi_column_index_hint = if is_unique_index && is_multi_column_index {
-                "Warning: The unique multi-column index feature of SpacetimeDSL is experimental.\n- It will be removed if unique multi-column indices are implemented in SpacetimeDB.\n- SpacetimeDSL is only able to enforce referential integrity if you never use the (mutating) `insert`, `update` and `delete` methods of `spacetimedb::ReducerContext` yourself."
-            } else {
-                ""
-            };
+            let IndexShape {
+                index_name,
+                index_columns,
+                is_multi_column: is_multi_column_index,
+                is_singleton_primary_key: is_singleton_pk,
+                column_names_and_row_values,
+                described_as,
+                unique_multi_column_hint: unique_multi_column_index_hint,
+            } = IndexShape::of(index, context);
+            let index_name = &index_name;
 
             doc_comment = match dsl_method {
                 DSLMethod::GetMany(_) => format!(
-                    "Get a `{struct_name}` iterator that contains all rows in the `{singular_table_name}` table whose {value_matches_or_values_match} the {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
+                    "Get a `{struct_name}` iterator that contains all rows in the `{singular_table_name}` table {described_as}."
                 ),
                 DSLMethod::DeleteMany(_) => format!(
-                    "Try to delete all `{struct_name}` rows in the `{singular_table_name}` table whose {value_matches_or_values_match} the {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
+                    "Try to delete all `{struct_name}` rows in the `{singular_table_name}` table {described_as}."
                 ),
                 DSLMethod::GetOne(_) => {
                     if is_singleton_pk {
@@ -1053,7 +975,7 @@ pub(in crate::internal) fn for_method(
                         )
                     } else {
                         format!(
-                            "{unique_multi_column_index_hint}\n\nTry to get a `{struct_name}` from the `{singular_table_name}` table whose {value_matches_or_values_match} the unique {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
+                            "{unique_multi_column_index_hint}\n\nTry to get a `{struct_name}` from the `{singular_table_name}` table {described_as}."
                         )
                     }
                 }
@@ -1064,7 +986,7 @@ pub(in crate::internal) fn for_method(
                         )
                     } else {
                         format!(
-                            "{unique_multi_column_index_hint}\n\nTry to update a `{struct_name}` row of the `{singular_table_name}` table whose {value_matches_or_values_match} the unique {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
+                            "{unique_multi_column_index_hint}\n\nTry to update a `{struct_name}` row of the `{singular_table_name}` table {described_as}."
                         )
                     }
                 }
@@ -1075,7 +997,7 @@ pub(in crate::internal) fn for_method(
                         )
                     } else {
                         format!(
-                            "{unique_multi_column_index_hint}\n\nTry to delete a `{struct_name}` row in the `{singular_table_name}` table whose {value_matches_or_values_match} the unique {single_or_multi}-column {index_documentation} on the {documentation_on_column_or_columns}."
+                            "{unique_multi_column_index_hint}\n\nTry to delete a `{struct_name}` row in the `{singular_table_name}` table {described_as}."
                         )
                     }
                 }
@@ -2206,6 +2128,128 @@ pub(in crate::internal) fn for_method(
     };
 
     (method, recordings)
+}
+
+/// Everything the five index-based generators derive from the index they are given.
+///
+/// This used to sit inside `for_method`, which is why no generator could be lifted out of
+/// it. The four prose fragments the doc comments were built from are assembled here into
+/// the one phrase all five of them built identically.
+struct IndexShape {
+    index_name: Ident,
+    index_columns: Vec<Ident>,
+    is_multi_column: bool,
+    /// Whether this is the injected primary key of a singleton table.
+    is_singleton_primary_key: bool,
+    /// `{{ a : {}, b : {} }}`, with one placeholder per index column.
+    column_names_and_row_values: String,
+    /// "whose value matches the value from the unique single-column btree index on the
+    /// `x` column", the tail every generated doc comment ends with.
+    described_as: String,
+    /// The experimental-feature warning a unique multi-column index carries, or empty.
+    unique_multi_column_hint: &'static str,
+}
+
+impl IndexShape {
+    fn of(index: &Index, context: &MethodGenerationContext) -> IndexShape {
+        let index_name = index.name.clone();
+
+        let (index_columns, is_multi_column, value_matches, single_or_multi, on_the_columns) =
+            match &index.index_type {
+                IndexType::BTreeSingleColumn { column }
+                | IndexType::HashSingleColumn { column } => (
+                    vec![column.clone()],
+                    false,
+                    "value matches the value from",
+                    "single",
+                    format!("`{column}` column"),
+                ),
+                IndexType::BTreeMultiColumn { columns }
+                | IndexType::HashMultiColumn { columns } => (
+                    columns.clone(),
+                    true,
+                    "values match the values from",
+                    "multi",
+                    documentation_on_columns(columns),
+                ),
+                IndexType::Direct { column } => (
+                    vec![column.clone()],
+                    false,
+                    "value matches",
+                    "single",
+                    format!("`{column}` column"),
+                ),
+            };
+
+        let index_documentation = match is_multi_column {
+            false => format!("{} index", index_kind(&index.index_type)),
+            true => format!("{} index `{index_name}`", index_kind(&index.index_type)),
+        };
+
+        // Only a unique index reaches the one-row generators, and only they say "unique".
+        let unique = match index.is_unique {
+            false => "",
+            true => "unique ",
+        };
+
+        IndexShape {
+            is_singleton_primary_key: context.spacetimedsl_table.is_singleton
+                && !is_multi_column
+                && index_columns
+                    .first()
+                    .is_some_and(|c| context.primary_key_column.rust_field_name == *c),
+            column_names_and_row_values: column_names_and_row_values(&index_columns),
+            described_as: format!(
+                "whose {value_matches} the {unique}{single_or_multi}-column {index_documentation} on the {on_the_columns}"
+            ),
+            unique_multi_column_hint: match index.is_unique && is_multi_column {
+                false => "",
+                true => {
+                    "Warning: The unique multi-column index feature of SpacetimeDSL is experimental.\n- It will be removed if unique multi-column indices are implemented in SpacetimeDB.\n- SpacetimeDSL is only able to enforce referential integrity if you never use the (mutating) `insert`, `update` and `delete` methods of `spacetimedb::ReducerContext` yourself."
+                }
+            },
+            index_name,
+            index_columns,
+            is_multi_column,
+        }
+    }
+}
+
+/// "`a`, `b` and `c`", as the doc comment of a multi-column index names its columns.
+fn documentation_on_columns(columns: &[Ident]) -> String {
+    let mut columns: VecDeque<&Ident> = columns.iter().collect();
+
+    let first_column = columns.pop_front().expect(
+        "A multi-column index is only built from two or more columns, so it has a first one",
+    );
+    let last_column = columns.pop_back().expect(
+        "A multi-column index is only built from two or more columns, so it has a last one",
+    );
+
+    let mut documentation = format!("columns `{first_column}`");
+
+    for any_other_column in columns {
+        documentation.push_str(&format!(", `{any_other_column}`"));
+    }
+
+    documentation.push_str(&format!(" and `{last_column}`"));
+
+    documentation
+}
+
+/// The format string behind every "these columns had these values" message:
+/// `{{ id : {} }}` for one column, `{{ a : {}, b : {} }}` for several.
+///
+/// One placeholder per column, in the order given, so a caller that builds its row-value
+/// getters from the same list cannot get the two out of step.
+fn column_names_and_row_values(column_names: &[Ident]) -> String {
+    let placeholders = column_names
+        .iter()
+        .map(|column_name| format!("{column_name} : {{}}"))
+        .collect_vec()
+        .join(", ");
+
+    format!("{{{{ {placeholders} }}}}")
 }
 
 /// The kind of index, as the doc comments of the generated methods name it.
