@@ -204,8 +204,8 @@ fn inject_singleton_primary_key(derive_input: &mut syn::DeriveInput) -> syn::Res
         // Insert as the first field
         fields.named.insert(0, pk_field);
     } else {
-        return Err(syn::Error::new(
-            proc_macro2::Span::call_site(),
+        return Err(syn::Error::new_spanned(
+            &derive_input.ident,
             "Singleton tables must be structs with named fields!",
         ));
     }
