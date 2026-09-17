@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::error::OneOrMultiple;
+use crate::error::{OneOrMultiple, SpacetimeDSLError};
 
 // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/59 SoftDelete Feature
 
@@ -48,11 +48,27 @@ pub enum OnDeleteStrategy {
     Ignore,
 }
 
+/// What a cascade returns when it refused: the entries it built before it stopped, and the
+/// error a delete hook raised, if one did.
+///
+/// `Entries` is a `Vec<DeletionResultEntry>` when one row of the referenced table was
+/// deleted and a `HashMap<&PrimaryKeyValue, Vec<DeletionResultEntry>>` when several were.
+#[derive(Debug)]
+pub struct OnDeleteStrategyFailure<Entries> {
+    pub entries: Entries,
+    pub error_from_hook: Option<Box<SpacetimeDSLError>>,
+}
+
 #[derive(Debug)]
 pub struct DeletionResult {
     pub table_name: Box<str>,
     pub one_or_multiple: OneOrMultiple,
     pub entries: Vec<DeletionResultEntry>,
+    /// The error a delete hook of a referencing table raised while the cascade ran.
+    ///
+    /// Boxed because `SpacetimeDSLError::ReferenceIntegrityViolation` holds a
+    /// `DeletionResult`, so an unboxed field would make both types infinitely sized.
+    pub error_from_hook: Option<Box<SpacetimeDSLError>>,
 }
 
 #[derive(Debug)]
@@ -94,7 +110,16 @@ impl DeletionResultEntry {
 
 impl Display for DeletionResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_csv())
+        match &self.error_from_hook {
+            None => write!(f, "{}", self.to_csv()),
+            Some(error_from_hook) => {
+                write!(
+                    f,
+                    "Error from a hook: {error_from_hook}\n\n{}",
+                    self.to_csv()
+                )
+            }
+        }
     }
 }
 
