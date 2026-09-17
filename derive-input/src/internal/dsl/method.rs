@@ -685,9 +685,7 @@ fn update_method_row_value_getter(internal_column: &InternalColumn) -> TokenStre
 ///
 /// This is the only generator that records something on the table: the argument struct it
 /// invents when the table has more than zero columns to ask for.
-pub(in crate::internal) fn for_create(
-    context: &MethodGenerationContext,
-) -> (SpacetimeDSLMethod, GeneratedTableRecordings) {
+fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, GeneratedTableRecordings) {
     let MethodGenerationContext {
         spacetimedb_table,
         spacetimedsl_table,
@@ -885,7 +883,7 @@ pub(in crate::internal) fn for_create(
 }
 
 /// `get_all_<tables>`: iterate every row of the table.
-pub(in crate::internal) fn for_get_all(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
+fn for_get_all(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
     let MethodGenerationContext {
         struct_name,
         singular_table_name,
@@ -911,7 +909,7 @@ pub(in crate::internal) fn for_get_all(context: &MethodGenerationContext) -> Spa
 }
 
 /// `count_of_all_<tables>`: how many rows the table holds.
-pub(in crate::internal) fn for_get_count(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
+fn for_get_count(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
     let MethodGenerationContext {
         singular_table_name,
         plural_table_name,
@@ -935,16 +933,70 @@ pub(in crate::internal) fn for_get_count(context: &MethodGenerationContext) -> S
     }
 }
 
-pub(in crate::internal) fn for_method(
-    dsl_method: DSLMethod,
-    context: &MethodGenerationContext,
-) -> (SpacetimeDSLMethod, GeneratedTableRecordings) {
-    let recordings = GeneratedTableRecordings::default();
+/// `self.db().<table>().<index>()`, where every index-based body starts.
+fn index_accessor(singular_table_name: &Ident, index_name: &Ident) -> TokenStream {
+    quote! {
+        self
+            .db()
+            .#singular_table_name()
+            .#index_name()
+    }
+}
 
+/// `get_<tables>_by_<index>`: iterate the rows an index matches.
+fn for_get_many(shape: &IndexShape, context: &MethodGenerationContext) -> SpacetimeDSLMethod {
     let MethodGenerationContext {
-        spacetimedb_table,
+        struct_name,
+        singular_table_name,
+        plural_table_name,
+        ..
+    } = context;
+
+    let index_name = &shape.index_name;
+    let described_as = &shape.described_as;
+
+    let IndexColumnArguments {
+        method_args,
+        row_value_getters,
+        wrapper_option_mappers,
+    } = index_column_arguments(shape, &OneOrMultiple::Multiple, context);
+
+    let index_accessor = index_accessor(singular_table_name, index_name);
+
+    // A multi-column index is filtered by the tuple of its columns.
+    let method_impl = match shape.is_multi_column {
+        true => quote! {
+            #(#wrapper_option_mappers)*
+
+            #index_accessor
+                .filter((#(#row_value_getters),*))
+        },
+        false => quote! {
+            #(#wrapper_option_mappers)*
+
+            #index_accessor
+                .filter(#(#row_value_getters),*)
+        },
+    };
+
+    SpacetimeDSLMethod {
+        doc_comment: format!(
+            "Get a `{struct_name}` iterator that contains all rows in the `{singular_table_name}` table {described_as}."
+        ),
+        method_name: format_ident!("get_{plural_table_name}_by_{index_name}"),
+        method_args,
+        return_type: quote! {
+            impl Iterator<Item = #struct_name>
+        },
+        method_impl,
+        read_context_compatible: true,
+    }
+}
+
+/// `delete_<tables>_by_<index>`: delete every row an index matches.
+fn for_delete_many(shape: &IndexShape, context: &MethodGenerationContext) -> SpacetimeDSLMethod {
+    let MethodGenerationContext {
         spacetimedsl_table,
-        internal_columns,
         primary_key_column,
         struct_name,
         singular_table_name,
@@ -952,1022 +1004,948 @@ pub(in crate::internal) fn for_method(
         plural_table_name,
         primary_key_column_name,
         primary_key_column_name_as_string,
+        ..
+    } = context;
+
+    let index_name = &shape.index_name;
+    let described_as = &shape.described_as;
+
+    let IndexColumnArguments {
+        method_args,
+        row_value_getters,
+        wrapper_option_mappers,
+    } = index_column_arguments(shape, &OneOrMultiple::Multiple, context);
+
+    let index_accessor = index_accessor(singular_table_name, index_name);
+
+    let let_index_name = match shape.is_multi_column {
+        true => quote! {
+            let #index_name = (#(#row_value_getters),*);
+        },
+        false => quote! {
+            let #index_name = #(#row_value_getters),*;
+        },
+    };
+
+    let empty_deletion_result = runtime::deletion_result(
+        singular_table_name_as_string,
+        &OneOrMultiple::Multiple,
+        &quote! { vec![] },
+    );
+
+    let impl_until_return_ok_on_is_empty = quote! {
+        use ::spacetimedsl::itertools::Itertools;
+
+        #(#wrapper_option_mappers)*
+
+        #let_index_name
+
+        let rows_to_delete: Vec<#struct_name> = #index_accessor
+            .filter(#index_name)
+            .collect();
+
+        if rows_to_delete.is_empty() {
+            return Ok(#empty_deletion_result);
+        }
+    };
+
+    let wrapper_type_struct_name_or_path = primary_key_column
+        .spacetimedsl_column_wrapper_type
+        .as_ref()
+        .expect(PRIMARY_KEY_WRAPPER_TYPE_INVARIANT)
+        .struct_name_or_path_tokens();
+
+    let deletion_result_entry_per_row = runtime::deletion_result_entry(
+        singular_table_name_as_string,
+        primary_key_column_name_as_string,
+        &runtime::on_delete_strategy(&quote! { Delete }),
+        &quote! {
+            format!("{}", #wrapper_type_struct_name_or_path::new(row_to_delete.#primary_key_column_name.clone()))
+        },
+        &quote! { child_entries: vec![], },
+    );
+
+    let map_rows_to_delete_to_deletion_result_entries = quote! {
+        let mut deletion_result_entries = std::collections::HashMap::new();
+
+        for row_to_delete in &rows_to_delete {
+            deletion_result_entries.insert(
+                &row_to_delete.#primary_key_column_name,
+                #deletion_result_entry_per_row
+            );
+        }
+    };
+
+    let before_delete_hook = hook_tokens(
+        &spacetimedsl_table.hooks.before_delete,
+        |hook_function_name| {
+            let hook_call = runtime::dsl_method_hooks_call(
+                hook_function_name,
+                &quote! { self, &row_to_delete },
+            );
+
+            quote! {
+                for row_to_delete in &rows_to_delete {
+                    #hook_call?;
+                }
+            }
+        },
+    );
+
+    let after_delete_hook = hook_tokens(
+        &spacetimedsl_table.hooks.after_delete,
+        |hook_function_name| {
+            let hook_call = runtime::dsl_method_hooks_call(
+                hook_function_name,
+                &quote! { self, &row_to_delete },
+            );
+
+            quote! {
+                for row_to_delete in &rows_to_delete {
+                    #hook_call?;
+                }
+            }
+        },
+    );
+
+    let count_mismatch_error = runtime::generic_error(&quote! {
+        format!(
+            "Delete Many Error: `count_of_rows_to_delete ( {} ) != ( {} ) count_of_deleted_rows`!",
+            &count_of_rows_to_delete,
+            &count_of_deleted_rows
+        )
+    });
+
+    let delete_many_impl = quote! {
+        let count_of_rows_to_delete: u64 = rows_to_delete
+            .len()
+            .try_into()
+            .unwrap_or(u64::MAX);
+
+        let count_of_deleted_rows = #index_accessor.delete(#index_name);
+
+        if count_of_rows_to_delete.ne(&count_of_deleted_rows) {
+            return Err(#count_mismatch_error);
+        }
+    };
+
+    let deletion_result_from_entries = runtime::deletion_result(
+        singular_table_name_as_string,
+        &OneOrMultiple::Multiple,
+        &quote! { deletion_result_entries.into_values().collect_vec() },
+    );
+
+    let return_result_impl = quote! {
+        return Ok(#deletion_result_from_entries);
+    };
+
+    let method_impl = if spacetimedsl_table.referencing_tables.is_empty() {
+        quote! {
+            #impl_until_return_ok_on_is_empty
+
+            #map_rows_to_delete_to_deletion_result_entries
+
+            #before_delete_hook
+
+            #delete_many_impl
+
+            #after_delete_hook
+
+            #return_result_impl
+        }
+    } else {
+        let unknown_error_after_state_change = runtime::generic_error(&quote! {
+            format!("Delete Many Error: An unknown error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
+        });
+
+        let on_error_handler = quote! {
+            let error = #deletion_result_from_entries;
+
+            return Err(#unknown_error_after_state_change);
+        };
+
+        let reference_integrity_violation_on_delete_error =
+            runtime::reference_integrity_violation_on_delete(&quote! { error });
+
+        let error_strategy = get_referenced_table_function_call_for_dsl_method(
+            singular_table_name,
+            primary_key_column_name,
+            OnDeleteStrategy::Error,
+            OneOrMultiple::Multiple,
+            &quote! {
+                let error = #deletion_result_from_entries;
+
+                return Err(#reference_integrity_violation_on_delete_error);
+            },
+        );
+
+        let delete_strategy = get_referenced_table_function_call_for_dsl_method(
+            singular_table_name,
+            primary_key_column_name,
+            OnDeleteStrategy::Delete,
+            OneOrMultiple::Multiple,
+            &on_error_handler,
+        );
+
+        /* TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32
+        let set_none_strategy =
+            get_referenced_table_function_call_for_dsl_method(
+                singular_table_name,
+                primary_key_column_name,
+                OnDeleteStrategy::SetNone,
+                OneOrMultiple::Multiple,
+                &on_error_handler,
+            );
+        */
+
+        let set_zero_strategy = get_referenced_table_function_call_for_dsl_method(
+            singular_table_name,
+            primary_key_column_name,
+            OnDeleteStrategy::SetZero,
+            OneOrMultiple::Multiple,
+            &on_error_handler,
+        );
+
+        let ignore_strategy = get_referenced_table_function_call_for_dsl_method(
+            singular_table_name,
+            primary_key_column_name,
+            OnDeleteStrategy::Ignore,
+            OneOrMultiple::Multiple,
+            &on_error_handler,
+        );
+
+        quote! {
+            #impl_until_return_ok_on_is_empty
+
+            #map_rows_to_delete_to_deletion_result_entries
+
+            #error_strategy
+
+            #before_delete_hook
+
+            #delete_many_impl
+
+            #after_delete_hook
+
+            #delete_strategy
+
+            //TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 #set_none_strategy
+
+            #set_zero_strategy
+
+            #ignore_strategy
+
+            #return_result_impl
+        }
+    };
+
+    SpacetimeDSLMethod {
+        doc_comment: format!(
+            "Try to delete all `{struct_name}` rows in the `{singular_table_name}` table {described_as}."
+        ),
+        method_name: format_ident!("delete_{plural_table_name}_by_{index_name}"),
+        method_args,
+        return_type: runtime::error_result_type(&runtime::deletion_result_type()),
+        method_impl,
+        read_context_compatible: false,
+    }
+}
+
+/// `get_<table>_by_<index>`: look one row up by a unique index.
+fn for_get_one(shape: &IndexShape, context: &MethodGenerationContext) -> SpacetimeDSLMethod {
+    let MethodGenerationContext {
+        struct_name,
+        singular_table_name,
+        singular_table_name_as_string,
         field_name_for_found_value,
         ..
     } = context;
 
-    let one = OneOrMultiple::One;
-    let multiple = OneOrMultiple::Multiple;
+    let index_name = &shape.index_name;
+    let described_as = &shape.described_as;
+    let column_names_and_row_values = &shape.column_names_and_row_values;
+    let unique_multi_column_index_hint = shape.unique_multi_column_hint;
+    let is_singleton_pk = shape.is_singleton_primary_key;
 
-    // TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/35 Doc comments should be influenced by referenced_by and foreign_key attributes.
-    let doc_comment;
-    let method_name;
-    let return_type;
+    let IndexColumnArguments {
+        method_args,
+        row_value_getters,
+        wrapper_option_mappers,
+    } = index_column_arguments(shape, &OneOrMultiple::One, context);
 
-    let mut method_args = vec![];
-    let method_impl;
+    let index_accessor = index_accessor(singular_table_name, index_name);
 
-    let read_context_compatible = match &dsl_method {
-        DSLMethod::GetMany(_) | DSLMethod::GetOne(_) => true,
-        DSLMethod::Update(_) | DSLMethod::DeleteOne(_) | DSLMethod::DeleteMany(_) => false,
-    };
-
-    match dsl_method {
-        DSLMethod::GetMany(index)
-        | DSLMethod::DeleteMany(index)
-        | DSLMethod::GetOne(index)
-        | DSLMethod::Update(index)
-        | DSLMethod::DeleteOne(index) => {
-            let shape = IndexShape::of(index, context);
-            let IndexShape {
+    let method_impl = match shape.is_multi_column {
+        true => {
+            // FIXME: Row Value Getters of Wrapper Types shouldn't be `id.clone().into().value()`, they should be `let id = id.into();` at the method beginning and then `id.value()` anywhere else
+            let multi_column_index_check = get_unique_multi_column_index_check(
+                &Action::Get,
+                singular_table_name,
                 index_name,
-                index_columns,
-                is_multi_column: is_multi_column_index,
-                is_singleton_primary_key: is_singleton_pk,
                 column_names_and_row_values,
-                described_as,
-                unique_multi_column_hint: unique_multi_column_index_hint,
-            } = &shape;
-            let is_multi_column_index = *is_multi_column_index;
-            let is_singleton_pk = *is_singleton_pk;
+                &row_value_getters,
+            );
 
-            doc_comment = match dsl_method {
-                DSLMethod::GetMany(_) => format!(
-                    "Get a `{struct_name}` iterator that contains all rows in the `{singular_table_name}` table {described_as}."
-                ),
-                DSLMethod::DeleteMany(_) => format!(
-                    "Try to delete all `{struct_name}` rows in the `{singular_table_name}` table {described_as}."
-                ),
-                DSLMethod::GetOne(_) => {
-                    if is_singleton_pk {
-                        format!(
-                            "Try to get the `{struct_name}` from the singleton `{singular_table_name}` table."
-                        )
-                    } else {
-                        format!(
-                            "{unique_multi_column_index_hint}\n\nTry to get a `{struct_name}` from the `{singular_table_name}` table {described_as}."
-                        )
-                    }
-                }
-                DSLMethod::Update(_) => {
-                    if is_singleton_pk {
-                        format!(
-                            "Try to update the `{struct_name}` row of the singleton `{singular_table_name}` table."
-                        )
-                    } else {
-                        format!(
-                            "{unique_multi_column_index_hint}\n\nTry to update a `{struct_name}` row of the `{singular_table_name}` table {described_as}."
-                        )
-                    }
-                }
-                DSLMethod::DeleteOne(_) => {
-                    if is_singleton_pk {
-                        format!(
-                            "Try to delete the `{struct_name}` row from the singleton `{singular_table_name}` table."
-                        )
-                    } else {
-                        format!(
-                            "{unique_multi_column_index_hint}\n\nTry to delete a `{struct_name}` row in the `{singular_table_name}` table {described_as}."
-                        )
-                    }
-                }
-            };
-
-            method_name = match dsl_method {
-                DSLMethod::GetMany(_) => format_ident!("get_{plural_table_name}_by_{index_name}"),
-                DSLMethod::DeleteMany(_) => {
-                    format_ident!("delete_{plural_table_name}_by_{index_name}")
-                }
-                DSLMethod::GetOne(_) => {
-                    if is_singleton_pk {
-                        format_ident!("get_{singular_table_name}")
-                    } else {
-                        format_ident!("get_{singular_table_name}_by_{index_name}")
-                    }
-                }
-                DSLMethod::Update(_) => {
-                    if is_singleton_pk {
-                        format_ident!("update_{singular_table_name}")
-                    } else {
-                        format_ident!("update_{singular_table_name}_by_{index_name}")
-                    }
-                }
-                DSLMethod::DeleteOne(_) => {
-                    if is_singleton_pk {
-                        format_ident!("delete_{singular_table_name}")
-                    } else {
-                        format_ident!("delete_{singular_table_name}_by_{index_name}")
-                    }
-                }
-            };
-
-            return_type = match dsl_method {
-                DSLMethod::GetMany(_) => quote! {
-                    impl Iterator<Item = #struct_name>
+            let not_found_error = runtime::not_found_error(
+                singular_table_name_as_string,
+                &quote! {
+                    format!(#column_names_and_row_values, #(#row_value_getters),*)
                 },
-                DSLMethod::DeleteMany(_) => {
-                    runtime::error_result_type(&runtime::deletion_result_type())
+            );
+
+            quote! {
+                #(#wrapper_option_mappers)*
+
+                use ::spacetimedsl::itertools::Itertools;
+
+                let mut #field_name_for_found_value: Option<#struct_name> = None;
+
+                #multi_column_index_check
+
+                match #field_name_for_found_value {
+                    Some(#singular_table_name) => Ok(#singular_table_name),
+                    None => {
+                        return Err(#not_found_error);
+                    }
                 }
-                DSLMethod::GetOne(_) => runtime::error_result_type(struct_name),
-                DSLMethod::Update(_) => runtime::error_result_type(struct_name),
-                DSLMethod::DeleteOne(_) => {
-                    runtime::error_result_type(&runtime::deletion_result_type())
+            }
+        }
+        false => {
+            if is_singleton_pk {
+                let primary_key = singleton::primary_key_ident();
+                let primary_key_value = singleton::primary_key_value();
+                let singleton_not_found_error = runtime::not_found_error(
+                    singular_table_name_as_string,
+                    &singleton::rendered_primary_key(),
+                );
+
+                quote! {
+                    match self.db().#singular_table_name().#primary_key().find(&#primary_key_value) {
+                        Some(#singular_table_name) => Ok(#singular_table_name),
+                        None => return Err(#singleton_not_found_error)
+                    }
                 }
-            };
+            } else {
+                let not_found_error = runtime::not_found_error(
+                    singular_table_name_as_string,
+                    &quote! {
+                        format!(#column_names_and_row_values, #(#row_value_getters),*)
+                    },
+                );
 
-            match dsl_method {
-                DSLMethod::Update(_) => {
-                    method_args.push(SpacetimeDSLArg {
-                        is_option: false,
-                        arg_name: singular_table_name.clone(),
-                        arg_type: SpacetimeDSLArgType::Normal(quote! { #struct_name }),
-                    });
+                quote! {
+                    #(#wrapper_option_mappers)*
 
-                    let multi_column_index_checks = multi_column_index_checks(
-                        Action::Update,
-                        singular_table_name,
-                        spacetimedb_table,
-                        internal_columns,
-                        primary_key_column_name,
-                    );
-
-                    let mut row_value_getters = vec![];
-
-                    internal_columns
-                        .iter()
-                        .filter(|internal_column| {
-                            internal_column.spacetimedsl_column_foreign_key.is_some()
-                                && internal_column
-                                    .rust_field_visibility
-                                    .to_string()
-                                    .ne(&RustVisibility::Private.to_string())
-                        })
-                        .for_each(|internal_column| {
-                            row_value_getters.push(update_method_row_value_getter(internal_column));
-                        });
-
-                    let on_update_set_current_timestamp = match &spacetimedsl_table
-                        .on_update_set_current_timestamp_column_name
-                    {
-                        None => TokenStream::default(),
-                        Some(column_name) => {
-                            let on_update_set_current_timestamp_column = internal_columns
-                                .iter()
-                                .find(|c| c.rust_field_name.eq(column_name))
-                                .unwrap_or_else(|| {
-                                    panic!("The column {column_name} named by an on_update attribute must be one of this table's columns")
-                                });
-
-                            let timestamp_value = if on_update_set_current_timestamp_column
-                                .rust_field_type_kind
-                                == ColumnTypeKind::Optional
-                            {
-                                quote! { Some(self.ctx().timestamp()?) }
-                            } else {
-                                quote! { self.ctx().timestamp()? }
-                            };
-
-                            quote! {
-                                #singular_table_name.#column_name = #timestamp_value;
-                            }
-                        }
-                    };
-
-                    let use_itertools = if !multi_column_index_checks.is_empty() {
-                        quote! {
-                            use ::spacetimedsl::itertools::Itertools;
-                        }
-                    } else {
-                        TokenStream::default()
-                    };
-
-                    let one_or_multiple = match is_multi_column_index {
-                        false => OneOrMultiple::One,
-                        true => OneOrMultiple::Multiple,
-                    };
-
-                    let reference_integrity_checks = reference_integrity_checks_on_update(
-                        spacetimedb_table,
-                        internal_columns,
-                        column_names_and_row_values,
-                        index_columns,
-                        &one_or_multiple,
-                        primary_key_column,
-                    );
-
-                    let let_field_name_for_found_value = if multi_column_index_checks.is_empty()
-                        && reference_integrity_checks.is_empty()
-                        && spacetimedsl_table.hooks.before_update.is_none()
-                        && spacetimedsl_table.hooks.after_update.is_none()
-                    {
-                        TokenStream::default()
-                    } else {
-                        quote! {
-                            let mut #field_name_for_found_value: Option<#struct_name> = None;
-                        }
-                    };
-
-                    let index_name = match is_multi_column_index {
-                        true => &format_ident!("{primary_key_column_name}"),
-                        false => index_name,
-                    };
-
-                    // The found-value prelude has to run before the import, so this site
-                    // places both itself instead of taking them already joined.
-                    let (use_before_update_hook_trait, before_update_hook_call) = hook_use_and_call(
-                        &spacetimedsl_table.hooks.before_update,
-                        |hook_function_name| {
-                            let hook_call = runtime::dsl_method_hooks_call(
-                                hook_function_name,
-                                &quote! {
-                                    self,
-                                    #field_name_for_found_value.as_ref().unwrap(),
-                                    #singular_table_name
-                                },
-                            );
-
-                            quote! {
-                                let #singular_table_name = #hook_call?;
-                            }
-                        },
-                    );
-
-                    let before_update_hook = if before_update_hook_call.is_empty() {
-                        TokenStream::default()
-                    } else {
-                        quote! {
-                            if #field_name_for_found_value.is_none() {
-                                #field_name_for_found_value = Some(
-                                    self.db().#singular_table_name().#primary_key_column_name()
-                                        .find(#singular_table_name.#primary_key_column_name)
-                                        .expect("Row should exist for update")
-                                )
-                            }
-
-                            #use_before_update_hook_trait
-                            #before_update_hook_call
-                        }
-                    };
-
-                    let after_update_hook = hook_tokens(
-                        &spacetimedsl_table.hooks.after_update,
-                        |hook_function_name| {
-                            let hook_call = runtime::dsl_method_hooks_call(
-                                hook_function_name,
-                                &quote! {
-                                    self,
-                                    #field_name_for_found_value.as_ref().unwrap(),
-                                    &#singular_table_name
-                                },
-                            );
-
-                            quote! {
-                                #hook_call?;
-                            }
-                        },
-                    );
-
-                    let set_singleton_id_to_zero = if is_singleton_pk {
-                        let primary_key = singleton::primary_key_ident();
-                        let primary_key_value = singleton::primary_key_value();
-
-                        quote! { #singular_table_name.#primary_key = #primary_key_value; }
-                    } else {
-                        TokenStream::default()
-                    };
-
-                    method_impl = quote! {
-                        #use_itertools
-
-                        let mut #singular_table_name = #singular_table_name;
-                        #set_singleton_id_to_zero
-
-                        #let_field_name_for_found_value
-
-                        #(#multi_column_index_checks)*
-
-                        #(#row_value_getters)*
-                        #(#reference_integrity_checks)*
-
-                        #on_update_set_current_timestamp
-
-                        #before_update_hook
-
-                        // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(crate::spacetimedsl::error::SpacetimeDSLError);
-                        let #singular_table_name = self
-                            .db()
-                            .#singular_table_name()
-                            .#index_name()
-                            .update(#singular_table_name);
-
-                        #after_update_hook
-
-                        Ok(#singular_table_name)
-                    };
+                    match #index_accessor.find(#(#row_value_getters),*) {
+                        Some(#singular_table_name) => Ok(#singular_table_name),
+                        None => return Err(#not_found_error)
+                    }
                 }
-                dsl_method => {
-                    let one_or_multiple = match dsl_method {
-                        DSLMethod::GetMany(_) | DSLMethod::DeleteMany(_) => OneOrMultiple::Multiple,
-                        DSLMethod::GetOne(_) | DSLMethod::DeleteOne(_) => OneOrMultiple::One,
-                        DSLMethod::Update(_) => {
-                            panic!("`DSLMethod::Update` is handled before this match")
-                        }
-                    };
-
-                    let IndexColumnArguments {
-                        method_args: index_column_method_args,
-                        row_value_getters,
-                        wrapper_option_mappers: wrapper_type_option_to_wrapped_type_option_mappers,
-                    } = index_column_arguments(&shape, &one_or_multiple, context);
-
-                    method_args.extend(index_column_method_args);
-
-                    let method_impl_prefix = quote! {
-                        self
-                            .db()
-                            .#singular_table_name()
-                            .#index_name()
-                    };
-
-                    match dsl_method {
-                        DSLMethod::GetMany(_) => match is_multi_column_index {
-                            true => {
-                                method_impl = quote! {
-                                    #(#wrapper_type_option_to_wrapped_type_option_mappers)*
-
-                                    #method_impl_prefix
-                                        .filter((#(#row_value_getters),*))
-                                }
-                            }
-                            false => {
-                                method_impl = quote! {
-                                    #(#wrapper_type_option_to_wrapped_type_option_mappers)*
-
-                                    #method_impl_prefix
-                                        .filter(#(#row_value_getters),*)
-                                }
-                            }
-                        },
-                        DSLMethod::DeleteMany(_) => {
-                            let let_index_name = match is_multi_column_index {
-                                true => quote! {
-                                    let #index_name = (#(#row_value_getters),*);
-                                },
-                                false => quote! {
-                                    let #index_name = #(#row_value_getters),*;
-                                },
-                            };
-
-                            let empty_deletion_result = runtime::deletion_result(
-                                &singular_table_name_as_string,
-                                &multiple,
-                                &quote! { vec![] },
-                            );
-
-                            let impl_until_return_ok_on_is_empty = quote! {
-                                use ::spacetimedsl::itertools::Itertools;
-
-                                #(#wrapper_type_option_to_wrapped_type_option_mappers)*
-
-                                #let_index_name
-
-                                let rows_to_delete: Vec<#struct_name> = #method_impl_prefix
-                                    .filter(#index_name)
-                                    .collect();
-
-                                if rows_to_delete.is_empty() {
-                                    return Ok(#empty_deletion_result);
-                                }
-                            };
-
-                            let wrapper_type_struct_name_or_path = primary_key_column
-                                .spacetimedsl_column_wrapper_type
-                                .as_ref()
-                                .expect(PRIMARY_KEY_WRAPPER_TYPE_INVARIANT)
-                                .struct_name_or_path_tokens();
-
-                            let deletion_result_entry_per_row = runtime::deletion_result_entry(
-                                &singular_table_name_as_string,
-                                &primary_key_column_name_as_string,
-                                &runtime::on_delete_strategy(&quote! { Delete }),
-                                &quote! {
-                                    format!("{}", #wrapper_type_struct_name_or_path::new(row_to_delete.#primary_key_column_name.clone()))
-                                },
-                                &quote! { child_entries: vec![], },
-                            );
-
-                            let map_rows_to_delete_to_deletion_result_entries = quote! {
-                                let mut deletion_result_entries = std::collections::HashMap::new();
-
-                                for row_to_delete in &rows_to_delete {
-                                    deletion_result_entries.insert(
-                                        &row_to_delete.#primary_key_column_name,
-                                        #deletion_result_entry_per_row
-                                    );
-                                }
-                            };
-
-                            let before_delete_hook = hook_tokens(
-                                &spacetimedsl_table.hooks.before_delete,
-                                |hook_function_name| {
-                                    let hook_call = runtime::dsl_method_hooks_call(
-                                        hook_function_name,
-                                        &quote! { self, &row_to_delete },
-                                    );
-
-                                    quote! {
-                                        for row_to_delete in &rows_to_delete {
-                                            #hook_call?;
-                                        }
-                                    }
-                                },
-                            );
-
-                            let after_delete_hook = hook_tokens(
-                                &spacetimedsl_table.hooks.after_delete,
-                                |hook_function_name| {
-                                    let hook_call = runtime::dsl_method_hooks_call(
-                                        hook_function_name,
-                                        &quote! { self, &row_to_delete },
-                                    );
-
-                                    quote! {
-                                        for row_to_delete in &rows_to_delete {
-                                            #hook_call?;
-                                        }
-                                    }
-                                },
-                            );
-
-                            let count_mismatch_error = runtime::generic_error(&quote! {
-                                format!(
-                                    "Delete Many Error: `count_of_rows_to_delete ( {} ) != ( {} ) count_of_deleted_rows`!",
-                                    &count_of_rows_to_delete,
-                                    &count_of_deleted_rows
-                                )
-                            });
-
-                            let delete_many_impl = quote! {
-                                let count_of_rows_to_delete: u64 = rows_to_delete
-                                    .len()
-                                    .try_into()
-                                    .unwrap_or(u64::MAX);
-
-                                let count_of_deleted_rows = #method_impl_prefix.delete(#index_name);
-
-                                if count_of_rows_to_delete.ne(&count_of_deleted_rows) {
-                                    return Err(#count_mismatch_error);
-                                }
-                            };
-
-                            let deletion_result_from_entries = runtime::deletion_result(
-                                &singular_table_name_as_string,
-                                &multiple,
-                                &quote! { deletion_result_entries.into_values().collect_vec() },
-                            );
-
-                            let return_result_impl = quote! {
-                                return Ok(#deletion_result_from_entries);
-                            };
-
-                            if spacetimedsl_table.referencing_tables.is_empty() {
-                                method_impl = quote! {
-                                    #impl_until_return_ok_on_is_empty
-
-                                    #map_rows_to_delete_to_deletion_result_entries
-
-                                    #before_delete_hook
-
-                                    #delete_many_impl
-
-                                    #after_delete_hook
-
-                                    #return_result_impl
-                                };
-                            } else {
-                                let unknown_error_after_state_change = runtime::generic_error(
-                                    &quote! {
-                                        format!("Delete Many Error: An unknown error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
-                                    },
-                                );
-
-                                let on_error_handler = quote! {
-                                    let error = #deletion_result_from_entries;
-
-                                    return Err(#unknown_error_after_state_change);
-                                };
-
-                                let reference_integrity_violation_on_delete_error =
-                                    runtime::reference_integrity_violation_on_delete(
-                                        &quote! { error },
-                                    );
-
-                                let error_strategy =
-                                    get_referenced_table_function_call_for_dsl_method(
-                                        singular_table_name,
-                                        primary_key_column_name,
-                                        OnDeleteStrategy::Error,
-                                        OneOrMultiple::Multiple,
-                                        &quote! {
-                                            let error = #deletion_result_from_entries;
-
-                                            return Err(#reference_integrity_violation_on_delete_error);
-                                        },
-                                    );
-
-                                let delete_strategy =
-                                    get_referenced_table_function_call_for_dsl_method(
-                                        singular_table_name,
-                                        primary_key_column_name,
-                                        OnDeleteStrategy::Delete,
-                                        OneOrMultiple::Multiple,
-                                        &on_error_handler,
-                                    );
-
-                                /* TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32
-                                let set_none_strategy =
-                                    get_referenced_table_function_call_for_dsl_method(
-                                        singular_table_name,
-                                        primary_key_column_name,
-                                        OnDeleteStrategy::SetNone,
-                                        OneOrMultiple::Multiple,
-                                        &on_error_handler,
-                                    );
-                                */
-
-                                let set_zero_strategy =
-                                    get_referenced_table_function_call_for_dsl_method(
-                                        singular_table_name,
-                                        primary_key_column_name,
-                                        OnDeleteStrategy::SetZero,
-                                        OneOrMultiple::Multiple,
-                                        &on_error_handler,
-                                    );
-
-                                let ignore_strategy =
-                                    get_referenced_table_function_call_for_dsl_method(
-                                        singular_table_name,
-                                        primary_key_column_name,
-                                        OnDeleteStrategy::Ignore,
-                                        OneOrMultiple::Multiple,
-                                        &on_error_handler,
-                                    );
-
-                                method_impl = quote! {
-                                    #impl_until_return_ok_on_is_empty
-
-                                    #map_rows_to_delete_to_deletion_result_entries
-
-                                    #error_strategy
-
-                                    #before_delete_hook
-
-                                    #delete_many_impl
-
-                                    #after_delete_hook
-
-                                    #delete_strategy
-
-                                    //TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 #set_none_strategy
-
-                                    #set_zero_strategy
-
-                                    #ignore_strategy
-
-                                    #return_result_impl
-                                };
-                            }
-                        }
-                        DSLMethod::GetOne(_) => match is_multi_column_index {
-                            true => {
-                                // FIXME: Row Value Getters of Wrapper Types shouldn't be `id.clone().into().value()`, they should be `let id = id.into();` at the method beginning and then `id.value()` anywhere else
-                                let multi_column_index_check = get_unique_multi_column_index_check(
-                                    &Action::Get,
-                                    singular_table_name,
-                                    index_name,
-                                    column_names_and_row_values,
-                                    &row_value_getters,
-                                );
-
-                                let not_found_error = runtime::not_found_error(
-                                    &singular_table_name_as_string,
-                                    &quote! {
-                                        format!(#column_names_and_row_values, #(#row_value_getters),*)
-                                    },
-                                );
-
-                                method_impl = quote! {
-                                    #(#wrapper_type_option_to_wrapped_type_option_mappers)*
-
-                                    use ::spacetimedsl::itertools::Itertools;
-
-                                    let mut #field_name_for_found_value: Option<#struct_name> = None;
-
-                                    #multi_column_index_check
-
-                                    match #field_name_for_found_value {
-                                        Some(#singular_table_name) => Ok(#singular_table_name),
-                                        None => {
-                                            return Err(#not_found_error);
-                                        }
-                                    }
-                                };
-                            }
-                            false => {
-                                let singleton_not_found_error = runtime::not_found_error(
-                                    &singular_table_name_as_string,
-                                    &singleton::rendered_primary_key(),
-                                );
-                                let not_found_error = runtime::not_found_error(
-                                    &singular_table_name_as_string,
-                                    &quote! {
-                                        format!(#column_names_and_row_values, #(#row_value_getters),*)
-                                    },
-                                );
-
-                                if is_singleton_pk {
-                                    let primary_key = singleton::primary_key_ident();
-                                    let primary_key_value = singleton::primary_key_value();
-
-                                    method_impl = quote! {
-                                        match self.db().#singular_table_name().#primary_key().find(&#primary_key_value) {
-                                            Some(#singular_table_name) => Ok(#singular_table_name),
-                                            None => return Err(#singleton_not_found_error)
-                                        }
-                                    };
-                                } else {
-                                    method_impl = quote! {
-                                        #(#wrapper_type_option_to_wrapped_type_option_mappers)*
-
-                                        match #method_impl_prefix.find(#(#row_value_getters),*) {
-                                            Some(#singular_table_name) => Ok(#singular_table_name),
-                                            None => return Err(#not_found_error)
-                                        }
-                                    };
-                                }
-                            }
-                        },
-                        DSLMethod::DeleteOne(_) => {
-                            if is_singleton_pk {
-                                let primary_key = singleton::primary_key_ident();
-                                let primary_key_value = singleton::primary_key_value();
-
-                                let before_delete_hook = hook_tokens(
-                                    &spacetimedsl_table.hooks.before_delete,
-                                    |hook_function_name| {
-                                        let hook_call = runtime::dsl_method_hooks_call(
-                                            hook_function_name,
-                                            &quote! { self, &row_to_delete },
-                                        );
-
-                                        quote! {
-                                            #hook_call?;
-                                        }
-                                    },
-                                );
-                                let after_delete_hook = hook_tokens(
-                                    &spacetimedsl_table.hooks.after_delete,
-                                    |hook_function_name| {
-                                        let hook_call = runtime::dsl_method_hooks_call(
-                                            hook_function_name,
-                                            &quote! { self, &row_to_delete },
-                                        );
-
-                                        quote! {
-                                            #hook_call?;
-                                        }
-                                    },
-                                );
-                                let singleton_not_found_error = runtime::not_found_error(
-                                    &singular_table_name_as_string,
-                                    &singleton::rendered_primary_key(),
-                                );
-                                let singleton_deletion_result_entry =
-                                    runtime::deletion_result_entry(
-                                        &singular_table_name_as_string,
-                                        &singleton::PRIMARY_KEY_NAME,
-                                        &runtime::on_delete_strategy(&quote! { Delete }),
-                                        &singleton::rendered_primary_key_value(),
-                                        &quote! { child_entries: vec![], },
-                                    );
-                                let count_mismatch_error = runtime::generic_error(&quote! {
-                                    "Delete One Error: `count_of_rows_to_delete ( 1 ) != ( 0 ) count_of_deleted_rows`!".to_string()
-                                });
-                                let single_entry_deletion_result = runtime::deletion_result(
-                                    &singular_table_name_as_string,
-                                    &one,
-                                    &quote! { vec![deletion_result_entry] },
-                                );
-
-                                method_impl = quote! {
-                                    use ::spacetimedsl::itertools::Itertools;
-
-                                    let row_to_delete = match self.db().#singular_table_name().#primary_key().find(&#primary_key_value) {
-                                        None => return Err(#singleton_not_found_error),
-                                        Some(row_to_delete) => row_to_delete,
-                                    };
-
-                                    let mut deletion_result_entry = #singleton_deletion_result_entry;
-
-                                    #before_delete_hook
-
-                                    match self.db().#singular_table_name().#primary_key().delete(&#primary_key_value) {
-                                        false => {
-                                            return Err(#count_mismatch_error);
-                                        },
-                                        true => {},
-                                    };
-
-                                    #after_delete_hook
-
-                                    return Ok(#single_entry_deletion_result);
-                                };
-                            } else {
-                                let get_row_to_delete;
-                                let return_error_on_is_none;
-
-                                match is_multi_column_index {
-                                    true => {
-                                        let multi_column_index_check =
-                                            get_unique_multi_column_index_check(
-                                                &Action::Delete,
-                                                singular_table_name,
-                                                index_name,
-                                                column_names_and_row_values,
-                                                &row_value_getters,
-                                            );
-
-                                        get_row_to_delete = quote! {
-                                            let mut #field_name_for_found_value: Option<#struct_name> = None;
-
-                                            #multi_column_index_check
-
-                                            let row_to_delete = #field_name_for_found_value;
-                                        };
-
-                                        let not_found_error = runtime::not_found_error(
-                                            &singular_table_name_as_string,
-                                            &quote! {
-                                                format!(#column_names_and_row_values, #(#row_value_getters),*)
-                                            },
-                                        );
-
-                                        return_error_on_is_none = quote! {
-                                            let row_to_delete = match row_to_delete {
-                                                None => return Err(#not_found_error),
-                                                Some(row_to_delete) => row_to_delete,
-                                            };
-                                        };
-                                    }
-                                    false => {
-                                        let column_name = &index_columns[0];
-                                        let column_type_kind = internal_columns
-                                            .iter()
-                                            .find(|c| c.rust_field_name.eq(column_name))
-                                            .expect(
-                                                "An index column is always one of the table's columns",
-                                            )
-                                            .rust_field_type_kind;
-                                        if column_type_kind == ColumnTypeKind::String {
-                                            get_row_to_delete = quote! {
-                                                let #index_name = #(#row_value_getters),*;
-
-                                                let row_to_delete = #method_impl_prefix.find(&#index_name);
-                                            }
-                                        } else {
-                                            get_row_to_delete = quote! {
-                                                let #index_name = #(#row_value_getters),*;
-
-                                                let row_to_delete = #method_impl_prefix.find(#index_name);
-                                            }
-                                        }
-
-                                        let not_found_error = runtime::not_found_error(
-                                            &singular_table_name_as_string,
-                                            &quote! { format!(#column_names_and_row_values, &#index_name) },
-                                        );
-
-                                        return_error_on_is_none = quote! {
-                                            let row_to_delete = match row_to_delete {
-                                                None => return Err(#not_found_error),
-                                                Some(row_to_delete) => row_to_delete,
-                                            };
-                                        };
-                                    }
-                                };
-
-                                let impl_until_return_err_on_is_none = quote! {
-                                    use ::spacetimedsl::itertools::Itertools;
-
-                                    #(#wrapper_type_option_to_wrapped_type_option_mappers)*
-
-                                    #get_row_to_delete
-
-                                    #return_error_on_is_none
-                                };
-
-                                let wrapper_type_struct_name_or_path = primary_key_column
-                                    .spacetimedsl_column_wrapper_type
-                                    .as_ref()
-                                    .expect(PRIMARY_KEY_WRAPPER_TYPE_INVARIANT)
-                                    .struct_name_or_path_tokens();
-
-                                let deletion_result_entry_for_row = runtime::deletion_result_entry(
-                                    &singular_table_name_as_string,
-                                    &primary_key_column_name_as_string,
-                                    &runtime::on_delete_strategy(&quote! { Delete }),
-                                    &quote! {
-                                        format!("{}", #wrapper_type_struct_name_or_path::new(row_to_delete.#primary_key_column_name.clone()))
-                                    },
-                                    &quote! { child_entries: vec![], },
-                                );
-
-                                let map_row_to_delete_to_deletion_result_entry = quote! {
-                                    let mut deletion_result_entry = #deletion_result_entry_for_row;
-                                };
-
-                                let count_mismatch_error = runtime::generic_error(&quote! {
-                                    "Delete One Error: `count_of_rows_to_delete ( 1 ) != ( 0 ) count_of_deleted_rows`!".to_string()
-                                });
-
-                                let delete_one_impl = quote! {
-                                    match self
-                                            .db()
-                                            .#singular_table_name()
-                                            .#primary_key_column_name()
-                                            .delete(&row_to_delete.#primary_key_column_name) {
-                                        false => {
-                                            return Err(#count_mismatch_error);
-                                        },
-                                        true => {},
-                                    };
-                                };
-
-                                let before_delete_hook = hook_tokens(
-                                    &spacetimedsl_table.hooks.before_delete,
-                                    |hook_function_name| {
-                                        let hook_call = runtime::dsl_method_hooks_call(
-                                            hook_function_name,
-                                            &quote! { self, &row_to_delete },
-                                        );
-
-                                        quote! {
-                                            #hook_call?;
-                                        }
-                                    },
-                                );
-
-                                let after_delete_hook = hook_tokens(
-                                    &spacetimedsl_table.hooks.after_delete,
-                                    |hook_function_name| {
-                                        let hook_call = runtime::dsl_method_hooks_call(
-                                            hook_function_name,
-                                            &quote! { self, &row_to_delete },
-                                        );
-
-                                        quote! {
-                                            #hook_call?;
-                                        }
-                                    },
-                                );
-
-                                let single_entry_deletion_result = runtime::deletion_result(
-                                    &singular_table_name_as_string,
-                                    &one,
-                                    &quote! { vec![deletion_result_entry] },
-                                );
-
-                                let return_result_impl = quote! {
-                                    return Ok(#single_entry_deletion_result);
-                                };
-
-                                if spacetimedsl_table.referencing_tables.is_empty() {
-                                    method_impl = quote! {
-                                        #impl_until_return_err_on_is_none
-
-                                        #map_row_to_delete_to_deletion_result_entry
-
-                                        #before_delete_hook
-
-                                        #delete_one_impl
-
-                                        #after_delete_hook
-
-                                        #return_result_impl
-                                    };
-                                } else {
-                                    let unknown_error_after_state_change = runtime::generic_error(
-                                        &quote! {
-                                            format!("Delete One Error: An unknown error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
-                                        },
-                                    );
-
-                                    let on_error_handler = quote! {
-                                        let error = #single_entry_deletion_result;
-
-                                        return Err(#unknown_error_after_state_change);
-                                    };
-
-                                    let reference_integrity_violation_on_delete_error =
-                                        runtime::reference_integrity_violation_on_delete(
-                                            &quote! { error },
-                                        );
-
-                                    let error_strategy =
-                                        get_referenced_table_function_call_for_dsl_method(
-                                            singular_table_name,
-                                            primary_key_column_name,
-                                            OnDeleteStrategy::Error,
-                                            OneOrMultiple::One,
-                                            &quote! {
-                                                let error = #single_entry_deletion_result;
-
-                                                return Err(#reference_integrity_violation_on_delete_error);
-                                            },
-                                        );
-
-                                    let delete_strategy =
-                                        get_referenced_table_function_call_for_dsl_method(
-                                            singular_table_name,
-                                            primary_key_column_name,
-                                            OnDeleteStrategy::Delete,
-                                            OneOrMultiple::One,
-                                            &on_error_handler,
-                                        );
-
-                                    /* TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32
-                                    let set_none_strategy =
-                                        get_referenced_table_function_call_for_dsl_method(
-                                            singular_table_name,
-                                            OnDeleteStrategy::SetNone,
-                                            OneOrMultiple::One,
-                                            &on_error_handler,
-                                        );
-                                    */
-
-                                    let set_zero_strategy =
-                                        get_referenced_table_function_call_for_dsl_method(
-                                            singular_table_name,
-                                            primary_key_column_name,
-                                            OnDeleteStrategy::SetZero,
-                                            OneOrMultiple::One,
-                                            &on_error_handler,
-                                        );
-
-                                    let ignore_strategy =
-                                        get_referenced_table_function_call_for_dsl_method(
-                                            singular_table_name,
-                                            primary_key_column_name,
-                                            OnDeleteStrategy::Ignore,
-                                            OneOrMultiple::One,
-                                            &on_error_handler,
-                                        );
-
-                                    method_impl = quote! {
-                                        #impl_until_return_err_on_is_none
-
-                                        #map_row_to_delete_to_deletion_result_entry
-
-                                        #error_strategy
-
-                                        #before_delete_hook
-
-                                        #delete_one_impl
-
-                                        #after_delete_hook
-
-                                        #delete_strategy
-
-                                        //TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 #set_none_strategy
-
-                                        #set_zero_strategy
-
-                                        #ignore_strategy
-
-                                        #return_result_impl
-                                    };
-                                }
-                            } // closes else (non-singleton) block
-                        }
-                        DSLMethod::Update(_) => {
-                            panic!("`DSLMethod::Update` is handled before this match")
-                        }
-                    };
-                }
-            };
+            }
         }
     };
 
-    let method = SpacetimeDSLMethod {
-        doc_comment,
-        method_name,
+    SpacetimeDSLMethod {
+        doc_comment: match is_singleton_pk {
+            true => format!(
+                "Try to get the `{struct_name}` from the singleton `{singular_table_name}` table."
+            ),
+            false => format!(
+                "{unique_multi_column_index_hint}\n\nTry to get a `{struct_name}` from the `{singular_table_name}` table {described_as}."
+            ),
+        },
+        method_name: match is_singleton_pk {
+            true => format_ident!("get_{singular_table_name}"),
+            false => format_ident!("get_{singular_table_name}_by_{index_name}"),
+        },
         method_args,
-        return_type,
+        return_type: runtime::error_result_type(struct_name),
         method_impl,
-        read_context_compatible,
+        read_context_compatible: true,
+    }
+}
+
+/// `update_<table>_by_<index>`: write a row back over the one the index finds.
+///
+/// Only the primary key gets here. SpacetimeDB puts `update` on the primary key index
+/// alone, so the index this takes is always single-column.
+fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> SpacetimeDSLMethod {
+    let MethodGenerationContext {
+        spacetimedb_table,
+        spacetimedsl_table,
+        internal_columns,
+        primary_key_column,
+        struct_name,
+        singular_table_name,
+        primary_key_column_name,
+        field_name_for_found_value,
+        ..
+    } = context;
+
+    let index_name = &shape.index_name;
+    let described_as = &shape.described_as;
+    let unique_multi_column_index_hint = shape.unique_multi_column_hint;
+    let is_singleton_pk = shape.is_singleton_primary_key;
+
+    let method_args = vec![SpacetimeDSLArg {
+        is_option: false,
+        arg_name: singular_table_name.clone(),
+        arg_type: SpacetimeDSLArgType::Normal(quote! { #struct_name }),
+    }];
+
+    let multi_column_index_checks = multi_column_index_checks(
+        Action::Update,
+        singular_table_name,
+        spacetimedb_table,
+        internal_columns,
+        primary_key_column_name,
+    );
+
+    let mut row_value_getters = vec![];
+
+    internal_columns
+        .iter()
+        .filter(|internal_column| {
+            internal_column.spacetimedsl_column_foreign_key.is_some()
+                && internal_column
+                    .rust_field_visibility
+                    .to_string()
+                    .ne(&RustVisibility::Private.to_string())
+        })
+        .for_each(|internal_column| {
+            row_value_getters.push(update_method_row_value_getter(internal_column));
+        });
+
+    let on_update_set_current_timestamp = match &spacetimedsl_table
+        .on_update_set_current_timestamp_column_name
+    {
+        None => TokenStream::default(),
+        Some(column_name) => {
+            let on_update_set_current_timestamp_column = internal_columns
+                .iter()
+                .find(|c| c.rust_field_name.eq(column_name))
+                .unwrap_or_else(|| {
+                    panic!("The column {column_name} named by an on_update attribute must be one of this table's columns")
+                });
+
+            let timestamp_value = if on_update_set_current_timestamp_column.rust_field_type_kind
+                == ColumnTypeKind::Optional
+            {
+                quote! { Some(self.ctx().timestamp()?) }
+            } else {
+                quote! { self.ctx().timestamp()? }
+            };
+
+            quote! {
+                #singular_table_name.#column_name = #timestamp_value;
+            }
+        }
     };
 
-    (method, recordings)
+    let use_itertools = if !multi_column_index_checks.is_empty() {
+        quote! {
+            use ::spacetimedsl::itertools::Itertools;
+        }
+    } else {
+        TokenStream::default()
+    };
+
+    let one_or_multiple = match shape.is_multi_column {
+        false => OneOrMultiple::One,
+        true => OneOrMultiple::Multiple,
+    };
+
+    let reference_integrity_checks = reference_integrity_checks_on_update(
+        spacetimedb_table,
+        internal_columns,
+        &shape.column_names_and_row_values,
+        &shape.index_columns,
+        &one_or_multiple,
+        primary_key_column,
+    );
+
+    let let_field_name_for_found_value = if multi_column_index_checks.is_empty()
+        && reference_integrity_checks.is_empty()
+        && spacetimedsl_table.hooks.before_update.is_none()
+        && spacetimedsl_table.hooks.after_update.is_none()
+    {
+        TokenStream::default()
+    } else {
+        quote! {
+            let mut #field_name_for_found_value: Option<#struct_name> = None;
+        }
+    };
+
+    // The found-value prelude has to run before the import, so this site
+    // places both itself instead of taking them already joined.
+    let (use_before_update_hook_trait, before_update_hook_call) = hook_use_and_call(
+        &spacetimedsl_table.hooks.before_update,
+        |hook_function_name| {
+            let hook_call = runtime::dsl_method_hooks_call(
+                hook_function_name,
+                &quote! {
+                    self,
+                    #field_name_for_found_value.as_ref().unwrap(),
+                    #singular_table_name
+                },
+            );
+
+            quote! {
+                let #singular_table_name = #hook_call?;
+            }
+        },
+    );
+
+    let before_update_hook = if before_update_hook_call.is_empty() {
+        TokenStream::default()
+    } else {
+        quote! {
+            if #field_name_for_found_value.is_none() {
+                #field_name_for_found_value = Some(
+                    self.db().#singular_table_name().#primary_key_column_name()
+                        .find(#singular_table_name.#primary_key_column_name)
+                        .expect("Row should exist for update")
+                )
+            }
+
+            #use_before_update_hook_trait
+            #before_update_hook_call
+        }
+    };
+
+    let after_update_hook = hook_tokens(
+        &spacetimedsl_table.hooks.after_update,
+        |hook_function_name| {
+            let hook_call = runtime::dsl_method_hooks_call(
+                hook_function_name,
+                &quote! {
+                    self,
+                    #field_name_for_found_value.as_ref().unwrap(),
+                    &#singular_table_name
+                },
+            );
+
+            quote! {
+                #hook_call?;
+            }
+        },
+    );
+
+    let set_singleton_id_to_zero = if is_singleton_pk {
+        let primary_key = singleton::primary_key_ident();
+        let primary_key_value = singleton::primary_key_value();
+
+        quote! { #singular_table_name.#primary_key = #primary_key_value; }
+    } else {
+        TokenStream::default()
+    };
+
+    SpacetimeDSLMethod {
+        doc_comment: match is_singleton_pk {
+            true => format!(
+                "Try to update the `{struct_name}` row of the singleton `{singular_table_name}` table."
+            ),
+            false => format!(
+                "{unique_multi_column_index_hint}\n\nTry to update a `{struct_name}` row of the `{singular_table_name}` table {described_as}."
+            ),
+        },
+        method_name: match is_singleton_pk {
+            true => format_ident!("update_{singular_table_name}"),
+            false => format_ident!("update_{singular_table_name}_by_{index_name}"),
+        },
+        method_args,
+        return_type: runtime::error_result_type(struct_name),
+        method_impl: quote! {
+            #use_itertools
+
+            let mut #singular_table_name = #singular_table_name;
+            #set_singleton_id_to_zero
+
+            #let_field_name_for_found_value
+
+            #(#multi_column_index_checks)*
+
+            #(#row_value_getters)*
+            #(#reference_integrity_checks)*
+
+            #on_update_set_current_timestamp
+
+            #before_update_hook
+
+            // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(crate::spacetimedsl::error::SpacetimeDSLError);
+            let #singular_table_name = self
+                .db()
+                .#singular_table_name()
+                .#index_name()
+                .update(#singular_table_name);
+
+            #after_update_hook
+
+            Ok(#singular_table_name)
+        },
+        read_context_compatible: false,
+    }
+}
+
+/// `delete_<table>_by_<index>`: delete the one row a unique index finds.
+fn for_delete_one(shape: &IndexShape, context: &MethodGenerationContext) -> SpacetimeDSLMethod {
+    let MethodGenerationContext {
+        spacetimedsl_table,
+        internal_columns,
+        primary_key_column,
+        struct_name,
+        singular_table_name,
+        singular_table_name_as_string,
+        primary_key_column_name,
+        primary_key_column_name_as_string,
+        field_name_for_found_value,
+        ..
+    } = context;
+
+    let index_name = &shape.index_name;
+    let described_as = &shape.described_as;
+    let column_names_and_row_values = &shape.column_names_and_row_values;
+    let unique_multi_column_index_hint = shape.unique_multi_column_hint;
+    let is_singleton_pk = shape.is_singleton_primary_key;
+
+    let IndexColumnArguments {
+        method_args,
+        row_value_getters,
+        wrapper_option_mappers,
+    } = index_column_arguments(shape, &OneOrMultiple::One, context);
+
+    let index_accessor = index_accessor(singular_table_name, index_name);
+
+    let before_delete_hook = hook_tokens(
+        &spacetimedsl_table.hooks.before_delete,
+        |hook_function_name| {
+            let hook_call = runtime::dsl_method_hooks_call(
+                hook_function_name,
+                &quote! { self, &row_to_delete },
+            );
+
+            quote! {
+                #hook_call?;
+            }
+        },
+    );
+
+    let after_delete_hook = hook_tokens(
+        &spacetimedsl_table.hooks.after_delete,
+        |hook_function_name| {
+            let hook_call = runtime::dsl_method_hooks_call(
+                hook_function_name,
+                &quote! { self, &row_to_delete },
+            );
+
+            quote! {
+                #hook_call?;
+            }
+        },
+    );
+
+    let count_mismatch_error = runtime::generic_error(&quote! {
+        "Delete One Error: `count_of_rows_to_delete ( 1 ) != ( 0 ) count_of_deleted_rows`!".to_string()
+    });
+
+    let single_entry_deletion_result = runtime::deletion_result(
+        singular_table_name_as_string,
+        &OneOrMultiple::One,
+        &quote! { vec![deletion_result_entry] },
+    );
+
+    let method_impl = if is_singleton_pk {
+        let primary_key = singleton::primary_key_ident();
+        let primary_key_value = singleton::primary_key_value();
+
+        let singleton_not_found_error = runtime::not_found_error(
+            singular_table_name_as_string,
+            &singleton::rendered_primary_key(),
+        );
+        let singleton_deletion_result_entry = runtime::deletion_result_entry(
+            singular_table_name_as_string,
+            &singleton::PRIMARY_KEY_NAME,
+            &runtime::on_delete_strategy(&quote! { Delete }),
+            &singleton::rendered_primary_key_value(),
+            &quote! { child_entries: vec![], },
+        );
+
+        quote! {
+            use ::spacetimedsl::itertools::Itertools;
+
+            let row_to_delete = match self.db().#singular_table_name().#primary_key().find(&#primary_key_value) {
+                None => return Err(#singleton_not_found_error),
+                Some(row_to_delete) => row_to_delete,
+            };
+
+            let mut deletion_result_entry = #singleton_deletion_result_entry;
+
+            #before_delete_hook
+
+            match self.db().#singular_table_name().#primary_key().delete(&#primary_key_value) {
+                false => {
+                    return Err(#count_mismatch_error);
+                },
+                true => {},
+            };
+
+            #after_delete_hook
+
+            return Ok(#single_entry_deletion_result);
+        }
+    } else {
+        let get_row_to_delete;
+        let return_error_on_is_none;
+
+        match shape.is_multi_column {
+            true => {
+                let multi_column_index_check = get_unique_multi_column_index_check(
+                    &Action::Delete,
+                    singular_table_name,
+                    index_name,
+                    column_names_and_row_values,
+                    &row_value_getters,
+                );
+
+                get_row_to_delete = quote! {
+                    let mut #field_name_for_found_value: Option<#struct_name> = None;
+
+                    #multi_column_index_check
+
+                    let row_to_delete = #field_name_for_found_value;
+                };
+
+                let not_found_error = runtime::not_found_error(
+                    singular_table_name_as_string,
+                    &quote! {
+                        format!(#column_names_and_row_values, #(#row_value_getters),*)
+                    },
+                );
+
+                return_error_on_is_none = quote! {
+                    let row_to_delete = match row_to_delete {
+                        None => return Err(#not_found_error),
+                        Some(row_to_delete) => row_to_delete,
+                    };
+                };
+            }
+            false => {
+                let column_name = &shape.index_columns[0];
+                let column_type_kind = internal_columns
+                    .iter()
+                    .find(|c| c.rust_field_name.eq(column_name))
+                    .expect("An index column is always one of the table's columns")
+                    .rust_field_type_kind;
+
+                if column_type_kind == ColumnTypeKind::String {
+                    get_row_to_delete = quote! {
+                        let #index_name = #(#row_value_getters),*;
+
+                        let row_to_delete = #index_accessor.find(&#index_name);
+                    }
+                } else {
+                    get_row_to_delete = quote! {
+                        let #index_name = #(#row_value_getters),*;
+
+                        let row_to_delete = #index_accessor.find(#index_name);
+                    }
+                }
+
+                let not_found_error = runtime::not_found_error(
+                    singular_table_name_as_string,
+                    &quote! { format!(#column_names_and_row_values, &#index_name) },
+                );
+
+                return_error_on_is_none = quote! {
+                    let row_to_delete = match row_to_delete {
+                        None => return Err(#not_found_error),
+                        Some(row_to_delete) => row_to_delete,
+                    };
+                };
+            }
+        };
+
+        let impl_until_return_err_on_is_none = quote! {
+            use ::spacetimedsl::itertools::Itertools;
+
+            #(#wrapper_option_mappers)*
+
+            #get_row_to_delete
+
+            #return_error_on_is_none
+        };
+
+        let wrapper_type_struct_name_or_path = primary_key_column
+            .spacetimedsl_column_wrapper_type
+            .as_ref()
+            .expect(PRIMARY_KEY_WRAPPER_TYPE_INVARIANT)
+            .struct_name_or_path_tokens();
+
+        let deletion_result_entry_for_row = runtime::deletion_result_entry(
+            singular_table_name_as_string,
+            primary_key_column_name_as_string,
+            &runtime::on_delete_strategy(&quote! { Delete }),
+            &quote! {
+                format!("{}", #wrapper_type_struct_name_or_path::new(row_to_delete.#primary_key_column_name.clone()))
+            },
+            &quote! { child_entries: vec![], },
+        );
+
+        let map_row_to_delete_to_deletion_result_entry = quote! {
+            let mut deletion_result_entry = #deletion_result_entry_for_row;
+        };
+
+        let delete_one_impl = quote! {
+            match self
+                    .db()
+                    .#singular_table_name()
+                    .#primary_key_column_name()
+                    .delete(&row_to_delete.#primary_key_column_name) {
+                false => {
+                    return Err(#count_mismatch_error);
+                },
+                true => {},
+            };
+        };
+
+        let return_result_impl = quote! {
+            return Ok(#single_entry_deletion_result);
+        };
+
+        if spacetimedsl_table.referencing_tables.is_empty() {
+            quote! {
+                #impl_until_return_err_on_is_none
+
+                #map_row_to_delete_to_deletion_result_entry
+
+                #before_delete_hook
+
+                #delete_one_impl
+
+                #after_delete_hook
+
+                #return_result_impl
+            }
+        } else {
+            let unknown_error_after_state_change = runtime::generic_error(&quote! {
+                format!("Delete One Error: An unknown error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
+            });
+
+            let on_error_handler = quote! {
+                let error = #single_entry_deletion_result;
+
+                return Err(#unknown_error_after_state_change);
+            };
+
+            let reference_integrity_violation_on_delete_error =
+                runtime::reference_integrity_violation_on_delete(&quote! { error });
+
+            let error_strategy = get_referenced_table_function_call_for_dsl_method(
+                singular_table_name,
+                primary_key_column_name,
+                OnDeleteStrategy::Error,
+                OneOrMultiple::One,
+                &quote! {
+                    let error = #single_entry_deletion_result;
+
+                    return Err(#reference_integrity_violation_on_delete_error);
+                },
+            );
+
+            let delete_strategy = get_referenced_table_function_call_for_dsl_method(
+                singular_table_name,
+                primary_key_column_name,
+                OnDeleteStrategy::Delete,
+                OneOrMultiple::One,
+                &on_error_handler,
+            );
+
+            /* TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32
+            let set_none_strategy =
+                get_referenced_table_function_call_for_dsl_method(
+                    singular_table_name,
+                    OnDeleteStrategy::SetNone,
+                    OneOrMultiple::One,
+                    &on_error_handler,
+                );
+            */
+
+            let set_zero_strategy = get_referenced_table_function_call_for_dsl_method(
+                singular_table_name,
+                primary_key_column_name,
+                OnDeleteStrategy::SetZero,
+                OneOrMultiple::One,
+                &on_error_handler,
+            );
+
+            let ignore_strategy = get_referenced_table_function_call_for_dsl_method(
+                singular_table_name,
+                primary_key_column_name,
+                OnDeleteStrategy::Ignore,
+                OneOrMultiple::One,
+                &on_error_handler,
+            );
+
+            quote! {
+                #impl_until_return_err_on_is_none
+
+                #map_row_to_delete_to_deletion_result_entry
+
+                #error_strategy
+
+                #before_delete_hook
+
+                #delete_one_impl
+
+                #after_delete_hook
+
+                #delete_strategy
+
+                //TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 #set_none_strategy
+
+                #set_zero_strategy
+
+                #ignore_strategy
+
+                #return_result_impl
+            }
+        }
+    };
+
+    SpacetimeDSLMethod {
+        doc_comment: match is_singleton_pk {
+            true => format!(
+                "Try to delete the `{struct_name}` row from the singleton `{singular_table_name}` table."
+            ),
+            false => format!(
+                "{unique_multi_column_index_hint}\n\nTry to delete a `{struct_name}` row in the `{singular_table_name}` table {described_as}."
+            ),
+        },
+        method_name: match is_singleton_pk {
+            true => format_ident!("delete_{singular_table_name}"),
+            false => format_ident!("delete_{singular_table_name}_by_{index_name}"),
+        },
+        method_args,
+        return_type: runtime::error_result_type(&runtime::deletion_result_type()),
+        method_impl,
+        read_context_compatible: false,
+    }
+}
+
+/// Routes a `DSLMethod` to the generator that produces it.
+fn for_method(
+    dsl_method: DSLMethod,
+    context: &MethodGenerationContext,
+) -> (SpacetimeDSLMethod, GeneratedTableRecordings) {
+    let method = match dsl_method {
+        DSLMethod::GetMany(index) => for_get_many(&IndexShape::of(index, context), context),
+        DSLMethod::DeleteMany(index) => for_delete_many(&IndexShape::of(index, context), context),
+        DSLMethod::GetOne(index) => for_get_one(&IndexShape::of(index, context), context),
+        DSLMethod::Update(index) => for_update(&IndexShape::of(index, context), context),
+        DSLMethod::DeleteOne(index) => for_delete_one(&IndexShape::of(index, context), context),
+    };
+
+    (method, GeneratedTableRecordings::default())
 }
 
 /// Everything the five index-based generators derive from the index they are given.
