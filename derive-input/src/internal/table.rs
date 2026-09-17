@@ -4,7 +4,7 @@ use crate::{
         db::table::SpacetimeDBTable,
         dsl::table::{SpacetimeDSLTable, SpacetimeDSLTableMethods},
     },
-    internal::DSLData,
+    internal::{DSLData, dsl::method::MethodGenerationContext},
 };
 use quote::format_ident;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
@@ -36,14 +36,16 @@ pub(in crate::internal) fn try_parse(
         &spacetimedsl_table,
     )?;
 
-    let (spacetimedsl_methods, recordings) = SpacetimeDSLTableMethods::generate(
+    let context = MethodGenerationContext::new(
         &rust_struct,
         &spacetimedb_table,
         &spacetimedsl_table,
-        &columns,
         &internal_columns,
         &internal_primary_key_column,
-    )?;
+    );
+
+    let (spacetimedsl_methods, recordings) =
+        SpacetimeDSLTableMethods::generate(&context, &columns)?;
 
     recordings.apply_to(&mut spacetimedsl_table);
 
