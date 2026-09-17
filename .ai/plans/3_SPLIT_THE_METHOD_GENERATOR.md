@@ -139,7 +139,7 @@ implementation.
 | `IndexShape` | One struct, with the four prose fragments pre-assembled into the single phrase all five doc comments build identically today. Built by the caller, once per index, and passed as `&IndexShape`. |
 | One-vs-many | The per-column argument loop is parameterised by `OneOrMultiple`, not by a new type — one row versus many rows is the concept `OneOrMultiple` exists for. |
 | Singleton contract | A new `internal/dsl/singleton.rs`. Not the deferred item 13: it adds a module rather than carving up `method.rs`. |
-| Singleton generators | `for_singleton_get`, `for_singleton_update`, `for_singleton_delete`, selected once where `map` already tests `is_singleton`. `Create` keeps its singleton branch inside `create_method_column_parts` — it differs by one column's treatment, not by body shape. |
+| Singleton generators | `for_singleton_get` and `for_singleton_delete`, selected once where `map` already tests `is_singleton`. `Create` keeps its singleton branch inside `create_method_column_parts` — it differs by one column's treatment, not by body shape. **Revised during step 7.1** — `for_singleton_update` was planned too, but a singleton's update differs from the ordinary one by a doc comment, a method name and one statement, while sharing about 130 lines; the developer chose to leave `for_update` whole. See [7.1](#71-for_singleton_get-and-for_singleton_delete). |
 | Column methods | One `column_methods_for` builder shared by `map` and the multi-column loop. |
 | Delete paths | **Do not merge** `for_delete_one` and `for_delete_many`, and do not merge the singleton delete path into either. Every difference is intentional and required. See [Settled findings](#settled-findings-that-constrain-this-plan). |
 | `OneOrMultiple` arms | **Do not merge** the `match one_or_multiple` arms in `get_referenced_table_function_call_for_dsl_method`, `for_referenced_by`, `for_foreign_key` or `get_on_delete_strategy_implementation`. |
@@ -849,7 +849,7 @@ Acceptance criterion 6 must pass after this sub-change.
 
 ## Step 7 — Separate the singleton generators
 
-### 7.1 `for_singleton_get`, `for_singleton_update`, `for_singleton_delete`
+### 7.1 `for_singleton_get` and `for_singleton_delete`
 
 **Violates:** Encapsulate What Changes; Open/Closed; Maximize Cohesion
 
@@ -874,9 +874,22 @@ match context.spacetimedsl_table.is_singleton {
 }
 ```
 
-`is_singleton_primary_key` then leaves `IndexShape`, the suppression in 5.1's
-argument builder goes with it, and `for_get_one`, `for_update` and `for_delete_one`
-lose their singleton branches entirely.
+**Amended while implementing: `for_update` is not split.** The paragraph above
+describes `for_get_one` and `for_delete_one` correctly and `for_update` not at all.
+A singleton's update does take a method argument — the row — and it needs every
+part of the ordinary update: the foreign-key row-value getters, the on-update
+timestamp column, the reference-integrity checks, the found-value prelude and both
+hooks. Its multi-column index check is the only part that is always empty, because
+plan 2's step 8 rejects a singleton carrying a multi-column index. What actually
+differs is the doc comment, the method name and one `entity.id = 0u8;` statement.
+Splitting it would copy about 130 lines to change three, so the singleton update is
+the ordinary `for_update`, called from the same selection, and
+`is_singleton_primary_key` stays on `IndexShape` with `for_update` as its one
+reader.
+
+The suppression in 5.1's argument builder goes regardless: the two generators that
+kept it are the two being split out, and no singleton reaches the builder any more.
+`for_get_one` and `for_delete_one` lose their singleton branches entirely.
 
 A singleton reaches only these three: its injected primary key is unique, so the
 non-unique branch was already unreachable for it, and `internal/db/column.rs`
