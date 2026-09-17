@@ -1,8 +1,9 @@
 # Plan 03 — Split the DSL method generator
 
-Addresses items 9, 10, 12, 15, 16 and 17 of the Recommended Resolution Order in
-[`CODE_QUALITY_REPORT.md`](../../CODE_QUALITY_REPORT.md), and the
-`column_names_and_row_values` half of item 11.
+Addresses items 9, 10, 12, 15, 16 and 17 of the Recommended Resolution Order, and the
+`column_names_and_row_values` half of item 11. That order lived in
+`CODE_QUALITY_REPORT.md` until its last findings moved into
+[`4_FINISH_THE_GENERATOR_CLEANUP.md`](4_FINISH_THE_GENERATOR_CLEANUP.md) and it was deleted.
 
 ---
 

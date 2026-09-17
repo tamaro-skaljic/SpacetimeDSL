@@ -1,7 +1,8 @@
 # Plan 02 — Clean up the DSL method generator
 
-Addresses items 2–8 of the Recommended Resolution Order in
-[`CODE_QUALITY_REPORT.md`](../../CODE_QUALITY_REPORT.md).
+Addresses items 2–8 of the Recommended Resolution Order, which lived in
+`CODE_QUALITY_REPORT.md` until its last findings moved into
+[`4_FINISH_THE_GENERATOR_CLEANUP.md`](4_FINISH_THE_GENERATOR_CLEANUP.md) and it was deleted.
 
 ---
 
