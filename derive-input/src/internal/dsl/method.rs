@@ -158,7 +158,7 @@ impl SpacetimeDSLColumnMethods {
                     | IndexType::Direct { column } => column
                         .to_string()
                         .eq(&primary_key_column.rust_field_name.to_string()),
-                    _ => panic!("When this code is called, it should be a single column index!"),
+                    _ => panic!("A column's own index is always a single-column index"),
                 };
 
                 let update = match spacetimedsl_table.has_update_method && method_is_for_primary_key
@@ -284,7 +284,7 @@ impl SpacetimeDSLTableMethods {
                     .spacetimedsl_column
                     .foreign_key
                     .as_ref()
-                    .expect("foreign key should exist")
+                    .expect("The columns were just filtered to those that have a foreign key")
                     .table_name;
 
                 if !columns_with_foreign_keys_by_table.contains_key(name_of_another_table) {
@@ -293,41 +293,41 @@ impl SpacetimeDSLTableMethods {
 
                 columns_with_foreign_keys_by_table
                     .get_mut(name_of_another_table)
-                    .expect("key should exist in BTreeMap")
+                    .expect("The entry was inserted above when it was missing")
                     .push(*c);
             });
 
-            columns_with_foreign_keys_by_table
-                .into_iter()
-                .for_each(|(referenced_table_name, columns_with_foreign_key)| {
-                    let referencing_tables = match spacetimedsl_table.referencing_tables.is_empty() {
-                        true => ReferencingTables::Absent,
-                        false => ReferencingTables::Present,
-                    };
+            for (referenced_table_name, columns_with_foreign_key) in
+                columns_with_foreign_keys_by_table
+            {
+                let referencing_tables = match spacetimedsl_table.referencing_tables.is_empty() {
+                    true => ReferencingTables::Absent,
+                    false => ReferencingTables::Present,
+                };
 
-                    execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted.push(
-                        for_foreign_key(
-                            &OneOrMultiple::One,
-                            referencing_tables,
-                            spacetimedb_table,
-                            referenced_table_name,
-                            &columns_with_foreign_key,
-                            primary_key_column,
-                            &mut spacetimedsl_table,
-                        )
-                    );
-                    execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted.push(
-                        for_foreign_key(
-                            &OneOrMultiple::Multiple,
-                            referencing_tables,
-                            spacetimedb_table,
-                            referenced_table_name,
-                            &columns_with_foreign_key,
-                            primary_key_column,
-                            &mut spacetimedsl_table,
-                        )
-                    );
-                });
+                execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted.push(
+                    for_foreign_key(
+                        &OneOrMultiple::One,
+                        referencing_tables,
+                        spacetimedb_table,
+                        referenced_table_name,
+                        &columns_with_foreign_key,
+                        primary_key_column,
+                        &mut spacetimedsl_table,
+                    )?
+                );
+                execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted.push(
+                    for_foreign_key(
+                        &OneOrMultiple::Multiple,
+                        referencing_tables,
+                        spacetimedb_table,
+                        referenced_table_name,
+                        &columns_with_foreign_key,
+                        primary_key_column,
+                        &mut spacetimedsl_table,
+                    )?
+                );
+            }
         }
 
         let mut multi_column_indices = vec![];
@@ -904,11 +904,11 @@ pub(in crate::internal) fn for_method(
                     let mut columns: VecDeque<Ident> = columns.clone().into();
 
                     let first_column = columns.pop_front().expect(
-                        "There should be a first column in Vec<Ident> of BTreeMultiColumn.",
+                        "A multi-column index is only built from two or more columns, so it has a first one",
                     );
                     let last_column = columns
                         .pop_back()
-                        .expect("There should be a last column in Vec<Ident> of BTreeMultiColumn.");
+                        .expect("A multi-column index is only built from two or more columns, so it has a last one");
                     let any_other_column = columns;
 
                     documentation_on_column_or_columns.push_str(&format!(" `{first_column}`"));
@@ -995,7 +995,7 @@ pub(in crate::internal) fn for_method(
                     }
                 }
                 DSLMethod::Create | DSLMethod::GetAll | DSLMethod::GetCount => panic!(
-                    "DSLColumnMethod Create / GetAll / GetCount should already be processed!"
+                    "`DSLMethod::Create`, `GetAll` and `GetCount` are handled before this match"
                 ),
             };
 
@@ -1026,7 +1026,7 @@ pub(in crate::internal) fn for_method(
                     }
                 }
                 DSLMethod::Create | DSLMethod::GetAll | DSLMethod::GetCount => panic!(
-                    "DSLColumnMethod Create / GetAll / GetCount should already be processed!"
+                    "`DSLMethod::Create`, `GetAll` and `GetCount` are handled before this match"
                 ),
             };
 
@@ -1043,7 +1043,7 @@ pub(in crate::internal) fn for_method(
                     runtime::error_result_type(&runtime::deletion_result_type())
                 }
                 DSLMethod::Create | DSLMethod::GetAll | DSLMethod::GetCount => panic!(
-                    "DSLColumnMethod Create / GetAll / GetCount should already be processed!"
+                    "`DSLMethod::Create`, `GetAll` and `GetCount` are handled before this match"
                 ),
             };
 
@@ -1087,7 +1087,7 @@ pub(in crate::internal) fn for_method(
                                 .iter()
                                 .find(|c| c.rust_field_name.eq(column_name))
                                 .unwrap_or_else(|| {
-                                    panic!("{column_name} column should exist in internal columns")
+                                    panic!("The column {column_name} named by an on_update attribute must be one of this table's columns")
                                 });
 
                             let timestamp_value = if on_update_set_current_timestamp_column
@@ -1242,7 +1242,7 @@ pub(in crate::internal) fn for_method(
                         let column = internal_columns
                             .iter()
                             .find(|c| c.rust_field_name == *column_name)
-                            .expect("Column should exist in internal columns");
+                            .expect("An index column is always one of the table's columns");
 
                         let column_is_string =
                             column.rust_field_type_kind == ColumnTypeKind::String;
@@ -1287,13 +1287,13 @@ pub(in crate::internal) fn for_method(
                                         }
                                         DSLMethod::Update(_) => {
                                             panic!(
-                                                "DSLColumnMethod::Update should already be processed!"
+                                                "`DSLMethod::Update` is handled before this match"
                                             )
                                         }
                                         DSLMethod::Create
                                         | DSLMethod::GetAll
                                         | DSLMethod::GetCount => panic!(
-                                            "DSLColumnMethod Create / GetAll / GetCount should already be processed!"
+                                            "`DSLMethod::Create`, `GetAll` and `GetCount` are handled before this match"
                                         ),
                                     }
                                 } else if column.spacetimedsl_column_is_option {
@@ -1367,13 +1367,13 @@ pub(in crate::internal) fn for_method(
                                         }
                                         DSLMethod::Update(_) => {
                                             panic!(
-                                                "DSLColumnMethod::Update should already be processed!"
+                                                "`DSLMethod::Update` is handled before this match"
                                             )
                                         }
                                         DSLMethod::Create
                                         | DSLMethod::GetAll
                                         | DSLMethod::GetCount => panic!(
-                                            "DSLColumnMethod Create / GetAll / GetCount should already be processed!"
+                                            "`DSLMethod::Create`, `GetAll` and `GetCount` are handled before this match"
                                         ),
                                     }
                                 }
@@ -1384,7 +1384,7 @@ pub(in crate::internal) fn for_method(
 
                                 // TODO: string stuff was only in the single column index implementation, does that work for multi column indices?
                                 let column_type = if column_is_string {
-                                    parse_str("str").expect("parsing should have worked")
+                                    parse_str("str").expect("`str` is a valid type path")
                                 } else {
                                     column.rust_field_type_name_or_path.clone()
                                 };
@@ -1419,13 +1419,11 @@ pub(in crate::internal) fn for_method(
                                         }
                                     }
                                     DSLMethod::Update(_) => {
-                                        panic!(
-                                            "DSLColumnMethod::Update should already be processed!"
-                                        )
+                                        panic!("`DSLMethod::Update` is handled before this match")
                                     }
                                     DSLMethod::Create | DSLMethod::GetAll | DSLMethod::GetCount => {
                                         panic!(
-                                            "DSLColumnMethod Create / GetAll / GetCount should already be processed!"
+                                            "`DSLMethod::Create`, `GetAll` and `GetCount` are handled before this match"
                                         )
                                     }
                                 }
@@ -1877,7 +1875,7 @@ pub(in crate::internal) fn for_method(
                                             .iter()
                                             .find(|c| c.rust_field_name.eq(column_name))
                                             .expect(
-                                                "The index should have a column in the internal columns",
+                                                "An index column is always one of the table's columns",
                                             )
                                             .rust_field_type_kind;
                                         if column_type_kind == ColumnTypeKind::String {
@@ -2105,7 +2103,7 @@ pub(in crate::internal) fn for_method(
                         | DSLMethod::GetAll
                         | DSLMethod::GetCount
                         | DSLMethod::Update(_) => panic!(
-                            "DSLColumnMethod Create / GetAll / GetCount / Update should already be processed!"
+                            "`DSLMethod::Create`, `GetAll`, `GetCount` and `Update` are handled before this match"
                         ),
                     };
                 }
@@ -2419,13 +2417,13 @@ fn multi_column_index_checks(
         let mut row_value_getters = vec![];
         let mut column_names_and_row_values = String::new();
 
-        let first_column_name = index_column_names
-            .pop_front()
-            .expect("There should be a first column in Vec<Ident> of BTreeMultiColumn.");
+        let first_column_name = index_column_names.pop_front().expect(
+            "A multi-column index is only built from two or more columns, so it has a first one",
+        );
 
-        let last_column_name = index_column_names
-            .pop_back()
-            .expect("There should be a last column in Vec<Ident> of BTreeMultiColumn.");
+        let last_column_name = index_column_names.pop_back().expect(
+            "A multi-column index is only built from two or more columns, so it has a last one",
+        );
 
         let any_other_column_name = index_column_names;
 
@@ -2738,16 +2736,16 @@ fn for_foreign_key(
     columns_with_foreign_key: &[&Column],
     primary_key_column: &InternalColumn,
     spacetimedsl_table: &mut SpacetimeDSLTable,
-) -> SpacetimeDSLMethod {
+) -> syn::Result<SpacetimeDSLMethod> {
     let first_foreign_key_column = columns_with_foreign_key
         .first()
-        .expect("there should be a column with foreign key");
+        .expect("A table grouped by referenced table must have at least one foreign key column");
 
     let referenced_table_path = first_foreign_key_column
         .spacetimedsl_column
         .foreign_key
         .as_ref()
-        .expect("Should have foreign key")
+        .expect("The first column of a foreign key group carries the foreign key that grouped it")
         .path
         .to_token_stream();
 
@@ -2767,24 +2765,26 @@ fn for_foreign_key(
                 .to_string())
         {
             // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 If Option is supported, the type of the primary key values needs to be without option and it's allowed to have both, option and non-option columns. There is already a function to remove option from the type representation, search for `Option <`` in the code.
-            panic!(
-                "All foreign key columns which reference the same primary key of another table should have the same type"
-            );
+            return Err(syn::Error::new_spanned(
+                &column_with_foreign_key.rust_field.name,
+                "All foreign key columns which reference the same primary key of another table should have the same type",
+            ));
         }
 
         if column_with_foreign_key
             .spacetimedsl_column
             .foreign_key
             .as_ref()
-            .expect("should have a foreign key")
+            .expect("Every column of a foreign key group carries a foreign key")
             .path
             .to_token_stream()
             .to_string()
             .ne(&referenced_table_path.to_string())
         {
-            panic!(
-                "All foreign key columns which reference the same primary key of another table should have the same path"
-            );
+            return Err(syn::Error::new_spanned(
+                &column_with_foreign_key.rust_field.name,
+                "All foreign key columns which reference the same primary key of another table should have the same path",
+            ));
         }
 
         let on_delete_strategy = &column_with_foreign_key
@@ -2793,7 +2793,7 @@ fn for_foreign_key(
             .as_ref()
             .unwrap_or_else(|| {
                 panic!(
-                    "the column {} should have a foreign key",
+                    "the column {} is in a foreign key group, so it carries a foreign key",
                     column_with_foreign_key.rust_field.name
                 )
             })
@@ -2805,7 +2805,7 @@ fn for_foreign_key(
 
         columns_by_on_delete_strategies
             .get_mut(on_delete_strategy)
-            .expect("The key OnDeleteStrategy should exist!")
+            .expect("The entry was inserted above when it was missing")
             .push(*column_with_foreign_key);
     }
 
@@ -2955,14 +2955,14 @@ fn for_foreign_key(
         }
     };
 
-    SpacetimeDSLMethod {
+    Ok(SpacetimeDSLMethod {
         doc_comment,
         method_name: function_name,
         method_args: function_args,
         return_type,
         method_impl: function_impl,
         read_context_compatible: false,
-    }
+    })
 }
 
 fn get_on_delete_strategy_implementation(
@@ -3009,7 +3009,7 @@ fn get_on_delete_strategy_implementation(
                 .spacetimedb_column
                 .single_column_index
                 .as_ref()
-                .expect("Index should exist")
+                .expect("A foreign key column of a non-singleton table always has a single-column index")
                 .is_unique
             {
                 true => IndexUniqueness::Unique,

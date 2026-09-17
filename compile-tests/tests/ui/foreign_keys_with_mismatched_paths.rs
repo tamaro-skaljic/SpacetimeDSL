@@ -2,8 +2,8 @@
 //! naming the same table under different paths end up in one group and contradict each
 //! other about which table that is.
 //!
-//! Like `foreign_keys_with_mismatched_types`, this is a `panic!` rather than a
-//! `syn::Error`, so the pinned output carries no span. (FIXME)
+//! Like `foreign_keys_with_mismatched_types`, the diagnostic is spanned on the second of
+//! the two columns -- here the one naming the referenced table under the other path.
 
 ::spacetimedsl::spacetimedsl!();
 

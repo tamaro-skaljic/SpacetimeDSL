@@ -1,10 +1,8 @@
-error: custom attribute panicked
-  --> tests/ui/foreign_keys_with_mismatched_types.rs:22:5
+error: All foreign key columns which reference the same primary key of another table should have the same type
+  --> tests/ui/foreign_keys_with_mismatched_types.rs:38:13
    |
-22 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   |
-   = help: message: All foreign key columns which reference the same primary key of another table should have the same type
+38 |         pub destination_warehouse_id: u128,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0432]: unresolved import `self::this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_referencing_the_warehouse_table`
   --> tests/ui/foreign_keys_with_mismatched_types.rs:12:5
