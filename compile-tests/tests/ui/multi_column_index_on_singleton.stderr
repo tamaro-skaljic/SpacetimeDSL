@@ -1,10 +1,5 @@
 error: Multi-column indices are not allowed on singleton tables! Found index `world_name_and_seed` on columns `world_name, seed`.
-  --> tests/ui/multi_column_index_on_singleton.rs:12:5
+  --> tests/ui/multi_column_index_on_singleton.rs:18:26
    |
-12 | /     #[spacetimedsl::dsl(
-13 | |         singleton,
-14 | |         method(update = true),
-15 | |     )]
-   | |______^
-   |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+18 |         index(accessor = world_name_and_seed, btree(columns = [world_name, seed])),
+   |                          ^^^^^^^^^^^^^^^^^^^
