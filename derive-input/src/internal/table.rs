@@ -36,7 +36,7 @@ pub(in crate::internal) fn try_parse(
         &mut spacetimedsl_table,
     )?;
 
-    let (spacetimedsl_methods, spacetimedsl_table) = SpacetimeDSLTableMethods::try_parse(
+    let (spacetimedsl_methods, spacetimedsl_table) = SpacetimeDSLTableMethods::generate(
         &rust_struct,
         &spacetimedb_table,
         spacetimedsl_table,

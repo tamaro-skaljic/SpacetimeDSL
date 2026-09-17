@@ -196,7 +196,7 @@ impl SpacetimeDSLColumnMethods {
 }
 
 impl SpacetimeDSLTableMethods {
-    pub(in crate::internal) fn try_parse(
+    pub(in crate::internal) fn generate(
         rust_struct: &RustStruct,
         spacetimedb_table: &SpacetimeDBTable,
         mut spacetimedsl_table: SpacetimeDSLTable,
