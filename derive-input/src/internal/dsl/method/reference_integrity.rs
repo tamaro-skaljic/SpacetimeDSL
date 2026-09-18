@@ -234,11 +234,11 @@ pub(in crate::internal) fn multi_column_index_checks(
         let row_value_getters = index_column_names
             .iter()
             .map(|column_name| {
-                get_row_value_getter(internal_column_named(column_name), singular_table_name)
+                row_value_getter(internal_column_named(column_name), singular_table_name)
             })
             .collect_vec();
 
-        let mut multi_column_index_check = get_unique_multi_column_index_check(
+        let mut multi_column_index_check = unique_multi_column_index_check(
             &action,
             singular_table_name,
             index_name,
@@ -292,10 +292,7 @@ pub(in crate::internal) fn multi_column_index_checks(
     multi_column_index_checks
 }
 
-fn get_row_value_getter(
-    internal_column: &InternalColumn,
-    singular_table_name: &Ident,
-) -> TokenStream {
+fn row_value_getter(internal_column: &InternalColumn, singular_table_name: &Ident) -> TokenStream {
     let column_name = &internal_column.rust_field_name;
 
     if internal_column.rust_field_type_kind == ColumnTypeKind::String {
@@ -305,7 +302,7 @@ fn get_row_value_getter(
     }
 }
 
-pub(in crate::internal) fn get_unique_multi_column_index_check(
+pub(in crate::internal) fn unique_multi_column_index_check(
     action: &Action,
     singular_table_name: &Ident,
     index_name: &Ident,

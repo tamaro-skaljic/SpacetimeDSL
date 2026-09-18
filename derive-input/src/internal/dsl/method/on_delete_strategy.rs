@@ -7,7 +7,7 @@
 use super::{
     context::{self},
     hook_call::hook_use_and_call,
-    naming::get_referenced_table_function_name,
+    naming::referenced_table_function_name,
 };
 use crate::{
     api::{
@@ -46,7 +46,7 @@ pub(in crate::internal) enum ReferencingTables {
     Absent,
 }
 
-pub(in crate::internal) fn get_on_delete_strategy_implementation(
+pub(in crate::internal) fn on_delete_strategy_implementation(
     spacetimedsl_table: &SpacetimeDSLTable,
     referencing_tables: ReferencingTables,
     singular_table_name: &Ident,
@@ -256,14 +256,14 @@ pub(in crate::internal) fn get_on_delete_strategy_implementation(
                         };
 
                         let error_strategy =
-                            get_referenced_table_function_call_for_strategy_implementation(
+                            referenced_table_function_call_for_strategy_implementation(
                                 singular_table_name,
                                 OnDeleteStrategy::Error,
                                 &on_error_handler,
                             );
 
                         let delete_strategy =
-                            get_referenced_table_function_call_for_strategy_implementation(
+                            referenced_table_function_call_for_strategy_implementation(
                                 singular_table_name,
                                 OnDeleteStrategy::Delete,
                                 &on_error_handler,
@@ -271,7 +271,7 @@ pub(in crate::internal) fn get_on_delete_strategy_implementation(
 
                         /*
                         let set_none_strategy =
-                            get_referenced_table_function_call_for_strategy_implementation(
+                            referenced_table_function_call_for_strategy_implementation(
                                 singular_table_name,
                                 &singular_table_name_as_string,
                                 OnDeleteStrategy::SetNone,
@@ -280,14 +280,14 @@ pub(in crate::internal) fn get_on_delete_strategy_implementation(
                         */
 
                         let set_zero_strategy =
-                            get_referenced_table_function_call_for_strategy_implementation(
+                            referenced_table_function_call_for_strategy_implementation(
                                 singular_table_name,
                                 OnDeleteStrategy::SetZero,
                                 &on_error_handler,
                             );
 
                         let ignore_strategy =
-                            get_referenced_table_function_call_for_strategy_implementation(
+                            referenced_table_function_call_for_strategy_implementation(
                                 singular_table_name,
                                 OnDeleteStrategy::Ignore,
                                 &on_error_handler,
@@ -453,13 +453,13 @@ fn strategy_by_row(
     }
 }
 
-fn get_referenced_table_function_call_for_strategy_implementation(
+fn referenced_table_function_call_for_strategy_implementation(
     singular_table_name: &Ident,
     on_delete_strategy: OnDeleteStrategy,
     on_error_handler: &TokenStream,
 ) -> TokenStream {
     let referenced_table_function_name =
-        get_referenced_table_function_name(&OneOrMultiple::Multiple, singular_table_name);
+        referenced_table_function_name(&OneOrMultiple::Multiple, singular_table_name);
     let referenced_table_call = runtime::dsl_internals_call(
         &referenced_table_function_name,
         &quote! { dsl, #on_delete_strategy, &primary_key_values_of_rows_to_delete[..] },

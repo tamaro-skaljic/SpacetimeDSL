@@ -1,9 +1,9 @@
-use super::referenced_by::get_referenced_table_function_call_for_dsl_method;
+use super::referenced_by::referenced_table_function_call_for_dsl_method;
 use super::{
     context::{self, MethodGenerationContext},
     hook_call::hook_tokens,
     index::{IndexColumnArguments, IndexShape, index_accessor, index_column_arguments},
-    reference_integrity::{Action, get_unique_multi_column_index_check},
+    reference_integrity::{Action, unique_multi_column_index_check},
 };
 use crate::{
     api::{
@@ -198,7 +198,7 @@ pub(in crate::internal) fn for_delete_many(
         let reference_integrity_violation_on_delete_error =
             runtime::reference_integrity_violation_on_delete(&quote! { error });
 
-        let error_strategy = get_referenced_table_function_call_for_dsl_method(
+        let error_strategy = referenced_table_function_call_for_dsl_method(
             singular_table_name,
             primary_key_column_name,
             OnDeleteStrategy::Error,
@@ -210,7 +210,7 @@ pub(in crate::internal) fn for_delete_many(
             },
         );
 
-        let delete_strategy = get_referenced_table_function_call_for_dsl_method(
+        let delete_strategy = referenced_table_function_call_for_dsl_method(
             singular_table_name,
             primary_key_column_name,
             OnDeleteStrategy::Delete,
@@ -220,7 +220,7 @@ pub(in crate::internal) fn for_delete_many(
 
         /* TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32
         let set_none_strategy =
-            get_referenced_table_function_call_for_dsl_method(
+            referenced_table_function_call_for_dsl_method(
                 singular_table_name,
                 primary_key_column_name,
                 OnDeleteStrategy::SetNone,
@@ -229,7 +229,7 @@ pub(in crate::internal) fn for_delete_many(
             );
         */
 
-        let set_zero_strategy = get_referenced_table_function_call_for_dsl_method(
+        let set_zero_strategy = referenced_table_function_call_for_dsl_method(
             singular_table_name,
             primary_key_column_name,
             OnDeleteStrategy::SetZero,
@@ -237,7 +237,7 @@ pub(in crate::internal) fn for_delete_many(
             &on_error_handler,
         );
 
-        let ignore_strategy = get_referenced_table_function_call_for_dsl_method(
+        let ignore_strategy = referenced_table_function_call_for_dsl_method(
             singular_table_name,
             primary_key_column_name,
             OnDeleteStrategy::Ignore,
@@ -364,7 +364,7 @@ pub(in crate::internal) fn for_delete_one(
 
     match shape.is_multi_column {
         true => {
-            let multi_column_index_check = get_unique_multi_column_index_check(
+            let multi_column_index_check = unique_multi_column_index_check(
                 &Action::Delete,
                 singular_table_name,
                 index_name,
@@ -503,7 +503,7 @@ pub(in crate::internal) fn for_delete_one(
         let reference_integrity_violation_on_delete_error =
             runtime::reference_integrity_violation_on_delete(&quote! { error });
 
-        let error_strategy = get_referenced_table_function_call_for_dsl_method(
+        let error_strategy = referenced_table_function_call_for_dsl_method(
             singular_table_name,
             primary_key_column_name,
             OnDeleteStrategy::Error,
@@ -515,7 +515,7 @@ pub(in crate::internal) fn for_delete_one(
             },
         );
 
-        let delete_strategy = get_referenced_table_function_call_for_dsl_method(
+        let delete_strategy = referenced_table_function_call_for_dsl_method(
             singular_table_name,
             primary_key_column_name,
             OnDeleteStrategy::Delete,
@@ -525,7 +525,7 @@ pub(in crate::internal) fn for_delete_one(
 
         /* TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32
         let set_none_strategy =
-            get_referenced_table_function_call_for_dsl_method(
+            referenced_table_function_call_for_dsl_method(
                 singular_table_name,
                 OnDeleteStrategy::SetNone,
                 OneOrMultiple::One,
@@ -533,7 +533,7 @@ pub(in crate::internal) fn for_delete_one(
             );
         */
 
-        let set_zero_strategy = get_referenced_table_function_call_for_dsl_method(
+        let set_zero_strategy = referenced_table_function_call_for_dsl_method(
             singular_table_name,
             primary_key_column_name,
             OnDeleteStrategy::SetZero,
@@ -541,7 +541,7 @@ pub(in crate::internal) fn for_delete_one(
             &on_error_handler,
         );
 
-        let ignore_strategy = get_referenced_table_function_call_for_dsl_method(
+        let ignore_strategy = referenced_table_function_call_for_dsl_method(
             singular_table_name,
             primary_key_column_name,
             OnDeleteStrategy::Ignore,

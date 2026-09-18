@@ -8,8 +8,8 @@
 use super::{
     context::TableContributions,
     naming::{
-        get_referenced_table_compile_error_check, get_referenced_table_function_name,
-        get_referencing_table_compile_error_check, get_referencing_table_function_name,
+        referenced_table_compile_error_check, referenced_table_function_name,
+        referencing_table_compile_error_check, referencing_table_function_name,
     },
 };
 use crate::{
@@ -28,7 +28,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Ident;
 
-pub(in crate::internal) fn get_referenced_table_function_call_for_dsl_method(
+pub(in crate::internal) fn referenced_table_function_call_for_dsl_method(
     singular_table_name: &Ident,
     primary_key_column_name: &Ident,
     on_delete_strategy: OnDeleteStrategy,
@@ -38,7 +38,7 @@ pub(in crate::internal) fn get_referenced_table_function_call_for_dsl_method(
     match one_or_multiple {
         OneOrMultiple::One => {
             let referenced_table_function_name =
-                get_referenced_table_function_name(&OneOrMultiple::One, singular_table_name);
+                referenced_table_function_name(&OneOrMultiple::One, singular_table_name);
             let referenced_table_call = runtime::dsl_internals_call(
                 &referenced_table_function_name,
                 &quote! { self, #on_delete_strategy, &row_to_delete.#primary_key_column_name },
@@ -62,7 +62,7 @@ pub(in crate::internal) fn get_referenced_table_function_call_for_dsl_method(
         }
         OneOrMultiple::Multiple => {
             let referenced_table_function_name =
-                get_referenced_table_function_name(&OneOrMultiple::Multiple, singular_table_name);
+                referenced_table_function_name(&OneOrMultiple::Multiple, singular_table_name);
             let referenced_table_call = runtime::dsl_internals_call(
                 &referenced_table_function_name,
                 &quote! {
@@ -106,7 +106,7 @@ pub(in crate::internal) fn for_referenced_by(
     let primary_key_column_type = &primary_key_column.rust_field_type_name_or_path;
 
     let doc_comment;
-    let function_name = get_referenced_table_function_name(one_or_multiple, singular_table_name);
+    let function_name = referenced_table_function_name(one_or_multiple, singular_table_name);
 
     let mut function_args = vec![
         SpacetimeDSLArg {
@@ -192,18 +192,18 @@ pub(in crate::internal) fn for_referenced_by(
         let referencing_table_path = &referencing_table.path;
 
         let compile_error_check =
-            get_referenced_table_compile_error_check(singular_table_name, referencing_table_name);
+            referenced_table_compile_error_check(singular_table_name, referencing_table_name);
         contributions
             .compile_error_checks
             .insert(compile_error_check.clone());
 
         let compile_error_check =
-            get_referencing_table_compile_error_check(referencing_table_name, singular_table_name);
+            referencing_table_compile_error_check(referencing_table_name, singular_table_name);
         compile_error_check_usages.push(quote! {
             use #referencing_table_path::#compile_error_check;
         });
 
-        let referencing_table_function_name = get_referencing_table_function_name(
+        let referencing_table_function_name = referencing_table_function_name(
             one_or_multiple,
             referencing_table_name,
             singular_table_name,

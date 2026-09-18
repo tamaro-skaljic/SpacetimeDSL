@@ -7,10 +7,10 @@
 use super::{
     context::TableContributions,
     naming::{
-        get_referenced_table_compile_error_check, get_referencing_table_compile_error_check,
-        get_referencing_table_function_name,
+        referenced_table_compile_error_check, referencing_table_compile_error_check,
+        referencing_table_function_name,
     },
-    on_delete_strategy::{ReferencingTables, get_on_delete_strategy_implementation},
+    on_delete_strategy::{ReferencingTables, on_delete_strategy_implementation},
 };
 use crate::{
     api::{
@@ -119,7 +119,7 @@ pub(in crate::internal) fn for_foreign_key(
 
     let doc_comment;
 
-    let function_name = get_referencing_table_function_name(
+    let function_name = referencing_table_function_name(
         one_or_multiple,
         singular_table_name,
         &referenced_table_name,
@@ -209,7 +209,7 @@ pub(in crate::internal) fn for_foreign_key(
     let strategy_implementations = OnDeleteStrategy::iter()
         .map(|on_delete_strategy| {
             let implementation = match columns_by_on_delete_strategies.remove(&on_delete_strategy) {
-                Some(columns_by_on_delete_strategy) => get_on_delete_strategy_implementation(
+                Some(columns_by_on_delete_strategy) => on_delete_strategy_implementation(
                     spacetimedsl_table,
                     referencing_tables,
                     singular_table_name,
@@ -230,14 +230,14 @@ pub(in crate::internal) fn for_foreign_key(
         .collect_vec();
 
     let compile_error_check =
-        get_referencing_table_compile_error_check(singular_table_name, &referenced_table_name);
+        referencing_table_compile_error_check(singular_table_name, &referenced_table_name);
 
     contributions
         .compile_error_checks
         .insert(compile_error_check.clone());
 
     let compile_error_check =
-        get_referenced_table_compile_error_check(&referenced_table_name, singular_table_name);
+        referenced_table_compile_error_check(&referenced_table_name, singular_table_name);
 
     let compile_error_check_usage = quote! {
         use #referenced_table_path::#compile_error_check;

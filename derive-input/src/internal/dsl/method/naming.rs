@@ -11,7 +11,7 @@ use crate::internal::dsl::one_or_multiple::OneOrMultiple;
 use quote::format_ident;
 use syn::Ident;
 
-pub(in crate::internal) fn get_referenced_table_compile_error_check(
+pub(in crate::internal) fn referenced_table_compile_error_check(
     referenced_table_name: &Ident,
     referencing_table_name: &Ident,
 ) -> Ident {
@@ -20,7 +20,7 @@ pub(in crate::internal) fn get_referenced_table_compile_error_check(
     )
 }
 
-pub(in crate::internal) fn get_referencing_table_compile_error_check(
+pub(in crate::internal) fn referencing_table_compile_error_check(
     referencing_table_name: &Ident,
     referenced_table_name: &Ident,
 ) -> Ident {
@@ -29,7 +29,7 @@ pub(in crate::internal) fn get_referencing_table_compile_error_check(
     )
 }
 
-pub(in crate::internal) fn get_referenced_table_function_name(
+pub(in crate::internal) fn referenced_table_function_name(
     one_or_multiple: &OneOrMultiple,
     referenced_table_name: &Ident,
 ) -> Ident {
@@ -47,7 +47,7 @@ pub(in crate::internal) fn get_referenced_table_function_name(
     }
 }
 
-pub(in crate::internal) fn get_referencing_table_function_name(
+pub(in crate::internal) fn referencing_table_function_name(
     one_or_multiple: &OneOrMultiple,
     referencing_table_name: &Ident,
     referenced_table_name: &Ident,

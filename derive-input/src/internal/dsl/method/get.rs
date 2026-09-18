@@ -2,7 +2,7 @@ use super::reference_integrity::Action;
 use super::{
     context::MethodGenerationContext,
     index::{IndexColumnArguments, IndexShape, index_accessor, index_column_arguments},
-    reference_integrity::get_unique_multi_column_index_check,
+    reference_integrity::unique_multi_column_index_check,
 };
 use crate::{
     api::{dsl::method::SpacetimeDSLMethod, runtime},
@@ -143,7 +143,7 @@ pub(in crate::internal) fn for_get_one(
     let method_impl = match shape.is_multi_column {
         true => {
             // FIXME: Row Value Getters of Wrapper Types shouldn't be `id.clone().into().value()`, they should be `let id = id.into();` at the method beginning and then `id.value()` anywhere else
-            let multi_column_index_check = get_unique_multi_column_index_check(
+            let multi_column_index_check = unique_multi_column_index_check(
                 &Action::Get,
                 singular_table_name,
                 index_name,
