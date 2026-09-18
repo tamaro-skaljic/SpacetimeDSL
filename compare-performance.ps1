@@ -6,6 +6,9 @@
     Checking out the baseline commit removes this script from the working tree, so when it is started
     from inside the repository it copies itself next to the repository and relaunches from there.
 
+    Every run starts from a cold build, so `cargo clean` runs before each measurement without being
+    measured itself. A local server is started when none is already running, and stopped afterwards.
+
 .PARAMETER BaselineCommit
     The commit to compare the current revision against.
 
@@ -25,7 +28,8 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $false
 
 $RepositoryDirectoryName = "SpacetimeDSL"
-$MeasuredIterationCount = 20
+$MeasuredIterationCount = 5
+$ServerStartupTimeout = [TimeSpan]::FromSeconds(10)
 
 # The smallest difference the two-decimal report can still show as a non-zero number of seconds.
 $ReportedSecondsResolution = 0.005
@@ -89,6 +93,59 @@ function Switch-Revision {
     Invoke-Git -Arguments @("checkout", $Revision) | Out-Null
 }
 
+function Test-LocalServerReachable {
+    & spacetime server ping local *>&1 | Out-Null
+
+    $LASTEXITCODE -eq 0
+}
+
+function Start-LocalServer {
+    $standardOutputLog = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "compare-performance-server.log"
+    $standardErrorLog = "$standardOutputLog.err"
+
+    Write-Host "No local server is reachable, starting one (logging to $standardOutputLog)..."
+
+    $server = Start-Process -FilePath "spacetime" -ArgumentList "start" -PassThru -WindowStyle Hidden `
+        -RedirectStandardOutput $standardOutputLog -RedirectStandardError $standardErrorLog
+
+    $deadline = (Get-Date).Add($ServerStartupTimeout)
+    while (-not (Test-LocalServerReachable)) {
+        if ($server.HasExited) {
+            throw "'spacetime start' exited with code $($server.ExitCode). See $standardErrorLog."
+        }
+        if ((Get-Date) -ge $deadline) {
+            throw "The local server was still unreachable after $($ServerStartupTimeout.TotalSeconds) seconds. See $standardErrorLog."
+        }
+
+        Start-Sleep -Milliseconds 500
+    }
+
+    Write-Host "Local server is up."
+
+    $server
+}
+
+function Stop-LocalServer {
+    param([System.Diagnostics.Process]$Server)
+
+    Write-Host ""
+    Write-Host "Stopping the local server this script started..."
+
+    # `spacetime start` runs the server itself in a grandchild process, so killing only the process
+    # that was started here would leave the server behind.
+    & taskkill /PID $Server.Id /T /F *>&1 | Out-Null
+}
+
+function Invoke-CargoClean {
+    param([string]$RevisionLabel)
+
+    # Output has to be discarded, or it would end up in the durations that Measure-Revision returns.
+    & cargo clean *>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "'cargo clean' failed for $RevisionLabel."
+    }
+}
+
 function Invoke-TestCommand {
     # `x.ps1` ignores the exit codes of the commands it runs, so a failing `spacetime publish` would
     # otherwise be hidden behind the exit code of the `spacetime delete` that follows it. A child
@@ -126,22 +183,17 @@ function Measure-Revision {
     Write-Host ""
     Write-Host "--- $RevisionLabel ---"
 
-    Write-Host "Removing build artifacts..."
-    # Output has to be discarded, or it would end up in the durations this function returns.
-    & cargo clean *>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "'cargo clean' failed for $RevisionLabel."
-    }
-
-    Write-Host "Warming up..."
-    $warmUpDuration = Measure-TestCommand
-    Write-Host "Warm-up run:$(Format-Seconds $warmUpDuration.TotalSeconds) (not counted)"
-
     $durations = @()
     for ($iteration = 1; $iteration -le $MeasuredIterationCount; $iteration++) {
+        Write-Host ("Run {0}/{1}:" -f $iteration, $MeasuredIterationCount) -NoNewline
+
+        # The build is what dominates the runtime, so each run has to start from a cold target
+        # directory. Cleaning happens before the timestamps are taken and is therefore not measured.
+        Invoke-CargoClean -RevisionLabel $RevisionLabel
+
         $duration = Measure-TestCommand
         $durations += $duration
-        Write-Host ("Run {0,2}/{1}:{2}" -f $iteration, $MeasuredIterationCount, (Format-Seconds $duration.TotalSeconds))
+        Write-Host (Format-Seconds $duration.TotalSeconds)
     }
 
     , $durations
@@ -221,18 +273,34 @@ function Compare-Performance {
 
     Write-Host "Comparing '.\x.ps1 test' on $baselineLabel against $currentLabel."
 
+    # A server that was already running belongs to whoever started it and is left alone.
+    $startedServer = $null
+    if (Test-LocalServerReachable) {
+        Write-Host "Reusing the local server that is already running."
+    }
+    else {
+        $startedServer = Start-LocalServer
+    }
+
     try {
-        Switch-Revision -Revision $BaselineCommit
-        $baselineDurations = Measure-Revision -RevisionLabel $baselineLabel
+        try {
+            Switch-Revision -Revision $BaselineCommit
+            $baselineDurations = Measure-Revision -RevisionLabel $baselineLabel
+        }
+        finally {
+            Switch-Revision -Revision $currentRevision
+        }
+
+        $currentDurations = Measure-Revision -RevisionLabel $currentLabel
+
+        Write-ComparisonReport -BaselineLabel $baselineLabel -BaselineDurations $baselineDurations `
+            -CurrentLabel $currentLabel -CurrentDurations $currentDurations
     }
     finally {
-        Switch-Revision -Revision $currentRevision
+        if ($startedServer) {
+            Stop-LocalServer -Server $startedServer
+        }
     }
-
-    $currentDurations = Measure-Revision -RevisionLabel $currentLabel
-
-    Write-ComparisonReport -BaselineLabel $baselineLabel -BaselineDurations $baselineDurations `
-        -CurrentLabel $currentLabel -CurrentDurations $currentDurations
 }
 
 if (Test-RunningNextToRepository) {
