@@ -1,14 +1,13 @@
 //! Covers how a column's type is classified when the user spells it with a qualified path
 //! instead of the bare name.
 //!
-//! `String` columns are passed as `&str` and read by reference, and `Option<T>` columns
-//! get the `is_option` handling. Both answers are derived by rendering the type to text and
-//! comparing that text, so `std::string::String` and `core::option::Option<T>` -- the same
-//! types, differently spelled -- fall through to the default and generate different code
-//! from their bare equivalents.
+//! `ColumnTypeKind::of` classifies by the path's last segment and accepts a path that is
+//! bare or rooted in `std`, `core` or `alloc`, so `std::string::String` classifies as
+//! `String` and `core::option::Option<T>` as `Optional`.
 //!
-//! Each pair below is one type written two ways. Every pair should generate the same code;
-//! today it does not, and this fixture pins that so the fix reads as a diff.
+//! Each pair below is one type written two ways, and each pair generates the same code -
+//! apart from where `prettyplease` wraps a line, because the two spellings are different
+//! lengths.
 
 #[spacetimedsl::dsl(plural_name = documents, method(update = true))]
 #[spacetimedb::table(accessor = document, public)]

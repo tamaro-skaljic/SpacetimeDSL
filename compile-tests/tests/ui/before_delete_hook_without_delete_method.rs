@@ -1,8 +1,8 @@
 //! A `before_delete` hook is rejected together with `method(delete = false)`.
 //!
-//! Note that the flag does not actually remove the delete methods - the snapshot fixture
-//! `methods_disabled` pins that - so this diagnostic is the only place where
-//! `delete = false` is visible to the user besides `on_delete = Delete`.
+//! `method(delete = false)` removes every delete method, which the snapshot fixture
+//! `methods_disabled` pins, and rejects the three things that would have needed one: a
+//! delete hook, an `on_delete = Delete` foreign key, and a `#[referenced_by]` attribute.
 
 ::spacetimedsl::spacetimedsl!();
 
