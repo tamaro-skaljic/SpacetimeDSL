@@ -269,7 +269,6 @@ pub(in crate::internal) fn index_column_arguments(
             None => {
                 wrapper_option_mapper = TokenStream::default();
 
-                // TODO: string stuff was only in the single column index implementation, does that work for multi column indices?
                 let column_type = if column_is_string {
                     parse_str("str").expect("`str` is a valid type path")
                 } else {
