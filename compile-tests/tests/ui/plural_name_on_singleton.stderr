@@ -1,7 +1,5 @@
 error: `plural_name` is not allowed on singleton tables! Use `#[dsl(singleton)]` without `plural_name`.
- --> tests/ui/plural_name_on_singleton.rs:7:5
+ --> tests/ui/plural_name_on_singleton.rs:7:50
   |
 7 |     #[spacetimedsl::dsl(singleton, plural_name = configurations, method(update = true))]
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |
-  = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+  |                                                  ^^^^^^^^^^^^^^

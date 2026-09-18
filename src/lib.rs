@@ -173,7 +173,7 @@ macro_rules! spacetimedsl {
             // Flat re-exports so that `spacetimedsl::X` paths (which in user crates resolve to
             // `crate::spacetimedsl::X`) work without needing the sub-module prefix.
             pub use ::spacetimedsl::delete::{
-                DeletionResult, DeletionResultEntry, OnDeleteStrategy,
+                DeletionResult, DeletionResultEntry, OnDeleteStrategy, OnDeleteStrategyFailure,
             };
             pub use ::spacetimedsl::error::{ReferenceIntegrityViolationError, SpacetimeDSLError};
 
@@ -184,7 +184,7 @@ macro_rules! spacetimedsl {
                 pub use ::spacetimedsl::WriteContext;
 
                 pub use ::spacetimedsl::delete::{
-                    DeletionResult, DeletionResultEntry, OnDeleteStrategy,
+                    DeletionResult, DeletionResultEntry, OnDeleteStrategy, OnDeleteStrategyFailure,
                 };
 
                 pub use ::spacetimedsl::error::{

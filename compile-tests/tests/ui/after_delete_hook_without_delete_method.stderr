@@ -1,11 +1,5 @@
 error: Cannot have an `after_delete` hook when the `delete` method is disabled with `#[dsl(method(delete = false))]`
-  --> tests/ui/after_delete_hook_without_delete_method.rs:6:5
-   |
- 6 | /     #[spacetimedsl::dsl(
- 7 | |         plural_name = audit_entries,
- 8 | |         method(update = false, delete = false),
- 9 | |         hook(after(delete)),
-10 | |     )]
-   | |______^
-   |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+ --> tests/ui/after_delete_hook_without_delete_method.rs:9:20
+  |
+9 |         hook(after(delete)),
+  |                    ^^^^^^

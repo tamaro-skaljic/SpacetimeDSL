@@ -11,7 +11,6 @@ use crate::api::{
 };
 use crate::internal::dsl::method::MethodGenerationContext;
 use itertools::izip;
-use proc_macro2::Span;
 use spacetime_bindings_macro_input::table::ColumnArgs;
 use syn::{Ident, Path};
 
@@ -31,8 +30,8 @@ pub(in crate::internal) fn try_parse(
     let primary_key_column_name = match get_primary_key_column_name(column_args) {
         Some(pk) => pk,
         None => {
-            return Err(syn::Error::new(
-                Span::call_site(),
+            return Err(syn::Error::new_spanned(
+                &rust_struct.name,
                 "Your table should have a `#[primary_key]` column!",
             ));
         }

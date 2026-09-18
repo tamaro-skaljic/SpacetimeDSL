@@ -1,6 +1,6 @@
 //! Covers `#[dsl(unique_index(name = ...))]` over an `#[index(accessor = ..., btree(columns = [...]))]`:
 //! the experimental path that also emits the uniqueness compile-error check and the
-//! warning at `method.rs:988`.
+//! experimental-feature warning `IndexShape::of` attaches to a unique multi-column index.
 
 #[spacetimedsl::dsl(
     plural_name = seats,

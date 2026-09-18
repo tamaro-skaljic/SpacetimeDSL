@@ -38,7 +38,7 @@ pub(in crate::internal) fn rendered_primary_key_value() -> String {
 /// The injected column and its value, as a not-found error renders them: `{ id : 0 }`.
 ///
 /// The surrounding braces and the spacing match what
-/// `internal::dsl::method::column_names_and_row_values` produces for any other index, so
+/// `internal::dsl::method::index::column_names_and_row_values` produces for any other index, so
 /// a singleton's not-found message reads like every other table's.
 pub(in crate::internal) fn rendered_primary_key() -> String {
     format!("{{ {PRIMARY_KEY_NAME} : {PRIMARY_KEY_VALUE} }}")

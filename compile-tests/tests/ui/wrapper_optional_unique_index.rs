@@ -7,11 +7,6 @@
 //! format it. Neither is something SpacetimeDSL can generate its way out of, so this stays
 //! a `compile_fail` case.
 //!
-//! The doubled `Option` this file used to pin - `Option<Option<spacetimedb::Timestamp>>`,
-//! produced by wrapping a created wrapper's `value()` in `Some` although that wrapper
-//! wraps the whole `Option` and `value()` already yields it - was a SpacetimeDSL bug. It
-//! is fixed, and the `.stderr` shrank accordingly.
-//!
 //! Maintenance note: unlike every other `.stderr` here, this one quotes source lines out
 //! of SpacetimeDB's own `src/table.rs` - the signature of `UniqueColumn::find` and the
 //! bound it requires. `trybuild` normalizes the path and drops the line numbers, so the

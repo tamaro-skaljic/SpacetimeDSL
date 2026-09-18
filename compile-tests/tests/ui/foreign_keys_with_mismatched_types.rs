@@ -3,8 +3,7 @@
 //! different column types cannot go into it.
 //!
 //! The diagnostic is spanned on the second of the two columns, the one whose type
-//! contradicts the first. That is deliberately more precise than the `Span::call_site()`
-//! every other diagnostic in this crate carries.
+//! contradicts the first.
 
 ::spacetimedsl::spacetimedsl!();
 

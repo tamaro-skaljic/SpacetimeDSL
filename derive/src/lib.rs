@@ -1,7 +1,7 @@
 use ident_case::RenameRule;
 use proc_macro::TokenStream;
 use quote::{ToTokens, format_ident, quote};
-use spacetimedsl_derive_input::api::Table;
+use spacetimedsl_derive_input::api::{Table, runtime};
 
 #[cfg(test)]
 mod characterization_tests;
@@ -204,8 +204,8 @@ fn inject_singleton_primary_key(derive_input: &mut syn::DeriveInput) -> syn::Res
         // Insert as the first field
         fields.named.insert(0, pk_field);
     } else {
-        return Err(syn::Error::new(
-            proc_macro2::Span::call_site(),
+        return Err(syn::Error::new_spanned(
+            &derive_input.ident,
             "Singleton tables must be structs with named fields!",
         ));
     }
@@ -226,8 +226,11 @@ pub fn hook(_args: TokenStream, item: TokenStream) -> TokenStream {
             RenameRule::PascalCase.apply_to_field(function_input.sig.ident.to_string())
         );
 
+        let write_context = runtime::write_context();
+        let dsl_method_hooks_type = runtime::dsl_method_hooks_type();
+
         Ok(quote! {
-            impl<T: crate::spacetimedsl::WriteContext> #trait_name<T> for crate::spacetimedsl::DSLMethodHooks {
+            impl<T: #write_context> #trait_name<T> for #dsl_method_hooks_type {
                 #function_input
             }
         })

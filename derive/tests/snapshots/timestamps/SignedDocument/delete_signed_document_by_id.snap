@@ -50,6 +50,7 @@ Try to delete a `SignedDocument` row in the `signed_document` table whose value 
             table_name: "signed_document".into(),
             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
             entries: vec![deletion_result_entry],
+            error_from_hook: None,
         });
     }
 }

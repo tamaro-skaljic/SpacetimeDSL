@@ -76,7 +76,7 @@ use crate::spacetimedsl::prelude::*;
 
 - `DSL`, `ReadOnlyDSL` — DSL context structs (generated into your crate)
 - `Wrapper` — trait for wrapper types
-- `DeletionResult`, `DeletionResultEntry` — deletion audit types
+- `DeletionResult`, `DeletionResultEntry`, `OnDeleteStrategyFailure` — deletion audit types
 - `dsl`, `read_only_dsl` — constructor functions
 - `SpacetimeDSLError`, `ReferenceIntegrityViolationError` — error types
 - `hook` — hook attribute macro
@@ -977,6 +977,10 @@ pub struct DeletionResult {
     pub table_name: Box<str>,
     pub one_or_multiple: OneOrMultiple,
     pub entries: Vec<DeletionResultEntry>,
+    // The error a delete hook raised while the cascade ran. Boxed because
+    // `SpacetimeDSLError::ReferenceIntegrityViolation` holds a `DeletionResult`, so an
+    // unboxed field would make both types infinitely sized.
+    pub error_from_hook: Option<Box<SpacetimeDSLError>>,
 }
 
 pub struct DeletionResultEntry {
@@ -996,6 +1000,9 @@ entry_id, parent_entry_id, table_name, column_name, strategy, row_value
 2,        1,               position,   entity_id,   Delete,   42
 3,        1,               identifier, entity_id,   Delete,   42
 ```
+
+Printing the result with `Display` prints the same CSV, preceded by an
+`Error from a hook: <error>` line and a blank line when `error_from_hook` is `Some`.
 
 ---
 
@@ -1394,6 +1401,26 @@ Apply `#[spacetimedsl::hook]` (or `#[hook]` with prelude) to each hook function.
 - **before hooks**: Returning an error aborts the operation — no database changes happen
 - **after hooks**: Returning an error propagates but the database change already happened. Always use `?` to propagate errors from hooks so that **SpacetimeDB** doesn't commit the transaction.
 
+#### During a Cascading Delete
+
+A `before_delete` or `after_delete` hook also runs when the row is deleted by a cascade, that
+is when a referenced row is deleted and this table's `#[foreign_key(… on_delete = Delete)]`
+removes the referencing rows.
+
+If the hook returns an error there, the cascade stops and the delete method that started it
+returns an error. The hook's own error is carried on the `DeletionResult` as
+`error_from_hook`, and `Display` prints it above the CSV:
+
+```txt
+Error from a hook: this lock holder is locked
+
+entry_id, parent_entry_id, table_name, column_name, strategy, row_value,
+1,        0,               lock_holder, group_id,   Delete,   7
+```
+
+Rows deleted before the hook refused are not rolled back by SpacetimeDSL. Return the error
+from your reducer so SpacetimeDB rolls the transaction back.
+
 ### Hook-Method Compatibility
 
 - `before_update`/`after_update` hooks require `method(update = true)`
@@ -1476,6 +1503,9 @@ match dsl.delete_entity_by_id(&entity) {
         log::warn!("Cannot delete: referenced by other tables");
         // err contains the DeletionResult showing what would be affected
         log::warn!("Affected rows:\n{}", err.deletion_result.to_csv());
+        // The DeletionResult also carries `error_from_hook`, the error a delete hook of a
+        // referencing table raised while the cascade ran, if one did.
+        log::warn!("Affected rows and any hook error:\n{}", err.deletion_result);
         // Still return error, otherwise the transaction will be committed and the integrity violation will be ignored!
         return Err(e);
     }
@@ -1525,6 +1555,15 @@ Reference Integrity Violation Error while trying to delete a row in the `entity`
 
 entry_id, parent_entry_id, table_name, column_name, strategy, row_value,
 1,        0,               circle,     entity_id,   Error,    42
+```
+
+**Delete with a hook that refused during the cascade:**
+
+```txt
+Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: Error from a hook: this lock holder is locked
+
+entry_id, parent_entry_id, table_name, column_name, strategy, row_value,
+1,        0,               lock_holder, group_id,   Delete,   7
 ```
 
 ---

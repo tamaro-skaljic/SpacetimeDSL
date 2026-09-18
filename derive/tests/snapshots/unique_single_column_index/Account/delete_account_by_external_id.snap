@@ -52,6 +52,7 @@ Try to delete a `Account` row in the `account` table whose value matches the val
             table_name: "account".into(),
             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
             entries: vec![deletion_result_entry],
+            error_from_hook: None,
         });
     }
 }

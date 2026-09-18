@@ -82,39 +82,39 @@ pub trait BeforePotionInsertHook<T: crate::spacetimedsl::WriteContext> {
     fn before_potion_insert(
         dsl: &crate::spacetimedsl::DSL<'_, T>,
         create_potion_request: CreatePotion,
-    ) -> Result<CreatePotion, crate::spacetimedsl::SpacetimeDSLError>;
+    ) -> Result<CreatePotion, crate::spacetimedsl::error::SpacetimeDSLError>;
 }
 pub trait BeforePotionUpdateHook<T: crate::spacetimedsl::WriteContext> {
     fn before_potion_update(
         dsl: &crate::spacetimedsl::DSL<'_, T>,
         old_potion: &Potion,
         new_potion: Potion,
-    ) -> Result<Potion, crate::spacetimedsl::SpacetimeDSLError>;
+    ) -> Result<Potion, crate::spacetimedsl::error::SpacetimeDSLError>;
 }
 pub trait BeforePotionDeleteHook<T: crate::spacetimedsl::WriteContext> {
     fn before_potion_delete(
         dsl: &crate::spacetimedsl::DSL<'_, T>,
         old_potion: &Potion,
-    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError>;
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
 }
 pub trait AfterPotionInsertHook<T: crate::spacetimedsl::WriteContext> {
     fn after_potion_insert(
         dsl: &crate::spacetimedsl::DSL<'_, T>,
         new_potion: &Potion,
-    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError>;
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
 }
 pub trait AfterPotionUpdateHook<T: crate::spacetimedsl::WriteContext> {
     fn after_potion_update(
         dsl: &crate::spacetimedsl::DSL<'_, T>,
         old_potion: &Potion,
         new_potion: &Potion,
-    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError>;
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
 }
 pub trait AfterPotionDeleteHook<T: crate::spacetimedsl::WriteContext> {
     fn after_potion_delete(
         dsl: &crate::spacetimedsl::DSL<'_, T>,
         old_potion: &Potion,
-    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError>;
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
 }
 
 // Generated DSL methods:

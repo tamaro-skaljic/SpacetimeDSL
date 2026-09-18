@@ -7,7 +7,6 @@ use crate::api::{
     rust::{column::RustField, table::RustStruct},
 };
 use crate::internal::column::ColumnTypeKind;
-use proc_macro2::Span;
 use spacetime_bindings_macro_input::sats::SatsField;
 use syn::Error;
 
@@ -26,8 +25,8 @@ impl SpacetimeDSLColumn {
         let wrapper_type = WrapperType::try_parse(rust_struct, rust_field, field)?;
 
         if !is_singleton && spacetimedb_column.is_primary_key && wrapper_type.is_none() {
-            return Err(Error::new(
-                Span::call_site(),
+            return Err(Error::new_spanned(
+                &rust_field.name,
                 "A #[primary_key] column must be accompanied by `#[create_wrapper]` or `#[use_wrapper]`!",
             ));
         }
@@ -38,16 +37,16 @@ impl SpacetimeDSLColumn {
             match &wrapper_type {
                 Some(wrapper_type) => match wrapper_type {
                     WrapperType::Created(_) => {
-                        return Err(Error::new(
-                            Span::call_site(),
+                        return Err(Error::new_spanned(
+                            &rust_field.name,
                             "A #[foreign_key] column must be accompanied by `#[use_wrapper]`, not `#[create_wrapper]`!",
                         ));
                     }
                     WrapperType::Used(_) => {}
                 },
                 None => {
-                    return Err(Error::new(
-                        Span::call_site(),
+                    return Err(Error::new_spanned(
+                        &rust_field.name,
                         "A #[foreign_key] column must be accompanied by `#[use_wrapper]`!",
                     ));
                 }

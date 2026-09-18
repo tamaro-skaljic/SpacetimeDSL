@@ -1,4 +1,4 @@
-//! Covers the heuristic table selector at `internal/integration.rs:66`: one `#[dsl]`
+//! Covers the heuristic table selector `integration::select_table_with_heuristics`: one `#[dsl]`
 //! attribute over two `#[table]` attributes, where the `plural_name` decides which of
 //! them the generated methods are built from.
 //!

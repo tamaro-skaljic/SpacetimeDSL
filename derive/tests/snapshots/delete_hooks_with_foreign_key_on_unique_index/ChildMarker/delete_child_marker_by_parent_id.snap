@@ -63,6 +63,7 @@ Try to delete a `ChildMarker` row in the `child_marker` table whose value matche
             table_name: "child_marker".into(),
             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
             entries: vec![deletion_result_entry],
+            error_from_hook: None,
         });
     }
 }

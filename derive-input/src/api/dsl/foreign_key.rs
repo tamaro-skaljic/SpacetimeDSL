@@ -57,16 +57,16 @@ impl quote::ToTokens for OnDeleteStrategy {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let variant = match self {
             OnDeleteStrategy::Error => {
-                quote::quote! { crate::spacetimedsl::OnDeleteStrategy::Error }
+                crate::api::runtime::on_delete_strategy(&quote::quote! { Error })
             }
             OnDeleteStrategy::Delete => {
-                quote::quote! { crate::spacetimedsl::OnDeleteStrategy::Delete }
+                crate::api::runtime::on_delete_strategy(&quote::quote! { Delete })
             }
             OnDeleteStrategy::SetZero => {
-                quote::quote! { crate::spacetimedsl::OnDeleteStrategy::SetZero }
+                crate::api::runtime::on_delete_strategy(&quote::quote! { SetZero })
             }
             OnDeleteStrategy::Ignore => {
-                quote::quote! { crate::spacetimedsl::OnDeleteStrategy::Ignore }
+                crate::api::runtime::on_delete_strategy(&quote::quote! { Ignore })
             }
         };
         tokens.extend(variant);

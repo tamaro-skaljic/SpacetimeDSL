@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use spacetimedsl_derive_input::api::dsl::method::SpacetimeDSLMethod;
+use spacetimedsl_derive_input::api::{dsl::method::SpacetimeDSLMethod, runtime};
 
 use crate::output::{doc_comment, map_args};
 
@@ -9,14 +9,14 @@ pub fn build_public(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     let parts = MethodParts::new(method);
 
     let mut output_variants = vec![MethodImplVariant::associated(
-        quote! { crate::spacetimedsl::WriteContext },
-        quote! { crate::spacetimedsl::DSL<'_, T> },
+        runtime::write_context(),
+        runtime::dsl_type(),
     )];
 
     if method.read_context_compatible {
         output_variants.push(MethodImplVariant::associated(
-            quote! { crate::spacetimedsl::ReadContext },
-            quote! { crate::spacetimedsl::ReadOnlyDSL<'_, T> },
+            runtime::read_context(),
+            runtime::read_only_dsl_type(),
         ));
     }
 
@@ -24,8 +24,8 @@ pub fn build_public(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
         &parts,
         MethodGenerationConfig {
             doc_variant: MethodImplVariant::associated(
-                quote! { crate::spacetimedsl::WriteContext },
-                quote! { crate::spacetimedsl::DSL<'_, T> },
+                runtime::write_context(),
+                runtime::dsl_type(),
             ),
             output_variants,
         },
@@ -36,7 +36,7 @@ pub fn build_public(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
 pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     let parts = MethodParts::new(method);
 
-    let impl_variant = MethodImplVariant::internal(quote! { crate::spacetimedsl::WriteContext });
+    let impl_variant = MethodImplVariant::internal(runtime::write_context());
 
     build_with_config(
         &parts,
@@ -121,9 +121,10 @@ fn render_impl(
     let method_args = &parts.method_args;
     let return_type = &parts.method.return_type;
     let method_impl = &parts.method.method_impl;
+    let wrapper_trait_path = runtime::wrapper_trait_path();
     // FIXME: We should probably only import one of CtxDbRead or CtxDbWrite per method implementation.
     let method_impl = quote! {
-        use ::spacetimedsl::Wrapper;
+        use #wrapper_trait_path;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         #method_impl
     };
@@ -133,10 +134,13 @@ fn render_impl(
         MethodImplTarget::InternalDslInternals => {
             let _context_bound = &variant.context_bound;
 
+            let dsl_internals_type = runtime::dsl_internals_type();
+            let write_context = runtime::write_context();
+
             quote! {
-                impl crate::spacetimedsl::internal::DSLInternals {
+                impl #dsl_internals_type {
                     #doc_comment
-                    pub fn #method_name<'a, T: crate::spacetimedsl::WriteContext>(
+                    pub fn #method_name<'a, T: #write_context>(
                         #(#method_args),*
                     ) -> #return_type {
                         #method_impl

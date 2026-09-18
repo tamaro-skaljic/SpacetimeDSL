@@ -31,18 +31,33 @@ pub struct CreateDSLMethodArg {
     pub struct_impl: TokenStream,
 }
 
+/// The two cascade entry points a table earns when another table references it.
+///
+/// Both exist or neither does: a referenced table needs the one-row and the many-row entry
+/// point, because a referencing table's foreign key does not know which delete method will
+/// reach it.
+#[derive(Clone)]
+pub struct OnDeleteStrategiesOfReferencingTables {
+    pub after_one_row_of_this_table_was_deleted: SpacetimeDSLMethod,
+    pub after_multiple_rows_of_this_table_were_deleted: SpacetimeDSLMethod,
+}
+
+/// The two strategy implementations a table earns for one table it references.
+///
+/// One pair per referenced table, which is why `SpacetimeDSLTableMethods` holds a `Vec` of
+/// these rather than two parallel `Vec`s that could go out of step.
+#[derive(Clone)]
+pub struct OnDeleteStrategiesOfTheReferencedTable {
+    pub after_one_row_was_deleted: SpacetimeDSLMethod,
+    pub after_multiple_rows_were_deleted: SpacetimeDSLMethod,
+}
+
 #[derive(Clone)]
 pub struct SpacetimeDSLTableMethods {
     pub create: SpacetimeDSLMethod,
     pub get_all: Option<SpacetimeDSLMethod>,
     pub get_count: Option<SpacetimeDSLMethod>,
-    pub execute_on_delete_strategies_of_referencing_tables_after_one_row_of_this_table_was_deleted:
-        Option<SpacetimeDSLMethod>,
-    pub execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_this_table_were_deleted:
-        Option<SpacetimeDSLMethod>,
-    pub execute_on_delete_strategies_of_this_table_after_one_row_of_the_referenced_table_was_deleted:
-        Vec<SpacetimeDSLMethod>,
-    pub execute_on_delete_strategies_of_this_table_after_multiple_rows_of_the_referenced_table_were_deleted:
-        Vec<SpacetimeDSLMethod>,
+    pub on_delete_strategies_of_referencing_tables: Option<OnDeleteStrategiesOfReferencingTables>,
+    pub on_delete_strategies_of_this_table: Vec<OnDeleteStrategiesOfTheReferencedTable>,
     pub multi_column_indices: Vec<SpacetimeDSLColumnMethods>,
 }

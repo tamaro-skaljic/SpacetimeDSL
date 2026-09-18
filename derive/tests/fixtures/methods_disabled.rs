@@ -1,9 +1,8 @@
 //! Covers `method(update = false, delete = false)`.
 //!
-//! The snapshots pin what the two flags do, which is now the same kind of thing for
-//! both. `update = false` removes the setters and every update method; `delete = false`
-//! removes every delete method, so this table generates only `create`, the getters and
-//! the count.
+//! The snapshots pin what the two flags do. `update = false` removes the setters and every
+//! update method; `delete = false` removes every delete method, so this table generates
+//! only `create`, the getters and the count.
 //!
 //! `delete = false` additionally rejects three things this table does not have: an
 //! `on_delete = Delete` foreign key, a before- or after-delete hook, and a

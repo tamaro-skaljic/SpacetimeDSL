@@ -1,11 +1,5 @@
 error: Cannot have a `before_delete` hook when the `delete` method is disabled with `#[dsl(method(delete = false))]`
-  --> tests/ui/before_delete_hook_without_delete_method.rs:10:5
+  --> tests/ui/before_delete_hook_without_delete_method.rs:13:21
    |
-10 | /     #[spacetimedsl::dsl(
-11 | |         plural_name = audit_entries,
-12 | |         method(update = false, delete = false),
-13 | |         hook(before(delete)),
-14 | |     )]
-   | |______^
-   |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+13 |         hook(before(delete)),
+   |                     ^^^^^^

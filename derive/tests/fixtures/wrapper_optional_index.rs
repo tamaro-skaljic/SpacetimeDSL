@@ -1,6 +1,6 @@
-//! Covers an `Option<Timestamp>` column carrying an index under both wrapper kinds -
-//! the branch fixed in `81ada87`, which no table in `examples/test` reaches because the
-//! index there is commented out.
+//! Covers an `Option<Timestamp>` column carrying an index under both wrapper kinds. No table
+//! in `examples/test` reaches this branch, because the index there is commented out, so
+//! these snapshots are the only thing pinning it.
 //!
 //! `#[create_wrapper]` wraps the whole `Option`, so the generated wrapper's `value()`
 //! already yields an `Option`. `#[use_wrapper(...)]` reuses a wrapper another table

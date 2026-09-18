@@ -1,11 +1,13 @@
 use crate::internal::dsl::{
     after, before, delete, hook, insert, method, plural_name, singleton, unique_index, update,
 };
+use proc_macro2::Span;
 use spacetime_bindings_macro_input::{match_meta, sym, util::check_duplicate};
 use syn::{
     Ident,
     meta::{ParseNestedMeta, parser},
     parse::Parser,
+    spanned::Spanned,
 };
 
 pub(crate) mod integration;
@@ -55,12 +57,12 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     let mut before_hooks = None;
     let mut after_hooks = None;
 
-    let mut before_insert_hook = None;
-    let mut before_update_hook = None;
-    let mut before_delete_hook = None;
-    let mut after_insert_hook = None;
-    let mut after_update_hook = None;
-    let mut after_delete_hook = None;
+    let mut before_insert_hook: Option<Span> = None;
+    let mut before_update_hook: Option<Span> = None;
+    let mut before_delete_hook: Option<Span> = None;
+    let mut after_insert_hook: Option<Span> = None;
+    let mut after_update_hook: Option<Span> = None;
+    let mut after_delete_hook: Option<Span> = None;
 
     let mut methods = None;
     let mut update_method = None;
@@ -92,15 +94,15 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
                                 match_meta!(match meta {
                                     insert => {
                                         check_duplicate(&before_insert_hook, &meta)?;
-                                        before_insert_hook = Some(());
+                                        before_insert_hook = Some(meta.path.span());
                                     }
                                     update => {
                                         check_duplicate(&before_update_hook, &meta)?;
-                                        before_update_hook = Some(());
+                                        before_update_hook = Some(meta.path.span());
                                     }
                                     delete => {
                                         check_duplicate(&before_delete_hook, &meta)?;
-                                        before_delete_hook = Some(());
+                                        before_delete_hook = Some(meta.path.span());
                                     }
                                 });
                                 Ok(())
@@ -114,15 +116,15 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
                                 match_meta!(match meta {
                                     insert => {
                                         check_duplicate(&after_insert_hook, &meta)?;
-                                        after_insert_hook = Some(());
+                                        after_insert_hook = Some(meta.path.span());
                                     }
                                     update => {
                                         check_duplicate(&after_update_hook, &meta)?;
-                                        after_update_hook = Some(());
+                                        after_update_hook = Some(meta.path.span());
                                     }
                                     delete => {
                                         check_duplicate(&after_delete_hook, &meta)?;
-                                        after_delete_hook = Some(());
+                                        after_delete_hook = Some(meta.path.span());
                                     }
                                 });
                                 Ok(())
@@ -156,31 +158,31 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     .parse2(args.clone())?;
 
     if !update_method.unwrap_or(true) {
-        if before_update_hook.is_some() {
+        if let Some(span) = before_update_hook {
             return Err(syn::Error::new(
-                proc_macro2::Span::call_site(),
+                span,
                 "Cannot have a `before_update` hook when the `update` method is disabled with `#[dsl(method(update = false))]`",
             ));
         }
-        if after_update_hook.is_some() {
+        if let Some(span) = after_update_hook {
             return Err(syn::Error::new(
-                proc_macro2::Span::call_site(),
+                span,
                 "Cannot have an `after_update` hook when the `update` method is disabled with `#[dsl(method(update = false))]`",
             ));
         }
     }
 
     if !delete_method.unwrap_or(true) {
-        if before_delete_hook.is_some() {
+        if let Some(span) = before_delete_hook {
             return Err(syn::Error::new(
-                proc_macro2::Span::call_site(),
+                span,
                 "Cannot have a `before_delete` hook when the `delete` method is disabled with `#[dsl(method(delete = false))]`",
             ));
         }
 
-        if after_delete_hook.is_some() {
+        if let Some(span) = after_delete_hook {
             return Err(syn::Error::new(
-                proc_macro2::Span::call_site(),
+                span,
                 "Cannot have an `after_delete` hook when the `delete` method is disabled with `#[dsl(method(delete = false))]`",
             ));
         }
@@ -189,16 +191,16 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     let is_singleton = is_singleton.is_some();
 
     if is_singleton {
-        if name_plural.is_some() {
-            return Err(syn::Error::new(
-                proc_macro2::Span::call_site(),
+        if let Some(name_plural) = &name_plural {
+            return Err(syn::Error::new_spanned(
+                name_plural,
                 "`plural_name` is not allowed on singleton tables! Use `#[dsl(singleton)]` without `plural_name`.",
             ));
         }
 
-        if !unique_indices.is_empty() {
-            return Err(syn::Error::new(
-                proc_macro2::Span::call_site(),
+        if let Some(first_unique_index_name) = unique_indices.first() {
+            return Err(syn::Error::new_spanned(
+                first_unique_index_name,
                 "`unique_index` is not allowed on singleton tables!",
             ));
         }
@@ -210,8 +212,8 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         syn::Ident::new("__singleton_placeholder", proc_macro2::Span::call_site())
     } else {
         name_plural.ok_or_else(|| {
-            syn::Error::new(
-                proc_macro2::Span::call_site(),
+            syn::Error::new_spanned(
+                args,
                 "PluralName must be set in `#[dsl(plural_name = PluralName)]`",
             )
         })?

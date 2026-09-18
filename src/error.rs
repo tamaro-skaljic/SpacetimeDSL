@@ -129,7 +129,7 @@ impl Display for SpacetimeDSLError {
                             OneOrMultiple::Multiple => "multiple rows",
                         };
 
-                        format!("Reference Integrity Violation Error while trying to delete {one_or_multiple_rows} in the `{}` table because of:\n\n{}", &deletion_result.table_name, deletion_result.to_csv())
+                        format!("Reference Integrity Violation Error while trying to delete {one_or_multiple_rows} in the `{}` table because of:\n\n{}", &deletion_result.table_name, deletion_result)
                     },
                 }
             }
