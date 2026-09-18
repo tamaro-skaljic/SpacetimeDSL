@@ -1,13 +1,13 @@
 error: All foreign key columns which reference the same primary key of another table should have the same type
-  --> tests/ui/foreign_keys_with_mismatched_types.rs:38:13
+  --> tests/ui/foreign_keys_with_mismatched_types.rs:37:13
    |
-38 |         pub destination_warehouse_id: u128,
+37 |         pub destination_warehouse_id: u128,
    |             ^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0432]: unresolved import `self::this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_referencing_the_warehouse_table`
-  --> tests/ui/foreign_keys_with_mismatched_types.rs:12:5
+  --> tests/ui/foreign_keys_with_mismatched_types.rs:11:5
    |
-12 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false))]
+11 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false))]
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    |     |
    |     no `this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_referencing_the_warehouse_table` in `warehouse`
@@ -16,23 +16,23 @@ error[E0432]: unresolved import `self::this_compilation_error_occurs_because_the
    = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0599]: no function or associated item named `execute_on_delete_strategies_of_the_shipment_table_after_one_row_of_the_warehouse_table_was_deleted` found for struct `DSLInternals` in the current scope
-  --> tests/ui/foreign_keys_with_mismatched_types.rs:12:5
+  --> tests/ui/foreign_keys_with_mismatched_types.rs:11:5
    |
- 9 | ::spacetimedsl::spacetimedsl!();
+ 8 | ::spacetimedsl::spacetimedsl!();
    | ------------------------------- function or associated item `execute_on_delete_strategies_of_the_shipment_table_after_one_row_of_the_warehouse_table_was_deleted` not found for this struct
 ...
-12 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false))]
+11 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false))]
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `DSLInternals`
    |
    = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0599]: no function or associated item named `execute_on_delete_strategies_of_the_shipment_table_after_multiple_rows_of_the_warehouse_table_were_deleted` found for struct `DSLInternals` in the current scope
-  --> tests/ui/foreign_keys_with_mismatched_types.rs:12:5
+  --> tests/ui/foreign_keys_with_mismatched_types.rs:11:5
    |
- 9 | ::spacetimedsl::spacetimedsl!();
+ 8 | ::spacetimedsl::spacetimedsl!();
    | ------------------------------- function or associated item `execute_on_delete_strategies_of_the_shipment_table_after_multiple_rows_of_the_warehouse_table_were_deleted` not found for this struct
 ...
-12 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false))]
+11 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false))]
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `DSLInternals`
    |
    = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
