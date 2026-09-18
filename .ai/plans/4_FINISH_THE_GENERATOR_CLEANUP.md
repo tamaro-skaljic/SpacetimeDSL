@@ -293,7 +293,7 @@ The user wrote the error. The user does not get it back.
 
 Runtime crate only. No generated code changes yet, so no snapshot moves.
 
-- [ ] **Add the failure type to `src/delete.rs`.**
+- [x] **Add the failure type to `src/delete.rs`.**
 
 ```rust
 /// What a cascade returns when it refused: the entries it built before it stopped, and the
@@ -310,7 +310,7 @@ pub struct OnDeleteStrategyFailure<Entries> {
 
 Add `use crate::error::SpacetimeDSLError;` to the existing imports.
 
-- [ ] **Add the field to `DeletionResult` in `src/delete.rs`.**
+- [x] **Add the field to `DeletionResult` in `src/delete.rs`.**
 
 ```rust
 #[derive(Debug)]
@@ -326,7 +326,7 @@ pub struct DeletionResult {
 }
 ```
 
-- [ ] **Show it in `Display for DeletionResult`.**
+- [x] **Show it in `Display for DeletionResult`.**
 
 ```rust
 impl Display for DeletionResult {
@@ -341,7 +341,7 @@ impl Display for DeletionResult {
 }
 ```
 
-- [ ] **Make `SpacetimeDSLError`'s own message go through that `Display`.**
+- [x] **Make `SpacetimeDSLError`'s own message go through that `Display`.**
 
 `src/error.rs` formats the `ReferenceIntegrityViolationError::OnDelete` arm with
 `deletion_result.to_csv()`, which bypasses the new line. Change that one expression to
@@ -363,7 +363,7 @@ ReferenceIntegrityViolationError::OnDelete(deletion_result) => {
 
 With no hook error this is byte-identical to today's output.
 
-- [ ] **Re-export the new type** in the two flat lists inside the `spacetimedsl!` macro in
+- [x] **Re-export the new type** in the two flat lists inside the `spacetimedsl!` macro in
   `src/lib.rs`, beside `DeletionResult` and `DeletionResultEntry` — once in the module body
   and once in `prelude`:
 
@@ -373,10 +373,10 @@ pub use ::spacetimedsl::delete::{
 };
 ```
 
-- [ ] **Run the gate.** `./x.sh unit-test && ./x.sh format && ./x.sh test` and
+- [x] **Run the gate.** `./x.sh unit-test && ./x.sh format && ./x.sh test` and
   `cargo insta pending-snapshots`. Nothing may be pending: this sub-change generates nothing.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add src/delete.rs src/error.rs src/lib.rs
@@ -388,7 +388,7 @@ git commit -m "feat: carry a cascade's hook error on the deletion result"
 All in `derive-input/src/internal/dsl/method.rs` and
 `derive-input/src/internal/dsl/generated_runtime.rs`, on today's layout.
 
-- [ ] **Add the runtime constructors** to `internal/dsl/generated_runtime.rs`:
+- [x] **Add the runtime constructors** to `internal/dsl/generated_runtime.rs`:
 
 ```rust
 /// `error::SpacetimeDSLError`, as a type rather than a value.
@@ -434,7 +434,7 @@ pub(in crate::internal) fn error_from_hook_declaration() -> TokenStream {
 }
 ```
 
-- [ ] **Give `deletion_result` an error argument.** `generated_runtime::deletion_result`
+- [x] **Give `deletion_result` an error argument.** `generated_runtime::deletion_result`
   gains a fourth parameter, spliced as the new field:
 
 ```rust
@@ -455,7 +455,7 @@ pub(in crate::internal) fn deletion_result(
 }
 ```
 
-- [ ] **Raise it.** In `get_on_delete_strategy_implementation`, replace both hook guards.
+- [x] **Raise it.** In `get_on_delete_strategy_implementation`, replace both hook guards.
   The `FIXME` comment goes with them:
 
 ```rust
@@ -478,7 +478,7 @@ let (use_before_delete_hook_trait, before_delete_hook) = hook_use_and_call(
 
 The after-delete guard is the same shape with `hooks.after_delete`.
 
-- [ ] **Declare it in the two generated cascade functions.** In `for_referenced_by` and in
+- [x] **Declare it in the two generated cascade functions.** In `for_referenced_by` and in
   `for_foreign_key`, emit `runtime::error_from_hook_declaration()` immediately before the
   existing `let mut error = false;`, and change the tail:
 
@@ -503,7 +503,7 @@ quote! {
 }
 ```
 
-- [ ] **Widen both return types.** In `for_referenced_by`:
+- [x] **Widen both return types.** In `for_referenced_by`:
 
 ```rust
 OneOrMultiple::One => {
@@ -525,7 +525,7 @@ OneOrMultiple::Multiple => {
 `for_foreign_key` gets the same treatment with
 `referenced_table_primary_key_column_type` in place of `primary_key_column_type`.
 
-- [ ] **Forward it where one cascade calls another.** Three call builders unwrap the `Err`
+- [x] **Forward it where one cascade calls another.** Three call builders unwrap the `Err`
   payload today and have to unwrap the new struct instead. The rule is the same in all
   three: take the entries out of the failure, append them as before, and adopt the failure's
   `error_from_hook` **only if none is held yet** — the first error raised wins.
@@ -594,7 +594,7 @@ let on_error_handler = quote! {
 };
 ```
 
-- [ ] **Return it from the DSL methods.** In
+- [x] **Return it from the DSL methods.** In
   `get_referenced_table_function_call_for_dsl_method`, bind the hook error as a local so the
   spliced `on_error_handler` can read it. `OneOrMultiple::One`:
 
@@ -619,7 +619,7 @@ quote! {
   `OneOrMultiple::Multiple` keeps its loop over `failure.entries` and binds
   `let error_from_hook = failure.error_from_hook;` after it, before `#on_error_handler`.
 
-- [ ] **Build two deletion results per delete generator.** `for_delete_one` and
+- [x] **Build two deletion results per delete generator.** `for_delete_one` and
   `for_delete_many` each construct their `DeletionResult` for both a success and a failure
   path; only the failure path has an `error_from_hook` in scope. In `for_delete_one`:
 
@@ -643,7 +643,7 @@ let single_entry_deletion_result_with_error_from_hook = runtime::deletion_result
   `on_error_handler` and the `error_strategy` handler use the second. `for_delete_many` does
   the same for `deletion_result_from_entries`; its `empty_deletion_result` keeps `None`.
 
-- [ ] **Drop the word `unknown`.** Both messages become, verbatim:
+- [x] **Drop the word `unknown`.** Both messages become, verbatim:
 
 ```text
 Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}
@@ -656,14 +656,14 @@ Delete Many Error: An error occurred after changing the database state! If the r
   The singleton delete generator's `count_mismatch_error` is a different message and does not
   change.
 
-- [ ] **Run `./x.sh unit-test`** and expect failures in the fixtures listed in the movement
+- [x] **Run `./x.sh unit-test`** and expect failures in the fixtures listed in the movement
   table. Review every diff with `cargo insta review`: a cascade function's signature, the
   `Err(failure)` destructuring, `error_from_hook: None` in every `DeletionResult` literal, and
   the two reworded messages. Nothing else.
 
-- [ ] **Run the rest of the gate.** `./x.sh format && ./x.sh test`.
+- [x] **Run the rest of the gate.** `./x.sh format && ./x.sh test`.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src/internal/dsl/generated_runtime.rs \
@@ -679,7 +679,7 @@ database, so it is where "the hook's error reaches the caller" is actually check
 cascade arities get a case, because the one-row and many-row paths carry the error through
 different containers — a `Vec` and a `HashMap`.
 
-- [ ] **Add the module** to `examples/test/src/lib.rs`, beside
+- [x] **Add the module** to `examples/test/src/lib.rs`, beside
   `spacetimedsl_cascade_delete_hook_repro`:
 
 ```rust
@@ -741,7 +741,7 @@ pub mod cascade_hook_error_test {
 }
 ```
 
-- [ ] **Assert both arities in the `tester` reducer**, at the end of the existing body:
+- [x] **Assert both arities in the `tester` reducer**, at the end of the existing body:
 
 ```rust
 use crate::cascade_hook_error_test::{CreateLockGroup, CreateLockHolder, LOCKED_MESSAGE};
@@ -798,10 +798,10 @@ match dsl.delete_lock_groups_by_batch(&2) {
   changing the database state" means. Use a fresh group for the second case, as above,
   because the first one is gone.
 
-- [ ] **Run the gate.** `./x.sh unit-test` must show **no** snapshot movement: `examples/test`
+- [x] **Run the gate.** `./x.sh unit-test` must show **no** snapshot movement: `examples/test`
   is not a fixture. `./x.sh test` must publish, call `tester` and report no error.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add examples/test/src/lib.rs
@@ -810,7 +810,7 @@ git commit -m "test: check a cascade hook's error reaches the caller"
 
 ### 1.4 Document it
 
-- [ ] **Update `docs/DOCUMENTATION.md`:**
+- [x] **Update `docs/DOCUMENTATION.md`:**
   - `#### DeletionResult` — add `pub error_from_hook: Option<Box<SpacetimeDSLError>>` to the
     shown struct, with the one-line explanation of why it is boxed, and note that the CSV is
     preceded by `Error from a hook: …` when it is `Some`.
@@ -840,7 +840,7 @@ Rows deleted before the hook refused are not rolled back by SpacetimeDSL. Return
 from your reducer so SpacetimeDB rolls the transaction back.
 ```
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add docs/DOCUMENTATION.md
@@ -883,7 +883,7 @@ file changes shape, not only its underline.
 `before_insert_hook` and their eight siblings are `Option<()>`, so the checks that run
 afterwards have nothing to point at.
 
-- [ ] **Change the six hook flags to `Option<Span>`.** In `try_parse_dsl`,
+- [x] **Change the six hook flags to `Option<Span>`.** In `try_parse_dsl`,
   `before_insert_hook`, `before_update_hook`, `before_delete_hook`, `after_insert_hook`,
   `after_update_hook` and `after_delete_hook` change from
   `x = Some(());` to `x = Some(meta.path.span());`, and their declarations become
@@ -894,7 +894,7 @@ afterwards have nothing to point at.
   their spans are never read — the two singleton diagnostics point at the argument they
   reject, not at `singleton` — and an unused binding would fail `./x.sh format`.
 
-- [ ] **Span the six checks on the argument that conflicts.**
+- [x] **Span the six checks on the argument that conflicts.**
 
 ```rust
 if !update_method.unwrap_or(true) {
@@ -918,7 +918,7 @@ if !update_method.unwrap_or(true) {
   for `unique_index` — not the `singleton` span, because the offending argument is the one
   the message names.
 
-- [ ] **Span "PluralName must be set" on the arguments.** There is no `plural_name` token to
+- [x] **Span "PluralName must be set" on the arguments.** There is no `plural_name` token to
   point at, so use the whole argument list:
 
 ```rust
@@ -933,9 +933,9 @@ name_plural.ok_or_else(|| {
   `__singleton_placeholder` keeps `Span::call_site()`: it is a synthesised identifier, not a
   diagnostic, and acceptance criterion 2 only matches `Error::new(… call_site …)`.
 
-- [ ] **Run `./x.sh unit-test`.** Four `.stderr` files fail. Leave them failing until 2.4.
+- [x] **Run `./x.sh unit-test`.** Four `.stderr` files fail. Leave them failing until 2.4.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src/internal.rs
@@ -946,7 +946,7 @@ git commit -m "refactor: keep the spans of the dsl attribute arguments"
 
 Every one of these already has a user token in hand.
 
-- [ ] **`internal/db/column.rs`** — both errors name a column and hold `rust_field`:
+- [x] **`internal/db/column.rs`** — both errors name a column and hold `rust_field`:
 
 ```rust
 return Err(Error::new_spanned(
@@ -961,7 +961,7 @@ return Err(Error::new_spanned(
   and, in the singleton check, the same `new_spanned(&rust_field.name, …)` for
   ``"`#[index]` and `#[unique]` are not allowed on singleton tables! Found index on column `{column_name}`."``.
 
-- [ ] **`internal/db/table.rs`** — the multi-column-index error names an index.
+- [x] **`internal/db/table.rs`** — the multi-column-index error names an index.
   `Index::map` copies `IndexArg::accessor`, which is a real identifier from the
   `#[spacetimedb::table(index(accessor = …))]` attribute, so:
 
@@ -969,11 +969,11 @@ return Err(Error::new_spanned(
 return Err(Error::new_spanned(&index.name, format!(/* unchanged */)));
 ```
 
-- [ ] **`internal/dsl/column.rs`** — all three errors name a column and hold `rust_field`:
+- [x] **`internal/dsl/column.rs`** — all three errors name a column and hold `rust_field`:
   `new_spanned(&rust_field.name, …)` for the `#[primary_key]`-needs-a-wrapper message and
   both `#[foreign_key]`-needs-`use_wrapper` messages.
 
-- [ ] **`internal/dsl/table.rs`** — eleven of the thirteen errors are raised inside
+- [x] **`internal/dsl/table.rs`** — eleven of the thirteen errors are raised inside
   `for field in &column_args.fields`, which holds a `SatsField` with
   `ident: Option<&syn::Ident>`, `vis: &syn::Visibility` and `ty: &syn::Type`. Span each on the
   part the message is about:
@@ -987,9 +987,9 @@ return Err(Error::new_spanned(&index.name, format!(/* unchanged */)));
   For `field.ident`, unwrap with the existing expectation:
   `field.ident.expect("a named field has an identifier")`.
 
-- [ ] **Run `./x.sh unit-test`.** More `.stderr` files fail. Leave them.
+- [x] **Run `./x.sh unit-test`.** More `.stderr` files fail. Leave them.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src/internal/db/column.rs \
@@ -1004,7 +1004,7 @@ git commit -m "refactor: span the column and index diagnostics on the column the
 Five diagnostics name no column: they reject the table as a whole. They underline the struct
 name, which is where the fix goes.
 
-- [ ] **`internal/column.rs`** — "Your table should have a `#[primary_key]` column!".
+- [x] **`internal/column.rs`** — "Your table should have a `#[primary_key]` column!".
   `try_parse` holds `rust_struct: &RustStruct`:
 
 ```rust
@@ -1014,12 +1014,12 @@ return Err(syn::Error::new_spanned(
 ));
 ```
 
-- [ ] **`internal/dsl/table.rs`** — the two `has_update_method == None` messages and the
+- [x] **`internal/dsl/table.rs`** — the two `has_update_method == None` messages and the
   trailing `modified_at`/`updated_at` message are raised outside the field loop.
   `ColumnArgs` carries `original_struct_name: Ident`; span all three on
   `&column_args.original_struct_name`.
 
-- [ ] **`internal/integration.rs`** — the three messages hold the `&DeriveInput`:
+- [x] **`internal/integration.rs`** — the three messages hold the `&DeriveInput`:
 
 ```rust
 return Err(Error::new_spanned(&item.ident, /* unchanged message */));
@@ -1028,12 +1028,12 @@ return Err(Error::new_spanned(&item.ident, /* unchanged message */));
   `get_all_table_attributes` and `select_table_with_heuristics` each take the input under a
   different name; use `&input.ident` there.
 
-- [ ] **`derive/src/lib.rs`** — `"Singleton tables must be structs with named fields!"` holds
+- [x] **`derive/src/lib.rs`** — `"Singleton tables must be structs with named fields!"` holds
   the `&mut syn::DeriveInput`: `syn::Error::new_spanned(&derive_input.ident, …)`. The
   injected `id` field's `Ident::new(… Span::call_site())` is a synthesised identifier and
   stays.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src/internal/column.rs \
@@ -1045,9 +1045,9 @@ git commit -m "refactor: span the table-wide diagnostics on the struct name"
 
 ### 2.4 Regenerate and read every `.stderr`
 
-- [ ] **Regenerate.** `TRYBUILD=overwrite cargo test -p spacetimedsl-compile-tests`.
+- [x] **Regenerate.** `TRYBUILD=overwrite cargo test -p spacetimedsl-compile-tests`.
 
-- [ ] **Read every diff.** For each file, confirm the new underline is on the thing the
+- [x] **Read every diff.** For each file, confirm the new underline is on the thing the
   message names, and that the `= note: this error originates in the attribute macro …` line
   disappeared. Expected targets:
 
@@ -1072,10 +1072,10 @@ git commit -m "refactor: span the table-wide diagnostics on the struct name"
   A file in the "unchanged" rows that moved anyway means something was spanned that should
   not have been. Investigate before accepting.
 
-- [ ] **Run the whole gate.** `./x.sh unit-test && ./x.sh format && ./x.sh test`, and
+- [x] **Run the whole gate.** `./x.sh unit-test && ./x.sh format && ./x.sh test`, and
   `cargo insta pending-snapshots` empty — **no** `.snap` may have moved in this step.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add compile-tests/tests/ui
@@ -1115,17 +1115,17 @@ other generators*, with its developer decision:
 
 Output-preserving: a move plus a visibility change.
 
-- [ ] **Move the file.**
+- [x] **Move the file.**
   `git mv derive-input/src/internal/dsl/generated_runtime.rs derive-input/src/api/runtime.rs`
 
-- [ ] **Declare it.** Add `pub mod runtime;` to the `pub mod api { … }` block in
+- [x] **Declare it.** Add `pub mod runtime;` to the `pub mod api { … }` block in
   `derive-input/src/lib.rs`, and remove `pub mod generated_runtime;` from
   `derive-input/src/internal/dsl.rs`.
 
-- [ ] **Widen the visibility.** Every `pub(in crate::internal) fn` in the moved file becomes
+- [x] **Widen the visibility.** Every `pub(in crate::internal) fn` in the moved file becomes
   `pub fn`.
 
-- [ ] **Rewrite the module comment** so it addresses a generator author rather than this
+- [x] **Rewrite the module comment** so it addresses a generator author rather than this
   crate's internals:
 
 ```rust
@@ -1142,14 +1142,14 @@ Output-preserving: a move plus a visibility change.
 //! decisions. They must not grow branching, or they become a second generator.
 ```
 
-- [ ] **Fix the imports.** `internal/dsl/method.rs` imports it as
+- [x] **Fix the imports.** `internal/dsl/method.rs` imports it as
   `use crate::internal::dsl::generated_runtime as runtime;`. Change to
   `use crate::api::runtime;` and drop the `generated_runtime` entry from the `internal::dsl`
   import list.
 
-- [ ] **Run the gate.** No snapshot may move.
+- [x] **Run the gate.** No snapshot may move.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src
@@ -1160,7 +1160,7 @@ git commit -m "refactor: publish the runtime contract as api::runtime"
 
 Output-changing: the two short spellings become module-qualified.
 
-- [ ] **Add the missing constructors** to `derive-input/src/api/runtime.rs`. Each is one
+- [x] **Add the missing constructors** to `derive-input/src/api/runtime.rs`. Each is one
   `quote!`, no branching:
 
 ```rust
@@ -1210,7 +1210,7 @@ pub fn itertools_import() -> TokenStream
   `on_delete_strategy_failure_type` and `error_from_hook_declaration` from 1.2, which are
   already there.
 
-- [ ] **Adopt them in `derive-input`.**
+- [x] **Adopt them in `derive-input`.**
   - `api/dsl/foreign_key.rs`: `OnDeleteStrategy::to_tokens` calls
     `crate::api::runtime::on_delete_strategy(&quote! { Error })` and so on for the four
     variants. **This changes the emitted spelling** from
@@ -1228,15 +1228,15 @@ pub fn itertools_import() -> TokenStream
   - `internal/dsl/method.rs`: the seven `use ::spacetimedsl::itertools::Itertools;` sites
     call `runtime::itertools_import()`.
 
-- [ ] **Run `./x.sh unit-test`.** Exactly 22 snapshots move: 20 carrying an
+- [x] **Run `./x.sh unit-test`.** Exactly 22 snapshots move: 20 carrying an
   `OnDeleteStrategy` value and the two `table.snap` of
   `delete_hooks_with_foreign_key_on_unique_index/ChildMarker` and `hooks_all_six/Potion`
   carrying a hook trait's return type. Review each: the only change in a file is a path
   gaining `delete::` or `error::`.
 
-- [ ] **Run the rest of the gate.**
+- [x] **Run the rest of the gate.**
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src derive/tests/snapshots
@@ -1247,10 +1247,10 @@ git commit -m "refactor: emit every runtime path through api::runtime"
 
 Output-preserving: the constructors emit the tokens those files already write.
 
-- [ ] **Add the dependency edge if it is missing.** `derive/Cargo.toml` already depends on
+- [x] **Add the dependency edge if it is missing.** `derive/Cargo.toml` already depends on
   `spacetimedsl_derive_input`; nothing to add.
 
-- [ ] **Rewrite `derive/src/output/function.rs`.** The five `quote! { crate::spacetimedsl::… }`
+- [x] **Rewrite `derive/src/output/function.rs`.** The five `quote! { crate::spacetimedsl::… }`
   literals become calls:
 
 ```rust
@@ -1302,17 +1302,17 @@ quote! {
   The `// FIXME: We should probably only import one of CtxDbRead or CtxDbWrite …` marker
   stays exactly where it is.
 
-- [ ] **Rewrite `derive/src/output/hook.rs`** to build its trait bound from
+- [x] **Rewrite `derive/src/output/hook.rs`** to build its trait bound from
   `runtime::write_context()`.
 
-- [ ] **Rewrite `derive/src/lib.rs`'s hook `impl`** to build
+- [x] **Rewrite `derive/src/lib.rs`'s hook `impl`** to build
   `impl<T: #write_context> #trait_name<T> for #dsl_method_hooks_type` from
   `runtime::write_context()` and `runtime::dsl_method_hooks_type()`.
 
-- [ ] **Run the gate.** Acceptance criterion 3 must pass. **No** snapshot may move: the
+- [x] **Run the gate.** Acceptance criterion 3 must pass. **No** snapshot may move: the
   constructors emit the same tokens.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive/src
@@ -1348,7 +1348,7 @@ field names built from them*, with its developer decision:
 
 Taken before the split so the split moves the final shape rather than the old one.
 
-- [ ] **Add the two pair structs** to `derive-input/src/api/dsl/table.rs`:
+- [x] **Add the two pair structs** to `derive-input/src/api/dsl/table.rs`:
 
 ```rust
 /// The two cascade entry points a table earns when another table references it.
@@ -1373,7 +1373,7 @@ pub struct OnDeleteStrategiesOfTheReferencedTable {
 }
 ```
 
-- [ ] **Replace the four fields** on `SpacetimeDSLTableMethods`:
+- [x] **Replace the four fields** on `SpacetimeDSLTableMethods`:
 
 ```rust
 #[derive(Clone)]
@@ -1387,7 +1387,7 @@ pub struct SpacetimeDSLTableMethods {
 }
 ```
 
-- [ ] **Rewrite the producer.** In `SpacetimeDSLTableMethods::generate`, the two
+- [x] **Rewrite the producer.** In `SpacetimeDSLTableMethods::generate`, the two
   declare-then-assign-in-a-branch locals become one `match`, and the two `push`es become one:
 
 ```rust
@@ -1432,7 +1432,7 @@ on_delete_strategies_of_this_table.push(OnDeleteStrategiesOfTheReferencedTable {
 });
 ```
 
-- [ ] **Rewrite the consumer.** In `derive/src/output.rs`, the four blocks collapse to two:
+- [x] **Rewrite the consumer.** In `derive/src/output.rs`, the four blocks collapse to two:
 
 ```rust
 if let Some(strategies) = &input
@@ -1464,10 +1464,10 @@ for strategies in &input.spacetimedsl_methods.on_delete_strategies_of_this_table
   before the referenced-table pairs. `table.snap`'s manifest is a sorted `BTreeSet`, so a
   reordering would not fail a snapshot — check it by reading, not by running the suite.
 
-- [ ] **Run the gate.** **No** snapshot may move: the methods, their names and their order
+- [x] **Run the gate.** **No** snapshot may move: the methods, their names and their order
   are the same.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src/api/dsl/table.rs \
@@ -1566,7 +1566,7 @@ pub(in crate::internal) use context::{MethodGenerationContext, TableContribution
 
 ### 5.1 The shared vocabulary and the context
 
-- [ ] **Create `derive-input/src/internal/dsl/one_or_multiple.rs`** with `OneOrMultiple` and
+- [x] **Create `derive-input/src/internal/dsl/one_or_multiple.rs`** with `OneOrMultiple` and
   its `ToTokens` impl, the impl calling `crate::api::runtime::one_or_multiple`:
 
 ```rust
@@ -1589,7 +1589,7 @@ impl quote::ToTokens for OneOrMultiple {
 
   Declare it with `pub mod one_or_multiple;` in `internal/dsl.rs`.
 
-- [ ] **Create `derive-input/src/internal/dsl/method/context.rs`** with
+- [x] **Create `derive-input/src/internal/dsl/method/context.rs`** with
   `MethodGenerationContext`, its `new`, and `TableContributions` with `merge` and `apply_to`,
   moved unchanged apart from the doc comment rewrite in [6.1](#61-the-source-doc-comments).
   Add the module comment:
@@ -1604,7 +1604,7 @@ impl quote::ToTokens for OneOrMultiple {
 //! table.
 ```
 
-- [ ] **Collapse the primary-key invariant into one function** in the same file. Three sites
+- [x] **Collapse the primary-key invariant into one function** in the same file. Three sites
   — `for_delete_one`, `for_delete_many` and `on_delete_strategy_implementation` — write the
   same chain today:
 
@@ -1628,13 +1628,13 @@ pub(in crate::internal) fn primary_key_wrapper_type(
 
   `PRIMARY_KEY_WRAPPER_TYPE_INVARIANT` disappears; the string lives inside the function.
 
-- [ ] **Create `derive-input/src/internal/dsl/method/` and `method.rs`'s `mod` block.** At
+- [x] **Create `derive-input/src/internal/dsl/method/` and `method.rs`'s `mod` block.** At
   this point `method.rs` declares `mod context;` and imports from
   `crate::internal::dsl::one_or_multiple::OneOrMultiple`.
 
-- [ ] **Run the gate.** No snapshot may move.
+- [x] **Run the gate.** No snapshot may move.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src/internal/dsl
@@ -1643,7 +1643,7 @@ git commit -m "refactor: move the generation context and OneOrMultiple into thei
 
 ### 5.2 The index analysis
 
-- [ ] **Create `method/index.rs`** with `IndexShape` and its `of`, `IndexColumnArguments`,
+- [x] **Create `method/index.rs`** with `IndexShape` and its `of`, `IndexColumnArguments`,
   `index_column_arguments`, `index_accessor`, `column_names_and_row_values`,
   `documentation_on_columns` and `index_kind`.
 
@@ -1663,13 +1663,13 @@ git commit -m "refactor: move the generation context and OneOrMultiple into thei
 //! each belongs to the same column.
 ```
 
-- [ ] **Update `internal/dsl/singleton.rs`'s doc comment**, which names
+- [x] **Update `internal/dsl/singleton.rs`'s doc comment**, which names
   `internal::dsl::method::column_names_and_row_values`. It becomes
   `internal::dsl::method::index::column_names_and_row_values`.
 
-- [ ] **Run the gate.** No snapshot may move.
+- [x] **Run the gate.** No snapshot may move.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src/internal/dsl
@@ -1678,7 +1678,7 @@ git commit -m "refactor: move the index analysis into method/index.rs"
 
 ### 5.3 The hook-call helper and referential integrity
 
-- [ ] **Create `method/hook_call.rs`** with `hook_use_and_call` and `hook_tokens`, both
+- [x] **Create `method/hook_call.rs`** with `hook_use_and_call` and `hook_tokens`, both
   `pub(in crate::internal)`. Module comment:
 
 ```rust
@@ -1689,7 +1689,7 @@ git commit -m "refactor: move the index analysis into method/index.rs"
 //! prelude that has to run first, or outside the loop the call sits in.
 ```
 
-- [ ] **Create `method/reference_integrity.rs`** with `Action`,
+- [x] **Create `method/reference_integrity.rs`** with `Action`,
   `reference_integrity_checks`, `reference_integrity_checks_on_create`,
   `reference_integrity_checks_on_update`, `multi_column_index_checks`,
   `get_row_value_getter` and `get_unique_multi_column_index_check`.
@@ -1709,9 +1709,9 @@ git commit -m "refactor: move the index analysis into method/index.rs"
 //! on create and on update because the delete side is handled by the on-delete strategies.
 ```
 
-- [ ] **Run the gate.** No snapshot may move.
+- [x] **Run the gate.** No snapshot may move.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src/internal/dsl/method
@@ -1722,26 +1722,26 @@ git commit -m "refactor: move the hook-call helper and the integrity checks into
 
 One commit, because the four modules are one decomposition and each is a plain move.
 
-- [ ] **Create `method/create.rs`** with `CreateMethodColumnParts`,
+- [x] **Create `method/create.rs`** with `CreateMethodColumnParts`,
   `create_method_column_parts` and `for_create`. Only `for_create` is
   `pub(in crate::internal)`.
 
-- [ ] **Create `method/get.rs`** with `for_get_all`, `for_get_count`, `for_get_many` and
+- [x] **Create `method/get.rs`** with `for_get_all`, `for_get_count`, `for_get_many` and
   `for_get_one`, all `pub(in crate::internal)`.
 
-- [ ] **Create `method/update.rs`** with `update_method_row_value_getter` (private) and
+- [x] **Create `method/update.rs`** with `update_method_row_value_getter` (private) and
   `for_update` (`pub(in crate::internal)`).
 
-- [ ] **Create `method/delete.rs`** with `for_delete_one` and `for_delete_many`, both
+- [x] **Create `method/delete.rs`** with `for_delete_one` and `for_delete_many`, both
   `pub(in crate::internal)`.
 
   Do **not** merge the two, do **not** factor out their shared stage sequence, and do not
   reorder a statement inside either. Plan 3 settled every difference between them as
   intentional; putting them in one file is not a reason to revisit that.
 
-- [ ] **Run the gate.** No snapshot may move.
+- [x] **Run the gate.** No snapshot may move.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src/internal/dsl/method
@@ -1750,13 +1750,13 @@ git commit -m "refactor: move the create, get, update and delete generators into
 
 ### 5.5 The singleton generators
 
-- [ ] **Create `method/singleton_table.rs`** with `for_singleton_get` and
+- [x] **Create `method/singleton_table.rs`** with `for_singleton_get` and
   `for_singleton_delete`, both `pub(in crate::internal)`. Both read the injected-key contract
   from `crate::internal::dsl::singleton`.
 
-- [ ] **Run the gate.** No snapshot may move.
+- [x] **Run the gate.** No snapshot may move.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src/internal/dsl/method
@@ -1767,7 +1767,7 @@ git commit -m "refactor: move the singleton generators into method/singleton_tab
 
 The largest piece, split by which side of the relationship it generates for.
 
-- [ ] **Create `method/naming.rs`** with the four generated-identifier builders, all
+- [x] **Create `method/naming.rs`** with the four generated-identifier builders, all
   `pub(in crate::internal)`. Module comment:
 
 ```rust
@@ -1781,7 +1781,7 @@ The largest piece, split by which side of the relationship it generates for.
 //! against the previous name until it is regenerated.
 ```
 
-- [ ] **Create `method/referenced_by.rs`** with `for_referenced_by` and
+- [x] **Create `method/referenced_by.rs`** with `for_referenced_by` and
   `get_referenced_table_function_call_for_dsl_method`, both `pub(in crate::internal)`.
   Module comment:
 
@@ -1794,7 +1794,7 @@ The largest piece, split by which side of the relationship it generates for.
 //! [`super::foreign_key`].
 ```
 
-- [ ] **Create `method/foreign_key.rs`** with `for_foreign_key`, `pub(in crate::internal)`.
+- [x] **Create `method/foreign_key.rs`** with `for_foreign_key`, `pub(in crate::internal)`.
   Module comment:
 
 ```rust
@@ -1805,7 +1805,7 @@ The largest piece, split by which side of the relationship it generates for.
 //! referenced side is [`super::referenced_by`].
 ```
 
-- [ ] **Create `method/on_delete_strategy.rs`** with
+- [x] **Create `method/on_delete_strategy.rs`** with
   `get_on_delete_strategy_implementation`, `strategy_by_row`,
   `get_referenced_table_function_call_for_strategy_implementation`, `RowBinding`,
   `IndexUniqueness` and `ReferencingTables`.
@@ -1824,9 +1824,9 @@ The largest piece, split by which side of the relationship it generates for.
   Do **not** merge the `match one_or_multiple` arm pairs here or in the two modules above.
   Plan 3 settled them as intentional.
 
-- [ ] **Run the gate.** No snapshot may move.
+- [x] **Run the gate.** No snapshot may move.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src/internal/dsl/method
@@ -1835,7 +1835,7 @@ git commit -m "refactor: move the cascade generators into their own modules"
 
 ### 5.7 The wiring module
 
-- [ ] **Reduce `method.rs`** to the `mod` declarations, the re-exports, the two entry-point
+- [x] **Reduce `method.rs`** to the `mod` declarations, the re-exports, the two entry-point
   `impl` blocks, `column_methods_for` and `update_method_for`, and the imports those need:
 
 ```rust
@@ -1859,7 +1859,7 @@ pub(in crate::internal) use context::{MethodGenerationContext, TableContribution
 - [ ] **Confirm the size.** `wc -l derive-input/src/internal/dsl/method.rs` under 250, and
   every file in `method/` under 600.
 
-- [ ] **Run the gate.** No snapshot may move.
+- [x] **Run the gate.** No snapshot may move.
 
 - [ ] **Commit.**
 
@@ -1870,19 +1870,19 @@ git commit -m "refactor: reduce method.rs to the wiring between the generator mo
 
 ### 5.8 Update the call sites outside `method`
 
-- [ ] **Check the two importers.** `internal/column.rs` and `internal/table.rs` import
+- [x] **Check the two importers.** `internal/column.rs` and `internal/table.rs` import
   `crate::internal::dsl::method::MethodGenerationContext`. The re-export in 5.7 keeps that
   path working; confirm with `cargo check -p spacetimedsl_derive_input` and leave both files
   untouched if it passes. If a path did change, fix it here and nowhere else.
 
-- [ ] **Commit** only if a file changed.
+- [x] **Commit** only if a file changed.
 
 ### 5.9 Drop the `get_` prefixes
 
 The last sub-change of the split, and the only one that renames. All six names are private to
 `derive-input`; none is a generated identifier.
 
-- [ ] **Rename, in `method/naming.rs`:**
+- [x] **Rename, in `method/naming.rs`:**
 
 | Before | After |
 | --- | --- |
@@ -1891,7 +1891,7 @@ The last sub-change of the split, and the only one that renames. All six names a
 | `get_referenced_table_compile_error_check` | `referenced_table_compile_error_check` |
 | `get_referencing_table_compile_error_check` | `referencing_table_compile_error_check` |
 
-- [ ] **Rename, elsewhere in the split:**
+- [x] **Rename, elsewhere in the split:**
 
 | Module | Before | After |
 | --- | --- | --- |
@@ -1904,9 +1904,9 @@ The last sub-change of the split, and the only one that renames. All six names a
   Nothing else is renamed. `internal/column.rs`'s `get_primary_key_column_name` and
   `get_auto_inc_column_names` are outside the split and stay.
 
-- [ ] **Run the gate.** No snapshot may move — these names never reach the output.
+- [x] **Run the gate.** No snapshot may move — these names never reach the output.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src/internal/dsl/method
@@ -1926,7 +1926,7 @@ Nothing in this step changes behaviour or output.
 
 ### 6.1 The source doc comments
 
-- [ ] **`method/context.rs`, `MethodGenerationContext`** — three paragraphs of history become
+- [x] **`method/context.rs`, `MethodGenerationContext`** — three paragraphs of history become
   the rule:
 
 ```rust
@@ -1941,7 +1941,7 @@ Nothing in this step changes behaviour or output.
 pub(in crate::internal) struct MethodGenerationContext<'a> {
 ```
 
-- [ ] **`method.rs`, `column_methods_for`** — drop the trailing clause:
+- [x] **`method.rs`, `column_methods_for`** — drop the trailing clause:
 
 ```rust
 /// Which DSL methods an index earns.
@@ -1955,7 +1955,7 @@ pub(in crate::internal) struct MethodGenerationContext<'a> {
 /// once: two copies of it disagreed.
 ```
 
-- [ ] **`method/index.rs`, `IndexShape`** — drop the `for_method` sentence:
+- [x] **`method/index.rs`, `IndexShape`** — drop the `for_method` sentence:
 
 ```rust
 /// Everything the five index-based generators derive from the index they are given.
@@ -1964,7 +1964,7 @@ pub(in crate::internal) struct MethodGenerationContext<'a> {
 /// phrase all five of them end with, so a wording change is one edit.
 ```
 
-- [ ] **`internal/dsl/table.rs`** — `// is set later in method.rs.` above
+- [x] **`internal/dsl/table.rs`** — `// is set later in method.rs.` above
   `create_dsl_method_arg: None` names a file that no longer sets it. Since plan 3 the value
   is returned by the create generator and applied by `internal/table.rs`:
 
@@ -1973,7 +1973,7 @@ pub(in crate::internal) struct MethodGenerationContext<'a> {
 create_dsl_method_arg: None,
 ```
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src
@@ -1985,7 +1985,7 @@ git commit -m "docs: describe the generator as it is, not as it was"
 Three headers describe behaviour that plans 2 and 3 changed. They are wrong, not merely
 historical.
 
-- [ ] **`derive/tests/fixtures/hash_index.rs`** — plan 3 routed single-column hash indices
+- [x] **`derive/tests/fixtures/hash_index.rs`** — plan 3 routed single-column hash indices
   through the single-column path and took `update_session_by_device_id` away. Replace lines
   4 to 11:
 
@@ -1998,7 +1998,7 @@ historical.
 //! table and takes the multi-column path.
 ```
 
-- [ ] **`derive/tests/fixtures/qualified_type_spellings.rs`** — plan 2 replaced the
+- [x] **`derive/tests/fixtures/qualified_type_spellings.rs`** — plan 2 replaced the
   text-comparison classification with `ColumnTypeKind::of`, so the pairs agree now. Verified:
   the two `get_documents_by_*_title` snapshots are identical after renaming, and the two
   `get_documents_by_*_note` snapshots differ only in where `prettyplease` wraps a line.
@@ -2014,7 +2014,7 @@ historical.
 //! lengths.
 ```
 
-- [ ] **`compile-tests/tests/ui/before_delete_hook_without_delete_method.rs`** — plan 3 made
+- [x] **`compile-tests/tests/ui/before_delete_hook_without_delete_method.rs`** — plan 3 made
   `delete = false` remove the delete methods. Replace lines 3 to 5:
 
 ```rust
@@ -2023,10 +2023,10 @@ historical.
 //! delete hook, an `on_delete = Delete` foreign key, and a `#[referenced_by]` attribute.
 ```
 
-- [ ] **`derive/tests/fixtures/methods_disabled.rs`** — drop the "which is now the same kind
+- [x] **`derive/tests/fixtures/methods_disabled.rs`** — drop the "which is now the same kind
   of thing for both" clause; state the two flags directly.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive/tests/fixtures compile-tests/tests/ui
@@ -2037,7 +2037,7 @@ git commit -m "docs: correct the fixture headers that describe fixed defects as 
 
 These describe a past bug as the reason a guard exists. Keep the reason; drop the history.
 
-- [ ] **`derive/tests/fixtures/wrapper_optional_index.rs`** — replace "the branch fixed in
+- [x] **`derive/tests/fixtures/wrapper_optional_index.rs`** — replace "the branch fixed in
   `81ada87`, which no table in `examples/test` reaches because the index there is commented
   out" with what the fixture guards:
 
@@ -2047,11 +2047,11 @@ These describe a past bug as the reason a guard exists. Keep the reason; drop th
 //! these snapshots are the only thing pinning it.
 ```
 
-- [ ] **`compile-tests/tests/ui/wrapper_optional_unique_index.rs`** — delete the paragraph at
+- [x] **`compile-tests/tests/ui/wrapper_optional_unique_index.rs`** — delete the paragraph at
   lines 10 to 13 entirely. The paragraphs above it say why the case is a `compile_fail`, and
   the maintenance note below it is still true.
 
-- [ ] **`derive/tests/fixtures/delete_hooks_with_foreign_key_on_unique_index.rs`** — state
+- [x] **`derive/tests/fixtures/delete_hooks_with_foreign_key_on_unique_index.rs`** — state
   the shape and the rule rather than the bug:
 
 ```rust
@@ -2063,7 +2063,7 @@ These describe a past bug as the reason a guard exists. Keep the reason; drop th
 //! foreign key plus a unique - not primary key - index on the referencing column.
 ```
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive/tests/fixtures compile-tests/tests/ui
@@ -2072,7 +2072,7 @@ git commit -m "docs: state what the regression fixtures guard instead of the bug
 
 ### 6.4 The comments this plan invalidates
 
-- [ ] **`compile-tests/tests/ui/foreign_keys_with_mismatched_types.rs`** — after step 2 there
+- [x] **`compile-tests/tests/ui/foreign_keys_with_mismatched_types.rs`** — after step 2 there
   is no `Span::call_site()` diagnostic left to be more precise than. Replace lines 5 to 7:
 
 ```rust
@@ -2080,10 +2080,10 @@ git commit -m "docs: state what the regression fixtures guard instead of the bug
 //! contradicts the first.
 ```
 
-- [ ] **`compile-tests/tests/ui/foreign_keys_with_mismatched_paths.rs`** — the reference to
+- [x] **`compile-tests/tests/ui/foreign_keys_with_mismatched_paths.rs`** — the reference to
   the sibling file stays; only confirm it still reads correctly after the edit above.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add compile-tests/tests/ui
@@ -2094,7 +2094,7 @@ git commit -m "docs: drop the call-site contrast from the compile-test headers"
 
 One `TODO` asks a question the snapshots answer. Every other marker stays.
 
-- [ ] **Delete the marker** at the `None` arm of `index_column_arguments`, in
+- [x] **Delete the marker** at the `None` arm of `index_column_arguments`, in
   `method/index.rs`:
 
 ```rust
@@ -2106,11 +2106,11 @@ One `TODO` asks a question the snapshots answer. Every other marker stays.
   snapshots show the column arriving as `&str` and reaching `filter` as part of the tuple.
   The line below it, `let column_type = if column_is_string { … }`, stays exactly as it is.
 
-- [ ] **Confirm nothing else went.** `rg -n 'TODO|FIXME' derive-input/src derive/src src`
+- [x] **Confirm nothing else went.** `rg -n 'TODO|FIXME' derive-input/src derive/src src`
   should list every marker it listed before this plan, minus the two the hook fix removed in
   1.2 and this one.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive-input/src/internal/dsl/method/index.rs
@@ -2122,7 +2122,7 @@ git commit -m "docs: delete the multi-column string question the snapshots answe
 A comment that points at `file.rs:123` is wrong the next time anything above line 123 moves.
 Step 5 moved most of this code, so all of them are stale now.
 
-- [ ] **Replace each with the symbol it means:**
+- [x] **Replace each with the symbol it means:**
 
 | File | Before | After |
 | --- | --- | --- |
@@ -2130,10 +2130,10 @@ Step 5 moved most of this code, so all of them are stale now.
 | `derive/tests/fixtures/multiple_table_attributes.rs` | "the heuristic table selector at `internal/integration.rs:66`" | "the heuristic table selector `integration::select_table_with_heuristics`" |
 | `derive/tests/fixtures/hash_index.rs` | "the extraction loop at `db/column.rs:63`" | removed with the rewrite in 6.2 |
 
-- [ ] **Sweep for the rest.** `rg -n '\.rs:[0-9]+' derive-input/src derive/src derive/tests compile-tests src`
+- [x] **Sweep for the rest.** `rg -n '\.rs:[0-9]+' derive-input/src derive/src derive/tests compile-tests src`
   must come back empty. Acceptance criterion 8.
 
-- [ ] **Commit.**
+- [x] **Commit.**
 
 ```sh
 git add derive/tests/fixtures
@@ -2162,14 +2162,14 @@ What was done, for the record:
 
 The only thing left for an implementer here:
 
-- [ ] **Confirm nothing regressed.** Acceptance criterion 1:
+- [x] **Confirm nothing regressed.** Acceptance criterion 1:
 
 ```sh
 test ! -e CODE_QUALITY_REPORT.md
 rg -n '\]\([^)]*CODE_QUALITY_REPORT' .                                # 0 matches
 ```
 
-- [ ] **Run the full gate one last time.**
+- [x] **Run the full gate one last time.**
 
 ```sh
 ./x.sh unit-test && ./x.sh format && ./x.sh test && cargo insta pending-snapshots
@@ -2193,3 +2193,224 @@ Run all ten acceptance criteria from the repository root. Then, by hand:
 4. **Nothing regressed.** `git diff <base>..HEAD -- derive/tests/snapshots` should contain
    exactly three kinds of change: the cascade signatures and deletion results from 1.2, the
    two path spellings from 3.2, and nothing else.
+
+---
+
+## Execution record
+
+Written after the fact, by auditing the twenty-six commits in `main..HEAD` against the
+repository as it now stands. The oldest of them, `bc27238`, only adds this file; the other
+twenty-five are the implementation. No source file was changed while writing this section.
+
+**Verdict:** the plan was carried out as written, with one substantive miss —
+`derive-input/src/internal/dsl/method.rs` finished at 291 lines rather than the under-250 that
+acceptance criterion 4 and [5.7](#57-the-wiring-module) require — plus a small number of
+cosmetic divergences recorded below. Everything else holds: the suite is green, no snapshot is
+pending, every sub-change the movement table marks *preserving* moved nothing, and none of the
+work in [What this plan does not cover](#what-this-plan-does-not-cover) was done anyway.
+
+### Deviations from the plan
+
+#### `method.rs` did not reach 250 lines
+
+`wc -l derive-input/src/internal/dsl/method.rs` reports **291**. The file holds exactly what
+[5.7](#57-the-wiring-module) prescribes and nothing more: the thirteen `mod` declarations, the
+`pub(in crate::internal) use context::{MethodGenerationContext, TableContributions};`
+re-export, the nine `use` lines that pull the generators back in, `update_method_for`,
+`column_methods_for`, `impl SpacetimeDSLColumnMethods` and `impl SpacetimeDSLTableMethods`.
+Nothing was left behind that another module could take: the two `impl` blocks are the entry
+points the plan names as staying, and `SpacetimeDSLTableMethods::generate` alone is about 150
+lines because it carries the foreign-key grouping loop. The 250-line target was set below what
+the prescribed contents occupy. Every module under `method/` is well inside its own limit, the
+largest being `delete.rs` at 587 lines.
+
+#### Sub-change 5.7 has no commit of its own
+
+The "Commits" row of [Locked decisions](#locked-decisions) asks for one commit per `### N.M`
+section. There is no `refactor: reduce method.rs to the wiring between the generator modules`
+commit. The reduction happened inside `7a4664e`, the commit for [5.6](#56-the-cascade): moving
+`for_referenced_by`, `for_foreign_key`, `on_delete_strategy_implementation` and the naming
+helpers out was the last thing left in the file, so `method.rs` fell from 1 330 lines to 292
+in that one commit and nothing remained for a separate 5.7 to do beyond the size check. The
+end state is the one 5.7 describes.
+
+#### Two enums in `on_delete_strategy.rs` are wider than the visibility rule allows
+
+[5.6](#56-the-cascade) says `on_delete_strategy_implementation` and `ReferencingTables` become
+`pub(in crate::internal)` and "the other four stay private", and the step-wide visibility rule
+says an item used only inside its own module stays private. `RowBinding` and `IndexUniqueness`
+are declared `pub(in crate::internal)` in
+`derive-input/src/internal/dsl/method/on_delete_strategy.rs` although both are used only
+inside that file. The effect is nil — `method.rs` declares `mod on_delete_strategy;`
+privately, so neither type can be named from anywhere else — which is also why no lint caught
+it. `strategy_by_row` and `referenced_table_function_call_for_strategy_implementation` are
+private, as asked.
+
+#### `IndexShape` and `IndexColumnArguments` have `pub` fields
+
+[5.2](#52-the-index-analysis) asks for `pub(in crate::internal)` on the fields of both
+structs. They are plain `pub` in `derive-input/src/internal/dsl/method/index.rs`. Because both
+structs are themselves `pub(in crate::internal)`, the reach is identical, and it matches
+`MethodGenerationContext` in `method/context.rs`, whose fields were already plain `pub` before
+this plan.
+
+#### The singleton delete generator also gained the fourth `deletion_result` argument
+
+[1.2](#12-raise-it-forward-it-and-return-it) names only `for_delete_one` and `for_delete_many`
+under "Build two deletion results per delete generator". `for_singleton_delete` had to change
+too, because `runtime::deletion_result` grew a fourth parameter that every call site must
+pass. It passes `&quote! { None }`, which is right: a singleton table has no cascade, so no
+hook error can reach its deletion result.
+
+#### Three verbatim quotations differ from the tree in wording or layout
+
+- [Step 4](#step-4--regroup-the-paired-method-fields) quotes the comment in
+  `derive/src/output.rs` as "Two loops, not one: today every one-row method is emitted before
+  any many-row method". The tree drops "today". That is consistent with
+  [step 6](#step-6--remove-the-comments-that-describe-the-codes-past), which forbids exactly
+  that kind of time-stamped phrasing, so the divergence reads as deliberate.
+- [1.1](#11-carry-the-hook-error-on-the-deletion-result) shows `Display for DeletionResult`
+  with its `write!` on one line. `src/delete.rs` wraps the same call across four lines. That
+  is `rustfmt`; the tokens are identical.
+- [1.4](#14-document-it) shows the cascading-delete example as an indented block whose CSV row
+  ends in a comma. `docs/DOCUMENTATION.md` renders it as a fenced `txt` block and the row has
+  no trailing comma. A rendering choice, not a content change.
+
+#### Two `.stderr` files moved in step 6, which no movement-table row anticipates
+
+The [movement table](#expected-snapshot-and-diagnostic-movement) attributes all `.stderr`
+motion to [2.4](#24-regenerate-and-read-every-stderr). Two more moved later: `a381717`
+([6.3](#63-the-headers-that-name-a-fixing-commit-or-a-closed-issue)) updated
+`compile-tests/tests/ui/wrapper_optional_unique_index.stderr`, and `e7b92cf`
+([6.4](#64-the-comments-this-plan-invalidates)) updated
+`compile-tests/tests/ui/foreign_keys_with_mismatched_types.stderr`. Both are unavoidable:
+those sub-changes delete lines from the corresponding `.rs` headers, and `trybuild` records
+the offending token as `--> tests/ui/<file>.rs:LINE:COL`, so every line number below the edit
+shifts. Both files sit inside the `git add compile-tests/tests/ui` those sub-changes already
+list. [6.2](#62-the-fixture-headers-that-state-a-fixed-defect-as-current) replaced three
+header lines with three, so its `.stderr` did not move.
+
+#### `debug-helper/output/lib.expanded.rs` is now stale
+
+The checked-in macro expansion still contains `Delete One Error: An unknown error occurred …`
+and the pre-1.2 `Err(entries)` cascade shape. No action in this plan covers that file — it is
+regenerated by `./x.sh debug`, not by the gate — so leaving it is not a scope violation, but
+it no longer matches the generator and would mislead anyone reading it.
+
+#### An arithmetic slip in the plan itself
+
+[2.2](#22-span-the-column-and-index-diagnostics) says "eleven of the thirteen errors" in
+`internal/dsl/table.rs` are raised inside `for field in &column_args.fields`, while the table
+directly underneath it sums to ten: 5 on `field.vis`, 2 on `field.ty`, 3 on `field.ident`. The
+implementation followed the table. `a824d92` spans exactly those ten and `92df820` spans the
+remaining three on `&column_args.original_struct_name`, thirteen in total, as expected.
+
+### What this plan does not cover: nothing was widened
+
+Each guard was checked against the tree rather than assumed.
+
+| Excluded item | State |
+| --- | --- |
+| The `OnDeleteStrategy` copy between crates | Both copies and both warning comments survive, at `derive-input/src/api/dsl/foreign_key.rs:11` and `src/delete.rs:7`. |
+| Merging the delete paths | `for_delete_one` and `for_delete_many` share `method/delete.rs`, but neither was merged, reordered nor given a shared stage sequence, and the `match one_or_multiple` arm pairs in the cascade builders are intact. |
+| The remaining `TODO`/`FIXME` markers | `method.rs` carried 14; the split modules carry 11. The three that went are the two hook `FIXME`s removed in 1.2 and the one `TODO` removed in 6.5. Every other file's count is unchanged, including the four in `derive/src/lib.rs` and the two in `src/delete.rs`. |
+| The commented-out `SetNone` blocks | `method.rs` held 3; `method/delete.rs` holds 2 and `method/on_delete_strategy.rs` holds 1. The counts in `api/dsl/foreign_key.rs`, `internal/dsl/foreign_key.rs` and `src/delete.rs` are untouched. |
+| Splitting `SpacetimeDSLTableMethods` further | It still holds `create`, `get_all`, `get_count` and `multi_column_indices`; only the four long fields regrouped. |
+| Renaming generated methods or identifiers | No `.snap` file was added, removed or renamed, and no snapshot hunk touches a method name or a generated doc comment. |
+| Renames beyond [5.9](#59-drop-the-get_-prefixes) | `internal/column.rs` still spells `get_primary_key_column_name` and `get_auto_inc_column_names`. |
+| A version bump | `git diff main..HEAD -- '*Cargo.toml'` is empty. |
+
+### The ten acceptance criteria, as run
+
+Run from the repository root. `rg` is not on `PATH` in this environment, so the greps were run
+as `grep -rnE` with equivalent patterns, with a ripgrep-backed search used for the one pattern
+that has to span lines. The substitution changes no result.
+
+| # | Result | Note |
+| --- | --- | --- |
+| 1 | pass | `CODE_QUALITY_REPORT.md` is absent and no `](…)` link names it. |
+| 2 | pass | No `Error::new(Span::call_site())` in `derive-input/src` or `derive/src`. The three surviving `Span::call_site()` calls are the synthesised identifiers the plan protects: `__singleton_placeholder`, the injected `id` field and `internal/dsl/singleton.rs`'s `PRIMARY_KEY_NAME`. |
+| 3 | **does not pass literally** | Two matches outside `api/runtime.rs`, both inside the issue-60 `FIXME` that [What this plan does not cover](#what-this-plan-does-not-cover) protects: `method/on_delete_strategy.rs:378` and `method/update.rs:257`, each reading `… on error return Err(crate::spacetimedsl::error::SpacetimeDSLError);`. No generator *emits* a literal path. |
+| 4 | **fail** | 291 lines against a limit of 250. See the first deviation above. |
+| 5 | pass | Thirteen modules, 44 to 587 lines. |
+| 6 | pass | The only file naming `execute_on_delete_strategies_of_` is `method/naming.rs`. |
+| 7 | pass | Zero matches. |
+| 8 | **does not pass literally** | The pattern also matches `rustc`'s own `--> tests/ui/<file>.rs:LINE:COL` locations inside the 14 `.stderr` fixtures, which `trybuild` writes and which predate this plan. Restricted to `*.rs` sources — the comments the criterion is about — it returns zero matches. The criterion was never satisfiable as written. |
+| 9 | pass | Both patterns return zero matches in `derive-input/src`. |
+| 10 | pass, with a substitution | `./x.sh unit-test` green: 27 snapshot tests and 15 `trybuild` cases. `cargo insta pending-snapshots --workspace` reports none. `./x.sh test` publishes both example modules, calls `tester` and logs `Test executed successfully!`. For `./x.sh format` the audit ran `cargo fmt --all --check` and `cargo clippy --workspace --all-targets --all-features` **without** `--fix`, so that checking the plan could not rewrite the tree; both exit 0, which is the same evidence with none of the risk. |
+
+### Verification, by hand
+
+1. **The hook error is visible.** `./x.sh test` created `lock_group` and `lock_holder` and the
+   reducer returned no error, so both `cascade_hook_error_test` assertions passed: the hook's
+   message reached the caller through the one-row `Vec` path and the many-row `HashMap` path.
+   That is also the only coverage the many-row branch has. `Delete Many Error` appears in no
+   snapshot, because no fixture reaches `for_delete_many`'s referencing-tables branch.
+2. **The diagnostics point at something.** `plural_name_on_singleton.stderr` underlines
+   `plural_name = configurations`, `unique_index_on_singleton.stderr` underlines
+   `world_name_and_seed` and then the two indexed columns, and `missing_table_attribute.stderr`
+   underlines the struct name `Thing`. None of the ten regenerated files still carries the
+   `= note: this error originates in the attribute macro …` line; the three that do are the
+   three the plan marks unchanged.
+3. **The split holds.** `method.rs` 291, over the 250 target as recorded above. `method/`:
+   `context` 122, `create` 397, `delete` 587, `foreign_key` 283, `get` 209, `hook_call` 44,
+   `index` 356, `naming` 67, `on_delete_strategy` 488, `reference_integrity` 334,
+   `referenced_by` 294, `singleton_table` 148, `update` 270. All under 600.
+4. **Nothing regressed.** `git diff main..HEAD -- derive/tests/snapshots` holds only the two
+   expected kinds of change — the cascade signatures, the `OnDeleteStrategyFailure`
+   destructuring, the `error_from_hook` fields and the two reworded messages from 1.2, and
+   `delete::` or `error::` appearing in the two path spellings from 3.2 — plus the line
+   re-wrapping `prettyplease` does around them. Per commit: `1849737` moved 92 snapshots,
+   `372b16a` moved 22 and matched the twenty-plus-two prediction exactly, and every other
+   commit moved none.
+
+### Checkboxes left unticked
+
+| Sub-change | Action | Why |
+| --- | --- | --- |
+| [5.7](#57-the-wiring-module) | **Confirm the size.** | `method.rs` is 291 lines, not under 250. The `method/*.rs` half of the same check passes. |
+| [5.7](#57-the-wiring-module) | **Commit.** | No commit carries the message this block specifies; the work landed inside `7a4664e` with 5.6. |
+
+The other 131 are ticked. Two of those are worth naming, because their stated outcome is not
+literally reproducible and they were judged on the end state the plan was steering towards:
+
+- 2.1's and 2.2's "Run `./x.sh unit-test`, leave the `.stderr` failing until 2.4" cannot be
+  observed from the finished tree. What can be observed is that `8a1dcbe`, `a824d92` and
+  `92df820` changed no `.stderr` at all and `c729374` changed exactly ten, which is the
+  sequence those checkboxes were arranging.
+- 6.6's "Sweep for the rest … must come back empty" is ticked on the action rather than on the
+  literal command, for the reason given against acceptance criterion 8.
+
+### Commit per sub-change
+
+| Sub-change | Commit | Subject |
+| --- | --- | --- |
+| — | `bc27238` | Add plan to finish generator clean up |
+| [1.1](#11-carry-the-hook-error-on-the-deletion-result) | `dbb1918` | feat: carry a cascade's hook error on the deletion result |
+| [1.2](#12-raise-it-forward-it-and-return-it) | `1849737` | fix: return the error a delete hook raises during a cascade |
+| [1.3](#13-prove-it-at-runtime) | `5b256eb` | test: check a cascade hook's error reaches the caller |
+| [1.4](#14-document-it) | `53876a7` | docs: document a hook failing during a cascading delete |
+| [2.1](#21-keep-the-spans-of-the-dsl-arguments) | `8a1dcbe` | refactor: keep the spans of the dsl attribute arguments |
+| [2.2](#22-span-the-column-and-index-diagnostics) | `a824d92` | refactor: span the column and index diagnostics on the column they name |
+| [2.3](#23-span-the-table-wide-diagnostics-on-the-struct-name) | `92df820` | refactor: span the table-wide diagnostics on the struct name |
+| [2.4](#24-regenerate-and-read-every-stderr) | `c729374` | test: regenerate the diagnostics after spanning them |
+| [3.1](#31-publish-apiruntime) | `0033345` | refactor: publish the runtime contract as api::runtime |
+| [3.2](#32-cover-every-remaining-runtime-path) | `372b16a` | refactor: emit every runtime path through api::runtime |
+| [3.3](#33-adopt-it-in-the-derive-crate) | `1ec2a30` | refactor: emit the derive crate's runtime paths through api::runtime |
+| [4](#step-4--regroup-the-paired-method-fields) | `df96335` | refactor: group the paired cascade methods behind two structs |
+| [5.1](#51-the-shared-vocabulary-and-the-context) | `be7d1d8` | refactor: move the generation context and OneOrMultiple into their own modules |
+| [5.2](#52-the-index-analysis) | `6372521` | refactor: move the index analysis into method/index.rs |
+| [5.3](#53-the-hook-call-helper-and-referential-integrity) | `af10b4a` | refactor: move the hook-call helper and the integrity checks into their own modules |
+| [5.4](#54-the-four-dsl-method-families) | `ebf0609` | refactor: move the create, get, update and delete generators into their own modules |
+| [5.5](#55-the-singleton-generators) | `f84f07f` | refactor: move the singleton generators into method/singleton_table.rs |
+| [5.6](#56-the-cascade) | `7a4664e` | refactor: move the cascade generators into their own modules |
+| [5.7](#57-the-wiring-module) | `7a4664e` | folded into 5.6; no commit of its own |
+| [5.8](#58-update-the-call-sites-outside-method) | — | no commit, correctly: the re-export kept both importers' paths working and neither file changed |
+| [5.9](#59-drop-the-get_-prefixes) | `7ef7b6f` | refactor: drop the get_ prefix from the moved generator helpers |
+| [6.1](#61-the-source-doc-comments) | `500eca0` | docs: describe the generator as it is, not as it was |
+| [6.2](#62-the-fixture-headers-that-state-a-fixed-defect-as-current) | `768027b` | docs: correct the fixture headers that describe fixed defects as current |
+| [6.3](#63-the-headers-that-name-a-fixing-commit-or-a-closed-issue) | `a381717` | docs: state what the regression fixtures guard instead of the bugs they came from |
+| [6.4](#64-the-comments-this-plan-invalidates) | `e7b92cf` | docs: drop the call-site contrast from the compile-test headers |
+| [6.5](#65-the-answered-marker) | `bfc2f00` | docs: delete the multi-column string question the snapshots answer |
+| [6.6](#66-the-line-number-references) | `7b7e94e` | docs: name the symbols the comments point at instead of line numbers |
+| [7](#step-7--the-code-quality-report-is-already-retired) | `bc27238` | done when the plan was written: the report was deleted and plans 1 to 3 relinked here |
