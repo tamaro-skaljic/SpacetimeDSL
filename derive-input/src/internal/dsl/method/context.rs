@@ -22,18 +22,12 @@ use syn::Ident;
 
 /// Everything every method generator needs, under one name.
 ///
-/// The five references used to travel as a positional bundle through the entry points and
-/// most helpers. Several are references to different-but-similar table types, so a
-/// transposed argument compiled in some call shapes, and adding one more piece of shared
-/// context meant editing every signature in the chain.
+/// The derived names are resolved once here rather than in each generator, so a rule about
+/// a generated identifier — `field_name_for_found_value` in particular — has one place that
+/// states it.
 ///
-/// The derived names are resolved once here rather than in each generator.
-/// `field_name_for_found_value` in particular was built by the same `format_ident!` in
-/// four separate functions, which is a rule about a generated identifier that nothing kept
-/// in step.
-///
-/// This is a plain data carrier. It must not grow generation methods, or it becomes a
-/// second god object in place of the one this plan removes.
+/// This is a plain data carrier. It must not grow generation methods: a generator produces
+/// one method whole, and a context that generates would take that back.
 pub(in crate::internal) struct MethodGenerationContext<'a> {
     pub spacetimedb_table: &'a SpacetimeDBTable,
     pub spacetimedsl_table: &'a SpacetimeDSLTable,

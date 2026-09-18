@@ -38,9 +38,8 @@ pub(in crate::internal) fn index_accessor(
 
 /// Everything the five index-based generators derive from the index they are given.
 ///
-/// This used to sit inside `for_method`, which is why no generator could be lifted out of
-/// it. The four prose fragments the doc comments were built from are assembled here into
-/// the one phrase all five of them built identically.
+/// The four prose fragments the doc comments are built from are assembled here into the one
+/// phrase all five of them end with, so a wording change is one edit.
 pub(in crate::internal) struct IndexShape {
     pub index_name: Ident,
     pub index_columns: Vec<Ident>,

@@ -69,9 +69,8 @@ fn update_method_for(
 /// `update` when it is the primary key. The `method(...)` flags suppress the delete and
 /// update methods on top of that.
 ///
-/// Single-column and multi-column indices read this rule from here, which is the point:
-/// it used to be written out once for each, and the two copies disagreed about which
-/// unique index may update a row.
+/// Single-column and multi-column indices read this rule from here. It must stay stated
+/// once: two copies of it disagreed.
 fn column_methods_for(
     index: &Index,
     context: &MethodGenerationContext,

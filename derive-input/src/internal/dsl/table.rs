@@ -196,7 +196,8 @@ impl SpacetimeDSLTable {
                 on_update_set_current_timestamp_column_name,
                 referencing_tables,
                 compile_error_checks: BTreeSet::new(),
-                // is set later in method.rs.
+                // `TableContributions::apply_to` fills this in, after the create method is
+                // generated.
                 create_dsl_method_arg: None,
                 hooks,
             },
