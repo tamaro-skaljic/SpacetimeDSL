@@ -43,9 +43,51 @@ if ($output | Select-String -Pattern "Test executed successfully" -Quiet) {
 
 Finding the marker is enough. Only when it is absent does the output need reading, and then only the lines that carry a diagnostic.
 
-#### A snapshot compares tokens; it never compiles them
+#### Which of the three test kinds to write
 
-`.\x.ps1 unit-test` can be fully green while the generated code does not compile: the snapshot harness diffs token streams and never feeds them to a compiler. `.\x.ps1 test` is the only gate that compiles and runs generated code, so it belongs in every task that touches a generator, not only the last one.
+Start from what the change does to the DSL's input:
+
+| The change …                                     | Test kind                              |
+| ------------------------------------------------ | -------------------------------------- |
+| rejects an input                                 | Diagnostics — `compile-tests/tests/ui` |
+| changes what is generated for an accepted input  | Snapshot — `derive/tests/fixtures`     |
+| changes what the generated code does at run time | Runtime — `examples/test/src/lib.rs`   |
+
+Most generator work needs two of them and a whole feature needs all three, because each kind is blind to what the next one sees. Write the cheapest kind that can fail for the reason under test, then add the kinds its blind spots require — never substitute a cheap one for a blind spot.
+
+**Diagnostics — `compile-tests/tests/ui/<case>.rs` + `<case>.stderr`**
+
+Every input the DSL rejects. The pair pins the message *and* the span it underlines, so a message that points at the wrong token is a failing test rather than a silent regression.
+
+- `trybuild` globs the directory — a new file needs no registration.
+- One rejection per file, named after the rejection.
+- A fixture carries only what its diagnostic needs. Anything more pulls in unrelated rejections that fire first and mask the one being pinned.
+- Blind spot: says nothing whatsoever about input the DSL accepts.
+
+**Snapshot — `derive/tests/fixtures/<fixture>.rs` → `derive/tests/snapshots/<fixture>/<Struct>/*.snap`**
+
+What the macro emits for input it accepts. Register the fixture with a test in `derive/src/characterization_tests.rs`:
+
+```rust
+#[test]
+fn soft_delete_flag() {
+    snapshot_fixture("soft_delete_flag");
+}
+```
+
+- Blind spot: the harness diffs token streams and never feeds them to a compiler. Generated code can be snapshot-green and not build.
+- Blind spot: an accepted snapshot is only as correct as the reading that accepted it. Green afterwards means *unchanged*, not *right* — which is why the `git diff` is the real test and rubber-stamping it defeats the whole corpus.
+- Name a fixture after the one shape it pins. Let it carry a second shape only when the subject needs both at once — a cascade fixture covering both marker shapes is honest, because the cascade needs a referenced table and a referencing one anyway.
+
+**Runtime — `examples/test/src/lib.rs`**
+
+The only gate that compiles, links and runs generated code against a real **SpacetimeDB**. Put tables in their own `pub mod`, assertions in a helper function called from the `tester` reducer, and return `Err(String)` naming what should have happened.
+
+- Use it for what no token stream can show: a value actually written, a cascade actually reaching a row, an operation actually being idempotent.
+- Blind spot: it is one module, so table and accessor names are global and collide.
+- Blind spot: a failure points at a reducer line, not at the generator that caused it.
+
+When this gate catches something the other two could not, add the missing cheap test in the same commit. A `?` inside a generated cascade compiled fine as tokens and failed only here; the fixture corpus had no case pairing that marker shape with a cascade, so one was added rather than leaving the next regression to the slowest gate.
 
 #### A test that cannot run is not a test
 
@@ -53,7 +95,7 @@ Before trusting a new test, confirm the harness executes it. A `#[cfg(test)] mod
 
 #### Read the failure, not just the fact of it
 
-Red has to fail for the reason under test. A new `compile-tests/tests/ui` case that fails because a keyword is unknown is red for the right reason; one that fails because the fixture is malformed is not, and it will go green for the wrong one. Give a fixture only what its diagnostic needs — unrelated attributes pull in unrelated rejections that mask the one being pinned.
+Red has to fail for the reason under test. A new `compile-tests/tests/ui` case that fails because a keyword is unknown is red for the right reason; one that fails because the fixture is malformed is not, and it will go green for the wrong one. Read the failure text before writing the implementation, not just the word `FAILED`.
 
 #### Regenerating the recorded output
 
