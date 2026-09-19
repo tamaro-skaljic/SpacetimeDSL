@@ -46,6 +46,11 @@ pub(crate) struct GeneratedDSLMethod {
     /// Only read by the characterization tests, which snapshot each method under its own name.
     #[cfg_attr(not(test), allow(dead_code))]
     pub method_name: Ident,
+    /// Whether the macro generates this method for its own use instead of for the DSL user.
+    /// Only read by the characterization tests, which snapshot the internal methods of a
+    /// struct into one file because their generated names are too long to be file names.
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub is_internal: bool,
     pub tokens: TokenStream,
 }
 
@@ -179,6 +184,7 @@ pub(crate) fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<Gen
 fn build_public_dsl_method(method: &SpacetimeDSLMethod) -> syn::Result<GeneratedDSLMethod> {
     Ok(GeneratedDSLMethod {
         method_name: method.method_name.clone(),
+        is_internal: false,
         tokens: function::build_public(method)?,
     })
 }
@@ -186,6 +192,7 @@ fn build_public_dsl_method(method: &SpacetimeDSLMethod) -> syn::Result<Generated
 fn build_internal_dsl_method(method: &SpacetimeDSLMethod) -> syn::Result<GeneratedDSLMethod> {
     Ok(GeneratedDSLMethod {
         method_name: method.method_name.clone(),
+        is_internal: true,
         tokens: function::build_internal(method)?,
     })
 }
