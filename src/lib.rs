@@ -158,6 +158,17 @@ macro_rules! spacetimedsl {
 
             pub struct DSLMethodHooks {}
 
+            /// The row a `#[dsl(singleton(with_default))]` table gives when its row is absent.
+            ///
+            /// `get_<table>` calls this instead of failing with a not-found error, and it does
+            /// not insert the result. Implement it on the table struct. Fill the injected `id`
+            /// field with `0`; `get_<table>` overwrites it in any case.
+            pub trait DefaultSingleton: Sized {
+                fn get_default(
+                    dsl: &ReadOnlyDSL<'_, impl ::spacetimedsl::ReadContext>,
+                ) -> Result<Self, ::spacetimedsl::error::SpacetimeDSLError>;
+            }
+
             #[doc(hidden)]
             pub mod internal {
                 pub struct DSLInternals;
@@ -180,7 +191,9 @@ macro_rules! spacetimedsl {
             pub use ::spacetimedsl::error::{ReferenceIntegrityViolationError, SpacetimeDSLError};
 
             pub mod prelude {
-                pub use super::{DSL, DSLMethodHooks, ReadOnlyDSL, dsl, read_only_dsl};
+                pub use super::{
+                    DSL, DSLMethodHooks, DefaultSingleton, ReadOnlyDSL, dsl, read_only_dsl,
+                };
                 pub use ::spacetimedsl::Context;
                 pub use ::spacetimedsl::ReadContext;
                 pub use ::spacetimedsl::WriteContext;

@@ -6,54 +6,94 @@ use crate::api::{
     dsl::{
         hook::{SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks},
         method::{SpacetimeDSLArg, SpacetimeDSLArgType},
+        table::SingletonKind,
     },
     runtime,
 };
 
+/// What the `before_insert` hook of a table receives.
+///
+/// Every table hands it the `Create<Table>` request, except a
+/// `SingletonKind::WithDefault` table: that one has no create method and therefore no
+/// `Create<Table>` struct, so its row reaches the hook whole, the way `upsert_<table>`
+/// holds it.
+#[derive(Clone, Copy, PartialEq)]
+enum InsertedValue {
+    CreateRequest,
+    WholeRow,
+}
+
+impl InsertedValue {
+    fn of(singleton: Option<SingletonKind>) -> InsertedValue {
+        match singleton {
+            Some(SingletonKind::WithDefault) => InsertedValue::WholeRow,
+            _ => InsertedValue::CreateRequest,
+        }
+    }
+}
+
+/// Which hooks the table declared in `#[dsl(hook(...))]`.
+///
+/// Six flags of the same type, so they travel under their names rather than in a row of
+/// positional arguments no compiler can tell apart.
+#[derive(Clone, Copy)]
+pub(crate) struct DeclaredHooks {
+    pub before_insert: bool,
+    pub before_update: bool,
+    pub before_delete: bool,
+    pub after_insert: bool,
+    pub after_update: bool,
+    pub after_delete: bool,
+}
+
 pub(crate) fn build(
     singular_table_name: &syn::Ident,
-    before_insert: bool,
-    before_update: bool,
-    before_delete: bool,
-    after_insert: bool,
-    after_update: bool,
-    after_delete: bool,
+    singleton: Option<SingletonKind>,
+    declared: DeclaredHooks,
 ) -> SpacetimeDSLMethodHooks {
+    let inserted_value = InsertedValue::of(singleton);
+
     let before_insert = build_any(
-        before_insert,
+        declared.before_insert,
         Timing::Before,
         singular_table_name,
         Operation::Insert,
+        inserted_value,
     );
     let before_update = build_any(
-        before_update,
+        declared.before_update,
         Timing::Before,
         singular_table_name,
         Operation::Update,
+        inserted_value,
     );
     let before_delete = build_any(
-        before_delete,
+        declared.before_delete,
         Timing::Before,
         singular_table_name,
         Operation::Delete,
+        inserted_value,
     );
     let after_insert = build_any(
-        after_insert,
+        declared.after_insert,
         Timing::After,
         singular_table_name,
         Operation::Insert,
+        inserted_value,
     );
     let after_update = build_any(
-        after_update,
+        declared.after_update,
         Timing::After,
         singular_table_name,
         Operation::Update,
+        inserted_value,
     );
     let after_delete = build_any(
-        after_delete,
+        declared.after_delete,
         Timing::After,
         singular_table_name,
         Operation::Delete,
+        inserted_value,
     );
 
     SpacetimeDSLMethodHooks {
@@ -71,6 +111,7 @@ fn build_any(
     timing: Timing,
     singular_table_name: &syn::Ident,
     operation: Operation,
+    inserted_value: InsertedValue,
 ) -> Option<SpacetimeDSLMethodHook> {
     if !should_exist {
         return None;
@@ -89,8 +130,14 @@ fn build_any(
             singular_table_name,
             &singular_table_name_pascal_case,
             &operation,
+            inserted_value,
         ),
-        return_type: get_return_type(&timing, &operation, &singular_table_name_pascal_case),
+        return_type: get_return_type(
+            &timing,
+            &operation,
+            &singular_table_name_pascal_case,
+            inserted_value,
+        ),
     })
 }
 
@@ -155,20 +202,30 @@ fn get_function_args(
     singular_table_name: &syn::Ident,
     singular_table_name_pascal_case: &syn::Ident,
     operation: &Operation,
+    inserted_value: InsertedValue,
 ) -> Vec<SpacetimeDSLArg> {
     match (timing, operation) {
-        (Timing::Before, Operation::Insert) => {
-            // FIXME: Single Source of Truth Violation for arg type name
-            let arg_type = format_ident!("Create{singular_table_name_pascal_case}");
+        (Timing::Before, Operation::Insert) => match inserted_value {
+            InsertedValue::CreateRequest => {
+                // FIXME: Single Source of Truth Violation for arg type name
+                let arg_type = format_ident!("Create{singular_table_name_pascal_case}");
 
-            vec![
+                vec![
+                    build_dsl_function_arg(),
+                    build_function_arg(
+                        format_ident!("create_{singular_table_name}_request"),
+                        quote! { #arg_type },
+                    ),
+                ]
+            }
+            InsertedValue::WholeRow => vec![
                 build_dsl_function_arg(),
                 build_function_arg(
-                    format_ident!("create_{singular_table_name}_request"),
-                    quote! { #arg_type },
+                    format_ident!("new_{singular_table_name}"),
+                    quote! { #singular_table_name_pascal_case },
                 ),
-            ]
-        }
+            ],
+        },
         (Timing::After, Operation::Insert) => vec![
             build_dsl_function_arg(),
             build_function_arg(
@@ -212,14 +269,20 @@ fn get_return_type(
     timing: &Timing,
     operation: &Operation,
     singular_table_name_pascal_case: &syn::Ident,
+    inserted_value: InsertedValue,
 ) -> TokenStream {
     let error_type = runtime::spacetimedsl_error_type();
 
     match (timing, operation) {
         (Timing::Before, Operation::Insert) => {
-            let arg_type = format_ident!("Create{singular_table_name_pascal_case}");
+            let returned_type = match inserted_value {
+                InsertedValue::CreateRequest => {
+                    format_ident!("Create{singular_table_name_pascal_case}")
+                }
+                InsertedValue::WholeRow => singular_table_name_pascal_case.clone(),
+            };
             quote! {
-                Result<#arg_type, #error_type>
+                Result<#returned_type, #error_type>
             }
         }
         (Timing::Before, Operation::Update) => quote! {

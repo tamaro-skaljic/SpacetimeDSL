@@ -92,6 +92,16 @@ fn singleton() {
 }
 
 #[test]
+fn singleton_with_default() {
+    snapshot_fixture("singleton_with_default");
+}
+
+#[test]
+fn singleton_with_foreign_key() {
+    snapshot_fixture("singleton_with_foreign_key");
+}
+
+#[test]
 fn foreign_key_and_referenced_by() {
     snapshot_fixture("foreign_key_and_referenced_by");
 }

@@ -1,0 +1,47 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Get the `FeatureFlags` from the singleton `feature_flags` table, or its default while no row exists.
+
+The default is not written to the table.*/
+    pub fn get_feature_flags<'a>(
+        &'a self,
+    ) -> Result<FeatureFlags, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().feature_flags().id().find(&0u8) {
+            Some(feature_flags) => Ok(feature_flags),
+            None => {
+                let mut feature_flags = <FeatureFlags as crate::spacetimedsl::DefaultSingleton>::get_default(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                )?;
+                feature_flags.id = 0u8;
+                Ok(feature_flags)
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Get the `FeatureFlags` from the singleton `feature_flags` table, or its default while no row exists.
+
+The default is not written to the table.*/
+    pub fn get_feature_flags<'a>(
+        &'a self,
+    ) -> Result<FeatureFlags, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().feature_flags().id().find(&0u8) {
+            Some(feature_flags) => Ok(feature_flags),
+            None => {
+                let mut feature_flags = <FeatureFlags as crate::spacetimedsl::DefaultSingleton>::get_default(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                )?;
+                feature_flags.id = 0u8;
+                Ok(feature_flags)
+            }
+        }
+    }
+}

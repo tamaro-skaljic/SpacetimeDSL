@@ -1,0 +1,82 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Write the `WorldSettings` row of the singleton `world_settings` table, whether or not it exists yet.
+    pub fn upsert_world_settings<'a>(
+        &'a self,
+        world_settings: WorldSettings,
+    ) -> Result<WorldSettings, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut world_settings = world_settings;
+        world_settings.id = 0u8;
+        let the_same_or_another_world_settings: Option<WorldSettings> = self
+            .db()
+            .world_settings()
+            .id()
+            .find(&0u8);
+        if the_same_or_another_world_settings.is_some() {
+            world_settings
+                .created_at = the_same_or_another_world_settings
+                .as_ref()
+                .expect("The update path only runs when the row was found")
+                .created_at;
+            world_settings.modified_at = Some(self.ctx().timestamp()?);
+            use self::BeforeWorldSettingsUpdateHook;
+            let world_settings = crate::spacetimedsl::DSLMethodHooks::before_world_settings_update(
+                self,
+                the_same_or_another_world_settings.as_ref().unwrap(),
+                world_settings,
+            )?;
+            let world_settings = self.db().world_settings().id().update(world_settings);
+            use self::AfterWorldSettingsUpdateHook;
+            crate::spacetimedsl::DSLMethodHooks::after_world_settings_update(
+                self,
+                the_same_or_another_world_settings.as_ref().unwrap(),
+                &world_settings,
+            )?;
+            Ok(world_settings)
+        } else {
+            world_settings.created_at = self.ctx().timestamp()?;
+            world_settings.modified_at = None;
+            use self::BeforeWorldSettingsInsertHook;
+            let world_settings = crate::spacetimedsl::DSLMethodHooks::before_world_settings_insert(
+                self,
+                world_settings,
+            )?;
+            match self.db().world_settings().try_insert(world_settings.clone()) {
+                Ok(entity) => {
+                    use self::AfterWorldSettingsInsertHook;
+                    crate::spacetimedsl::DSLMethodHooks::after_world_settings_insert(
+                        self,
+                        &entity,
+                    )?;
+                    Ok(entity)
+                }
+                Err(error) => {
+                    match error {
+                        spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                            Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                                table_name: "world_settings".into(),
+                                action: crate::spacetimedsl::error::Action::Create,
+                                error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                                one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                                column_names_and_row_values: format!(
+                                    "{{ world_settings : {:?} }}", world_settings
+                                )
+                                    .into(),
+                            })
+                        }
+                        spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                            Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                                table_name: "world_settings".into(),
+                            })
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

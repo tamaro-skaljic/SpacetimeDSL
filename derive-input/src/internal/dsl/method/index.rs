@@ -114,7 +114,7 @@ impl IndexShape {
 
         IndexShape {
             is_primary_key,
-            is_singleton_primary_key: context.spacetimedsl_table.is_singleton && is_primary_key,
+            is_singleton_primary_key: context.spacetimedsl_table.is_singleton() && is_primary_key,
             column_names_and_row_values: column_names_and_row_values(&index_columns),
             described_as: format!(
                 "whose {value_matches} the {unique}{single_or_multi}-column {index_documentation} on the {on_the_columns}"

@@ -1,0 +1,17 @@
+error[E0277]: the trait bound `WorldSettings: DefaultSingleton` is not satisfied
+  --> tests/ui/singleton_with_default_without_default_implementation.rs:19:16
+   |
+19 |     pub struct WorldSettings {
+   |                ^^^^^^^^^^^^^ unsatisfied trait bound
+   |
+help: the trait `DefaultSingleton` is not implemented for `WorldSettings`
+  --> tests/ui/singleton_with_default_without_default_implementation.rs:19:5
+   |
+19 |     pub struct WorldSettings {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+help: this trait has no implementations, consider adding one
+  --> tests/ui/singleton_with_default_without_default_implementation.rs:8:1
+   |
+ 8 | ::spacetimedsl::spacetimedsl!();
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the macro `::spacetimedsl::spacetimedsl` (in Nightly builds, run with -Z macro-backtrace for more info)

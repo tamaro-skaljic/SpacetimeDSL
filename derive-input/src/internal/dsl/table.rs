@@ -4,6 +4,7 @@ use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::SpacetimeDSLTable;
 use crate::internal::DSLData;
+use crate::internal::dsl::hook::DeclaredHooks;
 use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::table::ColumnArgs;
 
@@ -33,12 +34,15 @@ impl SpacetimeDSLTable {
 
         let hooks = super::hook::build(
             &spacetimedb_table.singular_name,
-            dsl_data.before_insert_hook,
-            dsl_data.before_update_hook,
-            dsl_data.before_delete_hook,
-            dsl_data.after_insert_hook,
-            dsl_data.after_update_hook,
-            dsl_data.after_delete_hook,
+            dsl_data.singleton,
+            DeclaredHooks {
+                before_insert: dsl_data.before_insert_hook,
+                before_update: dsl_data.before_update_hook,
+                before_delete: dsl_data.before_delete_hook,
+                after_insert: dsl_data.after_insert_hook,
+                after_update: dsl_data.after_update_hook,
+                after_delete: dsl_data.after_delete_hook,
+            },
         );
 
         let has_update_method = &dsl_data.update_method;
@@ -195,7 +199,7 @@ impl SpacetimeDSLTable {
         Ok((
             spacetimedb_table,
             SpacetimeDSLTable {
-                is_singleton: dsl_data.is_singleton,
+                singleton: dsl_data.singleton,
                 plural_name: dsl_data.plural_name,
                 has_update_method,
                 has_delete_method: has_delete_method.unwrap_or(true),

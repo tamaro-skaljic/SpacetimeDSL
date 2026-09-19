@@ -1,0 +1,92 @@
+---
+source: derive/src/characterization_tests.rs
+---
+pub trait this_compilation_error_occurs_because_the_region_table_has_no_referenced_by_attribute_referencing_the_active_tournament_table {}
+pub trait this_compilation_error_occurs_because_the_region_table_has_no_referenced_by_attribute_referencing_the_server_binding_table {}
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct RegionId {
+    value: u64,
+}
+impl Default for RegionId {
+    fn default() -> RegionId {
+        RegionId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for RegionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "RegionId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, RegionId> for RegionId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Region> for RegionId {
+    fn from(value: &Region) -> Self {
+        RegionId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Region> for Option<RegionId> {
+    fn from(value: &Region) -> Option<RegionId> {
+        Some(RegionId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&RegionId> for Option<RegionId> {
+    fn from(value: &RegionId) -> Option<RegionId> {
+        use spacetimedsl::Wrapper;
+        Some(RegionId::new(value.value()))
+    }
+}
+impl From<&RegionId> for RegionId {
+    fn from(value: &RegionId) -> Self {
+        use spacetimedsl::Wrapper;
+        RegionId::new(value.value())
+    }
+}
+impl Region {
+    ///
+    pub fn get_id(&self) -> RegionId {
+        use spacetimedsl::Wrapper;
+        RegionId::new(self.id.clone())
+    }
+    ///
+    pub fn get_name(&self) -> &String {
+        use spacetimedsl::Wrapper;
+        &self.name
+    }
+    ///
+    pub fn get_name_mut(&mut self) -> &mut String {
+        use spacetimedsl::Wrapper;
+        &mut self.name
+    }
+    ///
+    pub fn set_name(&mut self, name: String) -> String {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.name, name);
+        old_value
+    }
+}
+///
+pub struct CreateRegion {
+    pub name: String,
+}
+
+// Generated DSL methods:
+// count_of_all_regions
+// create_region
+// delete_region_by_id
+// execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_region_table_were_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_region_table_was_deleted
+// get_all_regions
+// get_region_by_id
+// update_region_by_id

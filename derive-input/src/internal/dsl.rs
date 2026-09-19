@@ -26,6 +26,7 @@ pub mod singleton;
 
 symbol!(table);
 symbol!(singleton);
+symbol!(with_default);
 symbol!(plural_name);
 symbol!(unique_index);
 symbol!(method);

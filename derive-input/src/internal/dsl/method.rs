@@ -13,7 +13,7 @@ use crate::{
             method::SpacetimeDSLMethod,
             table::{
                 OnDeleteStrategiesOfReferencingTables, OnDeleteStrategiesOfTheReferencedTable,
-                SpacetimeDSLTableMethods,
+                SingletonKind, SpacetimeDSLTableMethods,
             },
         },
     },
@@ -34,6 +34,7 @@ mod reference_integrity;
 mod referenced_by;
 mod singleton_table;
 mod update;
+mod upsert;
 
 pub(in crate::internal) use context::{MethodGenerationContext, TableContributions};
 
@@ -46,6 +47,7 @@ use on_delete_strategy::ReferencingTables;
 use referenced_by::for_referenced_by;
 use singleton_table::{for_singleton_delete, for_singleton_get};
 use update::for_update;
+use upsert::for_singleton_upsert;
 
 /// The update method an index earns, if any.
 ///
@@ -118,19 +120,31 @@ impl SpacetimeDSLColumnMethods {
         // columns, so the only index a singleton reaches here with is its injected primary
         // key. Getting and deleting its row take no arguments and look it up by that key,
         // which is a different method body rather than a branch inside one. Updating it is
-        // the ordinary update, with one statement added.
-        let methods = match spacetimedsl_table.is_singleton {
-            true => {
+        // the ordinary update with one statement added, unless the table has a default: then
+        // the row may be absent, so writing it is an upsert and a method of its own.
+        let delete_one = match spacetimedsl_table.has_delete_method {
+            false => None,
+            true => Some(for_singleton_delete(context)),
+        };
+
+        let methods = match spacetimedsl_table.singleton {
+            Some(SingletonKind::WithoutDefault) => {
                 SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
                     get_one_option: for_singleton_get(context),
                     update: update_method_for(&IndexShape::of(index, context), context),
-                    delete_one: match spacetimedsl_table.has_delete_method {
-                        false => None,
-                        true => Some(for_singleton_delete(context)),
-                    },
+                    delete_one,
                 })
             }
-            false => column_methods_for(index, context),
+            // `internal.rs` rejects `method(update = false)` on such a table, so the upsert
+            // always exists: it is the only method which writes the row.
+            Some(SingletonKind::WithDefault) => {
+                SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
+                    get_one_option: for_singleton_get(context),
+                    update: Some(for_singleton_upsert(context)),
+                    delete_one,
+                })
+            }
+            None => column_methods_for(index, context),
         };
 
         Some(methods)
@@ -149,12 +163,22 @@ impl SpacetimeDSLTableMethods {
             ..
         } = context;
 
-        let is_singleton = spacetimedsl_table.is_singleton;
+        let is_singleton = spacetimedsl_table.is_singleton();
 
         let mut contributions = TableContributions::default();
 
-        let (create, create_contributions) = for_create(context);
-        contributions.merge(create_contributions);
+        // A table with a default has no create method, and skipping the generator is also
+        // what withholds the `Create<Table>` argument struct: the generator is its only
+        // source.
+        let create = match spacetimedsl_table.singleton_has_default() {
+            true => None,
+            false => {
+                let (create, create_contributions) = for_create(context);
+                contributions.merge(create_contributions);
+
+                Some(create)
+            }
+        };
 
         // A singleton holds one row, so iterating and counting have nothing to say.
         let get_all = match is_singleton {

@@ -75,7 +75,7 @@ pub(in crate::internal) fn on_delete_strategy_implementation(
     let mut strategy_by_column = vec![];
     let mut strategy_after_all = TokenStream::default();
 
-    let is_singleton = spacetimedsl_table.is_singleton;
+    let is_singleton = spacetimedsl_table.is_singleton();
 
     for column in &columns_by_on_delete_strategy {
         let column_name = &column.rust_field.name;

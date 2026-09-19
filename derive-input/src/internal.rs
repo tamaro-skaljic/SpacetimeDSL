@@ -1,5 +1,7 @@
+use crate::api::dsl::table::SingletonKind;
 use crate::internal::dsl::{
     after, before, delete, hook, insert, method, plural_name, singleton, unique_index, update,
+    with_default,
 };
 use proc_macro2::Span;
 use spacetime_bindings_macro_input::{match_meta, sym, util::check_duplicate};
@@ -33,12 +35,12 @@ pub(crate) fn try_parse(
     let (table_args, column_args) = integration::spacetime_bindings_macro_input(
         input,
         &dsl_data.plural_name,
-        dsl_data.is_singleton,
+        dsl_data.singleton.is_some(),
     )?;
 
     // For singletons, set plural_name to the singular name from the table accessor
     // (it's only used for get_all/count_of_all which won't be generated)
-    if dsl_data.is_singleton {
+    if dsl_data.singleton.is_some() {
         dsl_data.plural_name = crate::internal::table::rm_rsharp(table_args.accessor.clone());
     }
 
@@ -50,6 +52,7 @@ pub(crate) fn try_parse(
 fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     let mut name_plural: Option<Ident> = None;
     let mut is_singleton: Option<()> = None;
+    let mut singleton_with_default: Option<Span> = None;
 
     let mut unique_indices = vec![];
 
@@ -73,6 +76,19 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
             singleton => {
                 check_duplicate(&is_singleton, &meta)?;
                 is_singleton = Some(());
+
+                // `#[dsl(singleton)]` carries no list, `#[dsl(singleton(with_default))]` does.
+                if meta.input.peek(syn::token::Paren) {
+                    meta.parse_nested_meta(|meta| {
+                        match_meta!(match meta {
+                            with_default => {
+                                check_duplicate(&singleton_with_default, &meta)?;
+                                singleton_with_default = Some(meta.path.span());
+                            }
+                        });
+                        Ok(())
+                    })?;
+                }
             }
             plural_name => {
                 check_duplicate(&name_plural, &meta)?;
@@ -190,6 +206,15 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
 
     let is_singleton = is_singleton.is_some();
 
+    if let Some(span) = singleton_with_default
+        && update_method == Some(false)
+    {
+        return Err(syn::Error::new(
+            span,
+            "Cannot disable the `update` method with `#[dsl(method(update = false))]` on a table with `#[dsl(singleton(with_default))]`!\n`upsert_<table>` is the only method which writes the row of such a table, so the table could never hold one.",
+        ));
+    }
+
     if is_singleton {
         if let Some(name_plural) = &name_plural {
             return Err(syn::Error::new_spanned(
@@ -219,8 +244,15 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         })?
     };
 
+    // `singleton` itself is the attribute symbol in this scope, so the parsed kind needs a
+    // name of its own.
+    let singleton_kind = is_singleton.then_some(match singleton_with_default {
+        None => SingletonKind::WithoutDefault,
+        Some(_) => SingletonKind::WithDefault,
+    });
+
     Ok(DSLData {
-        is_singleton,
+        singleton: singleton_kind,
         plural_name: parsed_plural_name,
         unique_indices,
         before_insert_hook: before_insert_hook.is_some(),
@@ -235,7 +267,7 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
 }
 
 struct DSLData {
-    is_singleton: bool,
+    singleton: Option<SingletonKind>,
     plural_name: Ident,
     unique_indices: Vec<Ident>,
     before_insert_hook: bool,

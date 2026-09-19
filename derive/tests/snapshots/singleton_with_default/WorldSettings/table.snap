@@ -1,0 +1,93 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl WorldSettings {
+    ///
+    pub fn get_maximum_player_count(&self) -> &u32 {
+        use spacetimedsl::Wrapper;
+        &self.maximum_player_count
+    }
+    ///
+    pub fn get_maximum_player_count_mut(&mut self) -> &mut u32 {
+        use spacetimedsl::Wrapper;
+        &mut self.maximum_player_count
+    }
+    ///
+    pub fn set_maximum_player_count(&mut self, maximum_player_count: u32) -> u32 {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(
+            &mut self.maximum_player_count,
+            maximum_player_count,
+        );
+        old_value
+    }
+    ///
+    pub fn get_world_name(&self) -> &String {
+        use spacetimedsl::Wrapper;
+        &self.world_name
+    }
+    ///
+    pub fn get_world_name_mut(&mut self) -> &mut String {
+        use spacetimedsl::Wrapper;
+        &mut self.world_name
+    }
+    ///
+    pub fn set_world_name(&mut self, world_name: String) -> String {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.world_name, world_name);
+        old_value
+    }
+    ///
+    pub fn get_created_at(&self) -> &Timestamp {
+        use spacetimedsl::Wrapper;
+        &self.created_at
+    }
+    ///
+    pub fn get_modified_at(&self) -> &Option<Timestamp> {
+        use spacetimedsl::Wrapper;
+        &self.modified_at
+    }
+}
+pub trait BeforeWorldSettingsInsertHook<T: crate::spacetimedsl::WriteContext> {
+    fn before_world_settings_insert(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        new_world_settings: WorldSettings,
+    ) -> Result<WorldSettings, crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+pub trait BeforeWorldSettingsUpdateHook<T: crate::spacetimedsl::WriteContext> {
+    fn before_world_settings_update(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_world_settings: &WorldSettings,
+        new_world_settings: WorldSettings,
+    ) -> Result<WorldSettings, crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+pub trait BeforeWorldSettingsDeleteHook<T: crate::spacetimedsl::WriteContext> {
+    fn before_world_settings_delete(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_world_settings: &WorldSettings,
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+pub trait AfterWorldSettingsInsertHook<T: crate::spacetimedsl::WriteContext> {
+    fn after_world_settings_insert(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        new_world_settings: &WorldSettings,
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+pub trait AfterWorldSettingsUpdateHook<T: crate::spacetimedsl::WriteContext> {
+    fn after_world_settings_update(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_world_settings: &WorldSettings,
+        new_world_settings: &WorldSettings,
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+pub trait AfterWorldSettingsDeleteHook<T: crate::spacetimedsl::WriteContext> {
+    fn after_world_settings_delete(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_world_settings: &WorldSettings,
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+
+// Generated DSL methods:
+// delete_world_settings
+// get_world_settings
+// upsert_world_settings

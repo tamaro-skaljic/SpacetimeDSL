@@ -52,7 +52,7 @@ fn create_method_column_parts(
     let column_type = &internal_column.rust_field_type_name_or_path;
 
     // A singleton table does not ask for its injected primary key, it fills it in.
-    if spacetimedsl_table.is_singleton
+    if spacetimedsl_table.is_singleton()
         && singleton::is_primary_key_column(
             &internal_column.rust_field_name,
             &internal_column.rust_field_type_name_or_path,

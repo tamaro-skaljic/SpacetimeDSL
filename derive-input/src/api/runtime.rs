@@ -261,6 +261,20 @@ pub fn read_only_dsl_type() -> TokenStream {
     }
 }
 
+/// `read_only_dsl(#context)`, the read-only DSL a singleton's default is asked for through.
+pub fn read_only_dsl_call(context: &impl ToTokens) -> TokenStream {
+    quote! {
+        crate::spacetimedsl::read_only_dsl(#context)
+    }
+}
+
+/// `DefaultSingleton`, the trait a `#[dsl(singleton(with_default))]` table's struct implements.
+pub fn default_singleton_trait() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::DefaultSingleton
+    }
+}
+
 /// `internal::DSLInternals`, as a type rather than a call.
 pub fn dsl_internals_type() -> TokenStream {
     quote! {

@@ -1,0 +1,139 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Write the `ActiveTournament` row of the singleton `active_tournament` table, whether or not it exists yet.
+    pub fn upsert_active_tournament<'a>(
+        &'a self,
+        active_tournament: ActiveTournament,
+    ) -> Result<ActiveTournament, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut active_tournament = active_tournament;
+        active_tournament.id = 0u8;
+        let mut the_same_or_another_active_tournament: Option<ActiveTournament> = self
+            .db()
+            .active_tournament()
+            .id()
+            .find(&0u8);
+        if the_same_or_another_active_tournament.is_some() {
+            let region_id = active_tournament.get_region_id().value();
+            if region_id.ne(&0) {
+                if the_same_or_another_active_tournament.is_none() {
+                    the_same_or_another_active_tournament = match self
+                        .db()
+                        .active_tournament()
+                        .id()
+                        .find(&0u8)
+                    {
+                        Some(active_tournament) => Some(active_tournament),
+                        None => {
+                            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                                table_name: "active_tournament".into(),
+                                column_names_and_row_values: format!(
+                                    "{{ id : {} }}", region_id
+                                )
+                                    .into(),
+                            });
+                        }
+                    };
+                }
+                if the_same_or_another_active_tournament
+                    .as_ref()
+                    .expect("field_name_for_found_value should be Some(_)")
+                    .get_region_id()
+                    .ne(&active_tournament.get_region_id())
+                {
+                    match self.get_region_by_id(active_tournament.get_region_id()) {
+                        Ok(_) => {}
+                        Err(_) => {
+                            return Err(
+                                crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                    table_name: "active_tournament".into(),
+                                    create_or_update: crate::spacetimedsl::error::Action::Update,
+                                    column_names_and_row_values: format!(
+                                        "{{ {} : {} }}", "region_id", region_id
+                                    )
+                                        .into(),
+                                }),
+                            );
+                        }
+                    };
+                }
+            }
+            let active_tournament = self
+                .db()
+                .active_tournament()
+                .id()
+                .update(active_tournament);
+            Ok(active_tournament)
+        } else {
+            let region_id = active_tournament.get_region_id().value();
+            let qualifier_region_id = active_tournament
+                .get_qualifier_region_id()
+                .value();
+            if region_id.ne(&0) {
+                match self.get_region_by_id(active_tournament.get_region_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "active_tournament".into(),
+                                create_or_update: crate::spacetimedsl::error::Action::Create,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", region_id, active_tournament
+                                    .get_region_id()
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+            if qualifier_region_id.ne(&0) {
+                match self.get_region_by_id(active_tournament.get_qualifier_region_id())
+                {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "active_tournament".into(),
+                                create_or_update: crate::spacetimedsl::error::Action::Create,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", qualifier_region_id, active_tournament
+                                    .get_qualifier_region_id()
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+            match self.db().active_tournament().try_insert(active_tournament.clone()) {
+                Ok(entity) => Ok(entity),
+                Err(error) => {
+                    match error {
+                        spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                            Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                                table_name: "active_tournament".into(),
+                                action: crate::spacetimedsl::error::Action::Create,
+                                error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                                one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                                column_names_and_row_values: format!(
+                                    "{{ active_tournament : {:?} }}", active_tournament
+                                )
+                                    .into(),
+                            })
+                        }
+                        spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                            Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                                table_name: "active_tournament".into(),
+                            })
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

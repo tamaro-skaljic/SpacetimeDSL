@@ -10,9 +10,22 @@ use crate::api::dsl::{
     method::{SpacetimeDSLArg, SpacetimeDSLMethod},
 };
 
+/// How many rows a singleton table holds, which decides which methods it earns.
+///
+/// `WithoutDefault` is `#[dsl(singleton)]`: at most one row, and `get_<table>` fails while
+/// the row is absent. `WithDefault` is `#[dsl(singleton(with_default))]`: exactly one row
+/// from the caller's point of view, because `get_<table>` falls back to the default the
+/// table's struct supplies through the `DefaultSingleton` trait.
+#[derive(Clone, Copy, PartialEq)]
+pub enum SingletonKind {
+    WithoutDefault,
+    WithDefault,
+}
+
 #[derive(Clone)]
 pub struct SpacetimeDSLTable {
-    pub is_singleton: bool,
+    /// `None` for an ordinary table.
+    pub singleton: Option<SingletonKind>,
     pub plural_name: Ident,
     pub has_update_method: bool,
     pub has_delete_method: bool,
@@ -22,6 +35,17 @@ pub struct SpacetimeDSLTable {
     pub compile_error_checks: BTreeSet<Ident>,
     pub create_dsl_method_arg: Option<CreateDSLMethodArg>,
     pub hooks: SpacetimeDSLMethodHooks,
+}
+
+impl SpacetimeDSLTable {
+    pub fn is_singleton(&self) -> bool {
+        self.singleton.is_some()
+    }
+
+    /// Whether `get_<table>` falls back to `DefaultSingleton::get_default` instead of failing.
+    pub fn singleton_has_default(&self) -> bool {
+        self.singleton == Some(SingletonKind::WithDefault)
+    }
 }
 
 #[derive(Clone)]
@@ -54,7 +78,9 @@ pub struct OnDeleteStrategiesOfTheReferencedTable {
 
 #[derive(Clone)]
 pub struct SpacetimeDSLTableMethods {
-    pub create: SpacetimeDSLMethod,
+    /// `None` on a `SingletonKind::WithDefault` table: its row is written by
+    /// `upsert_<table>`, so it has no create method and no `Create<Table>` argument struct.
+    pub create: Option<SpacetimeDSLMethod>,
     pub get_all: Option<SpacetimeDSLMethod>,
     pub get_count: Option<SpacetimeDSLMethod>,
     pub on_delete_strategies_of_referencing_tables: Option<OnDeleteStrategiesOfReferencingTables>,
