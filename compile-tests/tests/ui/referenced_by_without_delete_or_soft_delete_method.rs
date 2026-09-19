@@ -1,9 +1,10 @@
-//! `#[referenced_by]` declares what happens to other tables' rows when a row of this
-//! table is deleted. With `method(delete = false)` the DSL generates no delete method, so
-//! nothing can ever run those strategies.
+//! `#[referenced_by]` declares what happens to other tables' rows when a row of this table
+//! goes away. With `method(delete = false)` and no `method(soft_delete = true)` the DSL
+//! generates neither a delete nor a soft delete method, so nothing can ever run those
+//! strategies.
 //!
-//! Rejecting the pair is not only tidiness. `for_referenced_by` also registers one half of
-//! the paired `this_compilation_error_occurs_because_...` traits that verify
+//! Rejecting the combination is not only tidiness. `for_referenced_by` also registers one
+//! half of the paired `this_compilation_error_occurs_because_...` traits that verify
 //! `#[referenced_by]` and `#[foreign_key]` agree across the two tables. Silently skipping
 //! it would leave every referencing table importing a trait that was never defined.
 

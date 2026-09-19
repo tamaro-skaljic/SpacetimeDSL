@@ -85,7 +85,11 @@ impl SpacetimeDSLTable {
         let mut referencing_tables = vec![];
 
         for field in &column_args.fields {
-            let refs = ReferencingTable::try_parse(&has_delete_method.unwrap_or(true), field)?;
+            let refs = ReferencingTable::try_parse(
+                &has_delete_method.unwrap_or(true),
+                soft_delete_marker.is_some(),
+                field,
+            )?;
             if referencing_tables.is_empty() {
                 referencing_tables = refs;
             }

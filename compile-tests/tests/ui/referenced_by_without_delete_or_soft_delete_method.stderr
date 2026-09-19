@@ -1,0 +1,6 @@
+error: `#[referenced_by]` is only allowed when the table has a delete method (`#[dsl(method(delete = true))]`) or is soft-deletable (`#[dsl(method(soft_delete = true))]`)!
+       The on-delete strategies it declares run when a row of this table is deleted or soft-deleted, neither of which the DSL can do while both are disabled.
+  --> tests/ui/referenced_by_without_delete_or_soft_delete_method.rs:26:9
+   |
+26 |         #[referenced_by(path = crate::shipment, table = shipment)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

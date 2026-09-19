@@ -5,7 +5,12 @@ pub struct ForeignKey {
     pub path: Path,
     pub table_name: Ident,
     pub primary_key_column_name: Ident,
-    pub on_delete_strategy: OnDeleteStrategy,
+    /// What happens to the rows of this table when a row of the referenced table is
+    /// deleted. `None` while the referenced table is not deletable.
+    pub on_delete_strategy: Option<OnDeleteStrategy>,
+    /// What happens to the rows of this table when a row of the referenced table is
+    /// soft-deleted. `None` while the referenced table is not soft-deletable.
+    pub on_soft_delete_strategy: Option<OnDeleteStrategy>,
 }
 
 // This enum is copy+paste of the enum in the SpacetimeDSL crate (which is the public API of the DSL).

@@ -92,7 +92,9 @@ pub(in crate::internal) fn for_foreign_key(
             ));
         }
 
-        let on_delete_strategy = &column_with_foreign_key
+        // A foreign key may set `on_soft_delete` alone, in which case it contributes no
+        // deletion strategy. Task 11 groups the soft strategies separately.
+        let on_delete_strategy = match &column_with_foreign_key
             .spacetimedsl_column
             .foreign_key
             .as_ref()
@@ -102,7 +104,11 @@ pub(in crate::internal) fn for_foreign_key(
                     column_with_foreign_key.rust_field.name
                 )
             })
-            .on_delete_strategy;
+            .on_delete_strategy
+        {
+            None => continue,
+            Some(on_delete_strategy) => on_delete_strategy,
+        };
 
         if !columns_by_on_delete_strategies.contains_key(on_delete_strategy) {
             columns_by_on_delete_strategies.insert(on_delete_strategy, vec![]);

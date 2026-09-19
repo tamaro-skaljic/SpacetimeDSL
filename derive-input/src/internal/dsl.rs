@@ -46,5 +46,6 @@ symbol!(referenced_by);
 symbol!(path);
 symbol!(column);
 symbol!(on_delete);
+symbol!(on_soft_delete);
 symbol!(create_wrapper);
 symbol!(use_wrapper);

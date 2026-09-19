@@ -1798,7 +1798,7 @@ Parsing only. The strategies are not generated yet, and no cascade calls them; T
   - `ForeignKey.on_soft_delete_strategy: Option<OnDeleteStrategy>`
   - `ForeignKey::try_parse(has_delete_method: &bool, is_soft_deletable: bool, is_singleton: bool, field: &SatsField<'_>) -> syn::Result<Option<ForeignKey>>`
 
-- [ ] **Step 1: Write the six failing tests**
+- [x] **Step 1: Write the six failing tests**
 
 Under `compile-tests/tests/ui/`, each a two-table module pair like `referenced_by_without_delete_method.rs`:
 
@@ -1809,7 +1809,7 @@ Under `compile-tests/tests/ui/`, each a two-table module pair like `referenced_b
 - `on_soft_delete_soft_delete_on_table_that_is_not_soft_deletable.rs` — `on_soft_delete = SoftDelete` on the same kind of table.
 - `referenced_by_without_delete_or_soft_delete_method.rs` — `#[referenced_by]` on a table with `method(delete = false)` and no `soft_delete`. This replaces the existing `referenced_by_without_delete_method.rs`; delete that file and its `.stderr` in step 4, because the message it pins is being rewritten.
 
-- [ ] **Step 2: Run them to make sure they fail**
+- [x] **Step 2: Run them to make sure they fail**
 
 ```bash
 .\x.ps1 unit-test
@@ -1817,7 +1817,7 @@ Under `compile-tests/tests/ui/`, each a two-table module pair like `referenced_b
 
 Expected: FAIL for all six.
 
-- [ ] **Step 3: Parse both fields and enforce the per-field strategy sets**
+- [x] **Step 3: Parse both fields and enforce the per-field strategy sets**
 
 Add `symbol!(on_soft_delete);` to `derive-input/src/internal/dsl.rs`.
 
@@ -1921,7 +1921,7 @@ impl OnDeleteStrategy {
 
 Thread `is_soft_deletable` through: `ForeignKey::try_parse` gains the parameter, `SpacetimeDSLColumn::try_parse` passes it, and `internal/column.rs` supplies `spacetimedsl_table.is_soft_deletable()` beside the `&spacetimedsl_table.has_delete_method` it already passes.
 
-- [ ] **Step 4: Widen the `#[referenced_by]` gate**
+- [x] **Step 4: Widen the `#[referenced_by]` gate**
 
 In `derive-input/src/internal/dsl/reference.rs`, `ReferencingTable::try_parse` takes `is_soft_deletable: bool` beside `has_delete_method`, and the check becomes:
 
@@ -1938,7 +1938,7 @@ The call site in `internal/dsl/table.rs` currently passes `&has_delete_method.un
 
 Delete `compile-tests/tests/ui/referenced_by_without_delete_method.rs` and its `.stderr`; the new case replaces it.
 
-- [ ] **Step 5: Keep the strategy grouping compiling**
+- [x] **Step 5: Keep the strategy grouping compiling**
 
 `method/foreign_key.rs` groups the foreign key columns by `on_delete_strategy`, which is now an `Option`. For this task, group only the columns whose `on_delete_strategy` is `Some`, so generated output for existing tables does not change:
 
@@ -1957,7 +1957,7 @@ Delete `compile-tests/tests/ui/referenced_by_without_delete_method.rs` and its `
 
 Task 11 gives the soft strategies their own grouping.
 
-- [ ] **Step 6: Regenerate the diagnostics and read them**
+- [x] **Step 6: Regenerate the diagnostics and read them**
 
 ```bash
 $env:TRYBUILD = "overwrite"
@@ -1968,7 +1968,7 @@ git diff --stat compile-tests/tests/ui
 
 Read every `.stderr` that changed or appeared. Six new messages, one deleted pair, and no unrelated `.stderr` may move. If one does, a message was edited that this task should not touch.
 
-- [ ] **Step 7: Run both harnesses**
+- [x] **Step 7: Run both harnesses**
 
 ```bash
 .\x.ps1 unit-test
@@ -1976,7 +1976,7 @@ Read every `.stderr` that changed or appeared. Six new messages, one deleted pai
 
 Expected: both PASS, and no snapshot moves. Every existing fixture sets `on_delete`, so the grouping still sees the same columns.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add derive-input/src/api/dsl/foreign_key.rs \
