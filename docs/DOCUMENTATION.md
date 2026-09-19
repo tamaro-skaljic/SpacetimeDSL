@@ -623,6 +623,20 @@ which is the point of the feature.
 
 Implement `DefaultSingleton` on the table struct. It is part of the prelude.
 
+> **IMPORTANT:** Do not access `dsl.ctx()` inside the `get_default` method!
+>
+> SpacetimeDB's (Anonymous) Views allow almost no access to:
+>
+> - [auth](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_auth.rs),
+> - [connection id](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_connection_id.rs),
+> - [module identity](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_module_identity.rs),
+> - [random](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_random.rs),
+> - [random number generator](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_random_number_generator.rs),
+> - [sender (user identity)](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_sender.rs), and
+> - [timestamp]([TODO](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_timestamp.rs)) (see https://github.com/clockworklabs/SpacetimeDB/issues/4533).
+>
+> This is also the reason why you are only allowed to define `Option<Timestamp>` columns (even for `#[created_at]` columns) on `singleton(with_default)`-tables, not `Timestamp` columns.
+
 ```rust
 use crate::spacetimedsl::prelude::*;
 use spacetimedb::Timestamp;
