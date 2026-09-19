@@ -17,39 +17,47 @@
 - No abbreviations in identifiers. `InputOutput`, not `Io`. `singular_table_name`, not `name`.
 - No comment may restate what the code says. Document only what is not obvious and why.
 - Write the test before the production code. Snapshot tests are written by adding a fixture and a test function; diagnostics tests by adding a `tests/ui/*.rs` file.
-- `./x unit-test` must be green at the end of every task. It runs `cargo test -p spacetimedsl_derive` and `cargo test -p spacetimedsl-compile-tests`.
+- **Never invoke `cargo` directly.** Building a workspace member on its own fails to link against SpacetimeDB. `x.ps1` is the only supported entry point, and its three relevant commands are `.\x.ps1 unit-test`, `.\x.ps1 test` and `.\x.ps1 format`. A linker error is a sign that a raw `cargo` command was used, not a problem to investigate.
+- `.\x.ps1 unit-test` must be green at the end of every task. It runs the snapshot tests and the diagnostics tests.
 - `.\x.ps1 test` must be clean at the end of every task. The snapshot tests compare token streams and never compile them, so they cannot catch a generated body that does not build, nor one that builds and then misbehaves. This step does both: it publishes `examples/test` and `examples/blackholio` to the local SpacetimeDB server and runs the `tester` reducer. The server is already running.
   - **Check for `Test executed successfully` in its output.** That line is what the `tester` reducer logs on success. Finding it is enough; the run is clean and no further reading is needed.
   - **Only when that line is absent, read the whole output.** Do not trust the exit code: the script runs each `spacetime` command without checking the result and always exits 0. Look for a module that failed to publish, an error from `spacetime call ... tester`, and any panic or assertion failure in the logs.
-  - When a publish fails, `cargo check -p spacetimedsl_test` points at the offending generated code far faster than the publish output does. It is a debugging aid, not a substitute for this step.
 - `method(delete)` keeps its default of `true`. It becomes mandatory only when `method(soft_delete)` is present.
 - Accepted strategies: `on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero`, `Ignore`; `on_soft_delete` takes `Error`, `SoftDelete`, `Ignore` only.
 - `OnDeleteStrategy` variant order is `Error, Delete, SoftDelete, SetZero, Ignore`, in both copies of the enum.
 
 ## How to run the two test harnesses
 
-**Snapshot tests** (`derive/tests/fixtures/*.rs` → `derive/tests/snapshots/<fixture>/<Struct>/*.snap`):
+Both live behind one command, run from the repository root in PowerShell:
 
-```bash
-cargo test -p spacetimedsl_derive
+```powershell
+.\x.ps1 unit-test
 ```
 
-A new or changed snapshot makes the test fail and writes `*.snap.new` beside the old file. Read every `.snap.new`, then accept them:
+**Snapshot tests** (`derive/tests/fixtures/*.rs` → `derive/tests/snapshots/<fixture>/<Struct>/*.snap`).
 
-```bash
-cargo insta accept            # if cargo-insta is installed
-# otherwise, per file:
-mv path/to/name.snap.new path/to/name.snap
+A new or changed snapshot fails the run and writes `*.snap.new` beside the old file. Read every one of them, then accept each by renaming it over the old file:
+
+```powershell
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
+    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
 ```
 
-**Diagnostics tests** (`compile-tests/tests/ui/*.rs` + `*.stderr`):
+Never accept a batch without reading it first — a snapshot is the only record of what the generator emits.
 
-```bash
-cargo test -p spacetimedsl-compile-tests
-TRYBUILD=overwrite cargo test -p spacetimedsl-compile-tests   # regenerate .stderr
+**Diagnostics tests** (`compile-tests/tests/ui/*.rs` + `*.stderr`).
+
+A `tests/ui/*.rs` file that compiles fails the run with `expected test case to fail to compile, but it succeeded`. That is the red state for every diagnostics task here.
+
+To regenerate the `.stderr` files after deliberately changing a diagnostic, set the environment variable for one run and clear it afterwards:
+
+```powershell
+$env:TRYBUILD = "overwrite"
+.\x.ps1 unit-test
+$env:TRYBUILD = $null
 ```
 
-A `tests/ui/*.rs` file that compiles makes the test fail with `expected test case to fail to compile, but it succeeded`. That is the red state for every diagnostics task here.
+Read every regenerated `.stderr` before committing it.
 
 ## File Structure
 
@@ -121,7 +129,7 @@ This task changes generated output only. No new test is written; the existing sn
 - [ ] **Step 1: Record the current snapshots as the baseline**
 
 ```bash
-cargo test -p spacetimedsl_derive 2>&1 | tail -5
+.\x.ps1 unit-test
 git status --short        # must be clean
 ```
 
@@ -192,7 +200,7 @@ with:
 - [ ] **Step 5: Run the snapshots and read every diff**
 
 ```bash
-cargo test -p spacetimedsl_derive 2>&1 | tail -20
+.\x.ps1 unit-test
 ```
 
 Expected: FAIL, with `.snap.new` files under `derive/tests/snapshots/timestamps`, `hooks_all_six` and `singleton_with_default`.
@@ -202,9 +210,9 @@ Read each one. Every diff must be a pure reordering: the hook call moves above t
 - [ ] **Step 6: Accept the snapshots and verify green**
 
 ```bash
-cargo insta accept
-cargo test -p spacetimedsl_derive 2>&1 | tail -5
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -5
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
+    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+.\x.ps1 unit-test
 ```
 
 Expected: both PASS.
@@ -241,29 +249,20 @@ The `OnDeleteStrategy` enum exists twice: once in the runtime crate, which gener
 - Consumes: nothing.
 - Produces: `spacetimedsl::delete::OnDeleteStrategy::SoftDelete`; `spacetimedsl::error::Action::SoftDelete`; `derive_input::api::dsl::foreign_key::OnDeleteStrategy::SoftDelete`, which `quote::ToTokens` renders as the runtime path.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Record what the snapshots say before the change**
 
-Add to the bottom of `src/delete.rs`:
+`.\x.ps1 unit-test` runs the snapshot and diagnostics harnesses only; it does not run unit tests inside the runtime crate, so a `#[cfg(test)]` test in `src/delete.rs` would never execute. The observable for this task is the snapshot corpus instead.
 
-```rust
-#[cfg(test)]
-mod tests {
-    use super::OnDeleteStrategy;
-
-    #[test]
-    fn soft_delete_renders_its_own_name() {
-        assert_eq!(OnDeleteStrategy::SoftDelete.to_string(), "SoftDelete");
-    }
-}
+```powershell
+.\x.ps1 unit-test
+Select-String -Path derive\tests\snapshots\on_delete_delete\Book\internal_methods.snap -Pattern "SoftDelete"
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+Expected: the harness is green and the `Select-String` finds nothing. No generated cascade function mentions `SoftDelete` yet.
 
-```bash
-cargo test -p spacetimedsl soft_delete_renders_its_own_name
-```
+- [ ] **Step 2: Know what will make it move**
 
-Expected: FAIL, `no variant named SoftDelete found for enum OnDeleteStrategy`.
+`OnDeleteStrategy::iter()` in `derive-input/src/internal/dsl/method/foreign_key.rs` builds one match arm per variant, in declaration order. Adding the variant therefore adds one empty arm to every generated cascade function, which is what the snapshots will show at step 6. Nothing else in generated output may change.
 
 - [ ] **Step 3: Add the variant to the runtime enum**
 
@@ -301,15 +300,7 @@ and its `Display` arm after the `Action::Delete` arm:
 
 `ReferenceIntegrityViolationError::OnCreateOrUpdate`'s `Display` panics for `Action::Get | Action::Delete`; extend that pattern to `Action::Get | Action::Delete | Action::SoftDelete`, because a soft deletion is no more a create or an update than a deletion is.
 
-- [ ] **Step 4: Run it to make sure it passes**
-
-```bash
-cargo test -p spacetimedsl soft_delete_renders_its_own_name
-```
-
-Expected: PASS.
-
-- [ ] **Step 5: Mirror the variant into the macro copy**
+- [ ] **Step 4: Mirror the variant into the macro copy**
 
 In `derive-input/src/api/dsl/foreign_key.rs`, add to the enum between `Delete` and the commented-out `SetNone`:
 
@@ -331,17 +322,32 @@ and to the `ToTokens` implementation, between the `Delete` and `SetZero` arms:
             }
 ```
 
-- [ ] **Step 6: Verify the whole workspace still builds and both harnesses are green**
+- [ ] **Step 5: Run the harnesses and read the moved snapshots**
 
-```bash
-cargo build --workspace 2>&1 | tail -5
-cargo test -p spacetimedsl_derive 2>&1 | tail -5
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -5
+```powershell
+.\x.ps1 unit-test
 ```
 
-Expected: all PASS. The new variant has no `#[foreign_key]` spelling yet, so no generated output changes and no snapshot moves. `OnDeleteStrategy::iter()` in `method/foreign_key.rs` now yields a fifth strategy with no columns behind it, which produces an empty match arm — that is an added arm in the snapshots. If snapshots move, read each diff, confirm it adds only an empty `SoftDelete => {}` arm, and accept.
+Expected: FAIL, with a `*.snap.new` for every fixture that has a foreign key. Read each one. The only change may be one added empty arm:
 
-- [ ] **Step 7: Commit**
+```rust
+    crate::spacetimedsl::OnDeleteStrategy::SoftDelete => {}
+```
+
+placed between the `Delete` and `SetZero` arms, because that is where the variant was declared. An arm in a different position means the variant went to the wrong place in the enum; a changed arm body means something other than the enum moved.
+
+Accept them, then re-run:
+
+```powershell
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
+    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+.\x.ps1 unit-test
+.\x.ps1 test
+```
+
+Expected: `.\x.ps1 unit-test` green, and `.\x.ps1 test` printing `Test executed successfully`.
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add src/delete.rs src/error.rs derive-input/src/api/dsl/foreign_key.rs derive/tests/snapshots
@@ -409,7 +415,7 @@ fn main() {}
 - [ ] **Step 2: Run it to make sure it fails**
 
 ```bash
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -20
+.\x.ps1 unit-test
 ```
 
 Expected: FAIL. Either `expected test case to fail to compile, but it succeeded`, or a compile error about an unknown `soft_delete` meta. Both are the red state; the parser does not know the keyword yet.
@@ -480,7 +486,9 @@ Add the field to `DSLData` and to the `Ok(DSLData { .. })` that builds it:
 - [ ] **Step 4: Regenerate the diagnostic and read it**
 
 ```bash
-TRYBUILD=overwrite cargo test -p spacetimedsl-compile-tests 2>&1 | tail -10
+$env:TRYBUILD = "overwrite"
+.\x.ps1 unit-test
+$env:TRYBUILD = $null
 cat compile-tests/tests/ui/soft_delete_method_without_delete_method.stderr
 ```
 
@@ -489,8 +497,7 @@ Expected: the `.stderr` holds the message above, underlining `soft_delete` insid
 - [ ] **Step 5: Run both harnesses**
 
 ```bash
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -5
-cargo test -p spacetimedsl_derive 2>&1 | tail -5
+.\x.ps1 unit-test
 ```
 
 Expected: both PASS. No table in any fixture mentions `soft_delete`, so no snapshot moves.
@@ -578,7 +585,7 @@ fn main() {}
 - [ ] **Step 2: Run them to make sure they fail**
 
 ```bash
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -30
+.\x.ps1 unit-test
 ```
 
 Expected: FAIL, `expected test case to fail to compile, but it succeeded`, for all six.
@@ -812,7 +819,9 @@ In `derive/src/lib.rs`, add `set_on_soft_delete` to the `attributes(...)` list o
 - [ ] **Step 7: Regenerate the six diagnostics and read them**
 
 ```bash
-TRYBUILD=overwrite cargo test -p spacetimedsl-compile-tests 2>&1 | tail -10
+$env:TRYBUILD = "overwrite"
+.\x.ps1 unit-test
+$env:TRYBUILD = $null
 for f in compile-tests/tests/ui/marker_column_without_soft_delete_method \
          compile-tests/tests/ui/soft_delete_method_without_marker_column \
          compile-tests/tests/ui/marker_column_with_wrong_type \
@@ -827,8 +836,7 @@ Expected: six distinct messages, each underlining the column, the type, the visi
 - [ ] **Step 8: Run both harnesses**
 
 ```bash
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -5
-cargo test -p spacetimedsl_derive 2>&1 | tail -5
+.\x.ps1 unit-test
 ```
 
 Expected: both PASS. No fixture is soft-deletable, so no snapshot moves.
@@ -905,7 +913,7 @@ fn soft_delete_flag() {
 - [ ] **Step 2: Run it to see the marker in `CreateTicket`**
 
 ```bash
-cargo test -p spacetimedsl_derive soft_delete_flag 2>&1 | tail -20
+.\x.ps1 unit-test
 ```
 
 Expected: FAIL, with new `.snap.new` files. Read `derive/tests/snapshots/soft_delete_flag/Ticket/table.snap.new`: `pub struct CreateTicket` currently holds a `deleted` member. That is the defect this task removes. Do not accept these snapshots yet.
@@ -939,7 +947,7 @@ use crate::api::dsl::soft_delete::SoftDeleteMarkerKind;
 - [ ] **Step 4: Run it again and read the snapshots**
 
 ```bash
-cargo test -p spacetimedsl_derive soft_delete_flag 2>&1 | tail -20
+.\x.ps1 unit-test
 ```
 
 Expected: FAIL again, because the snapshots are still new. Read them. `CreateTicket` must now hold `id` is absent (auto inc), `title` and `priority`, and no `deleted`. `create_ticket` must contain `let deleted = false;`. The table must expose `get_deleted` and no `set_deleted`.
@@ -949,9 +957,9 @@ There is no `soft_delete_ticket_by_id` yet; that arrives in Task 8.
 - [ ] **Step 5: Accept and verify**
 
 ```bash
-cargo insta accept
-cargo test -p spacetimedsl_derive 2>&1 | tail -5
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -5
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
+    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+.\x.ps1 unit-test
 ```
 
 Expected: both PASS.
@@ -1061,8 +1069,7 @@ fn soft_delete_hooks() {
 - [ ] **Step 2: Run them to make sure they fail**
 
 ```bash
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -10
-cargo test -p spacetimedsl_derive soft_delete_hooks 2>&1 | tail -10
+.\x.ps1 unit-test
 ```
 
 Expected: the diagnostics case fails because the table compiles or because `soft_delete` is an unknown meta inside `before(...)`; the snapshot test fails because the fixture cannot be expanded. Both are red.
@@ -1147,9 +1154,11 @@ In `derive/src/output.rs`, add to the `hooks` vector:
 - [ ] **Step 5: Regenerate the diagnostic and read the snapshots**
 
 ```bash
-TRYBUILD=overwrite cargo test -p spacetimedsl-compile-tests 2>&1 | tail -10
+$env:TRYBUILD = "overwrite"
+.\x.ps1 unit-test
+$env:TRYBUILD = $null
 cat compile-tests/tests/ui/soft_delete_hook_without_soft_delete_method.stderr
-cargo test -p spacetimedsl_derive soft_delete_hooks 2>&1 | tail -10
+.\x.ps1 unit-test
 cat derive/tests/snapshots/soft_delete_hooks/Ticket/table.snap.new
 ```
 
@@ -1177,9 +1186,9 @@ A `before_ticket_soft_delete` taking only `old_ticket` means the arm was written
 - [ ] **Step 6: Accept and verify**
 
 ```bash
-cargo insta accept
-cargo test -p spacetimedsl_derive 2>&1 | tail -5
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -5
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
+    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+.\x.ps1 unit-test
 ```
 
 Expected: both PASS.
@@ -1238,7 +1247,7 @@ pub(in crate::internal) fn for_removal_many(
 - [ ] **Step 1: Record the baseline**
 
 ```bash
-cargo test -p spacetimedsl_derive 2>&1 | tail -5
+.\x.ps1 unit-test
 git status --short
 ```
 
@@ -1320,8 +1329,7 @@ Writing them as `match removal` now keeps Task 8 from having to re-find them, an
 - [ ] **Step 5: Verify nothing moved**
 
 ```bash
-cargo test -p spacetimedsl_derive 2>&1 | tail -5
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -5
+.\x.ps1 unit-test
 git status --short
 ```
 
@@ -1430,7 +1438,7 @@ fn soft_delete_without_delete_method() {
 - [ ] **Step 2: Run them to make sure they fail**
 
 ```bash
-cargo test -p spacetimedsl_derive soft_delete 2>&1 | tail -20
+.\x.ps1 unit-test
 ```
 
 Expected: FAIL. The `.snap.new` for every soft-deletable fixture holds no `soft_delete_*` method. That absence is what this task fixes.
@@ -1678,7 +1686,7 @@ In `get_column_dsl_methods` in `derive/src/output.rs`, emit them after the delet
 - [ ] **Step 6: Read every snapshot**
 
 ```bash
-cargo test -p spacetimedsl_derive 2>&1 | tail -20
+.\x.ps1 unit-test
 cat derive/tests/snapshots/soft_delete_flag/Ticket/soft_delete_ticket_by_id.snap.new
 cat derive/tests/snapshots/soft_delete_flag/Ticket/soft_delete_tickets_by_priority.snap.new
 cat derive/tests/snapshots/soft_delete_without_delete_method/Ticket/table.snap.new
@@ -1696,9 +1704,9 @@ Check each of these:
 - [ ] **Step 7: Accept and verify**
 
 ```bash
-cargo insta accept
-cargo test -p spacetimedsl_derive 2>&1 | tail -5
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -5
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
+    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+.\x.ps1 unit-test
 ```
 
 Expected: both PASS.
@@ -1758,7 +1766,7 @@ Under `compile-tests/tests/ui/`, each a two-table module pair like `referenced_b
 - [ ] **Step 2: Run them to make sure they fail**
 
 ```bash
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -30
+.\x.ps1 unit-test
 ```
 
 Expected: FAIL for all six.
@@ -1906,7 +1914,9 @@ Task 11 gives the soft strategies their own grouping.
 - [ ] **Step 6: Regenerate the diagnostics and read them**
 
 ```bash
-TRYBUILD=overwrite cargo test -p spacetimedsl-compile-tests 2>&1 | tail -10
+$env:TRYBUILD = "overwrite"
+.\x.ps1 unit-test
+$env:TRYBUILD = $null
 git diff --stat compile-tests/tests/ui
 ```
 
@@ -1915,8 +1925,7 @@ Read every `.stderr` that changed or appeared. Six new messages, one deleted pai
 - [ ] **Step 7: Run both harnesses**
 
 ```bash
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -5
-cargo test -p spacetimedsl_derive 2>&1 | tail -5
+.\x.ps1 unit-test
 ```
 
 Expected: both PASS, and no snapshot moves. Every existing fixture sets `on_delete`, so the grouping still sees the same columns.
@@ -1981,7 +1990,7 @@ pub(in crate::internal) fn referenced_table_compile_error_check_for_soft_deletio
 - [ ] **Step 1: Record the baseline**
 
 ```bash
-cargo test -p spacetimedsl_derive 2>&1 | tail -5
+.\x.ps1 unit-test
 git status --short
 ```
 
@@ -2042,7 +2051,7 @@ Nothing else changes yet: both sides still emit and import exactly one identifie
 - [ ] **Step 4: Read the snapshots**
 
 ```bash
-cargo test -p spacetimedsl_derive 2>&1 | tail -20
+.\x.ps1 unit-test
 ```
 
 Expected: FAIL, with `.snap.new` for every fixture that has a foreign key: `foreign_key_and_referenced_by`, the four `on_delete_*`, `delete_hooks_with_foreign_key_on_unique_index`, `singleton_with_foreign_key`.
@@ -2052,9 +2061,9 @@ Every diff must be a pure rename of the two identifiers. A diff that adds or rem
 - [ ] **Step 5: Accept and verify**
 
 ```bash
-cargo insta accept
-cargo test -p spacetimedsl_derive 2>&1 | tail -5
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -5
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
+    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+.\x.ps1 unit-test
 ```
 
 Expected: both PASS.
@@ -2205,7 +2214,7 @@ fn on_soft_delete_cascade() {
 - [ ] **Step 2: Run it to make sure it fails**
 
 ```bash
-cargo test -p spacetimedsl_derive on_soft_delete_cascade 2>&1 | tail -20
+.\x.ps1 unit-test
 ```
 
 Expected: FAIL. The `.snap.new` files hold the deletion cascade only, and the `on_soft_delete` fields are parsed and then ignored.
@@ -2268,7 +2277,7 @@ In `removal.rs`, the `Removal::Soft` body runs the same four strategy passes the
 - [ ] **Step 8: Read the snapshots**
 
 ```bash
-cargo test -p spacetimedsl_derive 2>&1 | tail -20
+.\x.ps1 unit-test
 ls derive/tests/snapshots/on_soft_delete_cascade/*/
 ```
 
@@ -2284,10 +2293,9 @@ Check:
 - [ ] **Step 9: Accept and verify**
 
 ```bash
-cargo insta accept
-cargo test -p spacetimedsl_derive 2>&1 | tail -5
-cargo test -p spacetimedsl-compile-tests 2>&1 | tail -5
-cargo build --workspace 2>&1 | tail -5
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
+    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+.\x.ps1 unit-test
 ```
 
 Expected: all PASS.
@@ -2452,7 +2460,7 @@ The accessor names follow the generated ones: `get_<column>` for every column, i
 - [ ] **Step 3: Run the module against a local SpacetimeDB**
 
 ```bash
-./x test
+.\x.ps1 test
 ```
 
 Expected: the module publishes, the reducer runs and the logs show no assertion failure. The local `spacetime` server is already running.
@@ -2470,19 +2478,19 @@ Add soft deletion to the feature list in `README.md`, in one line, in the style 
 - [ ] **Step 6: Format the markdown tables**
 
 ```bash
-./format-tables.sh docs/DOCUMENTATION.md
-./format-tables.sh README.md
+bash ./format-tables.sh docs/DOCUMENTATION.md
+bash ./format-tables.sh README.md
 ```
 
 - [ ] **Step 7: Verify everything**
 
-```bash
-./x unit-test
-cargo fmt --all --check
-cargo clippy --workspace --all-targets --all-features 2>&1 | tail -20
+```powershell
+.\x.ps1 unit-test
+.\x.ps1 test
+.\x.ps1 format
 ```
 
-Expected: tests pass, formatting clean, no new clippy warning.
+Expected: both harnesses green, `Test executed successfully` in the module run, and `.\x.ps1 format` leaving no change it had to make itself. It runs `cargo fmt` and `clippy --fix`, so anything it rewrites is a finding to review and commit, not a pass.
 
 - [ ] **Step 8: Commit**
 
