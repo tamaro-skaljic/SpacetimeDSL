@@ -36,21 +36,20 @@ Both live behind one command, run from the repository root in PowerShell:
 
 **Snapshot tests** (`derive/tests/fixtures/*.rs` → `derive/tests/snapshots/<fixture>/<Struct>/*.snap`).
 
-A new or changed snapshot fails the run and writes `*.snap.new` beside the old file. Read every one of them, then accept each by renaming it over the old file:
+A new or changed snapshot fails the run and writes `*.snap.new` beside the old file. Accepting those one at a time costs one whole run per moved snapshot, because `insta` reports only the first failing assertion per test function. Regenerate the corpus in one run instead, and read the result as a diff:
 
 ```powershell
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
-    $accepted = $_.FullName -replace "[.]new$", ""
-    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
-    Remove-Item $_.FullName
-}
+$env:INSTA_FORCE_UPDATE = "1"
+.\x.ps1 unit-test
+$env:INSTA_FORCE_UPDATE = $null
+git diff derive/tests/snapshots
 ```
 
-Never accept a batch without reading it first — a snapshot is the only record of what the generator emits.
+`INSTA_FORCE_UPDATE` writes every snapshot in place, so nothing is left to accept and one run replaces the whole accept-and-re-run cycle. It also drops `insta`'s `assertion_line:` metadata, which names whichever assertion happened to run and is scratch state rather than part of the record.
 
-The filter drops `insta`'s `assertion_line:` metadata. That line names whichever assertion happened to run and is scratch state: it belongs in a `*.snap.new`, not in the committed corpus, where 354 of 356 snapshots do not carry it.
+Read the `git diff` before committing. A snapshot is the only record of what the generator emits, and the diff shows exactly what moved against the last commit — which is a better review surface than a pile of `*.snap.new` files, because it is one listing and it is anchored to known-good content. Revert anything unexpected with `git checkout -- <path>` rather than committing it.
 
-**Accept, re-run, repeat until green.** `insta` reports only the first failing assertion per test function, so a fixture whose second table also moved stays hidden behind the first. One accept-and-re-run cycle is rarely enough. The task is done when `.\x.ps1 unit-test` is green **and** no `*.snap.new` remains anywhere.
+`$env:TRYBUILD = "overwrite"` governs only the `trybuild` `.stderr` files. It has no effect on snapshots, and `INSTA_FORCE_UPDATE` has none on `.stderr` files, so a task that moves both regenerates both.
 
 **Diagnostics tests** (`compile-tests/tests/ui/*.rs` + `*.stderr`).
 
@@ -217,11 +216,10 @@ Read each one. Every diff must be a pure reordering: the hook call moves above t
 - [x] **Step 6: Accept the snapshots and verify green**
 
 ```bash
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
-    $accepted = $_.FullName -replace "[.]new$", ""
-    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
-    Remove-Item $_.FullName
-}
+$env:INSTA_FORCE_UPDATE = "1"
+.\x.ps1 unit-test
+$env:INSTA_FORCE_UPDATE = $null
+git diff derive/tests/snapshots
 .\x.ps1 unit-test
 ```
 
@@ -350,11 +348,10 @@ placed between the `Delete` and `SetZero` arms, because that is where the varian
 Accept them, then re-run:
 
 ```powershell
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
-    $accepted = $_.FullName -replace "[.]new$", ""
-    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
-    Remove-Item $_.FullName
-}
+$env:INSTA_FORCE_UPDATE = "1"
+.\x.ps1 unit-test
+$env:INSTA_FORCE_UPDATE = $null
+git diff derive/tests/snapshots
 .\x.ps1 unit-test
 .\x.ps1 test
 ```
@@ -994,11 +991,10 @@ There is no `soft_delete_ticket_by_id` yet; that arrives in Task 8.
 - [x] **Step 5: Accept and verify**
 
 ```bash
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
-    $accepted = $_.FullName -replace "[.]new$", ""
-    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
-    Remove-Item $_.FullName
-}
+$env:INSTA_FORCE_UPDATE = "1"
+.\x.ps1 unit-test
+$env:INSTA_FORCE_UPDATE = $null
+git diff derive/tests/snapshots
 .\x.ps1 unit-test
 ```
 
@@ -1226,11 +1222,10 @@ A `before_ticket_soft_delete` taking only `old_ticket` means the arm was written
 - [x] **Step 6: Accept and verify**
 
 ```bash
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
-    $accepted = $_.FullName -replace "[.]new$", ""
-    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
-    Remove-Item $_.FullName
-}
+$env:INSTA_FORCE_UPDATE = "1"
+.\x.ps1 unit-test
+$env:INSTA_FORCE_UPDATE = $null
+git diff derive/tests/snapshots
 .\x.ps1 unit-test
 ```
 
@@ -1747,11 +1742,10 @@ Check each of these:
 - [x] **Step 7: Accept and verify**
 
 ```bash
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
-    $accepted = $_.FullName -replace "[.]new$", ""
-    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
-    Remove-Item $_.FullName
-}
+$env:INSTA_FORCE_UPDATE = "1"
+.\x.ps1 unit-test
+$env:INSTA_FORCE_UPDATE = $null
+git diff derive/tests/snapshots
 .\x.ps1 unit-test
 ```
 
@@ -2107,11 +2101,10 @@ Every diff must be a pure rename of the two identifiers. A diff that adds or rem
 - [x] **Step 5: Accept and verify**
 
 ```bash
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
-    $accepted = $_.FullName -replace "[.]new$", ""
-    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
-    Remove-Item $_.FullName
-}
+$env:INSTA_FORCE_UPDATE = "1"
+.\x.ps1 unit-test
+$env:INSTA_FORCE_UPDATE = $null
+git diff derive/tests/snapshots
 .\x.ps1 unit-test
 ```
 
@@ -2342,11 +2335,10 @@ Check:
 - [x] **Step 9: Accept and verify**
 
 ```bash
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
-    $accepted = $_.FullName -replace "[.]new$", ""
-    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
-    Remove-Item $_.FullName
-}
+$env:INSTA_FORCE_UPDATE = "1"
+.\x.ps1 unit-test
+$env:INSTA_FORCE_UPDATE = $null
+git diff derive/tests/snapshots
 .\x.ps1 unit-test
 ```
 
