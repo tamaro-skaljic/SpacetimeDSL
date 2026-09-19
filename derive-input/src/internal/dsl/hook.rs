@@ -34,16 +34,18 @@ impl InsertedValue {
 
 /// Which hooks the table declared in `#[dsl(hook(...))]`.
 ///
-/// Six flags of the same type, so they travel under their names rather than in a row of
+/// Eight flags of the same type, so they travel under their names rather than in a row of
 /// positional arguments no compiler can tell apart.
 #[derive(Clone, Copy)]
 pub(crate) struct DeclaredHooks {
     pub before_insert: bool,
     pub before_update: bool,
     pub before_delete: bool,
+    pub before_soft_delete: bool,
     pub after_insert: bool,
     pub after_update: bool,
     pub after_delete: bool,
+    pub after_soft_delete: bool,
 }
 
 pub(crate) fn build(
@@ -74,6 +76,13 @@ pub(crate) fn build(
         Operation::Delete,
         inserted_value,
     );
+    let before_soft_delete = build_any(
+        declared.before_soft_delete,
+        Timing::Before,
+        singular_table_name,
+        Operation::SoftDelete,
+        inserted_value,
+    );
     let after_insert = build_any(
         declared.after_insert,
         Timing::After,
@@ -96,13 +105,23 @@ pub(crate) fn build(
         inserted_value,
     );
 
+    let after_soft_delete = build_any(
+        declared.after_soft_delete,
+        Timing::After,
+        singular_table_name,
+        Operation::SoftDelete,
+        inserted_value,
+    );
+
     SpacetimeDSLMethodHooks {
         before_insert,
         before_delete,
+        before_soft_delete,
         before_update,
         after_insert,
         after_update,
         after_delete,
+        after_soft_delete,
     }
 }
 
@@ -152,6 +171,7 @@ enum Operation {
     Insert,
     Update,
     Delete,
+    SoftDelete,
 }
 
 fn get_trait_name(
@@ -168,6 +188,7 @@ fn get_trait_name(
         Operation::Insert => "Insert",
         Operation::Update => "Update",
         Operation::Delete => "Delete",
+        Operation::SoftDelete => "SoftDelete",
     };
 
     format_ident!(
@@ -192,6 +213,7 @@ fn get_function_name(
         Operation::Insert => "insert",
         Operation::Update => "update",
         Operation::Delete => "delete",
+        Operation::SoftDelete => "soft_delete",
     };
 
     format_ident!("{}_{}_{}", timing, singular_table_name, operation)
@@ -233,7 +255,9 @@ fn get_function_args(
                 quote! { &#singular_table_name_pascal_case },
             ),
         ],
-        (Timing::Before, Operation::Update) => vec![
+        // A soft deletion writes the row rather than removing it, so both its hooks take
+        // the shape of the update hooks.
+        (Timing::Before, Operation::Update | Operation::SoftDelete) => vec![
             build_dsl_function_arg(),
             build_function_arg(
                 format_ident!("old_{singular_table_name}"),
@@ -244,7 +268,7 @@ fn get_function_args(
                 quote! { #singular_table_name_pascal_case },
             ),
         ],
-        (Timing::After, Operation::Update) => vec![
+        (Timing::After, Operation::Update | Operation::SoftDelete) => vec![
             build_dsl_function_arg(),
             build_function_arg(
                 format_ident!("old_{singular_table_name}"),
@@ -285,7 +309,7 @@ fn get_return_type(
                 Result<#returned_type, #error_type>
             }
         }
-        (Timing::Before, Operation::Update) => quote! {
+        (Timing::Before, Operation::Update | Operation::SoftDelete) => quote! {
             Result<#singular_table_name_pascal_case, #error_type>
         },
         _ => quote! {

@@ -10,8 +10,119 @@ Code must be self-documenting through clear naming:
 
 - **No abbreviations**: Use `InputOutput` not `Io`, `FileSystemWatcher` not `Watcher`, `DirectoryWalker` not `Walk`.
 - **Descriptive identifiers**: Names should convey meaning without requiring comments.
-- **No redundant comments**: Never document "how" - the code shows that. Only document "what" and "why" when not obvious from the code itself.
+- **No redundant comments**: Never document "how" — the code shows that. Only document "what" and "why" when not obvious from the code itself.
 - **Remove comments that repeat the code**: A comment like `/// IO error.` above `Io(io::Error)` adds no value.
+- **Don't document the past**: A comment states what the code does, never how it came to look that way. Drop "now fixed", "this used to panic", "the plan moved this here", etc. and every reference to the task, issue or review behind a change — git holds that history, and a comment repeating it goes stale the moment the next change lands. A leftover `todo!("Task 8 fills this in")` is worse than no comment at all: it names a step no reader of the code can look up.
+
+### Test Driven Development
+
+Red and green are **observations, not intentions**. A step is red once its failure has been read, and green once a gate has printed its success marker. Assuming either state is how a change lands broken.
+
+#### Never invoke `cargo` directly
+
+Building a workspace member on its own fails to link against **SpacetimeDB**. `x.ps1` is the only supported entry point. A linker error is a sign that a raw `cargo` command was used, not a problem to investigate.
+
+#### The two gates
+
+`.\x.ps1 unit-test` runs the snapshot harness (`derive`) and the diagnostics harness (`compile-tests`). It reports its own result honestly, so filter it rather than reading it whole:
+
+```powershell
+.\x.ps1 unit-test 2>&1 | Select-String -Pattern "test result:|FAILED|^error|^warning: " | Select-Object -First 20
+```
+
+`.\x.ps1 test` publishes the example modules to the local server and runs the `tester` reducer. **Its exit code is meaningless** — the script runs each `spacetime` command without checking the result and always exits 0. The reducer's success marker is the only signal:
+
+```powershell
+$output = .\x.ps1 test 2>&1 | Out-String
+if ($output | Select-String -Pattern "Test executed successfully" -Quiet) {
+    "MARKER FOUND"
+} else {
+    "MARKER ABSENT - relevant output:"
+    $output -split "`n" | Select-String -Pattern "^error|-->|panic|should" | Select-Object -First 30
+}
+```
+
+Finding the marker is enough. Only when it is absent does the output need reading, and then only the lines that carry a diagnostic.
+
+#### Which of the three test kinds to write
+
+Start from what the change does to the DSL's input:
+
+| The change …                                     | Test kind                              |
+| ------------------------------------------------ | -------------------------------------- |
+| rejects an input                                 | Diagnostics — `compile-tests/tests/ui` |
+| changes what is generated for an accepted input  | Snapshot — `derive/tests/fixtures`     |
+| changes what the generated code does at run time | Runtime — `examples/test/src/lib.rs`   |
+
+Most generator work needs two of them and a whole feature needs all three, because each kind is blind to what the next one sees. Write the cheapest kind that can fail for the reason under test, then add the kinds its blind spots require — never substitute a cheap one for a blind spot.
+
+**Diagnostics — `compile-tests/tests/ui/<case>.rs` + `<case>.stderr`**
+
+Every input the DSL rejects. The pair pins the message *and* the span it underlines, so a message that points at the wrong token is a failing test rather than a silent regression.
+
+- `trybuild` globs the directory — a new file needs no registration.
+- One rejection per file, named after the rejection.
+- A fixture carries only what its diagnostic needs. Anything more pulls in unrelated rejections that fire first and mask the one being pinned.
+- Blind spot: says nothing whatsoever about input the DSL accepts.
+
+**Snapshot — `derive/tests/fixtures/<fixture>.rs` → `derive/tests/snapshots/<fixture>/<Struct>/*.snap`**
+
+What the macro emits for input it accepts. Register the fixture with a test in `derive/src/characterization_tests.rs`:
+
+```rust
+#[test]
+fn soft_delete_flag() {
+    snapshot_fixture("soft_delete_flag");
+}
+```
+
+- Blind spot: the harness diffs token streams and never feeds them to a compiler. Generated code can be snapshot-green and not build.
+- Blind spot: an accepted snapshot is only as correct as the reading that accepted it. Green afterwards means *unchanged*, not *right* — which is why the `git diff` is the real test and rubber-stamping it defeats the whole corpus.
+- Name a fixture after the one shape it pins. Let it carry a second shape only when the subject needs both at once — a cascade fixture covering both marker shapes is honest, because the cascade needs a referenced table and a referencing one anyway.
+
+**Runtime — `examples/test/src/lib.rs`**
+
+The only gate that compiles, links and runs generated code against a real **SpacetimeDB**. Put tables in their own `pub mod`, assertions in a helper function called from the `tester` reducer, and return `Err(String)` naming what should have happened.
+
+- Use it for what no token stream can show: a value actually written, a cascade actually reaching a row, an operation actually being idempotent.
+- Blind spot: it is one module, so table and accessor names are global and collide.
+- Blind spot: a failure points at a reducer line, not at the generator that caused it.
+
+When this gate catches something the other two could not, add the missing cheap test in the same commit. A `?` inside a generated cascade compiled fine as tokens and failed only here; the fixture corpus had no case pairing that marker shape with a cascade, so one was added rather than leaving the next regression to the slowest gate.
+
+#### A test that cannot run is not a test
+
+Before trusting a new test, confirm the harness executes it. A `#[cfg(test)] mod tests` in the root crate, for example, is never run by `.\x.ps1 unit-test` — it would pass by never executing. Prefer an observable the existing harnesses already watch: a snapshot, a `.stderr` file, or an assertion in the `tester` reducer.
+
+#### Read the failure, not just the fact of it
+
+Red has to fail for the reason under test. A new `compile-tests/tests/ui` case that fails because a keyword is unknown is red for the right reason; one that fails because the fixture is malformed is not, and it will go green for the wrong one. Read the failure text before writing the implementation, not just the word `FAILED`.
+
+#### Regenerating the recorded output
+
+Snapshots and diagnostics have separate switches, and neither affects the other. A change that moves both regenerates both:
+
+```powershell
+$env:INSTA_FORCE_UPDATE = "1"
+.\x.ps1 unit-test
+$env:INSTA_FORCE_UPDATE = $null
+git diff derive/tests/snapshots
+```
+
+```powershell
+$env:TRYBUILD = "overwrite"
+.\x.ps1 unit-test
+$env:TRYBUILD = $null
+git diff compile-tests/tests/ui
+```
+
+Accepting `*.snap.new` files one batch at a time costs a whole harness run per moved snapshot, because `insta` reports only the first failing assertion per test function. `INSTA_FORCE_UPDATE` writes every snapshot in place in one run and drops `insta`'s scratch `assertion_line:` metadata by itself.
+
+**Read the `git diff` before committing it.** A recorded output is the only record of what the generator emits, and the diff shows exactly what moved against the last commit. Revert anything unexpected with `git checkout -- <path>` rather than committing it.
+
+#### Green includes the formatter
+
+`.\x.ps1 format` runs `cargo fmt` and `clippy --fix`. Anything it rewrites is a finding to review and commit, not a pass. A task is done when a second run changes nothing.
 
 ## Programming Principles
 
@@ -209,115 +320,115 @@ Note: Apply this only to (low-level) internal methods. (High-level) public inter
 
 #### Keep It Simple, Stupid (KISS)
 
-_Checklist coverage:_ Scope & Goal Discipline; Simplicity & Right-Sized Solutions; Documentation & Communication Clarity.
+*Checklist coverage:* Scope & Goal Discipline; Simplicity & Right-Sized Solutions; Documentation & Communication Clarity.
 
 #### You Aren't Gonna Need It (YAGNI)
 
-_Checklist coverage:_ Scope & Goal Discipline; Refactoring & Change Containment; Testing & Verification.
+*Checklist coverage:* Scope & Goal Discipline; Refactoring & Change Containment; Testing & Verification.
 
 #### Do The Simplest Thing That Could Possibly Work
 
-_Checklist coverage:_ Scope & Goal Discipline; Simplicity & Right-Sized Solutions; Refactoring & Change Containment.
+*Checklist coverage:* Scope & Goal Discipline; Simplicity & Right-Sized Solutions; Refactoring & Change Containment.
 
 #### Separation of Concerns
 
-_Checklist coverage:_ Documentation & Communication Clarity; Modular Boundaries & Separation.
+*Checklist coverage:* Documentation & Communication Clarity; Modular Boundaries & Separation.
 
 #### Code For The Maintainer
 
-_Checklist coverage:_ Documentation & Communication Clarity; Testing & Verification; Coupling Awareness & Dependency Constraints.
+*Checklist coverage:* Documentation & Communication Clarity; Testing & Verification; Coupling Awareness & Dependency Constraints.
 
 #### Avoid Premature Optimization
 
-_Checklist coverage:_ Performance & Optimization Discipline.
+*Checklist coverage:* Performance & Optimization Discipline.
 
 #### Optimize for Deletion
 
-_Checklist coverage:_ Lifecycle & Deletion Strategy.
+*Checklist coverage:* Lifecycle & Deletion Strategy.
 
 #### Don't Repeat Yourself (DRY)
 
-_Checklist coverage:_ Simplicity & Right-Sized Solutions; Duplication Control & Reuse.
+*Checklist coverage:* Simplicity & Right-Sized Solutions; Duplication Control & Reuse.
 
 #### Boy Scout Rule
 
-_Checklist coverage:_ Documentation & Communication Clarity; Refactoring & Change Containment; Testing & Verification.
+*Checklist coverage:* Documentation & Communication Clarity; Refactoring & Change Containment; Testing & Verification.
 
 #### Connascence
 
-_Checklist coverage:_ Coupling Awareness & Dependency Constraints.
+*Checklist coverage:* Coupling Awareness & Dependency Constraints.
 
 #### Minimize Coupling
 
-_Checklist coverage:_ Coupling Awareness & Dependency Constraints; Encapsulation & Interface Hygiene.
+*Checklist coverage:* Coupling Awareness & Dependency Constraints; Encapsulation & Interface Hygiene.
 
 #### Law of Demeter
 
-_Checklist coverage:_ Encapsulation & Interface Hygiene.
+*Checklist coverage:* Encapsulation & Interface Hygiene.
 
 #### Composition Over Inheritance
 
-_Checklist coverage:_ Composition & Object Design.
+*Checklist coverage:* Composition & Object Design.
 
 #### Orthogonality
 
-_Checklist coverage:_ Modular Boundaries & Separation; Testing & Verification.
+*Checklist coverage:* Modular Boundaries & Separation; Testing & Verification.
 
 #### Robustness Principle
 
-_Checklist coverage:_ Robustness & Reliability.
+*Checklist coverage:* Robustness & Reliability.
 
 #### Inversion of Control
 
-_Checklist coverage:_ Documentation & Communication Clarity; Dependency & Interface Management.
+*Checklist coverage:* Documentation & Communication Clarity; Dependency & Interface Management.
 
 #### Maximize Cohesion
 
-_Checklist coverage:_ Modular Boundaries & Separation; Cohesion & Responsibility Alignment.
+*Checklist coverage:* Modular Boundaries & Separation; Cohesion & Responsibility Alignment.
 
 #### Liskov Substitution Principle (LSP)
 
-_Checklist coverage:_ Composition & Object Design.
+*Checklist coverage:* Composition & Object Design.
 
 #### Open/Closed
 
-_Checklist coverage:_ Variation Isolation & Extensibility.
+*Checklist coverage:* Variation Isolation & Extensibility.
 
 #### Single Responsibility Principle (SRP)
 
-_Checklist coverage:_ Modular Boundaries & Separation; Cohesion & Responsibility Alignment.
+*Checklist coverage:* Modular Boundaries & Separation; Cohesion & Responsibility Alignment.
 
 #### Hide Implementation Details
 
-_Checklist coverage:_ Encapsulation & Interface Hygiene.
+*Checklist coverage:* Encapsulation & Interface Hygiene.
 
 #### Curly's Law
 
-_Checklist coverage:_ Cohesion & Responsibility Alignment.
+*Checklist coverage:* Cohesion & Responsibility Alignment.
 
 #### Encapsulate What Changes
 
-_Checklist coverage:_ Variation Isolation & Extensibility.
+*Checklist coverage:* Variation Isolation & Extensibility.
 
 #### Interface Segregation Principle (ISP)
 
-_Checklist coverage:_ Dependency & Interface Management.
+*Checklist coverage:* Dependency & Interface Management.
 
 #### Command Query Separation (CQS)
 
-_Checklist coverage:_ Command/Query Interaction Design.
+*Checklist coverage:* Command/Query Interaction Design.
 
 #### Dependency Inversion Principle (DIP)
 
-_Checklist coverage:_ Dependency & Interface Management.
+*Checklist coverage:* Dependency & Interface Management.
 
 #### F.I.R.S.T Principles of Testing
 
-_Checklist coverage:_ Testing & Verification.
+*Checklist coverage:* Testing & Verification.
 
 #### Arrange, Act, Assert (3A)
 
-_Checklist coverage:_ Testing & Verification.
+*Checklist coverage:* Testing & Verification.
 
 ### Conflicts between Programming Principles
 

@@ -142,6 +142,11 @@ fn timestamps() {
 }
 
 #[test]
+fn update_hook_with_updated_at() {
+    snapshot_fixture("update_hook_with_updated_at");
+}
+
+#[test]
 fn scheduled_table() {
     snapshot_fixture("scheduled_table");
 }
@@ -159,6 +164,31 @@ fn multiple_table_attributes() {
 #[test]
 fn delete_hooks_with_foreign_key_on_unique_index() {
     snapshot_fixture("delete_hooks_with_foreign_key_on_unique_index");
+}
+
+#[test]
+fn soft_delete_flag() {
+    snapshot_fixture("soft_delete_flag");
+}
+
+#[test]
+fn soft_delete_hooks() {
+    snapshot_fixture("soft_delete_hooks");
+}
+
+#[test]
+fn soft_delete_timestamp() {
+    snapshot_fixture("soft_delete_timestamp");
+}
+
+#[test]
+fn soft_delete_without_delete_method() {
+    snapshot_fixture("soft_delete_without_delete_method");
+}
+
+#[test]
+fn on_soft_delete_cascade() {
+    snapshot_fixture("on_soft_delete_cascade");
 }
 
 /// Expanding the same fixture twice must produce byte-identical output, otherwise the

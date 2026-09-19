@@ -1,0 +1,5 @@
+error: Multiple columns claim the soft-delete marker role! Only one column is allowed.
+  --> tests/ui/two_marker_columns.rs:23:9
+   |
+23 |         deleted_at: Option<spacetimedb::Timestamp>,
+   |         ^^^^^^^^^^

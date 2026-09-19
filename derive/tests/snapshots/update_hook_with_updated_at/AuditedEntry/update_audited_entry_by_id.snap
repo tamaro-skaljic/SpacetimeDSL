@@ -1,0 +1,44 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `AuditedEntry` row of the `audited_entry` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_audited_entry_by_id<'a>(
+        &'a self,
+        audited_entry: AuditedEntry,
+    ) -> Result<AuditedEntry, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut audited_entry = audited_entry;
+        let mut the_same_or_another_audited_entry: Option<AuditedEntry> = None;
+        if the_same_or_another_audited_entry.is_none() {
+            the_same_or_another_audited_entry = Some(
+                self
+                    .db()
+                    .audited_entry()
+                    .id()
+                    .find(audited_entry.id)
+                    .expect("Row should exist for update"),
+            );
+        }
+        use self::BeforeAuditedEntryUpdateHook;
+        let audited_entry = crate::spacetimedsl::DSLMethodHooks::before_audited_entry_update(
+            self,
+            the_same_or_another_audited_entry.as_ref().unwrap(),
+            audited_entry,
+        )?;
+        let mut audited_entry = audited_entry;
+        audited_entry.modified_at = Some(self.ctx().timestamp()?);
+        let audited_entry = self.db().audited_entry().id().update(audited_entry);
+        use self::AfterAuditedEntryUpdateHook;
+        crate::spacetimedsl::DSLMethodHooks::after_audited_entry_update(
+            self,
+            the_same_or_another_audited_entry.as_ref().unwrap(),
+            &audited_entry,
+        )?;
+        Ok(audited_entry)
+    }
+}

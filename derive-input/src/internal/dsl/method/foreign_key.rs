@@ -7,10 +7,13 @@
 use super::{
     context::TableContributions,
     naming::{
-        referenced_table_compile_error_check, referencing_table_compile_error_check,
-        referencing_table_function_name,
+        referenced_table_compile_error_check_for_deletions,
+        referenced_table_compile_error_check_for_soft_deletions,
+        referencing_table_compile_error_check_for_deletions,
+        referencing_table_compile_error_check_for_soft_deletions, referencing_table_function_name,
     },
     on_delete_strategy::{ReferencingTables, on_delete_strategy_implementation},
+    removal::Removal,
 };
 use crate::{
     api::{
@@ -32,6 +35,7 @@ use std::collections::BTreeMap;
 use strum::IntoEnumIterator;
 
 pub(in crate::internal) fn for_foreign_key(
+    removal: Removal,
     one_or_multiple: &OneOrMultiple,
     referencing_tables: ReferencingTables,
     spacetimedb_table: &SpacetimeDBTable,
@@ -92,7 +96,10 @@ pub(in crate::internal) fn for_foreign_key(
             ));
         }
 
-        let on_delete_strategy = &column_with_foreign_key
+        // A foreign key sets `on_delete`, `on_soft_delete` or both, so a column
+        // contributes to the grouping for one kind of removal and not necessarily the
+        // other.
+        let foreign_key = column_with_foreign_key
             .spacetimedsl_column
             .foreign_key
             .as_ref()
@@ -101,8 +108,17 @@ pub(in crate::internal) fn for_foreign_key(
                     "the column {} is in a foreign key group, so it carries a foreign key",
                     column_with_foreign_key.rust_field.name
                 )
-            })
-            .on_delete_strategy;
+            });
+
+        let on_delete_strategy = match removal {
+            Removal::Hard => &foreign_key.on_delete_strategy,
+            Removal::Soft => &foreign_key.on_soft_delete_strategy,
+        };
+
+        let on_delete_strategy = match on_delete_strategy {
+            None => continue,
+            Some(on_delete_strategy) => on_delete_strategy,
+        };
 
         if !columns_by_on_delete_strategies.contains_key(on_delete_strategy) {
             columns_by_on_delete_strategies.insert(on_delete_strategy, vec![]);
@@ -120,6 +136,7 @@ pub(in crate::internal) fn for_foreign_key(
     let doc_comment;
 
     let function_name = referencing_table_function_name(
+        removal,
         one_or_multiple,
         singular_table_name,
         &referenced_table_name,
@@ -141,6 +158,13 @@ pub(in crate::internal) fn for_foreign_key(
         },
     ];
 
+    let past_tense = match (removal, one_or_multiple) {
+        (Removal::Hard, OneOrMultiple::One) => "was deleted",
+        (Removal::Hard, OneOrMultiple::Multiple) => "were deleted",
+        (Removal::Soft, OneOrMultiple::One) => "was soft-deleted",
+        (Removal::Soft, OneOrMultiple::Multiple) => "were soft-deleted",
+    };
+
     let return_type;
 
     let arg_name;
@@ -148,7 +172,7 @@ pub(in crate::internal) fn for_foreign_key(
     match one_or_multiple {
         OneOrMultiple::One => {
             doc_comment = format!(
-                "Execute On Delete Strategies of the referencing table `{singular_table_name}` after one row of the referenced table `{referenced_table_name}` was deleted."
+                "Execute On Delete Strategies of the referencing table `{singular_table_name}` after one row of the referenced table `{referenced_table_name}` {past_tense}."
             );
             arg_name = format_ident!("primary_key_value_of_a_row_of_another_table_to_delete");
             function_args.push(SpacetimeDSLArg {
@@ -167,7 +191,7 @@ pub(in crate::internal) fn for_foreign_key(
         }
         OneOrMultiple::Multiple => {
             doc_comment = format!(
-                "Execute On Delete Strategies of the referencing table `{singular_table_name}` after multiple rows of the referenced table `{referenced_table_name}` were deleted."
+                "Execute On Delete Strategies of the referencing table `{singular_table_name}` after multiple rows of the referenced table `{referenced_table_name}` {past_tense}."
             );
             arg_name = format_ident!("primary_key_values_of_rows_of_another_table_to_delete");
             function_args.push(SpacetimeDSLArg {
@@ -229,15 +253,33 @@ pub(in crate::internal) fn for_foreign_key(
         })
         .collect_vec();
 
-    let compile_error_check =
-        referencing_table_compile_error_check(singular_table_name, &referenced_table_name);
+    // This table emits the half it declares a strategy for, and imports from the
+    // referenced table the half that table must be able to perform.
+    let compile_error_check = match removal {
+        Removal::Hard => referencing_table_compile_error_check_for_deletions(
+            singular_table_name,
+            &referenced_table_name,
+        ),
+        Removal::Soft => referencing_table_compile_error_check_for_soft_deletions(
+            singular_table_name,
+            &referenced_table_name,
+        ),
+    };
 
     contributions
         .compile_error_checks
         .insert(compile_error_check.clone());
 
-    let compile_error_check =
-        referenced_table_compile_error_check(&referenced_table_name, singular_table_name);
+    let compile_error_check = match removal {
+        Removal::Hard => referenced_table_compile_error_check_for_deletions(
+            &referenced_table_name,
+            singular_table_name,
+        ),
+        Removal::Soft => referenced_table_compile_error_check_for_soft_deletions(
+            &referenced_table_name,
+            singular_table_name,
+        ),
+    };
 
     let compile_error_check_usage = quote! {
         use #referenced_table_path::#compile_error_check;

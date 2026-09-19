@@ -24,6 +24,8 @@ pub mod one_or_multiple;
 
 pub mod singleton;
 
+pub mod soft_delete;
+
 symbol!(table);
 symbol!(singleton);
 symbol!(with_default);
@@ -38,10 +40,12 @@ symbol!(after);
 symbol!(insert);
 symbol!(update);
 symbol!(delete);
+symbol!(soft_delete);
 symbol!(foreign_key);
 symbol!(referenced_by);
 symbol!(path);
 symbol!(column);
 symbol!(on_delete);
+symbol!(on_soft_delete);
 symbol!(create_wrapper);
 symbol!(use_wrapper);

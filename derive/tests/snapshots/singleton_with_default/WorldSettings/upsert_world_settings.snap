@@ -18,18 +18,19 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             .id()
             .find(&0u8);
         if the_same_or_another_world_settings.is_some() {
-            world_settings
-                .created_at = the_same_or_another_world_settings
-                .as_ref()
-                .expect("The update path only runs when the row was found")
-                .created_at;
-            world_settings.modified_at = Some(self.ctx().timestamp()?);
             use self::BeforeWorldSettingsUpdateHook;
             let world_settings = crate::spacetimedsl::DSLMethodHooks::before_world_settings_update(
                 self,
                 the_same_or_another_world_settings.as_ref().unwrap(),
                 world_settings,
             )?;
+            let mut world_settings = world_settings;
+            world_settings
+                .created_at = the_same_or_another_world_settings
+                .as_ref()
+                .expect("The update path only runs when the row was found")
+                .created_at;
+            world_settings.modified_at = Some(self.ctx().timestamp()?);
             let world_settings = self.db().world_settings().id().update(world_settings);
             use self::AfterWorldSettingsUpdateHook;
             crate::spacetimedsl::DSLMethodHooks::after_world_settings_update(
@@ -39,13 +40,14 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             )?;
             Ok(world_settings)
         } else {
-            world_settings.created_at = Some(self.ctx().timestamp()?);
-            world_settings.modified_at = None;
             use self::BeforeWorldSettingsInsertHook;
             let world_settings = crate::spacetimedsl::DSLMethodHooks::before_world_settings_insert(
                 self,
                 world_settings,
             )?;
+            let mut world_settings = world_settings;
+            world_settings.created_at = Some(self.ctx().timestamp()?);
+            world_settings.modified_at = None;
             match self.db().world_settings().try_insert(world_settings.clone()) {
                 Ok(entity) => {
                     use self::AfterWorldSettingsInsertHook;

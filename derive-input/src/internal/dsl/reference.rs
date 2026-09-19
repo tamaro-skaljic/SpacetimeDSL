@@ -8,6 +8,7 @@ use syn::{Ident, Path};
 impl ReferencingTable {
     pub(in crate::internal) fn try_parse(
         has_delete_method: &bool,
+        is_soft_deletable: bool,
         field: &SatsField<'_>,
     ) -> syn::Result<Vec<ReferencingTable>> {
         let mut referencing_tables: Vec<ReferencingTable> = vec![];
@@ -32,10 +33,10 @@ impl ReferencingTable {
                 ));
             }
 
-            if !has_delete_method {
+            if !has_delete_method && !is_soft_deletable {
                 return Err(syn::Error::new_spanned(
                     attr,
-                    "`#[referenced_by]` is only allowed when the table has a delete method (`#[dsl(method(delete = true))]`)!\nThe on-delete strategies it declares run when a row of this table is deleted, which the DSL cannot do while the delete method is disabled.",
+                    "`#[referenced_by]` is only allowed when the table has a delete method (`#[dsl(method(delete = true))]`) or is soft-deletable (`#[dsl(method(soft_delete = true))]`)!\nThe on-delete strategies it declares run when a row of this table is deleted or soft-deleted, neither of which the DSL can do while both are disabled.",
                 ));
             }
 

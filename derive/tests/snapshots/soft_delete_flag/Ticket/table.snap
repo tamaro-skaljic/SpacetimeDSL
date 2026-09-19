@@ -1,0 +1,114 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct TicketId {
+    value: u64,
+}
+impl Default for TicketId {
+    fn default() -> TicketId {
+        TicketId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for TicketId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "TicketId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, TicketId> for TicketId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Ticket> for TicketId {
+    fn from(value: &Ticket) -> Self {
+        TicketId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Ticket> for Option<TicketId> {
+    fn from(value: &Ticket) -> Option<TicketId> {
+        Some(TicketId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&TicketId> for Option<TicketId> {
+    fn from(value: &TicketId) -> Option<TicketId> {
+        use spacetimedsl::Wrapper;
+        Some(TicketId::new(value.value()))
+    }
+}
+impl From<&TicketId> for TicketId {
+    fn from(value: &TicketId) -> Self {
+        use spacetimedsl::Wrapper;
+        TicketId::new(value.value())
+    }
+}
+impl Ticket {
+    ///
+    pub fn get_id(&self) -> TicketId {
+        use spacetimedsl::Wrapper;
+        TicketId::new(self.id.clone())
+    }
+    ///
+    pub fn get_title(&self) -> &String {
+        use spacetimedsl::Wrapper;
+        &self.title
+    }
+    ///
+    pub fn get_title_mut(&mut self) -> &mut String {
+        use spacetimedsl::Wrapper;
+        &mut self.title
+    }
+    ///
+    pub fn set_title(&mut self, title: String) -> String {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.title, title);
+        old_value
+    }
+    ///
+    pub fn get_priority(&self) -> &u8 {
+        use spacetimedsl::Wrapper;
+        &self.priority
+    }
+    ///
+    pub fn get_priority_mut(&mut self) -> &mut u8 {
+        use spacetimedsl::Wrapper;
+        &mut self.priority
+    }
+    ///
+    pub fn set_priority(&mut self, priority: u8) -> u8 {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.priority, priority);
+        old_value
+    }
+    ///
+    pub fn get_deleted(&self) -> &bool {
+        use spacetimedsl::Wrapper;
+        &self.deleted
+    }
+}
+///
+pub struct CreateTicket {
+    pub title: String,
+    pub priority: u8,
+}
+
+// Generated DSL methods:
+// count_of_all_tickets
+// create_ticket
+// delete_ticket_by_id
+// delete_tickets_by_priority
+// get_all_tickets
+// get_ticket_by_id
+// get_tickets_by_priority
+// soft_delete_ticket_by_id
+// soft_delete_tickets_by_priority
+// update_ticket_by_id

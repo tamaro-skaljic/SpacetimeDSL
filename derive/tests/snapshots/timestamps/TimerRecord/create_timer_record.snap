@@ -1,6 +1,5 @@
 ---
 source: derive/src/characterization_tests.rs
-assertion_line: 215
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]

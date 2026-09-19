@@ -1,0 +1,6 @@
+error: This column claims the soft-delete marker role, but the table is not soft-deletable!
+       Add `#[dsl(method(soft_delete = true))]` to the table, or rename the column and remove `#[set_on_soft_delete]` from it.
+  --> tests/ui/marker_column_without_soft_delete_method.rs:21:9
+   |
+21 |         deleted: bool,
+   |         ^^^^^^^

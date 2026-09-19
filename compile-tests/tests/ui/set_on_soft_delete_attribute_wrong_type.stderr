@@ -1,0 +1,5 @@
+error: A column with `#[set_on_soft_delete]` should have the type `bool` or `Option<spacetimedb::Timestamp>`! Found: u8
+  --> tests/ui/set_on_soft_delete_attribute_wrong_type.rs:22:18
+   |
+22 |         retired: u8,
+   |                  ^^

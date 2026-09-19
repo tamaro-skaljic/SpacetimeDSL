@@ -39,9 +39,11 @@ impl SpacetimeDSLTable {
                 before_insert: dsl_data.before_insert_hook,
                 before_update: dsl_data.before_update_hook,
                 before_delete: dsl_data.before_delete_hook,
+                before_soft_delete: dsl_data.before_soft_delete_hook,
                 after_insert: dsl_data.after_insert_hook,
                 after_update: dsl_data.after_update_hook,
                 after_delete: dsl_data.after_delete_hook,
+                after_soft_delete: dsl_data.after_soft_delete_hook,
             },
         );
 
@@ -70,13 +72,24 @@ impl SpacetimeDSLTable {
             Some(has_update_method) => *has_update_method,
         };
 
+        let soft_delete_marker = super::soft_delete::try_parse(
+            dsl_data.soft_delete_method,
+            dsl_data.singleton,
+            column_args,
+            &column_args.original_struct_name,
+        )?;
+
         let mut on_insert_set_current_timestamp_column_name = None;
         let mut on_update_set_current_timestamp_column_name = None;
 
         let mut referencing_tables = vec![];
 
         for field in &column_args.fields {
-            let refs = ReferencingTable::try_parse(&has_delete_method.unwrap_or(true), field)?;
+            let refs = ReferencingTable::try_parse(
+                &has_delete_method.unwrap_or(true),
+                soft_delete_marker.is_some(),
+                field,
+            )?;
             if referencing_tables.is_empty() {
                 referencing_tables = refs;
             }
@@ -222,6 +235,7 @@ impl SpacetimeDSLTable {
                 plural_name: dsl_data.plural_name,
                 has_update_method,
                 has_delete_method: has_delete_method.unwrap_or(true),
+                soft_delete_marker,
                 on_insert_set_current_timestamp_column_name,
                 on_update_set_current_timestamp_column_name,
                 referencing_tables,

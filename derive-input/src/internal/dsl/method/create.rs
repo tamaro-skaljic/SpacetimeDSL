@@ -10,6 +10,7 @@ use crate::{
     api::{
         dsl::{
             method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
+            soft_delete::SoftDeleteMarkerKind,
             table::{CreateDSLMethodArg, SpacetimeDSLTable},
             wrapper::WrapperType,
         },
@@ -92,6 +93,16 @@ fn create_method_column_parts(
         };
         constructor_arg = Some(quote! {
             let #column_name = #timestamp_value;
+        });
+    } else if let Some(marker) = &spacetimedsl_table.soft_delete_marker
+        && { internal_column.rust_field_name.eq(&marker.column_name) }
+    {
+        let initial_value = match marker.kind {
+            SoftDeleteMarkerKind::Flag => quote! { false },
+            SoftDeleteMarkerKind::Timestamp => quote! { None },
+        };
+        constructor_arg = Some(quote! {
+            let #column_name = #initial_value;
         });
     }
 

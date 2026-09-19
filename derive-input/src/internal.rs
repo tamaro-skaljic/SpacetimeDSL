@@ -1,7 +1,7 @@
 use crate::api::dsl::table::SingletonKind;
 use crate::internal::dsl::{
-    after, before, delete, hook, insert, method, plural_name, singleton, unique_index, update,
-    with_default,
+    after, before, delete, hook, insert, method, plural_name, singleton, soft_delete, unique_index,
+    update, with_default,
 };
 use proc_macro2::Span;
 use spacetime_bindings_macro_input::{match_meta, sym, util::check_duplicate};
@@ -63,13 +63,17 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     let mut before_insert_hook: Option<Span> = None;
     let mut before_update_hook: Option<Span> = None;
     let mut before_delete_hook: Option<Span> = None;
+    let mut before_soft_delete_hook: Option<Span> = None;
     let mut after_insert_hook: Option<Span> = None;
     let mut after_update_hook: Option<Span> = None;
     let mut after_delete_hook: Option<Span> = None;
+    let mut after_soft_delete_hook: Option<Span> = None;
 
     let mut methods = None;
     let mut update_method = None;
     let mut delete_method = None;
+    let mut soft_delete_method: Option<bool> = None;
+    let mut soft_delete_method_span: Option<Span> = None;
 
     parser(|meta| {
         match_meta!(match meta {
@@ -120,6 +124,10 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
                                         check_duplicate(&before_delete_hook, &meta)?;
                                         before_delete_hook = Some(meta.path.span());
                                     }
+                                    soft_delete => {
+                                        check_duplicate(&before_soft_delete_hook, &meta)?;
+                                        before_soft_delete_hook = Some(meta.path.span());
+                                    }
                                 });
                                 Ok(())
                             })?;
@@ -141,6 +149,10 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
                                     delete => {
                                         check_duplicate(&after_delete_hook, &meta)?;
                                         after_delete_hook = Some(meta.path.span());
+                                    }
+                                    soft_delete => {
+                                        check_duplicate(&after_soft_delete_hook, &meta)?;
+                                        after_soft_delete_hook = Some(meta.path.span());
                                     }
                                 });
                                 Ok(())
@@ -164,6 +176,11 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
                             check_duplicate(&delete_method, &meta)?;
                             delete_method = Some(meta.value()?.parse::<syn::LitBool>()?.value);
                         }
+                        soft_delete => {
+                            check_duplicate(&soft_delete_method, &meta)?;
+                            soft_delete_method_span = Some(meta.path.span());
+                            soft_delete_method = Some(meta.value()?.parse::<syn::LitBool>()?.value);
+                        }
                     });
                     Ok(())
                 })?;
@@ -172,6 +189,15 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         Ok(())
     })
     .parse2(args.clone())?;
+
+    if let Some(span) = soft_delete_method_span
+        && delete_method.is_none()
+    {
+        return Err(syn::Error::new(
+            span,
+            "`#[dsl(method(soft_delete = ...))]` requires `#[dsl(method(delete = ...))]` to be set as well, e.g. `method(delete = true, soft_delete = true)`.\nSoft deletion retires a row instead of removing it, which only says something next to a decision about whether the table removes rows at all.",
+        ));
+    }
 
     if !update_method.unwrap_or(true) {
         if let Some(span) = before_update_hook {
@@ -200,6 +226,22 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
             return Err(syn::Error::new(
                 span,
                 "Cannot have an `after_delete` hook when the `delete` method is disabled with `#[dsl(method(delete = false))]`",
+            ));
+        }
+    }
+
+    if soft_delete_method != Some(true) {
+        if let Some(span) = before_soft_delete_hook {
+            return Err(syn::Error::new(
+                span,
+                "Cannot have a `before_soft_delete` hook when the table is not soft-deletable. Enable it with `#[dsl(method(soft_delete = true))]`",
+            ));
+        }
+
+        if let Some(span) = after_soft_delete_hook {
+            return Err(syn::Error::new(
+                span,
+                "Cannot have an `after_soft_delete` hook when the table is not soft-deletable. Enable it with `#[dsl(method(soft_delete = true))]`",
             ));
         }
     }
@@ -258,11 +300,14 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         before_insert_hook: before_insert_hook.is_some(),
         before_update_hook: before_update_hook.is_some(),
         before_delete_hook: before_delete_hook.is_some(),
+        before_soft_delete_hook: before_soft_delete_hook.is_some(),
         after_insert_hook: after_insert_hook.is_some(),
         after_update_hook: after_update_hook.is_some(),
         after_delete_hook: after_delete_hook.is_some(),
+        after_soft_delete_hook: after_soft_delete_hook.is_some(),
         update_method,
         delete_method,
+        soft_delete_method,
     })
 }
 
@@ -273,11 +318,14 @@ struct DSLData {
     before_insert_hook: bool,
     before_update_hook: bool,
     before_delete_hook: bool,
+    before_soft_delete_hook: bool,
     after_insert_hook: bool,
     after_update_hook: bool,
     after_delete_hook: bool,
+    after_soft_delete_hook: bool,
     update_method: Option<bool>,
     delete_method: Option<bool>,
+    soft_delete_method: Option<bool>,
 }
 
 // Parse unique index from meta

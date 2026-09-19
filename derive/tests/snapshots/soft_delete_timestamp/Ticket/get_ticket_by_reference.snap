@@ -1,0 +1,53 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Ticket` from the `ticket` table whose value matches the value from the unique single-column btree index on the `reference` column.*/
+    pub fn get_ticket_by_reference<'a>(
+        &'a self,
+        reference: &str,
+    ) -> Result<Ticket, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().ticket().reference().find(reference.to_string()) {
+            Some(ticket) => Ok(ticket),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "ticket".into(),
+                    column_names_and_row_values: format!(
+                        "{{ reference : {} }}", reference.to_string()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Ticket` from the `ticket` table whose value matches the value from the unique single-column btree index on the `reference` column.*/
+    pub fn get_ticket_by_reference<'a>(
+        &'a self,
+        reference: &str,
+    ) -> Result<Ticket, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().ticket().reference().find(reference.to_string()) {
+            Some(ticket) => Ok(ticket),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "ticket".into(),
+                    column_names_and_row_values: format!(
+                        "{{ reference : {} }}", reference.to_string()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

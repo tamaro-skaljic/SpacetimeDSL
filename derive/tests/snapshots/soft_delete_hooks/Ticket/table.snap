@@ -1,0 +1,108 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct TicketId {
+    value: u64,
+}
+impl Default for TicketId {
+    fn default() -> TicketId {
+        TicketId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for TicketId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "TicketId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, TicketId> for TicketId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Ticket> for TicketId {
+    fn from(value: &Ticket) -> Self {
+        TicketId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Ticket> for Option<TicketId> {
+    fn from(value: &Ticket) -> Option<TicketId> {
+        Some(TicketId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&TicketId> for Option<TicketId> {
+    fn from(value: &TicketId) -> Option<TicketId> {
+        use spacetimedsl::Wrapper;
+        Some(TicketId::new(value.value()))
+    }
+}
+impl From<&TicketId> for TicketId {
+    fn from(value: &TicketId) -> Self {
+        use spacetimedsl::Wrapper;
+        TicketId::new(value.value())
+    }
+}
+impl Ticket {
+    ///
+    pub fn get_id(&self) -> TicketId {
+        use spacetimedsl::Wrapper;
+        TicketId::new(self.id.clone())
+    }
+    ///
+    pub fn get_title(&self) -> &String {
+        use spacetimedsl::Wrapper;
+        &self.title
+    }
+    ///
+    pub fn get_title_mut(&mut self) -> &mut String {
+        use spacetimedsl::Wrapper;
+        &mut self.title
+    }
+    ///
+    pub fn set_title(&mut self, title: String) -> String {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.title, title);
+        old_value
+    }
+    ///
+    pub fn get_deleted_at(&self) -> &Option<spacetimedb::Timestamp> {
+        use spacetimedsl::Wrapper;
+        &self.deleted_at
+    }
+}
+///
+pub struct CreateTicket {
+    pub title: String,
+}
+pub trait BeforeTicketSoftDeleteHook<T: crate::spacetimedsl::WriteContext> {
+    fn before_ticket_soft_delete(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_ticket: &Ticket,
+        new_ticket: Ticket,
+    ) -> Result<Ticket, crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+pub trait AfterTicketSoftDeleteHook<T: crate::spacetimedsl::WriteContext> {
+    fn after_ticket_soft_delete(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_ticket: &Ticket,
+        new_ticket: &Ticket,
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+
+// Generated DSL methods:
+// count_of_all_tickets
+// create_ticket
+// delete_ticket_by_id
+// get_all_tickets
+// get_ticket_by_id
+// soft_delete_ticket_by_id
+// update_ticket_by_id

@@ -6,8 +6,8 @@ use super::{
     },
     upsert::{
         ForeignKeyColumnScope, after_update_hook, before_update_hook_use_and_call,
-        row_value_getters_for_foreign_key_columns, set_singleton_primary_key,
-        set_updated_at_on_update,
+        rebind_row_as_mutable_after_hook, row_value_getters_for_foreign_key_columns,
+        set_singleton_primary_key, set_updated_at_on_update,
     },
 };
 use crate::{
@@ -108,6 +108,12 @@ pub(in crate::internal) fn for_update(
         field_name_for_found_value,
     );
 
+    let rebind_row_as_mutable = rebind_row_as_mutable_after_hook(
+        singular_table_name,
+        &before_update_hook_call,
+        &[&on_update_set_current_timestamp],
+    );
+
     let before_update_hook = if before_update_hook_call.is_empty() {
         TokenStream::default()
     } else {
@@ -164,9 +170,10 @@ pub(in crate::internal) fn for_update(
             #(#row_value_getters)*
             #(#reference_integrity_checks)*
 
-            #on_update_set_current_timestamp
-
             #before_update_hook
+
+            #rebind_row_as_mutable
+            #on_update_set_current_timestamp
 
             // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(crate::spacetimedsl::error::SpacetimeDSLError);
             let #singular_table_name = self

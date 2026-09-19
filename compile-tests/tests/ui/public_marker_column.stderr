@@ -1,0 +1,6 @@
+error: A column with the soft-delete marker role should have `Visibility::Inherited`!
+       `soft_delete_<table>_by_<index>` is its only writer, so it has a getter but no setter.
+  --> tests/ui/public_marker_column.rs:21:9
+   |
+21 |         pub deleted: bool,
+   |         ^^^
