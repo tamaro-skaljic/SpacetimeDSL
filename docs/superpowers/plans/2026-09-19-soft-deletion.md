@@ -18,7 +18,6 @@
 - No comment may restate what the code says. Document only what is not obvious and why.
 - Write the test before the production code. Snapshot tests are written by adding a fixture and a test function; diagnostics tests by adding a `tests/ui/*.rs` file.
 - `./x unit-test` must be green at the end of every task. It runs `cargo test -p spacetimedsl_derive` and `cargo test -p spacetimedsl-compile-tests`.
-- Generated identifiers are part of the public API. Any change to one breaks every module generated against the previous name.
 - `method(delete)` keeps its default of `true`. It becomes mandatory only when `method(soft_delete)` is present.
 - Accepted strategies: `on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero`, `Ignore`; `on_soft_delete` takes `Error`, `SoftDelete`, `Ignore` only.
 - `OnDeleteStrategy` variant order is `Error, Delete, SoftDelete, SetZero, Ignore`, in both copies of the enum.
@@ -105,11 +104,13 @@ The spec reverses a decision documented in `upsert.rs`. Today `update_<table>_by
 This task changes generated output only. No new test is written; the existing snapshots are the test, and they must change in exactly the expected way.
 
 **Files:**
+
 - Modify: `derive-input/src/internal/dsl/method/update.rs:118-135`
 - Modify: `derive-input/src/internal/dsl/method/upsert.rs:1-12` (module documentation), `:430-450` (update path), insert path in the same `method_impl`
 - Test: `derive/tests/snapshots/timestamps/**`, `derive/tests/snapshots/hooks_all_six/**`, `derive/tests/snapshots/singleton_with_default/**`
 
 **Interfaces:**
+
 - Consumes: nothing from earlier tasks.
 - Produces: no new names. Later tasks rely on the rule that a hook runs before framework-owned columns are written.
 
@@ -226,11 +227,13 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 The `OnDeleteStrategy` enum exists twice: once in the runtime crate, which generated code names at run time, and once in `derive-input`, which generates those names. Both copies change together; the comment above each says so.
 
 **Files:**
+
 - Modify: `src/delete.rs:8-48`
 - Modify: `src/error.rs:36-53` (`Action`), `:66-75` (`Display for OnDeleteStrategy`)
 - Modify: `derive-input/src/api/dsl/foreign_key.rs:10-73`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `spacetimedsl::delete::OnDeleteStrategy::SoftDelete`; `spacetimedsl::error::Action::SoftDelete`; `derive_input::api::dsl::foreign_key::OnDeleteStrategy::SoftDelete`, which `quote::ToTokens` renders as the runtime path.
 
@@ -353,11 +356,13 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 The first of the eight rejections. It lives in `try_parse_dsl`, because that is the only place where both flags are still `Option<bool>` and "absent" can be told apart from "false".
 
 **Files:**
+
 - Modify: `derive-input/src/internal.rs:70-72` (the `let mut` block), `:155-170` (the `method` arm), `:186-205` (the checks), `:245-275` (`DSLData`)
 - Modify: `derive-input/src/internal/dsl.rs` (symbol)
 - Create: `compile-tests/tests/ui/soft_delete_method_without_delete_method.rs` + `.stderr`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `DSLData.soft_delete_method: Option<bool>`, read by Task 4 and Task 7.
 
@@ -502,6 +507,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 Detection of the column a soft deletion writes, and rejections 2 through 7. This is the task that makes a table soft-deletable as far as the `api` types are concerned; nothing generates a method yet.
 
 **Files:**
+
 - Create: `derive-input/src/api/dsl/soft_delete.rs`
 - Create: `derive-input/src/internal/dsl/soft_delete.rs`
 - Modify: `derive-input/src/api/dsl.rs`, `derive-input/src/api/dsl/table.rs:26-50`
@@ -510,6 +516,7 @@ Detection of the column a soft deletion writes, and rejections 2 through 7. This
 - Create: six `compile-tests/tests/ui/*.rs` + `.stderr` pairs, named in step 1
 
 **Interfaces:**
+
 - Consumes: `DSLData.soft_delete_method` (Task 3).
 - Produces:
   - `api::dsl::soft_delete::SoftDeleteMarkerKind { Flag, Timestamp }`
@@ -845,11 +852,13 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 A new row is never born retired, so the create generator fills the marker in rather than asking the caller for it. `create_method_column_parts` already does this for `created_at` and `updated_at`; the marker is a third such column.
 
 **Files:**
+
 - Modify: `derive-input/src/internal/dsl/method/create.rs:71-95`
 - Create: `derive/tests/fixtures/soft_delete_flag.rs`
 - Modify: `derive/src/characterization_tests.rs`
 
 **Interfaces:**
+
 - Consumes: `SpacetimeDSLTable.soft_delete_marker` (Task 4).
 - Produces: the first soft-deletable fixture, reused as a reading aid by later tasks.
 
@@ -964,6 +973,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 The hooks take the shape of the update hooks, because a soft deletion writes a row. Nothing calls them yet; Task 8 does.
 
 **Files:**
+
 - Modify: `derive-input/src/api/dsl/hook.rs:7-14`
 - Modify: `derive-input/src/internal/dsl/hook.rs:37-47` (`DeclaredHooks`), `:49-105` (`build`), `:140-146` (`Operation`), `:150-200` (name builders), `:202-260` (args), `:262-290` (return type)
 - Modify: `derive-input/src/internal.rs` (parsing, rejection 8), `derive-input/src/internal/dsl/table.rs:34-45`
@@ -972,6 +982,7 @@ The hooks take the shape of the update hooks, because a soft deletion writes a r
 - Modify: `derive/src/characterization_tests.rs`
 
 **Interfaces:**
+
 - Consumes: `DSLData.soft_delete_method` (Task 3).
 - Produces: `SpacetimeDSLMethodHooks.before_soft_delete` and `.after_soft_delete`, both `Option<SpacetimeDSLMethodHook>`, read by Task 8 and Task 11.
 
@@ -1194,11 +1205,13 @@ A pure refactor. `for_delete_one` and `for_delete_many` keep producing byte-iden
 Do this before writing the soft-delete generators, so the skeleton is shaped by working code rather than by guesswork.
 
 **Files:**
+
 - Create: `derive-input/src/internal/dsl/method/removal.rs`
 - Modify: `derive-input/src/internal/dsl/method/delete.rs` (whole file)
 - Modify: `derive-input/src/internal/dsl/method.rs:22-50` (module list and `use`s)
 
 **Interfaces:**
+
 - Consumes: `IndexShape`, `MethodGenerationContext`, the helpers `delete.rs` already imports.
 - Produces:
 
@@ -1330,6 +1343,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 8: The `soft_delete_*` methods
 
 **Files:**
+
 - Create: `derive-input/src/internal/dsl/method/soft_delete.rs`
 - Modify: `derive-input/src/internal/dsl/method/removal.rs` (fill the four `Removal::Soft` arms)
 - Modify: `derive-input/src/api/dsl/column.rs:28-45`
@@ -1339,6 +1353,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Modify: `derive/src/characterization_tests.rs`
 
 **Interfaces:**
+
 - Consumes: `Removal`, `for_removal_one`, `for_removal_many` (Task 7); `SoftDeleteMarker` (Task 4); the two hooks (Task 6).
 - Produces:
   - `for_soft_delete_one(shape, context) -> SpacetimeDSLMethod`, `for_soft_delete_many(shape, context) -> SpacetimeDSLMethod`
@@ -1709,6 +1724,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 Parsing only. The strategies are not generated yet, and no cascade calls them; Task 11 does that. Splitting it this way keeps the rejections reviewable apart from the code generation.
 
 **Files:**
+
 - Modify: `derive-input/src/api/dsl/foreign_key.rs:3-9` (`ForeignKey`)
 - Modify: `derive-input/src/internal/dsl/foreign_key.rs` (whole parser), `derive-input/src/internal/dsl/column.rs:13-35`, `derive-input/src/internal/column.rs:60-67`
 - Modify: `derive-input/src/internal/dsl.rs` (symbol)
@@ -1717,6 +1733,7 @@ Parsing only. The strategies are not generated yet, and no cascade calls them; T
 - Create: six `compile-tests/tests/ui/*.rs` + `.stderr` pairs, named in step 1
 
 **Interfaces:**
+
 - Consumes: `OnDeleteStrategy::SoftDelete` (Task 2), `SpacetimeDSLTable.soft_delete_marker` (Task 4).
 - Produces:
   - `ForeignKey.on_delete_strategy: Option<OnDeleteStrategy>`
@@ -1926,10 +1943,12 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 The rename and the split, with no new cascade code behind them yet. After this task a hard-deletion pairing still verifies exactly as before, under a longer name.
 
 **Files:**
+
 - Modify: `derive-input/src/internal/dsl/method/naming.rs` (whole file)
 - Modify: `derive-input/src/internal/dsl/method/foreign_key.rs:220-240`, `derive-input/src/internal/dsl/method/referenced_by.rs:190-210`
 
 **Interfaces:**
+
 - Consumes: nothing new.
 - Produces:
 
@@ -2062,6 +2081,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 The last generation task: a second pair of cascade entry points on a soft-deletable referenced table, a second set of strategy functions on the referencing side, the `SoftDelete` strategy arm, and the soft halves of both compile-error checks wired to the flags that decide them.
 
 **Files:**
+
 - Modify: `derive-input/src/api/dsl/table.rs:60-95`
 - Modify: `derive-input/src/internal/dsl/method/naming.rs` (dispatcher names)
 - Modify: `derive-input/src/internal/dsl/method/referenced_by.rs`, `method/foreign_key.rs`, `method/on_delete_strategy.rs`, `method.rs`, `method/removal.rs`
@@ -2070,6 +2090,7 @@ The last generation task: a second pair of cascade entry points on a soft-deleta
 - Modify: `derive/src/characterization_tests.rs`
 
 **Interfaces:**
+
 - Consumes: everything from Tasks 2, 4, 6, 8, 9, 10.
 - Produces:
 
@@ -2290,9 +2311,11 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 The last task. It proves the feature against a real SpacetimeDB instance and writes it down for the people who will use it.
 
 **Files:**
+
 - Modify: `docs/DOCUMENTATION.md`, `README.md`, `examples/test/src/lib.rs`
 
 **Interfaces:**
+
 - Consumes: the whole feature.
 - Produces: nothing other tasks depend on.
 
@@ -2431,7 +2454,7 @@ The accessor names follow the generated ones: `get_<column>` for every column, i
 ./x test
 ```
 
-Expected: the module publishes, the reducer runs and the logs show no assertion failure. If `spacetime` is not installed or no local server is running, say so and stop — this step cannot be faked.
+Expected: the module publishes, the reducer runs and the logs show no assertion failure. The local `spacetime` server is already running.
 
 - [ ] **Step 4: Write the reference documentation**
 
