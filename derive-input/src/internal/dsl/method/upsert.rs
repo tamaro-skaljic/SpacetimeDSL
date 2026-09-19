@@ -7,9 +7,9 @@
 //! values, the `updated_at` assignment, the update hooks and the singleton primary key.
 //! `update.rs` is the other caller of those.
 //!
-//! Both paths set the columns the framework owns before they call their hook, so a hook can
-//! overrule a timestamp. `create_<table>` orders the two the other way round; inside one
-//! method the two paths agreeing with each other matters more.
+//! Both paths call their hook before they set the columns the framework owns, so the
+//! framework has the last word on a timestamp. `create_<table>`, `update_<table>_by_<key>`
+//! and `soft_delete_<table>_by_<index>` order the two the same way.
 
 use super::{
     context::MethodGenerationContext,
@@ -433,11 +433,11 @@ pub(in crate::internal) fn for_singleton_upsert(
                 #(#row_values_on_update)*
                 #(#checks_on_update)*
 
-                #keep_created_at
-                #set_updated_at_on_update
-
                 #use_before_update_hook_trait
                 #before_update_hook_call
+
+                #keep_created_at
+                #set_updated_at_on_update
 
                 // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(crate::spacetimedsl::error::SpacetimeDSLError);
                 let #singular_table_name = self
@@ -453,10 +453,10 @@ pub(in crate::internal) fn for_singleton_upsert(
                 #(#row_values_on_create)*
                 #(#checks_on_create)*
 
+                #before_insert_hook
+
                 #set_created_at
                 #set_updated_at_on_insert
-
-                #before_insert_hook
 
                 match self
                     .db()

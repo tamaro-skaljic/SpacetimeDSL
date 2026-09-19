@@ -164,9 +164,9 @@ pub(in crate::internal) fn for_update(
             #(#row_value_getters)*
             #(#reference_integrity_checks)*
 
-            #on_update_set_current_timestamp
-
             #before_update_hook
+
+            #on_update_set_current_timestamp
 
             // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(crate::spacetimedsl::error::SpacetimeDSLError);
             let #singular_table_name = self
