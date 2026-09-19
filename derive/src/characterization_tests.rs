@@ -5,7 +5,8 @@
 //! Each fixture in `tests/fixtures` isolates one feature and names the branch it covers.
 //! Its snapshots live in `tests/snapshots/<fixture>/<StructName>`: `table.snap` holds
 //! everything the macro emits that is not a DSL method, plus a manifest of the generated
-//! method names, and one `<method_name>.snap` holds each DSL method. A struct carrying
+//! method names, one `<method_name>.snap` holds each public DSL method, and
+//! `internal_methods.snap` holds all internal DSL methods together. A struct carrying
 //! more than one `#[dsl]` attribute is expanded once per attribute and snapshotted into
 //! a `pass_<n>` directory per expansion.
 //!
@@ -212,10 +213,18 @@ fn snapshot_fixture(fixture_name: &str) {
             insta::assert_snapshot!("table", table_snapshot(&generated_output, &struct_name));
 
             for dsl_method in &generated_output.dsl_methods {
+                if dsl_method.is_internal {
+                    continue;
+                }
+
                 insta::assert_snapshot!(
                     dsl_method.method_name.to_string(),
                     format_tokens(&dsl_method.tokens)
                 );
+            }
+
+            if let Some(internal_methods) = internal_methods_snapshot(&generated_output) {
+                insta::assert_snapshot!(INTERNAL_METHODS_SNAPSHOT_NAME, internal_methods);
             }
         });
     }
@@ -290,6 +299,34 @@ fn expand_fixture_to_string(fixture_name: &str) -> String {
         .into_iter()
         .map(|expansion| expansion.generated_output.into_token_stream().to_string())
         .collect()
+}
+
+/// The name of the snapshot that holds every internal DSL method of a struct at once.
+///
+/// An internal method carries the name of both the referencing and the referenced table on
+/// top of a long fixed phrase, so a file per internal method produced paths that no longer
+/// fit into the Windows path limit once the repository was checked out into a worktree.
+const INTERNAL_METHODS_SNAPSHOT_NAME: &str = "internal_methods";
+
+/// Every internal DSL method of the struct, each one preceded by its name, or `None` when
+/// the struct generates no internal method at all.
+///
+/// The names stay visible in the snapshot itself, so a renamed method still shows up as a
+/// diff even though the file name no longer carries it.
+fn internal_methods_snapshot(generated_output: &GeneratedOutput) -> Option<String> {
+    let internal_methods: String = generated_output
+        .dsl_methods
+        .iter()
+        .filter(|dsl_method| dsl_method.is_internal)
+        .map(|dsl_method| {
+            let method_name = &dsl_method.method_name;
+            let method = format_tokens(&dsl_method.tokens);
+
+            format!("// {method_name}\n{method}\n")
+        })
+        .collect();
+
+    (!internal_methods.is_empty()).then_some(internal_methods)
 }
 
 /// Everything the macro emits that is not a DSL method, followed by a manifest of the
