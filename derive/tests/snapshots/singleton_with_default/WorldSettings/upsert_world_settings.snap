@@ -39,7 +39,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             )?;
             Ok(world_settings)
         } else {
-            world_settings.created_at = self.ctx().timestamp()?;
+            world_settings.created_at = Some(self.ctx().timestamp()?);
             world_settings.modified_at = None;
             use self::BeforeWorldSettingsInsertHook;
             let world_settings = crate::spacetimedsl::DSLMethodHooks::before_world_settings_insert(

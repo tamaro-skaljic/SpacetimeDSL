@@ -260,12 +260,31 @@ fn keep_created_at_on_update(
 }
 
 /// `<row>.<created_at> = <now>;`, the one moment the insert time is written.
-fn set_created_at_on_insert(spacetimedsl_table: &SpacetimeDSLTable, row: &Ident) -> TokenStream {
+fn set_created_at_on_insert(
+    spacetimedsl_table: &SpacetimeDSLTable,
+    internal_columns: &[InternalColumn],
+    row: &Ident,
+) -> TokenStream {
     match &spacetimedsl_table.on_insert_set_current_timestamp_column_name {
         None => TokenStream::default(),
-        Some(column_name) => quote! {
-            #row.#column_name = self.ctx().timestamp()?;
-        },
+        Some(column_name) => {
+            let internal_column = internal_columns
+                .iter()
+                .find(|column| column.rust_field_name.eq(column_name))
+                .unwrap_or_else(|| {
+                    panic!(
+                        "The column {column_name} named by an on_insert attribute must be one of this table's columns"
+                    )
+                });
+            let timestamp_value = match internal_column.rust_field_type_kind {
+                ColumnTypeKind::Optional => quote! { Some(self.ctx().timestamp()?) },
+                _ => quote! { self.ctx().timestamp()? },
+            };
+
+            quote! {
+                #row.#column_name = #timestamp_value;
+            }
+        }
     }
 }
 
@@ -335,7 +354,8 @@ pub(in crate::internal) fn for_singleton_upsert(
         singular_table_name,
         field_name_for_found_value,
     );
-    let set_created_at = set_created_at_on_insert(spacetimedsl_table, singular_table_name);
+    let set_created_at =
+        set_created_at_on_insert(spacetimedsl_table, internal_columns, singular_table_name);
 
     let set_updated_at_on_update =
         set_updated_at_on_update(spacetimedsl_table, internal_columns, singular_table_name);

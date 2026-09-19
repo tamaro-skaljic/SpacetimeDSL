@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
-use crate::api::dsl::table::SpacetimeDSLTable;
+use crate::api::dsl::table::{SingletonKind, SpacetimeDSLTable};
 use crate::internal::DSLData;
 use crate::internal::dsl::hook::DeclaredHooks;
 use quote::{ToTokens, format_ident};
@@ -99,6 +99,18 @@ impl SpacetimeDSLTable {
 
             let column_name = field.name.as_ref().expect("should have a name");
             let timestamp_role = get_timestamp_role(field)?;
+            let field_type = field.ty.to_token_stream().to_string();
+
+            if dsl_data.singleton == Some(SingletonKind::WithDefault)
+                && is_bare_timestamp_type(&field_type)
+            {
+                return Err(syn::Error::new_spanned(
+                    field.ty,
+                    format!(
+                        "A column on a `singleton(with_default)` table should have the type `Option<spacetimedb::Timestamp>`! Found: {field_type}"
+                    ),
+                ));
+            }
 
             if matches!(timestamp_role, Some(TimestampRole::CreatedAt)) {
                 if on_insert_set_current_timestamp_column_name.is_some() {
@@ -107,12 +119,20 @@ impl SpacetimeDSLTable {
                         "Multiple columns claim the `created_at` role! Only one column is allowed.",
                     ));
                 };
-                let field_type = field.ty.to_token_stream().to_string();
-                if !field_type.eq("Timestamp") && !field_type.eq("spacetimedb :: Timestamp") {
+                let created_at_type_is_valid = match dsl_data.singleton {
+                    Some(SingletonKind::WithDefault) => is_optional_timestamp_type(&field_type),
+                    _ => is_bare_timestamp_type(&field_type),
+                };
+                if !created_at_type_is_valid {
                     return Err(syn::Error::new_spanned(
                         field.ty,
                         format!(
-                            "A column with the `created_at` role should have the type `spacetimedb::Timestamp`! Found: {field_type}"
+                            "A column with the `created_at` role should have the type `{}`! Found: {field_type}",
+                            match dsl_data.singleton {
+                                Some(SingletonKind::WithDefault) =>
+                                    "Option<spacetimedb::Timestamp>",
+                                _ => "spacetimedb::Timestamp",
+                            }
                         ),
                     ));
                 }
@@ -151,7 +171,6 @@ impl SpacetimeDSLTable {
                     ));
                 }
 
-                let field_type = field.ty.to_token_stream().to_string();
                 if !field_type.eq("Timestamp")
                     && !field_type.eq("spacetimedb :: Timestamp")
                     && !field_type.eq("Option < Timestamp >")
@@ -246,4 +265,12 @@ fn get_timestamp_role(
         (false, false) => None,
         (true, true) => unreachable!(),
     })
+}
+
+fn is_bare_timestamp_type(field_type: &str) -> bool {
+    field_type.eq("Timestamp") || field_type.eq("spacetimedb :: Timestamp")
+}
+
+fn is_optional_timestamp_type(field_type: &str) -> bool {
+    field_type.eq("Option < Timestamp >") || field_type.eq("Option < spacetimedb :: Timestamp >")
 }

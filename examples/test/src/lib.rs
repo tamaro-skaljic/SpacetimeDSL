@@ -1068,6 +1068,9 @@ pub mod singleton_with_default_test {
 
         pub world_name: String,
 
+        #[created_at]
+        created_at: Option<Timestamp>,
+
         modified_at: Option<Timestamp>,
     }
 
@@ -1125,7 +1128,7 @@ pub mod singleton_with_default_test {
 
     impl DefaultSingleton for WorldSettings {
         fn get_default(
-            dsl: &ReadOnlyDSL<'_, impl ReadContext>,
+            _dsl: &ReadOnlyDSL<'_, impl ReadContext>,
         ) -> Result<WorldSettings, SpacetimeDSLError> {
             Ok(WorldSettings {
                 // The injected primary key is a field like any other, so the default has to
@@ -1133,6 +1136,7 @@ pub mod singleton_with_default_test {
                 id: 0,
                 maximum_player_count: 8,
                 world_name: "Default World".to_string(),
+                created_at: None,
                 modified_at: None,
             })
         }
@@ -2317,6 +2321,12 @@ pub mod test {
             ));
         }
 
+        let created_at = inserted
+            .get_created_at()
+            .as_ref()
+            .copied()
+            .ok_or("An inserted row should have a created_at timestamp!")?;
+
         // The insert path of an upsert runs the insert hooks, never the update hooks.
         if !inserted.get_world_name().ends_with(INSERTED_SUFFIX) {
             return Err(format!(
@@ -2357,6 +2367,10 @@ pub mod test {
             return Err("An update should set modified_at!".to_string());
         }
 
+        if updated.get_created_at().as_ref().ne(&Some(&created_at)) {
+            return Err("An update should preserve created_at!".to_string());
+        }
+
         let mut settings_from_the_default =
             WorldSettings::get_default(&read_only_dsl(dsl.ctx()))
                 .map_err(|e| format!("The default should be available! Got:\n{e}"))?;
@@ -2370,6 +2384,10 @@ pub mod test {
                 )
             })?;
 
+        if updated.get_created_at().as_ref().ne(&Some(&created_at)) {
+            return Err("Upserting the default should preserve created_at!".to_string());
+        }
+
         dsl.delete_world_settings()
             .map_err(|e| format!("Should be able to delete the WorldSettings! Got:\n{e}"))?;
 
@@ -2382,6 +2400,10 @@ pub mod test {
                 "After the delete the maximum_player_count should be the default 8, got: {}",
                 default_again.get_maximum_player_count()
             ));
+        }
+
+        if default_again.get_created_at().is_some() {
+            return Err("The default created_at should remain None!".to_string());
         }
 
         Ok(())

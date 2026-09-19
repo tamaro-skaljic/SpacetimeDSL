@@ -38,7 +38,7 @@ impl WorldSettings {
         old_value
     }
     ///
-    pub fn get_created_at(&self) -> &Timestamp {
+    pub fn get_created_at(&self) -> &Option<Timestamp> {
         use spacetimedsl::Wrapper;
         &self.created_at
     }
