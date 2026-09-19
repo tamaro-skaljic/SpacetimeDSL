@@ -1,0 +1,5 @@
+error: A column with the `updated_at` role should have `Visibility::Inherited`! Found: Visibility::Restricted
+  --> tests/ui/updated_at_attribute_restricted.rs:12:5
+   |
+12 |     pub(crate) finished_at: spacetimedb::Timestamp,
+   |     ^^^^^^^^^^

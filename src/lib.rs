@@ -70,7 +70,7 @@ pub trait Context:
 {
 }
 
-pub trait WriteContext: Context + spacetimedb::CtxDbWrite {}
+pub trait WriteContext: ReadContext + Context + spacetimedb::CtxDbWrite {}
 
 pub trait ReadContext: Context + spacetimedb::CtxDbRead {}
 
@@ -104,19 +104,21 @@ macro_rules! spacetimedsl {
             // Use `::spacetimedsl::` (global path) throughout this module.
             // The local module name `spacetimedsl` creates ambiguity with `$crate` so
             // we use the explicit `::` prefix to reference the external crate.
-            pub struct DSL<'a, T: ::spacetimedsl::WriteContext> {
+            pub struct DSL<'a, T: ::spacetimedsl::WriteContext + ::spacetimedsl::ReadContext> {
                 ctx: &'a T,
                 db: &'a spacetimedb::Local,
             }
 
-            pub fn dsl<'a, T: ::spacetimedsl::WriteContext>(ctx: &'a T) -> DSL<'a, T> {
+            pub fn dsl<'a, T: ::spacetimedsl::WriteContext + ::spacetimedsl::ReadContext>(
+                ctx: &'a T,
+            ) -> DSL<'a, T> {
                 DSL {
                     ctx,
                     db: spacetimedb::CtxDbWrite::db(ctx),
                 }
             }
 
-            impl<T: ::spacetimedsl::WriteContext> DSL<'_, T> {
+            impl<T: ::spacetimedsl::WriteContext + ::spacetimedsl::ReadContext> DSL<'_, T> {
                 pub fn dsl(&self) -> &DSL<'_, T> {
                     self
                 }

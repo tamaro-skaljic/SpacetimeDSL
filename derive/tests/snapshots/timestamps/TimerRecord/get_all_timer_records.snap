@@ -1,0 +1,12 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get all rows inside the `timer_record` table.
+    pub fn get_all_timer_records<'a>(&'a self) -> impl Iterator<Item = TimerRecord> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().timer_record().iter()
+    }
+}

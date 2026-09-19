@@ -1,0 +1,79 @@
+---
+source: derive/src/characterization_tests.rs
+assertion_line: 212
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct TimerRecordId {
+    value: u64,
+}
+impl Default for TimerRecordId {
+    fn default() -> TimerRecordId {
+        TimerRecordId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for TimerRecordId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "TimerRecordId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, TimerRecordId> for TimerRecordId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&TimerRecord> for TimerRecordId {
+    fn from(value: &TimerRecord) -> Self {
+        TimerRecordId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&TimerRecord> for Option<TimerRecordId> {
+    fn from(value: &TimerRecord) -> Option<TimerRecordId> {
+        Some(TimerRecordId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&TimerRecordId> for Option<TimerRecordId> {
+    fn from(value: &TimerRecordId) -> Option<TimerRecordId> {
+        use spacetimedsl::Wrapper;
+        Some(TimerRecordId::new(value.value()))
+    }
+}
+impl From<&TimerRecordId> for TimerRecordId {
+    fn from(value: &TimerRecordId) -> Self {
+        use spacetimedsl::Wrapper;
+        TimerRecordId::new(value.value())
+    }
+}
+impl TimerRecord {
+    ///
+    pub fn get_id(&self) -> TimerRecordId {
+        use spacetimedsl::Wrapper;
+        TimerRecordId::new(self.id.clone())
+    }
+    ///
+    pub fn get_started_at(&self) -> &Timestamp {
+        use spacetimedsl::Wrapper;
+        &self.started_at
+    }
+    ///
+    pub fn get_finished_at(&self) -> &Option<Timestamp> {
+        use spacetimedsl::Wrapper;
+        &self.finished_at
+    }
+}
+
+// Generated DSL methods:
+// count_of_all_timer_records
+// create_timer_record
+// delete_timer_record_by_id
+// get_all_timer_records
+// get_timer_record_by_id
+// update_timer_record_by_id

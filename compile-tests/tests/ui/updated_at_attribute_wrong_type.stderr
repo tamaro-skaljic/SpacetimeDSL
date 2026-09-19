@@ -1,0 +1,5 @@
+error: A column with the `updated_at` role should have the type `spacetimedb::Timestamp` or `Option<spacetimedb::Timestamp>`! Found: String
+  --> tests/ui/updated_at_attribute_wrong_type.rs:12:18
+   |
+12 |     finished_at: String,
+   |                  ^^^^^^

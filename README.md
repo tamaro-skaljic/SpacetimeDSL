@@ -207,7 +207,7 @@ fn before_position_hook_helper(
 - 🤖 Auto-increment IDs are handled automatically (no manual ID assignment, no non-zero ID mistakes).
 - ⏰ `created_at` is set automatically on create.
 - 🔄 `modified_at` is set to `None` on create and updated to `Some(ctx.timestamp)` on update.
-- 🧷 No-op update guard: if position `x`/`y` didn't change, validation is skipped.
+- 🏷️ Use `#[created_at]` or `#[updated_at]` on private timestamp columns when their names differ from the conventional aliases.
 
 **Data Integrity by Construction:**
 
