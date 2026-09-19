@@ -18,6 +18,7 @@
 - No comment may restate what the code says. Document only what is not obvious and why.
 - Write the test before the production code. Snapshot tests are written by adding a fixture and a test function; diagnostics tests by adding a `tests/ui/*.rs` file.
 - `./x unit-test` must be green at the end of every task. It runs `cargo test -p spacetimedsl_derive` and `cargo test -p spacetimedsl-compile-tests`.
+- `cargo check -p spacetimedsl_test` must be green at the end of every task. The snapshot tests compare token streams and never compile them, so they cannot catch a generated body that does not build. This is the only cheap step that does, and it needs no SpacetimeDB server.
 - `method(delete)` keeps its default of `true`. It becomes mandatory only when `method(soft_delete)` is present.
 - Accepted strategies: `on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero`, `Ignore`; `on_soft_delete` takes `Error`, `SoftDelete`, `Ignore` only.
 - `OnDeleteStrategy` variant order is `Error, Delete, SoftDelete, SetZero, Ignore`, in both copies of the enum.
