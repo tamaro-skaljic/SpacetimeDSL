@@ -82,6 +82,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                         }
                     };
                 }
+                crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete => {}
                 crate::spacetimedsl::delete::OnDeleteStrategy::SetZero => {}
                 crate::spacetimedsl::delete::OnDeleteStrategy::Ignore => {}
             };
@@ -209,6 +210,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                         };
                     }
                 }
+                crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete => {}
                 crate::spacetimedsl::delete::OnDeleteStrategy::SetZero => {}
                 crate::spacetimedsl::delete::OnDeleteStrategy::Ignore => {}
             };

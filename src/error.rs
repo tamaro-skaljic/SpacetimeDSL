@@ -38,6 +38,7 @@ pub enum Action {
     Get,
     Update,
     Delete,
+    SoftDelete,
 }
 
 impl Display for Action {
@@ -47,6 +48,7 @@ impl Display for Action {
             Action::Get => write!(f, "get"),
             Action::Update => write!(f, "update"),
             Action::Delete => write!(f, "delete"),
+            Action::SoftDelete => write!(f, "soft delete"),
         }
     }
 }
@@ -68,6 +70,7 @@ impl Display for OnDeleteStrategy {
         match self {
             OnDeleteStrategy::Error => write!(f, "Error"),
             OnDeleteStrategy::Delete => write!(f, "Delete"),
+            OnDeleteStrategy::SoftDelete => write!(f, "SoftDelete"),
             OnDeleteStrategy::SetZero => write!(f, "SetZero"),
             OnDeleteStrategy::Ignore => write!(f, "Ignore"),
         }
@@ -117,7 +120,7 @@ impl Display for SpacetimeDSLError {
                         column_names_and_row_values
                     } => {
                         let create_or_update = match create_or_update {
-                            Action::Get | Action::Delete => panic!("Reference Integrity Violation Error On Create Or Update only allowed while creating or updating a row."),
+                            Action::Get | Action::Delete | Action::SoftDelete => panic!("Reference Integrity Violation Error On Create Or Update only allowed while creating or updating a row."),
                             action => action.to_string()
                         };
 

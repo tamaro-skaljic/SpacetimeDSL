@@ -29,6 +29,14 @@ pub enum OnDeleteStrategy {
     Delete,
 
     /**
+     * Available only for tables with `#[dsl(method(soft_delete = true))]`.
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
+     * ... the referencing rows are soft-deleted, which marks them through their marker column instead of removing them.
+     * Like `Delete`, this cascades further into the tables which reference the soft-deleted rows.
+     */
+    SoftDelete,
+
+    /**
      * TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 SetNone
      * Because Option is currently not allowed on primary_key and unique/btree indices this strategy isn't used and implemented yet.
      * Available only for columns with type `Option<T>`.
@@ -61,6 +69,9 @@ impl quote::ToTokens for OnDeleteStrategy {
             }
             OnDeleteStrategy::Delete => {
                 crate::api::runtime::on_delete_strategy(&quote::quote! { Delete })
+            }
+            OnDeleteStrategy::SoftDelete => {
+                crate::api::runtime::on_delete_strategy(&quote::quote! { SoftDelete })
             }
             OnDeleteStrategy::SetZero => {
                 crate::api::runtime::on_delete_strategy(&quote::quote! { SetZero })

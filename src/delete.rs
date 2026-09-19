@@ -2,8 +2,6 @@ use std::fmt::Display;
 
 use crate::error::{OneOrMultiple, SpacetimeDSLError};
 
-// TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/59 SoftDelete Feature
-
 // Don't forget to copy + paste this enum into `derive_input::api::dsl::foreign_key` if you change it
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum OnDeleteStrategy {
@@ -22,6 +20,14 @@ pub enum OnDeleteStrategy {
      * If false, the on delete strategies of all affected rows are executed.
      */
     Delete,
+
+    /**
+     * Available only for tables with `#[dsl(method(soft_delete = true))]`.
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
+     * ... the referencing rows are soft-deleted, which marks them through their marker column instead of removing them.
+     * Like `Delete`, this cascades further into the tables which reference the soft-deleted rows.
+     */
+    SoftDelete,
 
     /**
      * TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 SetNone

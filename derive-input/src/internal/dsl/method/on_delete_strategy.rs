@@ -363,6 +363,11 @@ pub(in crate::internal) fn on_delete_strategy_implementation(
                     }
                 };
             }
+            OnDeleteStrategy::SoftDelete => {
+                todo!(
+                    "no #[foreign_key] spelling accepts SoftDelete yet, so this arm is unreachable"
+                )
+            }
             OnDeleteStrategy::SetZero => {
                 strategy_by_column.push(strategy_by_row(
                     RowBinding::Mutable,
