@@ -538,7 +538,7 @@ Detection of the column a soft deletion writes, and rejections 2 through 7. This
 - Modify: `derive-input/src/api/dsl.rs`, `derive-input/src/api/dsl/table.rs:26-50`
 - Modify: `derive-input/src/internal/dsl.rs`, `derive-input/src/internal/dsl/table.rs:17-50` and `:205-235`
 - Modify: `derive/src/lib.rs:112-123`
-- Create: six `compile-tests/tests/ui/*.rs` + `.stderr` pairs, named in step 1
+- Create: seven `compile-tests/tests/ui/*.rs` + `.stderr` pairs, named in step 1
 
 **Interfaces:**
 
@@ -549,7 +549,7 @@ Detection of the column a soft deletion writes, and rejections 2 through 7. This
   - `SpacetimeDSLTable.soft_delete_marker: Option<SoftDeleteMarker>` and `SpacetimeDSLTable::is_soft_deletable(&self) -> bool`
   - `internal::dsl::soft_delete::try_parse(has_soft_delete_method: Option<bool>, singleton: Option<SingletonKind>, column_args: &ColumnArgs<'_>, original_struct_name: &Ident) -> syn::Result<Option<SoftDeleteMarker>>`
 
-- [ ] **Step 1: Write the six failing tests**
+- [x] **Step 1: Write the seven failing tests**
 
 Create these files under `compile-tests/tests/ui/`. Each ends in `fn main() {}` and starts with `::spacetimedsl::spacetimedsl!();`, like every other case there.
 
@@ -596,15 +596,17 @@ fn main() {}
 
 `soft_delete_method_on_singleton.rs`: `#[dsl(singleton, method(update = true, delete = true, soft_delete = true))]` with a `deleted: bool` column.
 
-- [ ] **Step 2: Run them to make sure they fail**
+`set_on_soft_delete_attribute_wrong_type.rs`: `soft_delete = true` and `#[set_on_soft_delete] retired: u8`. The attribute names no shape, so the column's type picks one; a type which fits neither is the branch `claimed_kind` rejects, and nothing else covers it.
+
+- [x] **Step 2: Run them to make sure they fail**
 
 ```bash
 .\x.ps1 unit-test
 ```
 
-Expected: FAIL, `expected test case to fail to compile, but it succeeded`, for all six.
+Expected: FAIL for all seven. Six report `expected test case to fail to compile, but it succeeded`; `set_on_soft_delete_attribute_wrong_type` instead fails with `cannot find attribute set_on_soft_delete in this scope`, because step 6 has not registered it yet.
 
-- [ ] **Step 3: Add the api type**
+- [x] **Step 3: Add the api type**
 
 Create `derive-input/src/api/dsl/soft_delete.rs`:
 
@@ -654,7 +656,7 @@ and the query beside `is_singleton`:
     }
 ```
 
-- [ ] **Step 4: Add the detection module**
+- [x] **Step 4: Add the detection module**
 
 Create `derive-input/src/internal/dsl/soft_delete.rs`:
 
@@ -805,9 +807,30 @@ fn type_fits(kind: SoftDeleteMarkerKind, field_type: &str) -> bool {
 
 The types this relies on, confirmed against the dependency: `ColumnArgs.original_struct_name` is an owned `Ident`, so `&column_args.original_struct_name` is the `&Ident` the signature takes. `SatsField.name` is an `Option<String>`, so `field.name.as_ref().expect(..)` is a `&String` and `&column_name.as_ref()` is the `&&str` that `[&str; 2]::contains` wants.
 
+**Correction applied during implementation.** The `(false, Some(marker))` arm above spans its message off `marker.column_name`, which `format_ident!` synthesizes with the call site's span — the message then underlines the `#[dsl(..)]` attribute rather than the offending column. Reject a claimed marker on a non-soft-deletable table **inside** the loop instead, where `field.ident` carries the column's own span, and let the tail collapse to one check:
+
+```rust
+        if !is_soft_deletable {
+            return Err(syn::Error::new_spanned(
+                field_identifier,
+                "This column claims the soft-delete marker role, but the table is not soft-deletable!\n...",
+            ));
+        }
+```
+
+```rust
+    if is_soft_deletable && marker.is_none() {
+        return Err(syn::Error::new_spanned(original_struct_name, "..."));
+    }
+
+    Ok(marker)
+```
+
+A side effect worth keeping: a column named `deleted: u8` on a table which is not soft-deletable now reports that the table is not soft-deletable, rather than complaining about the column's type. The table's state is the thing to fix.
+
 Add `pub mod soft_delete;` to `derive-input/src/internal/dsl.rs`.
 
-- [ ] **Step 5: Call detection and carry the marker**
+- [x] **Step 5: Call detection and carry the marker**
 
 In `derive-input/src/internal/dsl/table.rs`, inside `SpacetimeDSLTable::try_parse`, before the field loop:
 
@@ -826,11 +849,11 @@ and add to the `SpacetimeDSLTable { .. }` that is returned, after `has_delete_me
                 soft_delete_marker,
 ```
 
-- [ ] **Step 6: Register the helper attribute**
+- [x] **Step 6: Register the helper attribute**
 
 In `derive/src/lib.rs`, add `set_on_soft_delete` to the `attributes(...)` list of the `SpacetimeDSL` derive, after `updated_at`.
 
-- [ ] **Step 7: Regenerate the six diagnostics and read them**
+- [x] **Step 7: Regenerate the seven diagnostics and read them**
 
 ```bash
 $env:TRYBUILD = "overwrite"
@@ -845,9 +868,9 @@ for f in compile-tests/tests/ui/marker_column_without_soft_delete_method \
     echo "== $f"; cat "$f.stderr"; done
 ```
 
-Expected: six distinct messages, each underlining the column, the type, the visibility or the struct name as the code above chose. A message pointing at the wrong span is a bug in the `new_spanned` argument, not in the test.
+Expected: seven distinct messages, each underlining the column, the type, the visibility or the struct name as the code above chose. A message pointing at the wrong span is a bug in the `new_spanned` argument, not in the test.
 
-- [ ] **Step 8: Run both harnesses**
+- [x] **Step 8: Run both harnesses**
 
 ```bash
 .\x.ps1 unit-test
@@ -855,7 +878,7 @@ Expected: six distinct messages, each underlining the column, the type, the visi
 
 Expected: both PASS. No fixture is soft-deletable, so no snapshot moves.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add derive-input/src/api/dsl.rs derive-input/src/api/dsl/soft_delete.rs \

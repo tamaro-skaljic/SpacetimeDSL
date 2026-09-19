@@ -117,7 +117,8 @@ fn derive_table_helper_attr() -> syn::Attribute {
         foreign_key,
         referenced_by,
         created_at,
-        updated_at
+        updated_at,
+        set_on_soft_delete
     )
 )]
 pub fn table_helper(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {

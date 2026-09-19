@@ -1,0 +1,6 @@
+error: `#[dsl(method(soft_delete = true))]` is not allowed on a singleton table!
+       A singleton holds one row which the DSL looks up by its injected primary key, so retiring that row would leave the table with a row no method can reach.
+  --> tests/ui/soft_delete_method_on_singleton.rs:13:16
+   |
+13 |     pub struct Configuration {
+   |                ^^^^^^^^^^^^^

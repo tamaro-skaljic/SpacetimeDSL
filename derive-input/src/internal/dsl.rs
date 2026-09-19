@@ -24,6 +24,8 @@ pub mod one_or_multiple;
 
 pub mod singleton;
 
+pub mod soft_delete;
+
 symbol!(table);
 symbol!(singleton);
 symbol!(with_default);

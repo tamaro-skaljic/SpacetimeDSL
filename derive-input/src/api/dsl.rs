@@ -17,3 +17,5 @@ pub mod mut_getter;
 pub mod setter;
 
 pub mod method;
+
+pub mod soft_delete;

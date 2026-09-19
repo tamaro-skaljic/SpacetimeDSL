@@ -70,6 +70,13 @@ impl SpacetimeDSLTable {
             Some(has_update_method) => *has_update_method,
         };
 
+        let soft_delete_marker = super::soft_delete::try_parse(
+            dsl_data.soft_delete_method,
+            dsl_data.singleton,
+            column_args,
+            &column_args.original_struct_name,
+        )?;
+
         let mut on_insert_set_current_timestamp_column_name = None;
         let mut on_update_set_current_timestamp_column_name = None;
 
@@ -222,6 +229,7 @@ impl SpacetimeDSLTable {
                 plural_name: dsl_data.plural_name,
                 has_update_method,
                 has_delete_method: has_delete_method.unwrap_or(true),
+                soft_delete_marker,
                 on_insert_set_current_timestamp_column_name,
                 on_update_set_current_timestamp_column_name,
                 referencing_tables,

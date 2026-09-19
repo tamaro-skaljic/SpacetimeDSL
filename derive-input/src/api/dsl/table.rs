@@ -8,6 +8,7 @@ use crate::api::dsl::{
     column::SpacetimeDSLColumnMethods,
     hook::SpacetimeDSLMethodHooks,
     method::{SpacetimeDSLArg, SpacetimeDSLMethod},
+    soft_delete::SoftDeleteMarker,
 };
 
 /// How many rows a singleton table holds, which decides which methods it earns.
@@ -29,6 +30,11 @@ pub struct SpacetimeDSLTable {
     pub plural_name: Ident,
     pub has_update_method: bool,
     pub has_delete_method: bool,
+    /// The column a soft deletion writes, if the table is soft-deletable.
+    ///
+    /// `Some` and `#[dsl(method(soft_delete = true))]` imply each other: the parser rejects
+    /// either one without the other, so this is the single question every generator asks.
+    pub soft_delete_marker: Option<SoftDeleteMarker>,
     pub on_insert_set_current_timestamp_column_name: Option<Ident>,
     pub on_update_set_current_timestamp_column_name: Option<Ident>,
     pub referencing_tables: Vec<ReferencingTable>,
@@ -40,6 +46,10 @@ pub struct SpacetimeDSLTable {
 impl SpacetimeDSLTable {
     pub fn is_singleton(&self) -> bool {
         self.singleton.is_some()
+    }
+
+    pub fn is_soft_deletable(&self) -> bool {
+        self.soft_delete_marker.is_some()
     }
 
     /// Whether `get_<table>` falls back to `DefaultSingleton::get_default` instead of failing.
