@@ -6,9 +6,18 @@
 //! `::spacetimedsl::spacetimedsl!()`, defines the table which triggers the diagnostic and
 //! ends in an empty `main`.
 //!
-//! Run with `TRYBUILD=overwrite cargo test -p spacetimedsl-compile-tests` to regenerate
-//! the `.stderr` files after a deliberate change to a diagnostic, then read every diff
-//! before committing it.
+//! To regenerate the `.stderr` files after a deliberate change to a diagnostic, set the
+//! environment variable for one run and clear it afterwards, then read every diff before
+//! committing it:
+//!
+//! ```powershell
+//! $env:TRYBUILD = "overwrite"
+//! .\x.ps1 unit-test
+//! $env:TRYBUILD = $null
+//! ```
+//!
+//! Building a workspace member on its own fails to link against SpacetimeDB, so `x.ps1`
+//! is the only entry point; a raw `cargo test` here ends in a linker error.
 //!
 //! The `.stderr` files are only reproducible against the compiler in `rust-toolchain.toml`
 //! - that is why it pins an exact version rather than a channel.
