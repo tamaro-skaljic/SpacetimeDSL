@@ -13,6 +13,74 @@ Code must be self-documenting through clear naming:
 - **No redundant comments**: Never document "how" - the code shows that. Only document "what" and "why" when not obvious from the code itself.
 - **Remove comments that repeat the code**: A comment like `/// IO error.` above `Io(io::Error)` adds no value.
 
+### Test Driven Development
+
+Red and green are **observations, not intentions**. A step is red once its failure has been read, and green once a gate has printed its success marker. Assuming either state is how a change lands broken.
+
+#### Never invoke `cargo` directly
+
+Building a workspace member on its own fails to link against **SpacetimeDB**. `x.ps1` is the only supported entry point. A linker error is a sign that a raw `cargo` command was used, not a problem to investigate.
+
+#### The two gates
+
+`.\x.ps1 unit-test` runs the snapshot harness (`derive`) and the diagnostics harness (`compile-tests`). It reports its own result honestly, so filter it rather than reading it whole:
+
+```powershell
+.\x.ps1 unit-test 2>&1 | Select-String -Pattern "test result:|FAILED|^error|^warning: " | Select-Object -First 20
+```
+
+`.\x.ps1 test` publishes the example modules to the local server and runs the `tester` reducer. **Its exit code is meaningless** — the script runs each `spacetime` command without checking the result and always exits 0. The reducer's success marker is the only signal:
+
+```powershell
+$output = .\x.ps1 test 2>&1 | Out-String
+if ($output | Select-String -Pattern "Test executed successfully" -Quiet) {
+    "MARKER FOUND"
+} else {
+    "MARKER ABSENT - relevant output:"
+    $output -split "`n" | Select-String -Pattern "^error|-->|panic|should" | Select-Object -First 30
+}
+```
+
+Finding the marker is enough. Only when it is absent does the output need reading, and then only the lines that carry a diagnostic.
+
+#### A snapshot compares tokens; it never compiles them
+
+`.\x.ps1 unit-test` can be fully green while the generated code does not compile: the snapshot harness diffs token streams and never feeds them to a compiler. `.\x.ps1 test` is the only gate that compiles and runs generated code, so it belongs in every task that touches a generator, not only the last one.
+
+#### A test that cannot run is not a test
+
+Before trusting a new test, confirm the harness executes it. A `#[cfg(test)] mod tests` in the root crate, for example, is never run by `.\x.ps1 unit-test` — it would pass by never executing. Prefer an observable the existing harnesses already watch: a snapshot, a `.stderr` file, or an assertion in the `tester` reducer.
+
+#### Read the failure, not just the fact of it
+
+Red has to fail for the reason under test. A new `compile-tests/tests/ui` case that fails because a keyword is unknown is red for the right reason; one that fails because the fixture is malformed is not, and it will go green for the wrong one. Give a fixture only what its diagnostic needs — unrelated attributes pull in unrelated rejections that mask the one being pinned.
+
+#### Regenerating the recorded output
+
+Snapshots and diagnostics have separate switches, and neither affects the other. A change that moves both regenerates both:
+
+```powershell
+$env:INSTA_FORCE_UPDATE = "1"
+.\x.ps1 unit-test
+$env:INSTA_FORCE_UPDATE = $null
+git diff derive/tests/snapshots
+```
+
+```powershell
+$env:TRYBUILD = "overwrite"
+.\x.ps1 unit-test
+$env:TRYBUILD = $null
+git diff compile-tests/tests/ui
+```
+
+Accepting `*.snap.new` files one batch at a time costs a whole harness run per moved snapshot, because `insta` reports only the first failing assertion per test function. `INSTA_FORCE_UPDATE` writes every snapshot in place in one run and drops `insta`'s scratch `assertion_line:` metadata by itself.
+
+**Read the `git diff` before committing it.** A recorded output is the only record of what the generator emits, and the diff shows exactly what moved against the last commit. Revert anything unexpected with `git checkout -- <path>` rather than committing it.
+
+#### Green includes the formatter
+
+`.\x.ps1 format` runs `cargo fmt` and `clippy --fix`. Anything it rewrites is a finding to review and commit, not a pass. A task is done when a second run changes nothing.
+
 ## Programming Principles
 
 ### Principle Checklists
