@@ -797,7 +797,7 @@ fn type_fits(kind: SoftDeleteMarkerKind, field_type: &str) -> bool {
         SoftDeleteMarkerKind::Flag => field_type.eq("bool"),
         SoftDeleteMarkerKind::Timestamp => {
             field_type.eq("Option < Timestamp >")
-|   | field_type.eq("Option < spacetimedb :: Timestamp >") |
+                || field_type.eq("Option < spacetimedb :: Timestamp >")
         }
     }
 }
@@ -1886,7 +1886,7 @@ impl OnDeleteStrategy {
 
 ```rust
             let uses_soft_delete = on_delete_strategy == Some(OnDeleteStrategy::SoftDelete)
-|   | on_soft_delete_strategy == Some(OnDeleteStrategy::SoftDelete); |
+                || on_soft_delete_strategy == Some(OnDeleteStrategy::SoftDelete);
 
             if uses_soft_delete && !is_soft_deletable {
                 return Err(syn::Error::new_spanned(

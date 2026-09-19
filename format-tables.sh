@@ -9,6 +9,10 @@
 #   - At least one space before and after each cell value
 #   - Each column is as wide as its longest cell value
 #
+# Fenced code blocks are copied through untouched. A continuation line of a Rust boolean
+# expression starts with `||`, which is indistinguishable from a table row once the fence
+# is ignored, and reformatting one corrupts the code.
+#
 # The awk program runs in the C locale and decodes UTF-8 itself, so that column
 # widths do not depend on the locale awk was started in. East Asian Wide and
 # Fullwidth characters count as two columns. Their ranges are the static table
@@ -115,6 +119,24 @@ function trim(text) {
     return text
 }
 
+# The run of fence characters a line opens or closes a fenced code block with, or the
+# empty string for every other line. CommonMark: three or more backticks or tildes,
+# indented by at most three spaces.
+function fence_marker(text,   stripped, fence_character, length_of_run) {
+    stripped = text
+    sub(/^[ ]{0,3}/, "", stripped)
+
+    fence_character = substr(stripped, 1, 1)
+    if (fence_character != "`" && fence_character != "~") return ""
+
+    length_of_run = 0
+    while (substr(stripped, length_of_run + 1, 1) == fence_character) length_of_run++
+
+    if (length_of_run < 3) return ""
+
+    return substr(stripped, 1, length_of_run)
+}
+
 function is_separator(row,   column) {
     for (column = 1; column <= cell_count[row]; column++)
         if (cell[row, column] !~ /^[-:[:space:]]*$/) return 0
@@ -189,6 +211,27 @@ BEGIN {
 {
     line = $0
     sub(/\r$/, "", line)
+
+    marker = fence_marker(line)
+
+    if (open_fence != "") {
+        # Inside a fenced code block. Only a marker of the same character and at least
+        # the same length closes it; everything else is code and is printed as it stands.
+        if (marker != "" \
+            && substr(marker, 1, 1) == substr(open_fence, 1, 1) \
+            && length(marker) >= length(open_fence))
+            open_fence = ""
+
+        print line
+        next
+    }
+
+    if (marker != "") {
+        format_table()
+        open_fence = marker
+        print line
+        next
+    }
 
     if (line ~ /^[ \t]*\|/) {
         row = trim(line)
