@@ -390,7 +390,7 @@ The first of the eight rejections. It lives in `try_parse_dsl`, because that is 
 - Consumes: nothing.
 - Produces: `DSLData.soft_delete_method: Option<bool>`, read by Task 4 and Task 7.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `compile-tests/tests/ui/soft_delete_method_without_delete_method.rs`:
 
@@ -426,7 +426,7 @@ pub mod ticket {
 fn main() {}
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 ```bash
 .\x.ps1 unit-test
@@ -434,7 +434,7 @@ fn main() {}
 
 Expected: FAIL. Either `expected test case to fail to compile, but it succeeded`, or a compile error about an unknown `soft_delete` meta. Both are the red state; the parser does not know the keyword yet.
 
-- [ ] **Step 3: Parse the flag and reject the missing `delete`**
+- [x] **Step 3: Parse the flag and reject the missing `delete`**
 
 In `derive-input/src/internal/dsl.rs`, add beside the other symbols:
 
@@ -497,7 +497,7 @@ Add the field to `DSLData` and to the `Ok(DSLData { .. })` that builds it:
         soft_delete_method,
 ```
 
-- [ ] **Step 4: Regenerate the diagnostic and read it**
+- [x] **Step 4: Regenerate the diagnostic and read it**
 
 ```bash
 $env:TRYBUILD = "overwrite"
@@ -508,7 +508,7 @@ cat compile-tests/tests/ui/soft_delete_method_without_delete_method.stderr
 
 Expected: the `.stderr` holds the message above, underlining `soft_delete` inside the `method(...)` list. If it underlines the whole struct instead, `meta.path.span()` was not captured — fix and regenerate.
 
-- [ ] **Step 5: Run both harnesses**
+- [x] **Step 5: Run both harnesses**
 
 ```bash
 .\x.ps1 unit-test
@@ -516,7 +516,7 @@ Expected: the `.stderr` holds the message above, underlining `soft_delete` insid
 
 Expected: both PASS. No table in any fixture mentions `soft_delete`, so no snapshot moves.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add derive-input/src/internal.rs derive-input/src/internal/dsl.rs compile-tests/tests/ui
