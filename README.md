@@ -208,7 +208,6 @@ fn before_position_hook_helper(
 - ⏰ `created_at` is set automatically on create.
 - 🔄 `modified_at` is set to `None` on create and updated to `Some(ctx.timestamp)` on update.
 - 🏷️ Use `#[created_at]` or `#[updated_at]` on private timestamp columns when their names differ from the conventional aliases.
-- 🧷 No-op update guard: if position `x`/`y` didn't change, validation is skipped.
 
 **Data Integrity by Construction:**
 
