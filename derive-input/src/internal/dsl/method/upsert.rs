@@ -216,9 +216,7 @@ pub(in crate::internal) fn rebind_row_as_mutable_after_hook(
     framework_owned_writes: &[&TokenStream],
 ) -> TokenStream {
     let hook_shadowed_the_binding = !hook_call.is_empty();
-    let a_write_follows = framework_owned_writes
-        .iter()
-        .any(|write| !write.is_empty());
+    let a_write_follows = framework_owned_writes.iter().any(|write| !write.is_empty());
 
     match hook_shadowed_the_binding && a_write_follows {
         true => quote! { let mut #row = #row; },
