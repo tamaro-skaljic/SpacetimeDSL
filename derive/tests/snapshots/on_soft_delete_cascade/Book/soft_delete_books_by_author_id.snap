@@ -20,7 +20,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             .book()
             .author_id()
             .filter(author_id)
-            .filter(|row| !(row.deleted))
+            .filter(|row| !(row.deleted_at.is_some()))
             .collect();
         if rows_to_delete.is_empty() {
             return Ok(crate::spacetimedsl::delete::DeletionResult {
@@ -95,7 +95,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         };
         for old_row in &rows_to_delete {
             let mut new_row = old_row.clone();
-            new_row.deleted = true;
+            new_row.deleted_at = Some(self.ctx().timestamp()?);
             self.db().book().id().update(new_row);
         }
         match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_soft_deleted(

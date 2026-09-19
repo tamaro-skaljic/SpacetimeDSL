@@ -377,7 +377,26 @@ pub(in crate::internal) fn on_delete_strategy_implementation(
 
                 let row = format_ident!("row");
                 let is_row_marked = soft_delete::is_marked(marker, &quote! { row });
-                let set_marker = soft_delete::set_marker(marker, &quote! { dsl }, &row);
+
+                // A cascade function returns an `OnDeleteStrategyFailure`, so it cannot
+                // reach a timestamp with `?`; it diverts to the same error path the hooks
+                // use instead, and `set_marker` then writes the binding that leaves.
+                let bind_current_timestamp = soft_delete::bind_current_timestamp(
+                    marker,
+                    &quote! { dsl },
+                    &quote! {
+                        error = true;
+                        error_from_hook = Some(Box::new(error_raised_while_reading_the_timestamp));
+                        break 'outer;
+                    },
+                );
+
+                let set_marker = soft_delete::set_marker(marker, &quote! { timestamp }, &row);
+                let set_marker = quote! {
+                    #bind_current_timestamp
+
+                    #set_marker
+                };
 
                 // The two imports have to escape the per-row loop their guard sits in, so
                 // they are hoisted the way the `Delete` arm hoists its own.

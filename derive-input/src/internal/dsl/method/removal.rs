@@ -85,8 +85,11 @@ fn retire_row_named_old_row(
     primary_key_column_name: &syn::Ident,
 ) -> TokenStream {
     let new_row = format_ident!("new_row");
-    let set_marker =
-        soft_delete::set_marker(marker_of(spacetimedsl_table), &quote! { self }, &new_row);
+    let set_marker = soft_delete::set_marker(
+        marker_of(spacetimedsl_table),
+        &quote! { self.ctx().timestamp()? },
+        &new_row,
+    );
 
     let before_hook = hook_tokens(
         &spacetimedsl_table.hooks.before_soft_delete,

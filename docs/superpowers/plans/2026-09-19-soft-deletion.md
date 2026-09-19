@@ -2372,7 +2372,7 @@ The last task. It proves the feature against a real SpacetimeDB instance and wri
 - Consumes: the whole feature.
 - Produces: nothing other tasks depend on.
 
-- [ ] **Step 1: Add a soft-deletable pair of tables to the example module**
+- [x] **Step 1: Add a soft-deletable pair of tables to the example module**
 
 Add a module to `examples/test/src/lib.rs`, beside the existing ones:
 
@@ -2438,7 +2438,7 @@ pub mod soft_deletion {
 
 Import what the reducer needs at the top of the module the `tester` reducer lives in, matching how that module already imports the other tables' types and `Create...` structs.
 
-- [ ] **Step 2: Assert the behavior in the `tester` reducer**
+- [x] **Step 2: Assert the behavior in the `tester` reducer**
 
 Append to the body of `tester`, before its final `Ok(())`:
 
@@ -2501,7 +2501,7 @@ Append to the body of `tester`, before its final `Ok(())`:
 
 The accessor names follow the generated ones: `get_<column>` for every column, including the private marker. If a getter's return type makes a comparison awkward — `get_deleted` returns `&bool`, `get_retired_at` returns `&Option<Timestamp>` — dereference or borrow at the call rather than changing the generator.
 
-- [ ] **Step 3: Run the module against a local SpacetimeDB**
+- [x] **Step 3: Run the module against a local SpacetimeDB**
 
 ```bash
 .\x.ps1 test
@@ -2509,24 +2509,24 @@ The accessor names follow the generated ones: `get_<column>` for every column, i
 
 Expected: the module publishes, the reducer runs and the logs show no assertion failure. The local `spacetime` server is already running.
 
-- [ ] **Step 4: Write the reference documentation**
+- [x] **Step 4: Write the reference documentation**
 
 In `docs/DOCUMENTATION.md`, add a soft deletion section covering: `method(soft_delete)` and its requirement on `method(delete)`; the marker column's two shapes, the three ways to claim the role and the privacy rule; the generated method names, their return type and their idempotency; the two hooks and their signatures; `on_soft_delete` and which strategies it takes; the `SoftDelete` strategy and what it requires; and the fact that `get_*` still returns retired rows.
 
 Match the surrounding sections' heading depth and tone.
 
-- [ ] **Step 5: Mention the feature in the README**
+- [x] **Step 5: Mention the feature in the README**
 
 Add soft deletion to the feature list in `README.md`, in one line, in the style of the lines around it.
 
-- [ ] **Step 6: Format the markdown tables**
+- [x] **Step 6: Format the markdown tables**
 
 ```bash
 bash ./format-tables.sh docs/DOCUMENTATION.md
 bash ./format-tables.sh README.md
 ```
 
-- [ ] **Step 7: Verify everything**
+- [x] **Step 7: Verify everything**
 
 ```powershell
 .\x.ps1 unit-test
@@ -2536,7 +2536,7 @@ bash ./format-tables.sh README.md
 
 Expected: both harnesses green, `Test executed successfully` in the module run, and `.\x.ps1 format` leaving no change it had to make itself. It runs `cargo fmt` and `clippy --fix`, so anything it rewrites is a finding to review and commit, not a pass.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add docs/DOCUMENTATION.md README.md examples/test/src/lib.rs

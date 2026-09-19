@@ -12,8 +12,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let id = u64::default();
         let author_id = book.author_id.value();
-        let deleted = false;
-        let book = Book { id, author_id, deleted };
+        let deleted_at = None;
+        let book = Book { id, author_id, deleted_at };
         let mut the_same_or_another_book: Option<Book> = None;
         if author_id.ne(&0) {
             match self.get_author_by_id(book.get_author_id()) {

@@ -35,11 +35,14 @@ pub(in crate::internal) fn for_soft_delete_one(
 
 /// The statement that retires one row.
 ///
-/// `receiver` is what the surrounding body calls `ctx()` on: `self` inside a DSL method,
-/// `dsl` inside a cascade function, which is a free function taking the DSL as an argument.
+/// `current_timestamp` is the expression the `Timestamp` shape writes, which the caller
+/// supplies because the two callers reach a timestamp differently: a DSL method returns a
+/// `SpacetimeDSLError` and can write `self.ctx().timestamp()?`, a cascade function returns
+/// an `OnDeleteStrategyFailure` and cannot use `?` at all. [`bind_current_timestamp`]
+/// gives the second one something to name here.
 pub(in crate::internal) fn set_marker(
     marker: &SoftDeleteMarker,
-    receiver: &TokenStream,
+    current_timestamp: &TokenStream,
     row: &Ident,
 ) -> TokenStream {
     let column_name = &marker.column_name;
@@ -49,7 +52,32 @@ pub(in crate::internal) fn set_marker(
             #row.#column_name = true;
         },
         SoftDeleteMarkerKind::Timestamp => quote! {
-            #row.#column_name = Some(#receiver.ctx().timestamp()?);
+            #row.#column_name = Some(#current_timestamp);
+        },
+    }
+}
+
+/// `let timestamp = ...;` for a caller that cannot reach one with `?`, or nothing at all
+/// when the marker's shape needs no timestamp.
+///
+/// `receiver` is what the surrounding body calls `ctx()` on — `dsl` inside a cascade
+/// function, which is a free function taking the DSL as an argument. `on_error` is the
+/// statements that divert to the caller's own error path; they run in the `Err` arm, where
+/// the error is bound as `error_raised_while_reading_the_timestamp`.
+pub(in crate::internal) fn bind_current_timestamp(
+    marker: &SoftDeleteMarker,
+    receiver: &TokenStream,
+    on_error: &TokenStream,
+) -> TokenStream {
+    match marker.kind {
+        SoftDeleteMarkerKind::Flag => TokenStream::default(),
+        SoftDeleteMarkerKind::Timestamp => quote! {
+            let timestamp = match #receiver.ctx().timestamp() {
+                Err(error_raised_while_reading_the_timestamp) => {
+                    #on_error
+                }
+                Ok(timestamp) => timestamp,
+            };
         },
     }
 }

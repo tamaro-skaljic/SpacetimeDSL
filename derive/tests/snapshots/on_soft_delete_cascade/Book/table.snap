@@ -69,9 +69,9 @@ impl Book {
         AuthorId::new(old_value)
     }
     ///
-    pub fn get_deleted(&self) -> &bool {
+    pub fn get_deleted_at(&self) -> &Option<spacetimedb::Timestamp> {
         use spacetimedsl::Wrapper;
-        &self.deleted
+        &self.deleted_at
     }
 }
 ///

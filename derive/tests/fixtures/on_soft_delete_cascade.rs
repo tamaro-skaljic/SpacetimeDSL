@@ -4,6 +4,11 @@
 //! `Author` is soft-deletable and deletable, so its referencing table sets both fields.
 //! `Book` is soft-deletable and is itself referenced by `Review`, which is what makes the
 //! cascade recurse.
+//!
+//! The two markers have different shapes on purpose. `Book`'s is the `Option<Timestamp>`
+//! one, and `Book` is the table whose marker a cascade writes, so this pins the one place
+//! that cannot reach a timestamp with `?`: a cascade function returns an
+//! `OnDeleteStrategyFailure`, not a `SpacetimeDSLError`.
 
 #[spacetimedsl::dsl(
     plural_name = authors,
@@ -39,7 +44,7 @@ pub struct Book {
     #[foreign_key(path = self, table = author, column = id, on_delete = Delete, on_soft_delete = SoftDelete)]
     pub author_id: u64,
 
-    deleted: bool,
+    deleted_at: Option<spacetimedb::Timestamp>,
 }
 
 #[spacetimedsl::dsl(plural_name = reviews, method(update = true, delete = true))]

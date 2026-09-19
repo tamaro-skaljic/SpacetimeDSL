@@ -27,7 +27,7 @@ Try to soft-delete a `Book` row in the `book` table whose value matches the valu
             }
             Some(row_to_delete) => row_to_delete,
         };
-        if row_to_delete.deleted {
+        if row_to_delete.deleted_at.is_some() {
             return Ok(crate::spacetimedsl::delete::DeletionResult {
                 table_name: "book".into(),
                 one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
@@ -71,7 +71,7 @@ Try to soft-delete a `Book` row in the `book` table whose value matches the valu
         };
         let old_row = &row_to_delete;
         let mut new_row = old_row.clone();
-        new_row.deleted = true;
+        new_row.deleted_at = Some(self.ctx().timestamp()?);
         self.db().book().id().update(new_row);
         match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_book_table_was_soft_deleted(
             self,
