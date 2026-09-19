@@ -104,4 +104,5 @@ pub trait AfterTicketSoftDeleteHook<T: crate::spacetimedsl::WriteContext> {
 // delete_ticket_by_id
 // get_all_tickets
 // get_ticket_by_id
+// soft_delete_ticket_by_id
 // update_ticket_by_id

@@ -217,11 +217,19 @@ fn get_column_dsl_methods(
             if let Some(method) = &methods.delete_one {
                 dsl_methods.push(build_public_dsl_method(method)?)
             };
+
+            if let Some(method) = &methods.soft_delete_one {
+                dsl_methods.push(build_public_dsl_method(method)?)
+            };
         }
         SpacetimeDSLColumnMethods::ForIndex(methods) => {
             dsl_methods.push(build_public_dsl_method(&methods.get_many)?);
 
             if let Some(method) = &methods.delete_many {
+                dsl_methods.push(build_public_dsl_method(method)?)
+            };
+
+            if let Some(method) = &methods.soft_delete_many {
                 dsl_methods.push(build_public_dsl_method(method)?)
             };
         }

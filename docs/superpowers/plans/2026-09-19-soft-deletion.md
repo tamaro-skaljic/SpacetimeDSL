@@ -1416,7 +1416,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   - `is_marked(marker: &SoftDeleteMarker, row: &TokenStream) -> TokenStream`
   - `SpacetimeDSLColumnMethodsForUniqueIndex.soft_delete_one: Option<SpacetimeDSLMethod>`, `SpacetimeDSLColumnMethodsForIndex.soft_delete_many: Option<SpacetimeDSLMethod>`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `derive/tests/fixtures/soft_delete_timestamp.rs`:
 
@@ -1478,7 +1478,7 @@ fn soft_delete_without_delete_method() {
 }
 ```
 
-- [ ] **Step 2: Run them to make sure they fail**
+- [x] **Step 2: Run them to make sure they fail**
 
 ```bash
 .\x.ps1 unit-test
@@ -1486,7 +1486,7 @@ fn soft_delete_without_delete_method() {
 
 Expected: FAIL. The `.snap.new` for every soft-deletable fixture holds no `soft_delete_*` method. That absence is what this task fixes.
 
-- [ ] **Step 3: Write the marker fragments and the two generators**
+- [x] **Step 3: Write the marker fragments and the two generators**
 
 Create `derive-input/src/internal/dsl/method/soft_delete.rs`:
 
@@ -1560,7 +1560,7 @@ pub(in crate::internal) fn is_marked(marker: &SoftDeleteMarker, row: &TokenStrea
 
 Add `mod soft_delete;` to `derive-input/src/internal/dsl/method.rs` and `use soft_delete::{for_soft_delete_many, for_soft_delete_one};`.
 
-- [ ] **Step 4: Fill the four `Removal::Soft` arms in `removal.rs`**
+- [x] **Step 4: Fill the four `Removal::Soft` arms in `removal.rs`**
 
 The marker is `context.spacetimedsl_table.soft_delete_marker.as_ref().expect("a soft removal is only generated for a soft-deletable table")`.
 
@@ -1670,7 +1670,7 @@ placed after the not-found check and before the entry is built, with `#is_marked
 
 The soft body must **not** contain `set_updated_at_on_update`. A soft deletion leaves `updated_at` alone: `deleted_at` records the retirement, `updated_at` keeps meaning the last ordinary edit. The skeleton came from `delete.rs`, which never stamped, so this holds as long as nothing is pulled in from `upsert.rs` to add it.
 
-- [ ] **Step 5: Carry the methods through the api types and the output**
+- [x] **Step 5: Carry the methods through the api types and the output**
 
 In `derive-input/src/api/dsl/column.rs`:
 
@@ -1726,7 +1726,7 @@ In `get_column_dsl_methods` in `derive/src/output.rs`, emit them after the delet
             };
 ```
 
-- [ ] **Step 6: Read every snapshot**
+- [x] **Step 6: Read every snapshot**
 
 ```bash
 .\x.ps1 unit-test
@@ -1744,7 +1744,7 @@ Check each of these:
 - `soft_delete_hooks`' method calls `before_ticket_soft_delete` before the assignment to `deleted_at` and `after_ticket_soft_delete` after the `.update(...)`.
 - No non-soft fixture moved. If one did, a `Removal::Hard` arm was changed; revert that.
 
-- [ ] **Step 7: Accept and verify**
+- [x] **Step 7: Accept and verify**
 
 ```bash
 Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
@@ -1757,7 +1757,7 @@ Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Objec
 
 Expected: both PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add derive-input/src/internal/dsl/method/soft_delete.rs \

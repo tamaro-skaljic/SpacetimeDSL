@@ -28,6 +28,8 @@ pub struct SpacetimeDSLColumnMethodsForUniqueIndex {
     pub update: Option<SpacetimeDSLMethod>,
     // Only `Some(T)` if the table has a delete method.
     pub delete_one: Option<SpacetimeDSLMethod>,
+    // Only `Some(T)` if the table is soft-deletable.
+    pub soft_delete_one: Option<SpacetimeDSLMethod>,
 }
 
 #[derive(Clone)]
@@ -35,4 +37,6 @@ pub struct SpacetimeDSLColumnMethodsForIndex {
     pub get_many: SpacetimeDSLMethod,
     // Only `Some(T)` if the table has a delete method.
     pub delete_many: Option<SpacetimeDSLMethod>,
+    // Only `Some(T)` if the table is soft-deletable.
+    pub soft_delete_many: Option<SpacetimeDSLMethod>,
 }

@@ -176,6 +176,16 @@ fn soft_delete_hooks() {
     snapshot_fixture("soft_delete_hooks");
 }
 
+#[test]
+fn soft_delete_timestamp() {
+    snapshot_fixture("soft_delete_timestamp");
+}
+
+#[test]
+fn soft_delete_without_delete_method() {
+    snapshot_fixture("soft_delete_without_delete_method");
+}
+
 /// Expanding the same fixture twice must produce byte-identical output, otherwise the
 /// snapshots above would fail at random and a regenerated module would differ from the
 /// previous one for no reason.

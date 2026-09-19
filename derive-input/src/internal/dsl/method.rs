@@ -34,6 +34,7 @@ mod reference_integrity;
 mod referenced_by;
 mod removal;
 mod singleton_table;
+mod soft_delete;
 mod update;
 mod upsert;
 
@@ -47,6 +48,7 @@ use index::IndexShape;
 use on_delete_strategy::ReferencingTables;
 use referenced_by::for_referenced_by;
 use singleton_table::{for_singleton_delete, for_singleton_get};
+use soft_delete::{for_soft_delete_many, for_soft_delete_one};
 use update::for_update;
 use upsert::for_singleton_upsert;
 
@@ -89,6 +91,10 @@ fn column_methods_for(
                 false => None,
                 true => Some(for_delete_many(&shape, context)),
             },
+            soft_delete_many: match spacetimedsl_table.is_soft_deletable() {
+                false => None,
+                true => Some(for_soft_delete_many(&shape, context)),
+            },
         }),
         true => {
             SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
@@ -97,6 +103,10 @@ fn column_methods_for(
                 delete_one: match spacetimedsl_table.has_delete_method {
                     false => None,
                     true => Some(for_delete_one(&shape, context)),
+                },
+                soft_delete_one: match spacetimedsl_table.is_soft_deletable() {
+                    false => None,
+                    true => Some(for_soft_delete_one(&shape, context)),
                 },
             })
         }
@@ -134,6 +144,8 @@ impl SpacetimeDSLColumnMethods {
                     get_one_option: for_singleton_get(context),
                     update: update_method_for(&IndexShape::of(index, context), context),
                     delete_one,
+                    // `internal/dsl/soft_delete.rs` rejects a soft-deletable singleton.
+                    soft_delete_one: None,
                 })
             }
             // `internal.rs` rejects `method(update = false)` on such a table, so the upsert
@@ -143,6 +155,8 @@ impl SpacetimeDSLColumnMethods {
                     get_one_option: for_singleton_get(context),
                     update: Some(for_singleton_upsert(context)),
                     delete_one,
+                    // `internal/dsl/soft_delete.rs` rejects a soft-deletable singleton.
+                    soft_delete_one: None,
                 })
             }
             None => column_methods_for(index, context),

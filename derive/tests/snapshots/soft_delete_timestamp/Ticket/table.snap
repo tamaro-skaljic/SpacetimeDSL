@@ -51,6 +51,56 @@ impl From<&TicketId> for TicketId {
         TicketId::new(value.value())
     }
 }
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct TicketReference {
+    value: String,
+}
+impl Default for TicketReference {
+    fn default() -> TicketReference {
+        TicketReference {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for TicketReference {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "TicketReference", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<String, TicketReference> for TicketReference {
+    fn new(value: String) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> String {
+        self.value.clone()
+    }
+}
+impl From<&Ticket> for TicketReference {
+    fn from(value: &Ticket) -> Self {
+        TicketReference {
+            value: value.reference.clone(),
+        }
+    }
+}
+impl From<&Ticket> for Option<TicketReference> {
+    fn from(value: &Ticket) -> Option<TicketReference> {
+        Some(TicketReference {
+            value: value.reference.clone(),
+        })
+    }
+}
+impl From<&TicketReference> for Option<TicketReference> {
+    fn from(value: &TicketReference) -> Option<TicketReference> {
+        use spacetimedsl::Wrapper;
+        Some(TicketReference::new(value.value()))
+    }
+}
+impl From<&TicketReference> for TicketReference {
+    fn from(value: &TicketReference) -> Self {
+        use spacetimedsl::Wrapper;
+        TicketReference::new(value.value())
+    }
+}
 impl Ticket {
     ///
     pub fn get_id(&self) -> TicketId {
@@ -58,20 +108,15 @@ impl Ticket {
         TicketId::new(self.id.clone())
     }
     ///
-    pub fn get_title(&self) -> &String {
+    pub fn get_reference(&self) -> TicketReference {
         use spacetimedsl::Wrapper;
-        &self.title
+        TicketReference::new(self.reference.clone())
     }
     ///
-    pub fn get_title_mut(&mut self) -> &mut String {
+    pub fn set_reference(&mut self, reference: String) -> TicketReference {
         use spacetimedsl::Wrapper;
-        &mut self.title
-    }
-    ///
-    pub fn set_title(&mut self, title: String) -> String {
-        use spacetimedsl::Wrapper;
-        let old_value = std::mem::replace(&mut self.title, title);
-        old_value
+        let old_value = std::mem::replace(&mut self.reference, reference);
+        TicketReference::new(old_value)
     }
     ///
     pub fn get_priority(&self) -> &u8 {
@@ -90,14 +135,14 @@ impl Ticket {
         old_value
     }
     ///
-    pub fn get_deleted(&self) -> &bool {
+    pub fn get_retired_at(&self) -> &Option<spacetimedb::Timestamp> {
         use spacetimedsl::Wrapper;
-        &self.deleted
+        &self.retired_at
     }
 }
 ///
 pub struct CreateTicket {
-    pub title: String,
+    pub reference: String,
     pub priority: u8,
 }
 
@@ -105,10 +150,13 @@ pub struct CreateTicket {
 // count_of_all_tickets
 // create_ticket
 // delete_ticket_by_id
+// delete_ticket_by_reference
 // delete_tickets_by_priority
 // get_all_tickets
 // get_ticket_by_id
+// get_ticket_by_reference
 // get_tickets_by_priority
 // soft_delete_ticket_by_id
+// soft_delete_ticket_by_reference
 // soft_delete_tickets_by_priority
 // update_ticket_by_id

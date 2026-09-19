@@ -74,22 +74,6 @@ impl Ticket {
         old_value
     }
     ///
-    pub fn get_priority(&self) -> &u8 {
-        use spacetimedsl::Wrapper;
-        &self.priority
-    }
-    ///
-    pub fn get_priority_mut(&mut self) -> &mut u8 {
-        use spacetimedsl::Wrapper;
-        &mut self.priority
-    }
-    ///
-    pub fn set_priority(&mut self, priority: u8) -> u8 {
-        use spacetimedsl::Wrapper;
-        let old_value = std::mem::replace(&mut self.priority, priority);
-        old_value
-    }
-    ///
     pub fn get_deleted(&self) -> &bool {
         use spacetimedsl::Wrapper;
         &self.deleted
@@ -98,17 +82,12 @@ impl Ticket {
 ///
 pub struct CreateTicket {
     pub title: String,
-    pub priority: u8,
 }
 
 // Generated DSL methods:
 // count_of_all_tickets
 // create_ticket
-// delete_ticket_by_id
-// delete_tickets_by_priority
 // get_all_tickets
 // get_ticket_by_id
-// get_tickets_by_priority
 // soft_delete_ticket_by_id
-// soft_delete_tickets_by_priority
 // update_ticket_by_id
