@@ -18,7 +18,9 @@
 - No comment may restate what the code says. Document only what is not obvious and why.
 - Write the test before the production code. Snapshot tests are written by adding a fixture and a test function; diagnostics tests by adding a `tests/ui/*.rs` file.
 - `./x unit-test` must be green at the end of every task. It runs `cargo test -p spacetimedsl_derive` and `cargo test -p spacetimedsl-compile-tests`.
-- `cargo check -p spacetimedsl_test` must be green at the end of every task. The snapshot tests compare token streams and never compile them, so they cannot catch a generated body that does not build. This is the only cheap step that does, and it needs no SpacetimeDB server.
+- `.\x.ps1 test` must be clean at the end of every task. The snapshot tests compare token streams and never compile them, so they cannot catch a generated body that does not build, nor one that builds and then misbehaves. This step does both: it publishes `examples/test` and `examples/blackholio` to the local SpacetimeDB server and runs the `tester` reducer. The server is already running.
+  - **Read its output; do not trust its exit code.** The script runs each `spacetime` command without checking the result and always exits 0. A task is clean only when both modules publish without an error, `spacetime call ... tester` reports no error, and the logs hold no panic and no assertion failure.
+  - When a publish fails, `cargo check -p spacetimedsl_test` points at the offending generated code far faster than the publish output does. It is a debugging aid, not a substitute for this step.
 - `method(delete)` keeps its default of `true`. It becomes mandatory only when `method(soft_delete)` is present.
 - Accepted strategies: `on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero`, `Ignore`; `on_soft_delete` takes `Error`, `SoftDelete`, `Ignore` only.
 - `OnDeleteStrategy` variant order is `Error, Delete, SoftDelete, SetZero, Ignore`, in both copies of the enum.
