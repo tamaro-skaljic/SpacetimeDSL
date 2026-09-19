@@ -1287,7 +1287,7 @@ pub(in crate::internal) fn for_removal_many(
 ) -> SpacetimeDSLMethod;
 ```
 
-- [ ] **Step 1: Record the baseline**
+- [x] **Step 1: Record the baseline**
 
 ```bash
 .\x.ps1 unit-test
@@ -1296,7 +1296,7 @@ git status --short
 
 Expected: PASS, clean tree.
 
-- [ ] **Step 2: Create the module with the variant and the two entry points**
+- [x] **Step 2: Create the module with the variant and the two entry points**
 
 Create `derive-input/src/internal/dsl/method/removal.rs` beginning with:
 
@@ -1321,7 +1321,7 @@ Move the whole current body of `for_delete_many` into `for_removal_many` and the
 
 Add `mod removal;` to the module list in `derive-input/src/internal/dsl/method.rs`.
 
-- [ ] **Step 3: Reduce `delete.rs` to two calls**
+- [x] **Step 3: Reduce `delete.rs` to two calls**
 
 Replace the whole of `derive-input/src/internal/dsl/method/delete.rs` with:
 
@@ -1358,7 +1358,7 @@ pub(in crate::internal) fn for_delete_one(
 
 `super::soft_delete` does not exist yet, so write that doc line only after Task 8, or write it now and add the module in Task 8 — the doc comment is prose and does not have to resolve.
 
-- [ ] **Step 4: Mark the four variation points**
+- [x] **Step 4: Mark the four variation points**
 
 Inside `removal.rs`, find the four places that will differ and give each one a `match removal` with both arms, where the `Removal::Soft` arm is for now a copy of the `Removal::Hard` arm. Task 8 fills them in. The four are:
 
@@ -1369,7 +1369,7 @@ Inside `removal.rs`, find the four places that will differ and give each one a `
 
 Writing them as `match removal` now keeps Task 8 from having to re-find them, and each arm is still `Removal::Hard`'s code, so output does not change.
 
-- [ ] **Step 5: Verify nothing moved**
+- [x] **Step 5: Verify nothing moved**
 
 ```bash
 .\x.ps1 unit-test
@@ -1378,7 +1378,7 @@ git status --short
 
 Expected: both PASS and **no `.snap.new` file anywhere**. A moved snapshot means the extraction changed a body. Find the difference and remove it; do not accept the snapshot.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add derive-input/src/internal/dsl/method/removal.rs \

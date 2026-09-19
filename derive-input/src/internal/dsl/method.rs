@@ -32,6 +32,7 @@ mod naming;
 mod on_delete_strategy;
 mod reference_integrity;
 mod referenced_by;
+mod removal;
 mod singleton_table;
 mod update;
 mod upsert;
