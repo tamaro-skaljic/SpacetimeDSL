@@ -1,7 +1,7 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-pub trait this_compilation_error_occurs_because_the_parent_record_table_has_no_referenced_by_attribute_referencing_the_child_marker_table {}
+pub trait this_compilation_error_occurs_because_the_parent_record_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_child_marker_table {}
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
 pub struct ParentRecordId {
     value: u64,

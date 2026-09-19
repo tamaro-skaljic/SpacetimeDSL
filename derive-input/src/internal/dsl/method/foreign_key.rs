@@ -7,8 +7,8 @@
 use super::{
     context::TableContributions,
     naming::{
-        referenced_table_compile_error_check, referencing_table_compile_error_check,
-        referencing_table_function_name,
+        referenced_table_compile_error_check_for_deletions,
+        referencing_table_compile_error_check_for_deletions, referencing_table_function_name,
     },
     on_delete_strategy::{ReferencingTables, on_delete_strategy_implementation},
 };
@@ -235,15 +235,19 @@ pub(in crate::internal) fn for_foreign_key(
         })
         .collect_vec();
 
-    let compile_error_check =
-        referencing_table_compile_error_check(singular_table_name, &referenced_table_name);
+    let compile_error_check = referencing_table_compile_error_check_for_deletions(
+        singular_table_name,
+        &referenced_table_name,
+    );
 
     contributions
         .compile_error_checks
         .insert(compile_error_check.clone());
 
-    let compile_error_check =
-        referenced_table_compile_error_check(&referenced_table_name, singular_table_name);
+    let compile_error_check = referenced_table_compile_error_check_for_deletions(
+        &referenced_table_name,
+        singular_table_name,
+    );
 
     let compile_error_check_usage = quote! {
         use #referenced_table_path::#compile_error_check;

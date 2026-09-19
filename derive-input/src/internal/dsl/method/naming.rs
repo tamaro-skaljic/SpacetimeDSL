@@ -6,26 +6,51 @@
 //!
 //! These names are part of the generated API. Changing one breaks every module generated
 //! against the previous name until it is regenerated.
+//!
+//! Each direction of the paired check is split by capability, because a table may be
+//! deletable, soft-deletable or both, and the two say different things about what the
+//! referencing side must declare. A table emits the half it can perform and imports the
+//! half it needs from the other side, so a missing `on_delete` and a missing
+//! `on_soft_delete` fail as two different unresolved imports, each naming the field to
+//! add.
 
 use crate::internal::dsl::one_or_multiple::OneOrMultiple;
 use quote::format_ident;
 use syn::Ident;
 
-pub(in crate::internal) fn referenced_table_compile_error_check(
+pub(in crate::internal) fn referenced_table_compile_error_check_for_deletions(
     referenced_table_name: &Ident,
     referencing_table_name: &Ident,
 ) -> Ident {
     format_ident!(
-        "this_compilation_error_occurs_because_the_{referenced_table_name}_table_has_no_referenced_by_attribute_referencing_the_{referencing_table_name}_table"
+        "this_compilation_error_occurs_because_the_{referenced_table_name}_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_{referencing_table_name}_table"
     )
 }
 
-pub(in crate::internal) fn referencing_table_compile_error_check(
+pub(in crate::internal) fn referenced_table_compile_error_check_for_soft_deletions(
+    referenced_table_name: &Ident,
+    referencing_table_name: &Ident,
+) -> Ident {
+    format_ident!(
+        "this_compilation_error_occurs_because_the_{referenced_table_name}_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_{referencing_table_name}_table"
+    )
+}
+
+pub(in crate::internal) fn referencing_table_compile_error_check_for_deletions(
     referencing_table_name: &Ident,
     referenced_table_name: &Ident,
 ) -> Ident {
     format_ident!(
-        "this_compilation_error_occurs_because_the_{referencing_table_name}_table_has_no_foreign_key_attribute_referencing_the_{referenced_table_name}_table"
+        "this_compilation_error_occurs_because_the_{referencing_table_name}_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_{referenced_table_name}_table"
+    )
+}
+
+pub(in crate::internal) fn referencing_table_compile_error_check_for_soft_deletions(
+    referencing_table_name: &Ident,
+    referenced_table_name: &Ident,
+) -> Ident {
+    format_ident!(
+        "this_compilation_error_occurs_because_the_{referencing_table_name}_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_{referenced_table_name}_table"
     )
 }
 

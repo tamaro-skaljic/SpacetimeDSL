@@ -8,8 +8,8 @@
 use super::{
     context::TableContributions,
     naming::{
-        referenced_table_compile_error_check, referenced_table_function_name,
-        referencing_table_compile_error_check, referencing_table_function_name,
+        referenced_table_compile_error_check_for_deletions, referenced_table_function_name,
+        referencing_table_compile_error_check_for_deletions, referencing_table_function_name,
     },
 };
 use crate::{
@@ -191,14 +191,18 @@ pub(in crate::internal) fn for_referenced_by(
 
         let referencing_table_path = &referencing_table.path;
 
-        let compile_error_check =
-            referenced_table_compile_error_check(singular_table_name, referencing_table_name);
+        let compile_error_check = referenced_table_compile_error_check_for_deletions(
+            singular_table_name,
+            referencing_table_name,
+        );
         contributions
             .compile_error_checks
             .insert(compile_error_check.clone());
 
-        let compile_error_check =
-            referencing_table_compile_error_check(referencing_table_name, singular_table_name);
+        let compile_error_check = referencing_table_compile_error_check_for_deletions(
+            referencing_table_name,
+            singular_table_name,
+        );
         compile_error_check_usages.push(quote! {
             use #referencing_table_path::#compile_error_check;
         });

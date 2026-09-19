@@ -2033,7 +2033,7 @@ pub(in crate::internal) fn referenced_table_compile_error_check_for_soft_deletio
 ) -> Ident;
 ```
 
-- [ ] **Step 1: Record the baseline**
+- [x] **Step 1: Record the baseline**
 
 ```bash
 .\x.ps1 unit-test
@@ -2042,7 +2042,7 @@ git status --short
 
 Expected: PASS, clean.
 
-- [ ] **Step 2: Rewrite `naming.rs`'s four check builders**
+- [x] **Step 2: Rewrite `naming.rs`'s four check builders**
 
 Replace `referencing_table_compile_error_check` and `referenced_table_compile_error_check` with:
 
@@ -2086,7 +2086,7 @@ pub(in crate::internal) fn referenced_table_compile_error_check_for_soft_deletio
 
 Extend the module documentation to say that each direction is split by capability, and that a table emits the half it can perform and imports the half it needs from the other side.
 
-- [ ] **Step 3: Point the two call sites at the deletion halves**
+- [x] **Step 3: Point the two call sites at the deletion halves**
 
 In `method/foreign_key.rs`, `referencing_table_compile_error_check(...)` becomes `referencing_table_compile_error_check_for_deletions(...)` and `referenced_table_compile_error_check(...)` becomes `referenced_table_compile_error_check_for_deletions(...)`.
 
@@ -2094,7 +2094,7 @@ In `method/referenced_by.rs`, make the same two substitutions.
 
 Nothing else changes yet: both sides still emit and import exactly one identifier per pair, and it is the deletion one.
 
-- [ ] **Step 4: Read the snapshots**
+- [x] **Step 4: Read the snapshots**
 
 ```bash
 .\x.ps1 unit-test
@@ -2104,7 +2104,7 @@ Expected: FAIL, with `.snap.new` for every fixture that has a foreign key: `fore
 
 Every diff must be a pure rename of the two identifiers. A diff that adds or removes a `use` or a `trait` means a call site was missed.
 
-- [ ] **Step 5: Accept and verify**
+- [x] **Step 5: Accept and verify**
 
 ```bash
 Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
@@ -2117,7 +2117,7 @@ Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Objec
 
 Expected: both PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add derive-input/src/internal/dsl/method/naming.rs \
