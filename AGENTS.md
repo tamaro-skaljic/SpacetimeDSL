@@ -319,115 +319,115 @@ Note: Apply this only to (low-level) internal methods. (High-level) public inter
 
 #### Keep It Simple, Stupid (KISS)
 
-_Checklist coverage:_ Scope & Goal Discipline; Simplicity & Right-Sized Solutions; Documentation & Communication Clarity.
+*Checklist coverage:* Scope & Goal Discipline; Simplicity & Right-Sized Solutions; Documentation & Communication Clarity.
 
 #### You Aren't Gonna Need It (YAGNI)
 
-_Checklist coverage:_ Scope & Goal Discipline; Refactoring & Change Containment; Testing & Verification.
+*Checklist coverage:* Scope & Goal Discipline; Refactoring & Change Containment; Testing & Verification.
 
 #### Do The Simplest Thing That Could Possibly Work
 
-_Checklist coverage:_ Scope & Goal Discipline; Simplicity & Right-Sized Solutions; Refactoring & Change Containment.
+*Checklist coverage:* Scope & Goal Discipline; Simplicity & Right-Sized Solutions; Refactoring & Change Containment.
 
 #### Separation of Concerns
 
-_Checklist coverage:_ Documentation & Communication Clarity; Modular Boundaries & Separation.
+*Checklist coverage:* Documentation & Communication Clarity; Modular Boundaries & Separation.
 
 #### Code For The Maintainer
 
-_Checklist coverage:_ Documentation & Communication Clarity; Testing & Verification; Coupling Awareness & Dependency Constraints.
+*Checklist coverage:* Documentation & Communication Clarity; Testing & Verification; Coupling Awareness & Dependency Constraints.
 
 #### Avoid Premature Optimization
 
-_Checklist coverage:_ Performance & Optimization Discipline.
+*Checklist coverage:* Performance & Optimization Discipline.
 
 #### Optimize for Deletion
 
-_Checklist coverage:_ Lifecycle & Deletion Strategy.
+*Checklist coverage:* Lifecycle & Deletion Strategy.
 
 #### Don't Repeat Yourself (DRY)
 
-_Checklist coverage:_ Simplicity & Right-Sized Solutions; Duplication Control & Reuse.
+*Checklist coverage:* Simplicity & Right-Sized Solutions; Duplication Control & Reuse.
 
 #### Boy Scout Rule
 
-_Checklist coverage:_ Documentation & Communication Clarity; Refactoring & Change Containment; Testing & Verification.
+*Checklist coverage:* Documentation & Communication Clarity; Refactoring & Change Containment; Testing & Verification.
 
 #### Connascence
 
-_Checklist coverage:_ Coupling Awareness & Dependency Constraints.
+*Checklist coverage:* Coupling Awareness & Dependency Constraints.
 
 #### Minimize Coupling
 
-_Checklist coverage:_ Coupling Awareness & Dependency Constraints; Encapsulation & Interface Hygiene.
+*Checklist coverage:* Coupling Awareness & Dependency Constraints; Encapsulation & Interface Hygiene.
 
 #### Law of Demeter
 
-_Checklist coverage:_ Encapsulation & Interface Hygiene.
+*Checklist coverage:* Encapsulation & Interface Hygiene.
 
 #### Composition Over Inheritance
 
-_Checklist coverage:_ Composition & Object Design.
+*Checklist coverage:* Composition & Object Design.
 
 #### Orthogonality
 
-_Checklist coverage:_ Modular Boundaries & Separation; Testing & Verification.
+*Checklist coverage:* Modular Boundaries & Separation; Testing & Verification.
 
 #### Robustness Principle
 
-_Checklist coverage:_ Robustness & Reliability.
+*Checklist coverage:* Robustness & Reliability.
 
 #### Inversion of Control
 
-_Checklist coverage:_ Documentation & Communication Clarity; Dependency & Interface Management.
+*Checklist coverage:* Documentation & Communication Clarity; Dependency & Interface Management.
 
 #### Maximize Cohesion
 
-_Checklist coverage:_ Modular Boundaries & Separation; Cohesion & Responsibility Alignment.
+*Checklist coverage:* Modular Boundaries & Separation; Cohesion & Responsibility Alignment.
 
 #### Liskov Substitution Principle (LSP)
 
-_Checklist coverage:_ Composition & Object Design.
+*Checklist coverage:* Composition & Object Design.
 
 #### Open/Closed
 
-_Checklist coverage:_ Variation Isolation & Extensibility.
+*Checklist coverage:* Variation Isolation & Extensibility.
 
 #### Single Responsibility Principle (SRP)
 
-_Checklist coverage:_ Modular Boundaries & Separation; Cohesion & Responsibility Alignment.
+*Checklist coverage:* Modular Boundaries & Separation; Cohesion & Responsibility Alignment.
 
 #### Hide Implementation Details
 
-_Checklist coverage:_ Encapsulation & Interface Hygiene.
+*Checklist coverage:* Encapsulation & Interface Hygiene.
 
 #### Curly's Law
 
-_Checklist coverage:_ Cohesion & Responsibility Alignment.
+*Checklist coverage:* Cohesion & Responsibility Alignment.
 
 #### Encapsulate What Changes
 
-_Checklist coverage:_ Variation Isolation & Extensibility.
+*Checklist coverage:* Variation Isolation & Extensibility.
 
 #### Interface Segregation Principle (ISP)
 
-_Checklist coverage:_ Dependency & Interface Management.
+*Checklist coverage:* Dependency & Interface Management.
 
 #### Command Query Separation (CQS)
 
-_Checklist coverage:_ Command/Query Interaction Design.
+*Checklist coverage:* Command/Query Interaction Design.
 
 #### Dependency Inversion Principle (DIP)
 
-_Checklist coverage:_ Dependency & Interface Management.
+*Checklist coverage:* Dependency & Interface Management.
 
 #### F.I.R.S.T Principles of Testing
 
-_Checklist coverage:_ Testing & Verification.
+*Checklist coverage:* Testing & Verification.
 
 #### Arrange, Act, Assert (3A)
 
-_Checklist coverage:_ Testing & Verification.
+*Checklist coverage:* Testing & Verification.
 
 ### Conflicts between Programming Principles
 
