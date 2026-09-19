@@ -39,11 +39,18 @@ Both live behind one command, run from the repository root in PowerShell:
 A new or changed snapshot fails the run and writes `*.snap.new` beside the old file. Read every one of them, then accept each by renaming it over the old file:
 
 ```powershell
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
-    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
+    $accepted = $_.FullName -replace "[.]new$", ""
+    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
+    Remove-Item $_.FullName
+}
 ```
 
 Never accept a batch without reading it first — a snapshot is the only record of what the generator emits.
+
+The filter drops `insta`'s `assertion_line:` metadata. That line names whichever assertion happened to run and is scratch state: it belongs in a `*.snap.new`, not in the committed corpus, where 354 of 356 snapshots do not carry it.
+
+**Accept, re-run, repeat until green.** `insta` reports only the first failing assertion per test function, so a fixture whose second table also moved stays hidden behind the first. One accept-and-re-run cycle is rarely enough. The task is done when `.\x.ps1 unit-test` is green **and** no `*.snap.new` remains anywhere.
 
 **Diagnostics tests** (`compile-tests/tests/ui/*.rs` + `*.stderr`).
 
@@ -126,7 +133,7 @@ This task changes generated output only. No new test is written; the existing sn
 - Consumes: nothing from earlier tasks.
 - Produces: no new names. Later tasks rely on the rule that a hook runs before framework-owned columns are written.
 
-- [ ] **Step 1: Record the current snapshots as the baseline**
+- [x] **Step 1: Record the current snapshots as the baseline**
 
 ```bash
 .\x.ps1 unit-test
@@ -135,7 +142,7 @@ git status --short        # must be clean
 
 Expected: PASS, working tree clean. This is the "before" state the diff in step 5 is read against.
 
-- [ ] **Step 2: Move the stamp below the hook in `update.rs`**
+- [x] **Step 2: Move the stamp below the hook in `update.rs`**
 
 In `for_update`, the `method_impl` currently reads:
 
@@ -155,7 +162,7 @@ Swap the two interpolations so it reads:
 
 Nothing else in the function changes. `before_update_hook` already contains the `if #field_name_for_found_value.is_none() { ... }` prelude that loads the old row, and that prelude does not depend on the timestamp.
 
-- [ ] **Step 3: Move the stamp below the hook on both paths of `upsert.rs`**
+- [x] **Step 3: Move the stamp below the hook on both paths of `upsert.rs`**
 
 On the update path of `for_singleton_upsert`'s `method_impl`, change:
 
@@ -179,7 +186,7 @@ to:
 
 On the insert path of the same `method_impl`, move the `created_at` and `updated_at` assignments below the `before_insert` hook call in the same way: the hook interpolation comes first, the two assignments follow it.
 
-- [ ] **Step 4: Rewrite the module documentation of `upsert.rs`**
+- [x] **Step 4: Rewrite the module documentation of `upsert.rs`**
 
 Replace the paragraph at `upsert.rs:10-12`:
 
@@ -197,7 +204,7 @@ with:
 //! and `soft_delete_<table>_by_<index>` order the two the same way.
 ```
 
-- [ ] **Step 5: Run the snapshots and read every diff**
+- [x] **Step 5: Run the snapshots and read every diff**
 
 ```bash
 .\x.ps1 unit-test
@@ -207,17 +214,20 @@ Expected: FAIL, with `.snap.new` files under `derive/tests/snapshots/timestamps`
 
 Read each one. Every diff must be a pure reordering: the hook call moves above the assignment to the timestamp column, and nothing else moves. A diff that changes a method body in any other way means a wrong interpolation was moved — fix it before accepting.
 
-- [ ] **Step 6: Accept the snapshots and verify green**
+- [x] **Step 6: Accept the snapshots and verify green**
 
 ```bash
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
-    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
+    $accepted = $_.FullName -replace "[.]new$", ""
+    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
+    Remove-Item $_.FullName
+}
 .\x.ps1 unit-test
 ```
 
 Expected: both PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add derive-input/src/internal/dsl/method/update.rs \
@@ -243,13 +253,14 @@ The `OnDeleteStrategy` enum exists twice: once in the runtime crate, which gener
 - Modify: `src/delete.rs:8-48`
 - Modify: `src/error.rs:36-53` (`Action`), `:66-75` (`Display for OnDeleteStrategy`)
 - Modify: `derive-input/src/api/dsl/foreign_key.rs:10-73`
+- Modify: `derive-input/src/internal/dsl/method/on_delete_strategy.rs` — its match over the enum is exhaustive, so the new variant needs an arm there too. Nothing constructs `SoftDelete` yet, so the arm is unreachable and stays a `todo!` until Task 11 fills it in.
 
 **Interfaces:**
 
 - Consumes: nothing.
 - Produces: `spacetimedsl::delete::OnDeleteStrategy::SoftDelete`; `spacetimedsl::error::Action::SoftDelete`; `derive_input::api::dsl::foreign_key::OnDeleteStrategy::SoftDelete`, which `quote::ToTokens` renders as the runtime path.
 
-- [ ] **Step 1: Record what the snapshots say before the change**
+- [x] **Step 1: Record what the snapshots say before the change**
 
 `.\x.ps1 unit-test` runs the snapshot and diagnostics harnesses only; it does not run unit tests inside the runtime crate, so a `#[cfg(test)]` test in `src/delete.rs` would never execute. The observable for this task is the snapshot corpus instead.
 
@@ -260,11 +271,11 @@ Select-String -Path derive\tests\snapshots\on_delete_delete\Book\internal_method
 
 Expected: the harness is green and the `Select-String` finds nothing. No generated cascade function mentions `SoftDelete` yet.
 
-- [ ] **Step 2: Know what will make it move**
+- [x] **Step 2: Know what will make it move**
 
 `OnDeleteStrategy::iter()` in `derive-input/src/internal/dsl/method/foreign_key.rs` builds one match arm per variant, in declaration order. Adding the variant therefore adds one empty arm to every generated cascade function, which is what the snapshots will show at step 6. Nothing else in generated output may change.
 
-- [ ] **Step 3: Add the variant to the runtime enum**
+- [x] **Step 3: Add the variant to the runtime enum**
 
 In `src/delete.rs`, insert between `Delete` and the commented-out `SetNone`:
 
@@ -300,7 +311,7 @@ and its `Display` arm after the `Action::Delete` arm:
 
 `ReferenceIntegrityViolationError::OnCreateOrUpdate`'s `Display` panics for `Action::Get | Action::Delete`; extend that pattern to `Action::Get | Action::Delete | Action::SoftDelete`, because a soft deletion is no more a create or an update than a deletion is.
 
-- [ ] **Step 4: Mirror the variant into the macro copy**
+- [x] **Step 4: Mirror the variant into the macro copy**
 
 In `derive-input/src/api/dsl/foreign_key.rs`, add to the enum between `Delete` and the commented-out `SetNone`:
 
@@ -322,7 +333,7 @@ and to the `ToTokens` implementation, between the `Delete` and `SetZero` arms:
             }
 ```
 
-- [ ] **Step 5: Run the harnesses and read the moved snapshots**
+- [x] **Step 5: Run the harnesses and read the moved snapshots**
 
 ```powershell
 .\x.ps1 unit-test
@@ -339,15 +350,18 @@ placed between the `Delete` and `SetZero` arms, because that is where the varian
 Accept them, then re-run:
 
 ```powershell
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
-    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
+    $accepted = $_.FullName -replace "[.]new$", ""
+    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
+    Remove-Item $_.FullName
+}
 .\x.ps1 unit-test
 .\x.ps1 test
 ```
 
 Expected: `.\x.ps1 unit-test` green, and `.\x.ps1 test` printing `Test executed successfully`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/delete.rs src/error.rs derive-input/src/api/dsl/foreign_key.rs derive/tests/snapshots
@@ -957,8 +971,11 @@ There is no `soft_delete_ticket_by_id` yet; that arrives in Task 8.
 - [ ] **Step 5: Accept and verify**
 
 ```bash
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
-    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
+    $accepted = $_.FullName -replace "[.]new$", ""
+    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
+    Remove-Item $_.FullName
+}
 .\x.ps1 unit-test
 ```
 
@@ -1186,8 +1203,11 @@ A `before_ticket_soft_delete` taking only `old_ticket` means the arm was written
 - [ ] **Step 6: Accept and verify**
 
 ```bash
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
-    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
+    $accepted = $_.FullName -replace "[.]new$", ""
+    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
+    Remove-Item $_.FullName
+}
 .\x.ps1 unit-test
 ```
 
@@ -1704,8 +1724,11 @@ Check each of these:
 - [ ] **Step 7: Accept and verify**
 
 ```bash
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
-    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
+    $accepted = $_.FullName -replace "[.]new$", ""
+    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
+    Remove-Item $_.FullName
+}
 .\x.ps1 unit-test
 ```
 
@@ -2061,8 +2084,11 @@ Every diff must be a pure rename of the two identifiers. A diff that adds or rem
 - [ ] **Step 5: Accept and verify**
 
 ```bash
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
-    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
+    $accepted = $_.FullName -replace "[.]new$", ""
+    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
+    Remove-Item $_.FullName
+}
 .\x.ps1 unit-test
 ```
 
@@ -2259,9 +2285,9 @@ In `method/foreign_key.rs`, for each referenced table:
 - emit `referencing_table_compile_error_check_for_deletions` when this table's foreign keys to it set `on_delete`, and `..._for_soft_deletions` when they set `on_soft_delete`;
 - import `referenced_table_compile_error_check_for_deletions` from the referenced table's path in the `Removal::Hard` functions and `..._for_soft_deletions` in the `Removal::Soft` ones.
 
-- [ ] **Step 6: Add the `SoftDelete` strategy arm**
+- [ ] **Step 6: Fill in the `SoftDelete` strategy arm**
 
-In `method/on_delete_strategy.rs`, add a `OnDeleteStrategy::SoftDelete` arm built from the `OnDeleteStrategy::Delete` arm, with four substitutions:
+In `method/on_delete_strategy.rs`, Task 2 already put an `OnDeleteStrategy::SoftDelete` arm there holding an unreachable `todo!`. Replace that `todo!` with a body built from the `OnDeleteStrategy::Delete` arm, with four substitutions:
 
 1. the hooks are `spacetimedsl_table.hooks.before_soft_delete` / `.after_soft_delete`, called with `&dsl, &old_row, new_row` and `&dsl, &old_row, &new_row` — the before hook returns the row;
 2. the write is `set_marker` followed by `#spacetimedb_call_prefix.#primary_key_column_name().update(row)` rather than `.delete(...)`, with `soft_delete::set_marker(marker, &quote! { dsl }, ...)` because a cascade function receives the DSL as `dsl`, not `self`;
@@ -2293,8 +2319,11 @@ Check:
 - [ ] **Step 9: Accept and verify**
 
 ```bash
-Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new |
-    ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace "[.]new$", "") }
+Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
+    $accepted = $_.FullName -replace "[.]new$", ""
+    (Get-Content $_.FullName) -notmatch "^assertion_line:" | Set-Content $accepted
+    Remove-Item $_.FullName
+}
 .\x.ps1 unit-test
 ```
 
