@@ -38,6 +38,7 @@ symbol!(after);
 symbol!(insert);
 symbol!(update);
 symbol!(delete);
+symbol!(soft_delete);
 symbol!(foreign_key);
 symbol!(referenced_by);
 symbol!(path);
