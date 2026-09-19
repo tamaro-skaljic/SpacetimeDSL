@@ -1,0 +1,91 @@
+---
+source: derive/src/characterization_tests.rs
+---
+pub trait this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_book_table {}
+pub trait this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_book_table {}
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct ReviewId {
+    value: u64,
+}
+impl Default for ReviewId {
+    fn default() -> ReviewId {
+        ReviewId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for ReviewId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "ReviewId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, ReviewId> for ReviewId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Review> for ReviewId {
+    fn from(value: &Review) -> Self {
+        ReviewId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Review> for Option<ReviewId> {
+    fn from(value: &Review) -> Option<ReviewId> {
+        Some(ReviewId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&ReviewId> for Option<ReviewId> {
+    fn from(value: &ReviewId) -> Option<ReviewId> {
+        use spacetimedsl::Wrapper;
+        Some(ReviewId::new(value.value()))
+    }
+}
+impl From<&ReviewId> for ReviewId {
+    fn from(value: &ReviewId) -> Self {
+        use spacetimedsl::Wrapper;
+        ReviewId::new(value.value())
+    }
+}
+impl Review {
+    ///
+    pub fn get_id(&self) -> ReviewId {
+        use spacetimedsl::Wrapper;
+        ReviewId::new(self.id.clone())
+    }
+    ///
+    pub fn get_book_id(&self) -> BookId {
+        use spacetimedsl::Wrapper;
+        BookId::new(self.book_id.clone())
+    }
+    ///
+    pub fn set_book_id(&mut self, book_id: impl Into<BookId>) -> BookId {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.book_id, book_id.into().value());
+        BookId::new(old_value)
+    }
+}
+///
+pub struct CreateReview {
+    pub book_id: BookId,
+}
+
+// Generated DSL methods:
+// count_of_all_reviews
+// create_review
+// delete_review_by_id
+// delete_reviews_by_book_id
+// execute_on_delete_strategies_of_the_review_table_after_multiple_rows_of_the_book_table_were_deleted
+// execute_on_delete_strategies_of_the_review_table_after_multiple_rows_of_the_book_table_were_soft_deleted
+// execute_on_delete_strategies_of_the_review_table_after_one_row_of_the_book_table_was_deleted
+// execute_on_delete_strategies_of_the_review_table_after_one_row_of_the_book_table_was_soft_deleted
+// get_all_reviews
+// get_review_by_id
+// get_reviews_by_book_id
+// update_review_by_id

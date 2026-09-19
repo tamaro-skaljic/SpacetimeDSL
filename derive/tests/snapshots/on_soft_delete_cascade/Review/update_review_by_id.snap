@@ -1,0 +1,64 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Review` row of the `review` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_review_by_id<'a>(
+        &'a self,
+        review: Review,
+    ) -> Result<Review, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut review = review;
+        let mut the_same_or_another_review: Option<Review> = None;
+        let book_id = review.get_book_id().value();
+        if book_id.ne(&0) {
+            if the_same_or_another_review.is_none() {
+                the_same_or_another_review = match self
+                    .db()
+                    .review()
+                    .id()
+                    .find(review.get_id().value())
+                {
+                    Some(review) => Some(review),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "review".into(),
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", book_id
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_review
+                .as_ref()
+                .expect("field_name_for_found_value should be Some(_)")
+                .get_book_id()
+                .ne(&review.get_book_id())
+            {
+                match self.get_book_by_id(review.get_book_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "review".into(),
+                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", "book_id", book_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        let review = self.db().review().id().update(review);
+        Ok(review)
+    }
+}

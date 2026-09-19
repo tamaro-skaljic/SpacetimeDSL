@@ -102,6 +102,33 @@ Try to delete a `ParentRecord` row in the `parent_record` table whose value matc
         };
         match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_parent_record_table_was_deleted(
             self,
+            crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
+            &row_to_delete.id,
+        ) {
+            Err(failure) => {
+                let mut child_entries = failure.entries;
+                deletion_result_entry.child_entries.append(&mut child_entries);
+                let error_from_hook = failure.error_from_hook;
+                let error = crate::spacetimedsl::delete::DeletionResult {
+                    table_name: "parent_record".into(),
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                    entries: vec![deletion_result_entry],
+                    error_from_hook: error_from_hook,
+                };
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                        format!(
+                            "Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
+                        ),
+                    ),
+                );
+            }
+            Ok(mut child_entries) => {
+                deletion_result_entry.child_entries.append(&mut child_entries);
+            }
+        };
+        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_parent_record_table_was_deleted(
+            self,
             crate::spacetimedsl::delete::OnDeleteStrategy::SetZero,
             &row_to_delete.id,
         ) {

@@ -25,6 +25,7 @@ use crate::{
     },
     internal::{column::ColumnTypeKind, dsl::one_or_multiple::OneOrMultiple},
 };
+use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
@@ -33,6 +34,27 @@ use quote::{format_ident, quote};
 pub(in crate::internal) enum Removal {
     Hard,
     Soft,
+}
+
+/// The strategies a removal fans out to after it has written, in the order the generated
+/// body runs them.
+///
+/// `Error` is not here: it runs before the write, so that a refusal leaves the database
+/// untouched. A hard deletion can reach every strategy a `#[foreign_key]` accepts in
+/// `on_delete`, a soft one only the two `on_soft_delete` accepts besides `Error`.
+///
+/// TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 `SetNone` joins the hard
+/// list once `Option` is allowed on an indexed column.
+fn strategies_after_the_write(removal: Removal) -> &'static [OnDeleteStrategy] {
+    match removal {
+        Removal::Hard => &[
+            OnDeleteStrategy::Delete,
+            OnDeleteStrategy::SoftDelete,
+            OnDeleteStrategy::SetZero,
+            OnDeleteStrategy::Ignore,
+        ],
+        Removal::Soft => &[OnDeleteStrategy::SoftDelete, OnDeleteStrategy::Ignore],
+    }
 }
 
 /// The marker column a soft removal writes.
@@ -344,13 +366,6 @@ pub(in crate::internal) fn for_removal_many(
             #return_result_impl
         }
     } else {
-        // Task 11 gives a soft deletion its own cascade. Until then a soft-deletable
-        // table which another table references has no correct body to generate: the
-        // hard cascade below would remove the referencing rows outright.
-        if removal == Removal::Soft {
-            todo!("Task 11 cascades a soft deletion into the referencing tables")
-        }
-
         let error_after_state_change = runtime::generic_error(&quote! {
             format!("Delete Many Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
         });
@@ -365,6 +380,7 @@ pub(in crate::internal) fn for_removal_many(
             runtime::reference_integrity_violation_on_delete(&quote! { error });
 
         let error_strategy = referenced_table_function_call_for_dsl_method(
+            removal,
             singular_table_name,
             primary_key_column_name,
             OnDeleteStrategy::Error,
@@ -376,40 +392,19 @@ pub(in crate::internal) fn for_removal_many(
             },
         );
 
-        let delete_strategy = referenced_table_function_call_for_dsl_method(
-            singular_table_name,
-            primary_key_column_name,
-            OnDeleteStrategy::Delete,
-            OneOrMultiple::Multiple,
-            &on_error_handler,
-        );
-
-        /* TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32
-        let set_none_strategy =
-            referenced_table_function_call_for_dsl_method(
-                singular_table_name,
-                primary_key_column_name,
-                OnDeleteStrategy::SetNone,
-                OneOrMultiple::Multiple,
-                &on_error_handler,
-            );
-        */
-
-        let set_zero_strategy = referenced_table_function_call_for_dsl_method(
-            singular_table_name,
-            primary_key_column_name,
-            OnDeleteStrategy::SetZero,
-            OneOrMultiple::Multiple,
-            &on_error_handler,
-        );
-
-        let ignore_strategy = referenced_table_function_call_for_dsl_method(
-            singular_table_name,
-            primary_key_column_name,
-            OnDeleteStrategy::Ignore,
-            OneOrMultiple::Multiple,
-            &on_error_handler,
-        );
+        let strategies_after_the_write = strategies_after_the_write(removal)
+            .iter()
+            .map(|strategy| {
+                referenced_table_function_call_for_dsl_method(
+                    removal,
+                    singular_table_name,
+                    primary_key_column_name,
+                    strategy.clone(),
+                    OneOrMultiple::Multiple,
+                    &on_error_handler,
+                )
+            })
+            .collect_vec();
 
         quote! {
             #impl_until_return_ok_on_is_empty
@@ -424,13 +419,7 @@ pub(in crate::internal) fn for_removal_many(
 
             #after_delete_hook
 
-            #delete_strategy
-
-            //TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 #set_none_strategy
-
-            #set_zero_strategy
-
-            #ignore_strategy
+            #(#strategies_after_the_write)*
 
             #return_result_impl
         }
@@ -727,13 +716,6 @@ pub(in crate::internal) fn for_removal_one(
             #return_result_impl
         }
     } else {
-        // Task 11 gives a soft deletion its own cascade. Until then a soft-deletable
-        // table which another table references has no correct body to generate: the
-        // hard cascade below would remove the referencing rows outright.
-        if removal == Removal::Soft {
-            todo!("Task 11 cascades a soft deletion into the referencing tables")
-        }
-
         let error_after_state_change = runtime::generic_error(&quote! {
             format!("Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
         });
@@ -748,6 +730,7 @@ pub(in crate::internal) fn for_removal_one(
             runtime::reference_integrity_violation_on_delete(&quote! { error });
 
         let error_strategy = referenced_table_function_call_for_dsl_method(
+            removal,
             singular_table_name,
             primary_key_column_name,
             OnDeleteStrategy::Error,
@@ -759,39 +742,19 @@ pub(in crate::internal) fn for_removal_one(
             },
         );
 
-        let delete_strategy = referenced_table_function_call_for_dsl_method(
-            singular_table_name,
-            primary_key_column_name,
-            OnDeleteStrategy::Delete,
-            OneOrMultiple::One,
-            &on_error_handler,
-        );
-
-        /* TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32
-        let set_none_strategy =
-            referenced_table_function_call_for_dsl_method(
-                singular_table_name,
-                OnDeleteStrategy::SetNone,
-                OneOrMultiple::One,
-                &on_error_handler,
-            );
-        */
-
-        let set_zero_strategy = referenced_table_function_call_for_dsl_method(
-            singular_table_name,
-            primary_key_column_name,
-            OnDeleteStrategy::SetZero,
-            OneOrMultiple::One,
-            &on_error_handler,
-        );
-
-        let ignore_strategy = referenced_table_function_call_for_dsl_method(
-            singular_table_name,
-            primary_key_column_name,
-            OnDeleteStrategy::Ignore,
-            OneOrMultiple::One,
-            &on_error_handler,
-        );
+        let strategies_after_the_write = strategies_after_the_write(removal)
+            .iter()
+            .map(|strategy| {
+                referenced_table_function_call_for_dsl_method(
+                    removal,
+                    singular_table_name,
+                    primary_key_column_name,
+                    strategy.clone(),
+                    OneOrMultiple::One,
+                    &on_error_handler,
+                )
+            })
+            .collect_vec();
 
         quote! {
             #impl_until_return_err_on_is_none
@@ -806,13 +769,7 @@ pub(in crate::internal) fn for_removal_one(
 
             #after_delete_hook
 
-            #delete_strategy
-
-            //TODO https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 #set_none_strategy
-
-            #set_zero_strategy
-
-            #ignore_strategy
+            #(#strategies_after_the_write)*
 
             #return_result_impl
         }

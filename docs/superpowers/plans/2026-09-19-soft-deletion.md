@@ -2187,7 +2187,7 @@ pub(in crate::internal) fn referencing_table_function_name(
 ) -> Ident;
 ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `derive/tests/fixtures/on_soft_delete_cascade.rs`:
 
@@ -2260,7 +2260,7 @@ fn on_soft_delete_cascade() {
 }
 ```
 
-- [ ] **Step 2: Run it to make sure it fails**
+- [x] **Step 2: Run it to make sure it fails**
 
 ```bash
 .\x.ps1 unit-test
@@ -2268,7 +2268,7 @@ fn on_soft_delete_cascade() {
 
 Expected: FAIL. The `.snap.new` files hold the deletion cascade only, and the `on_soft_delete` fields are parsed and then ignored.
 
-- [ ] **Step 3: Parameterize the dispatcher names**
+- [x] **Step 3: Parameterize the dispatcher names**
 
 In `naming.rs`, give both function-name builders a `removal: Removal` first parameter, and build the suffix from it:
 
@@ -2285,7 +2285,7 @@ fn removal_suffix(removal: Removal, one_or_multiple: &OneOrMultiple) -> &'static
 
 The two builders keep their current prefixes and end in that suffix, so `Removal::Hard` reproduces today's names exactly.
 
-- [ ] **Step 4: Give both strategy-pair structs two optional pairs**
+- [x] **Step 4: Give both strategy-pair structs two optional pairs**
 
 Rewrite the two structs in `api/dsl/table.rs` as in the Interfaces block above, with documentation saying that a pair is present when the table can perform that kind of removal, and that both members of a pair exist or neither does.
 
@@ -2296,7 +2296,7 @@ In `method.rs`:
 
 In `derive/src/output.rs`, emit each present pair, keeping the existing rule that every one-row method is emitted before any many-row method.
 
-- [ ] **Step 5: Wire the soft halves of both checks**
+- [x] **Step 5: Wire the soft halves of both checks**
 
 In `method/referenced_by.rs`, for each referencing table:
 
@@ -2308,7 +2308,7 @@ In `method/foreign_key.rs`, for each referenced table:
 - emit `referencing_table_compile_error_check_for_deletions` when this table's foreign keys to it set `on_delete`, and `..._for_soft_deletions` when they set `on_soft_delete`;
 - import `referenced_table_compile_error_check_for_deletions` from the referenced table's path in the `Removal::Hard` functions and `..._for_soft_deletions` in the `Removal::Soft` ones.
 
-- [ ] **Step 6: Fill in the `SoftDelete` strategy arm**
+- [x] **Step 6: Fill in the `SoftDelete` strategy arm**
 
 In `method/on_delete_strategy.rs`, Task 2 already put an `OnDeleteStrategy::SoftDelete` arm there holding an unreachable `todo!`. Replace that `todo!` with a body built from the `OnDeleteStrategy::Delete` arm, with four substitutions:
 
@@ -2319,11 +2319,11 @@ In `method/on_delete_strategy.rs`, Task 2 already put an `OnDeleteStrategy::Soft
 
 Give `on_delete_strategy_implementation` a `removal: Removal` parameter so the `Error` and `Ignore` arms, which are identical for both kinds, are not duplicated: they only report a different strategy value and recurse through a different dispatcher.
 
-- [ ] **Step 7: Call the soft dispatchers from the soft methods**
+- [x] **Step 7: Call the soft dispatchers from the soft methods**
 
 In `removal.rs`, the `Removal::Soft` body runs the same four strategy passes the `Removal::Hard` body runs — `Error` before writing, then the rest — but through `referenced_table_function_call_for_dsl_method` with `Removal::Soft`, and over the three strategies `on_soft_delete` accepts. Give that function in `referenced_by.rs` a `removal: Removal` parameter and pass it through to `referenced_table_function_name`.
 
-- [ ] **Step 8: Read the snapshots**
+- [x] **Step 8: Read the snapshots**
 
 ```bash
 .\x.ps1 unit-test
@@ -2339,7 +2339,7 @@ Check:
 - `soft_delete_author_by_id` calls the soft dispatcher, not the hard one.
 - No fixture without `on_soft_delete` moved, beyond what Task 10 already renamed.
 
-- [ ] **Step 9: Accept and verify**
+- [x] **Step 9: Accept and verify**
 
 ```bash
 Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
@@ -2352,7 +2352,7 @@ Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Objec
 
 Expected: all PASS.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add derive-input/src derive/src derive/tests

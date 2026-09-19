@@ -87,12 +87,15 @@ pub(crate) fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<Gen
         .spacetimedsl_methods
         .on_delete_strategies_of_referencing_tables
     {
-        dsl_methods.push(build_internal_dsl_method(
-            &strategies.after_one_row_of_this_table_was_deleted,
-        )?);
-        dsl_methods.push(build_internal_dsl_method(
-            &strategies.after_multiple_rows_of_this_table_were_deleted,
-        )?);
+        for entry_points in [&strategies.on_deletion, &strategies.on_soft_deletion]
+            .into_iter()
+            .flatten()
+        {
+            dsl_methods.push(build_internal_dsl_method(&entry_points.after_one_row)?);
+            dsl_methods.push(build_internal_dsl_method(
+                &entry_points.after_multiple_rows,
+            )?);
+        }
     }
 
     // Two loops, not one: every one-row method is emitted before any many-row method, and a
@@ -101,18 +104,26 @@ pub(crate) fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<Gen
         .spacetimedsl_methods
         .on_delete_strategies_of_this_table
     {
-        dsl_methods.push(build_internal_dsl_method(
-            &strategies.after_one_row_was_deleted,
-        )?);
+        for entry_points in [&strategies.on_deletion, &strategies.on_soft_deletion]
+            .into_iter()
+            .flatten()
+        {
+            dsl_methods.push(build_internal_dsl_method(&entry_points.after_one_row)?);
+        }
     }
 
     for strategies in &input
         .spacetimedsl_methods
         .on_delete_strategies_of_this_table
     {
-        dsl_methods.push(build_internal_dsl_method(
-            &strategies.after_multiple_rows_were_deleted,
-        )?);
+        for entry_points in [&strategies.on_deletion, &strategies.on_soft_deletion]
+            .into_iter()
+            .flatten()
+        {
+            dsl_methods.push(build_internal_dsl_method(
+                &entry_points.after_multiple_rows,
+            )?);
+        }
     }
 
     for multi_column_index in &input.spacetimedsl_methods.multi_column_indices {

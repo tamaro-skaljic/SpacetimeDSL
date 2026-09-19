@@ -12,8 +12,8 @@ use crate::{
             },
             method::SpacetimeDSLMethod,
             table::{
-                OnDeleteStrategiesOfReferencingTables, OnDeleteStrategiesOfTheReferencedTable,
-                SingletonKind, SpacetimeDSLTableMethods,
+                CascadeEntryPoints, OnDeleteStrategiesOfReferencingTables,
+                OnDeleteStrategiesOfTheReferencedTable, SingletonKind, SpacetimeDSLTableMethods,
             },
         },
     },
@@ -47,6 +47,7 @@ use get::{for_get_all, for_get_count, for_get_many, for_get_one};
 use index::IndexShape;
 use on_delete_strategy::ReferencingTables;
 use referenced_by::for_referenced_by;
+use removal::Removal;
 use singleton_table::{for_singleton_delete, for_singleton_get};
 use soft_delete::{for_soft_delete_many, for_soft_delete_one};
 use update::for_update;
@@ -206,30 +207,57 @@ impl SpacetimeDSLTableMethods {
             false => Some(for_get_count(context)),
         };
 
+        // A referenced table earns one pair of entry points per kind of removal it can
+        // perform, because the cascade a referencing table runs depends on which of the
+        // two reached it.
         let on_delete_strategies_of_referencing_tables =
             match spacetimedsl_table.referencing_tables.is_empty() {
                 true => None,
                 false => {
-                    let (after_one_row, after_one_row_contributions) = for_referenced_by(
-                        &OneOrMultiple::One,
-                        spacetimedb_table,
-                        spacetimedsl_table,
-                        primary_key_column,
-                    );
-                    contributions.merge(after_one_row_contributions);
+                    let mut on_deletion = None;
+                    let mut on_soft_deletion = None;
 
-                    let (after_multiple_rows, after_multiple_rows_contributions) =
-                        for_referenced_by(
-                            &OneOrMultiple::Multiple,
+                    for (removal, this_table_can_perform_it) in [
+                        (Removal::Hard, spacetimedsl_table.has_delete_method),
+                        (Removal::Soft, spacetimedsl_table.is_soft_deletable()),
+                    ] {
+                        if !this_table_can_perform_it {
+                            continue;
+                        }
+
+                        let (after_one_row, after_one_row_contributions) = for_referenced_by(
+                            removal,
+                            &OneOrMultiple::One,
                             spacetimedb_table,
                             spacetimedsl_table,
                             primary_key_column,
                         );
-                    contributions.merge(after_multiple_rows_contributions);
+                        contributions.merge(after_one_row_contributions);
+
+                        let (after_multiple_rows, after_multiple_rows_contributions) =
+                            for_referenced_by(
+                                removal,
+                                &OneOrMultiple::Multiple,
+                                spacetimedb_table,
+                                spacetimedsl_table,
+                                primary_key_column,
+                            );
+                        contributions.merge(after_multiple_rows_contributions);
+
+                        let entry_points = Some(CascadeEntryPoints {
+                            after_one_row,
+                            after_multiple_rows,
+                        });
+
+                        match removal {
+                            Removal::Hard => on_deletion = entry_points,
+                            Removal::Soft => on_soft_deletion = entry_points,
+                        }
+                    }
 
                     Some(OnDeleteStrategiesOfReferencingTables {
-                        after_one_row_of_this_table_was_deleted: after_one_row,
-                        after_multiple_rows_of_this_table_were_deleted: after_multiple_rows,
+                        on_deletion,
+                        on_soft_deletion,
                     })
                 }
             };
@@ -270,31 +298,68 @@ impl SpacetimeDSLTableMethods {
                     false => ReferencingTables::Present,
                 };
 
-                let (after_one_row, after_one_row_contributions) = for_foreign_key(
-                    &OneOrMultiple::One,
-                    referencing_tables,
-                    spacetimedb_table,
-                    referenced_table_name,
-                    &columns_with_foreign_key,
-                    primary_key_column,
-                    spacetimedsl_table,
-                )?;
-                contributions.merge(after_one_row_contributions);
+                let mut on_deletion = None;
+                let mut on_soft_deletion = None;
 
-                let (after_multiple_rows, after_multiple_rows_contributions) = for_foreign_key(
-                    &OneOrMultiple::Multiple,
-                    referencing_tables,
-                    spacetimedb_table,
-                    referenced_table_name,
-                    &columns_with_foreign_key,
-                    primary_key_column,
-                    spacetimedsl_table,
-                )?;
-                contributions.merge(after_multiple_rows_contributions);
+                // One pair per kind of removal these foreign keys declare a strategy for.
+                // A key that sets only `on_soft_delete` contributes nothing to the
+                // deletion pair, and the other way round.
+                for removal in [Removal::Hard, Removal::Soft] {
+                    let declares_a_strategy = columns_with_foreign_key.iter().any(|column| {
+                        let foreign_key = column
+                            .spacetimedsl_column
+                            .foreign_key
+                            .as_ref()
+                            .expect("These columns were grouped by their foreign key");
+
+                        match removal {
+                            Removal::Hard => foreign_key.on_delete_strategy.is_some(),
+                            Removal::Soft => foreign_key.on_soft_delete_strategy.is_some(),
+                        }
+                    });
+
+                    if !declares_a_strategy {
+                        continue;
+                    }
+
+                    let (after_one_row, after_one_row_contributions) = for_foreign_key(
+                        removal,
+                        &OneOrMultiple::One,
+                        referencing_tables,
+                        spacetimedb_table,
+                        referenced_table_name,
+                        &columns_with_foreign_key,
+                        primary_key_column,
+                        spacetimedsl_table,
+                    )?;
+                    contributions.merge(after_one_row_contributions);
+
+                    let (after_multiple_rows, after_multiple_rows_contributions) = for_foreign_key(
+                        removal,
+                        &OneOrMultiple::Multiple,
+                        referencing_tables,
+                        spacetimedb_table,
+                        referenced_table_name,
+                        &columns_with_foreign_key,
+                        primary_key_column,
+                        spacetimedsl_table,
+                    )?;
+                    contributions.merge(after_multiple_rows_contributions);
+
+                    let entry_points = Some(CascadeEntryPoints {
+                        after_one_row,
+                        after_multiple_rows,
+                    });
+
+                    match removal {
+                        Removal::Hard => on_deletion = entry_points,
+                        Removal::Soft => on_soft_deletion = entry_points,
+                    }
+                }
 
                 on_delete_strategies_of_this_table.push(OnDeleteStrategiesOfTheReferencedTable {
-                    after_one_row_was_deleted: after_one_row,
-                    after_multiple_rows_were_deleted: after_multiple_rows,
+                    on_deletion,
+                    on_soft_deletion,
                 });
             }
         }

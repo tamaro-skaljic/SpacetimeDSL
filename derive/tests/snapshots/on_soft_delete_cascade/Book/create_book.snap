@@ -1,0 +1,60 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `book` table.
+    pub fn create_book<'a>(
+        &'a self,
+        book: CreateBook,
+    ) -> Result<Book, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let author_id = book.author_id.value();
+        let deleted = false;
+        let book = Book { id, author_id, deleted };
+        let mut the_same_or_another_book: Option<Book> = None;
+        if author_id.ne(&0) {
+            match self.get_author_by_id(book.get_author_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "book".into(),
+                            create_or_update: crate::spacetimedsl::error::Action::Create,
+                            column_names_and_row_values: format!(
+                                "{{ {} : {} }}", author_id, book.get_author_id()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        match self.db().book().try_insert(book.clone()) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "book".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ book : {:?} }}", book
+                            )
+                                .into(),
+                        })
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "book".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

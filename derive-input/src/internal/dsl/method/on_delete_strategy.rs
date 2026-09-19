@@ -8,6 +8,8 @@ use super::{
     context::{self},
     hook_call::hook_use_and_call,
     naming::referenced_table_function_name,
+    removal::Removal,
+    soft_delete,
 };
 use crate::{
     api::{
@@ -21,7 +23,7 @@ use crate::{
     },
 };
 use proc_macro2::TokenStream;
-use quote::{TokenStreamExt, quote};
+use quote::{TokenStreamExt, format_ident, quote};
 use syn::Ident;
 
 /// How the generated code binds the row it iterates over or matches on.
@@ -257,6 +259,7 @@ pub(in crate::internal) fn on_delete_strategy_implementation(
 
                         let error_strategy =
                             referenced_table_function_call_for_strategy_implementation(
+                                Removal::Hard,
                                 singular_table_name,
                                 OnDeleteStrategy::Error,
                                 &on_error_handler,
@@ -264,6 +267,7 @@ pub(in crate::internal) fn on_delete_strategy_implementation(
 
                         let delete_strategy =
                             referenced_table_function_call_for_strategy_implementation(
+                                Removal::Hard,
                                 singular_table_name,
                                 OnDeleteStrategy::Delete,
                                 &on_error_handler,
@@ -272,6 +276,7 @@ pub(in crate::internal) fn on_delete_strategy_implementation(
                         /*
                         let set_none_strategy =
                             referenced_table_function_call_for_strategy_implementation(
+                                Removal::Hard,
                                 singular_table_name,
                                 &singular_table_name_as_string,
                                 OnDeleteStrategy::SetNone,
@@ -281,6 +286,7 @@ pub(in crate::internal) fn on_delete_strategy_implementation(
 
                         let set_zero_strategy =
                             referenced_table_function_call_for_strategy_implementation(
+                                Removal::Hard,
                                 singular_table_name,
                                 OnDeleteStrategy::SetZero,
                                 &on_error_handler,
@@ -288,6 +294,7 @@ pub(in crate::internal) fn on_delete_strategy_implementation(
 
                         let ignore_strategy =
                             referenced_table_function_call_for_strategy_implementation(
+                                Removal::Hard,
                                 singular_table_name,
                                 OnDeleteStrategy::Ignore,
                                 &on_error_handler,
@@ -364,9 +371,263 @@ pub(in crate::internal) fn on_delete_strategy_implementation(
                 };
             }
             OnDeleteStrategy::SoftDelete => {
-                todo!(
-                    "no #[foreign_key] spelling accepts SoftDelete yet, so this arm is unreachable"
-                )
+                let marker = spacetimedsl_table.soft_delete_marker.as_ref().expect(
+                    "`OnDeleteStrategy::SoftDelete` is only parsed for a soft-deletable table",
+                );
+
+                let row = format_ident!("row");
+                let is_row_marked = soft_delete::is_marked(marker, &quote! { row });
+                let set_marker = soft_delete::set_marker(marker, &quote! { dsl }, &row);
+
+                // The two imports have to escape the per-row loop their guard sits in, so
+                // they are hoisted the way the `Delete` arm hoists its own.
+                let build_hooks = |old_row: TokenStream| {
+                    let before = hook_use_and_call(
+                        &spacetimedsl_table.hooks.before_soft_delete,
+                        |hook_function_name| {
+                            let hook_call = runtime::dsl_method_hooks_call(
+                                hook_function_name,
+                                &quote! { &dsl, #old_row, row },
+                            );
+
+                            quote! {
+                                let row = match #hook_call {
+                                    Err(error_raised_by_the_hook) => {
+                                        error = true;
+                                        error_from_hook = Some(Box::new(error_raised_by_the_hook));
+                                        break 'outer;
+                                    }
+                                    Ok(row) => row,
+                                };
+                            }
+                        },
+                    );
+
+                    let after = hook_use_and_call(
+                        &spacetimedsl_table.hooks.after_soft_delete,
+                        |hook_function_name| {
+                            let hook_call = runtime::dsl_method_hooks_call(
+                                hook_function_name,
+                                &quote! { &dsl, #old_row, &row },
+                            );
+
+                            quote! {
+                                if let Err(error_raised_by_the_hook) = #hook_call {
+                                    error = true;
+                                    error_from_hook = Some(Box::new(error_raised_by_the_hook));
+                                    break 'outer;
+                                }
+                            }
+                        },
+                    );
+
+                    (before, after)
+                };
+
+                // The marker is written into the row the before hook handed back, so the
+                // `mut` sits on whichever binding that hook left behind. Without a hook
+                // the row arrives mutable already; the store is named only when the after
+                // hook reads it.
+                let write_and_store = |before_hook: &TokenStream, after_hook: &TokenStream| {
+                    let rebind_row = match before_hook.is_empty() {
+                        true => TokenStream::default(),
+                        false => quote! { let mut row = row; },
+                    };
+
+                    let store_row = match after_hook.is_empty() {
+                        true => quote! {
+                            // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update
+                            #spacetimedb_call_prefix.#primary_key_column_name().update(row);
+                        },
+                        false => quote! {
+                            let row = #spacetimedb_call_prefix.#primary_key_column_name().update(row);
+                        },
+                    };
+
+                    (rebind_row, store_row)
+                };
+
+                match referencing_tables {
+                    ReferencingTables::Absent => {
+                        let (before_soft_delete_hook, after_soft_delete_hook) =
+                            build_hooks(quote! { &old_row });
+                        let (use_before_hook_trait, before_soft_delete_hook) =
+                            before_soft_delete_hook;
+                        let (use_after_hook_trait, after_soft_delete_hook) = after_soft_delete_hook;
+                        strategy_for_before_hook = use_before_hook_trait;
+                        strategy_for_after_hook = use_after_hook_trait;
+
+                        let (rebind_row, store_row) =
+                            write_and_store(&before_soft_delete_hook, &after_soft_delete_hook);
+
+                        let a_hook_runs = !before_soft_delete_hook.is_empty()
+                            || !after_soft_delete_hook.is_empty();
+
+                        let clone_old_row = match a_hook_runs {
+                            true => quote! { let old_row = row.clone(); },
+                            false => TokenStream::default(),
+                        };
+
+                        // A before hook takes the row by value and hands back its own
+                        // binding, so the `mut` moves to the rebinding after it.
+                        let row_binding = match before_soft_delete_hook.is_empty() {
+                            true => RowBinding::Mutable,
+                            false => RowBinding::Immutable,
+                        };
+
+                        strategy_by_column.push(strategy_by_row(
+                            row_binding,
+                            index_uniqueness,
+                            &row_finder,
+                            quote! {
+                                if !(#is_row_marked) {
+                                    #clone_old_row
+
+                                    #before_soft_delete_hook
+
+                                    #rebind_row
+
+                                    #set_marker
+
+                                    let child_entries = vec![];
+                                    let #primary_key_column_name = &row.#primary_key_column_name;
+                                    #create_entry_and_add_it_to_entries
+
+                                    #store_row
+
+                                    #after_soft_delete_hook
+                                }
+                            },
+                        ));
+                    }
+                    ReferencingTables::Present => {
+                        let (before_soft_delete_hook, after_soft_delete_hook) =
+                            build_hooks(quote! { old_row });
+                        let (use_before_hook_trait, before_soft_delete_hook) =
+                            before_soft_delete_hook;
+                        let (use_after_hook_trait, after_soft_delete_hook) = after_soft_delete_hook;
+                        strategy_for_before_hook = use_before_hook_trait;
+                        strategy_for_after_hook = use_after_hook_trait;
+
+                        let (rebind_row, store_row) =
+                            write_and_store(&before_soft_delete_hook, &after_soft_delete_hook);
+
+                        let format_str = format!(
+                            "{primary_key_column_name} should exist in child_entries_by_primary_key_value_of_row_to_delete."
+                        );
+                        let create_entries_and_add_them_to_entries = quote! {
+                            for (primary_key_value_of_a_row_of_another_table_to_delete, primary_key_values_of_rows_to_delete) in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete {
+                                for #primary_key_column_name in &primary_key_values_of_rows_to_delete {
+                                    let child_entries = child_entries_by_primary_key_value_of_row_to_delete.remove(&#primary_key_column_name).expect(&#format_str);
+                                    #create_entry_and_add_it_to_entries
+                                }
+                            }
+                        };
+
+                        let failure = runtime::on_delete_strategy_failure(
+                            &quote! { entries },
+                            &quote! { error_from_hook },
+                        );
+
+                        let on_error_handler = quote! {
+                            #create_entries_and_add_them_to_entries
+                            return Err(#failure);
+                        };
+
+                        // The rows this arm retired were soft-deleted, so their own
+                        // referencing tables are consulted through the soft dispatcher,
+                        // over the three strategies `on_soft_delete` accepts.
+                        let error_strategy =
+                            referenced_table_function_call_for_strategy_implementation(
+                                Removal::Soft,
+                                singular_table_name,
+                                OnDeleteStrategy::Error,
+                                &on_error_handler,
+                            );
+
+                        let soft_delete_strategy =
+                            referenced_table_function_call_for_strategy_implementation(
+                                Removal::Soft,
+                                singular_table_name,
+                                OnDeleteStrategy::SoftDelete,
+                                &on_error_handler,
+                            );
+
+                        let ignore_strategy =
+                            referenced_table_function_call_for_strategy_implementation(
+                                Removal::Soft,
+                                singular_table_name,
+                                OnDeleteStrategy::Ignore,
+                                &on_error_handler,
+                            );
+
+                        strategy_for_referenced_by = quote! {
+                            let mut child_entries_by_primary_key_value_of_row_to_delete = std::collections::HashMap::new();
+                            let mut row_to_delete_by_primary_key_value = std::collections::HashMap::new();
+                            let mut primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete = std::collections::HashMap::new();
+                        };
+
+                        match one_or_multiple {
+                            OneOrMultiple::One => strategy_for_referenced_by.append_all(quote! {
+                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.insert(primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
+                            }),
+                            OneOrMultiple::Multiple => strategy_for_referenced_by.append_all(quote! {
+                                for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
+                                    primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.insert(primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
+                                }
+                            }),
+                        };
+
+                        let strategy_for_each_row = quote! {
+                            if !(#is_row_marked) && !child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.#primary_key_column_name) {
+                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).expect(&format!("{primary_key_value_of_a_row_of_another_table_to_delete} should exist in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.")).push(row.#primary_key_column_name);
+                                child_entries_by_primary_key_value_of_row_to_delete.insert(row.#primary_key_column_name, vec![]);
+                                row_to_delete_by_primary_key_value.insert(row.#primary_key_column_name, row);
+                            }
+                        };
+
+                        let soft_delete_many_impl = quote! {
+                            for #primary_key_column_name in &primary_key_values_of_rows_to_delete {
+                                let old_row = row_to_delete_by_primary_key_value
+                                    .get(#primary_key_column_name)
+                                    .expect("Should exist");
+
+                                let row = old_row.clone();
+
+                                #before_soft_delete_hook
+
+                                #rebind_row
+
+                                #set_marker
+
+                                #store_row
+
+                                #after_soft_delete_hook
+                            }
+                        };
+
+                        strategy_after_all = quote! {
+                            let primary_key_values_of_rows_to_delete = child_entries_by_primary_key_value_of_row_to_delete.keys().cloned().collect_vec();
+
+                            #error_strategy
+
+                            #soft_delete_many_impl
+
+                            #soft_delete_strategy
+
+                            #ignore_strategy
+
+                            #create_entries_and_add_them_to_entries
+                        };
+
+                        strategy_by_column.push(strategy_by_row(
+                            RowBinding::Immutable,
+                            index_uniqueness,
+                            &row_finder,
+                            strategy_for_each_row,
+                        ));
+                    }
+                };
             }
             OnDeleteStrategy::SetZero => {
                 strategy_by_column.push(strategy_by_row(
@@ -459,12 +720,13 @@ fn strategy_by_row(
 }
 
 fn referenced_table_function_call_for_strategy_implementation(
+    removal: Removal,
     singular_table_name: &Ident,
     on_delete_strategy: OnDeleteStrategy,
     on_error_handler: &TokenStream,
 ) -> TokenStream {
     let referenced_table_function_name =
-        referenced_table_function_name(&OneOrMultiple::Multiple, singular_table_name);
+        referenced_table_function_name(removal, &OneOrMultiple::Multiple, singular_table_name);
     let referenced_table_call = runtime::dsl_internals_call(
         &referenced_table_function_name,
         &quote! { dsl, #on_delete_strategy, &primary_key_values_of_rows_to_delete[..] },
