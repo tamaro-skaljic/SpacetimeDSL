@@ -2062,14 +2062,11 @@ git add derive-input/src/internal/dsl/method/naming.rs \
         derive-input/src/internal/dsl/method/foreign_key.rs \
         derive-input/src/internal/dsl/method/referenced_by.rs \
         derive/tests/snapshots
-git commit -m "refactor!: split the compile error checks by removal kind
+git commit -m "refactor: split the compile error checks by removal kind
 
 Each direction of the paired check now names the inner field it is about, so
 a table that is deletable, soft-deletable or both pairs with its referencing
 tables one capability at a time.
-
-BREAKING CHANGE: the generated identifiers changed, so every module generated
-against a previous version must be regenerated.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
@@ -2501,4 +2498,3 @@ Recorded here so they are not rediscovered as gaps:
 - Read filtering: `get_*`, `get_all_*` and `count_of_all_*` return retired rows.
 - No restore or undelete method.
 - `docs/entity_dsl_methods.png` is not regenerated.
-- The workspace version bump for the breaking identifier rename belongs to the release, not to Task 10.

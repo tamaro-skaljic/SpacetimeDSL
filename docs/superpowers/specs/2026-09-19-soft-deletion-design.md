@@ -325,6 +325,7 @@ Tests are written before the production code they cover.
 
 ## Blast radius
 
-Renaming the compile-error-check identifiers changes the generated API. Every module
-generated against `0.22.0` fails to compile until it is regenerated against the new version.
-The workspace version is bumped and the change is recorded as breaking.
+Renaming the compile-error-check identifiers changes every generated module that has a
+foreign key, which makes the snapshot diff in that phase large. It breaks nothing: a
+SpacetimeDB server module is compiled as a whole, so the two sides of a pairing are always
+regenerated together and never meet across versions.
