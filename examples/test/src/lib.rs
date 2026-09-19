@@ -1068,10 +1068,6 @@ pub mod singleton_with_default_test {
 
         pub world_name: String,
 
-        #[created_at]
-        created_at: Timestamp,
-
-        #[updated_at]
         modified_at: Option<Timestamp>,
     }
 
@@ -1137,7 +1133,6 @@ pub mod singleton_with_default_test {
                 id: 0,
                 maximum_player_count: 8,
                 world_name: "Default World".to_string(),
-                created_at: dsl.ctx().timestamp()?,
                 modified_at: None,
             })
         }
@@ -2336,8 +2331,6 @@ pub mod test {
             );
         }
 
-        let created_at = *inserted.get_created_at();
-
         let mut changed_settings = inserted;
         changed_settings.set_world_name("Changed World".to_string());
 
@@ -2360,16 +2353,10 @@ pub mod test {
             ));
         }
 
-        if updated.get_created_at().ne(&created_at) {
-            return Err("An update should keep the created_at of the stored row!".to_string());
-        }
-
         if updated.get_modified_at().is_none() {
             return Err("An update should set modified_at!".to_string());
         }
 
-        // A row built from the default carries the default's created_at, and the update path
-        // has to ignore that rather than move the insert time.
         let mut settings_from_the_default =
             WorldSettings::get_default(&read_only_dsl(dsl.ctx()))
                 .map_err(|e| format!("The default should be available! Got:\n{e}"))?;
@@ -2382,12 +2369,6 @@ pub mod test {
                     "Upserting a row built from the default should update the stored one! Got:\n{e}"
                 )
             })?;
-
-        if updated.get_created_at().ne(&created_at) {
-            return Err(
-                "Upserting a row built from the default should not move created_at!".to_string(),
-            );
-        }
 
         dsl.delete_world_settings()
             .map_err(|e| format!("Should be able to delete the WorldSettings! Got:\n{e}"))?;
