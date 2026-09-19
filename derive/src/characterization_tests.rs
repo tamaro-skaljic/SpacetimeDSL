@@ -142,6 +142,11 @@ fn timestamps() {
 }
 
 #[test]
+fn update_hook_with_updated_at() {
+    snapshot_fixture("update_hook_with_updated_at");
+}
+
+#[test]
 fn scheduled_table() {
     snapshot_fixture("scheduled_table");
 }

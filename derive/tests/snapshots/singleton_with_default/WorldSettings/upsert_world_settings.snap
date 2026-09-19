@@ -24,6 +24,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 the_same_or_another_world_settings.as_ref().unwrap(),
                 world_settings,
             )?;
+            let mut world_settings = world_settings;
             world_settings
                 .created_at = the_same_or_another_world_settings
                 .as_ref()
@@ -44,6 +45,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 self,
                 world_settings,
             )?;
+            let mut world_settings = world_settings;
             world_settings.created_at = Some(self.ctx().timestamp()?);
             world_settings.modified_at = None;
             match self.db().world_settings().try_insert(world_settings.clone()) {

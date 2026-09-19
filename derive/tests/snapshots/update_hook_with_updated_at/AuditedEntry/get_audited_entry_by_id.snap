@@ -1,0 +1,53 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `AuditedEntry` from the `audited_entry` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn get_audited_entry_by_id<'a>(
+        &'a self,
+        id: impl Into<AuditedEntryId> + Clone,
+    ) -> Result<AuditedEntry, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().audited_entry().id().find(id.clone().into().value()) {
+            Some(audited_entry) => Ok(audited_entry),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "audited_entry".into(),
+                    column_names_and_row_values: format!(
+                        "{{ id : {} }}", id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `AuditedEntry` from the `audited_entry` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn get_audited_entry_by_id<'a>(
+        &'a self,
+        id: impl Into<AuditedEntryId> + Clone,
+    ) -> Result<AuditedEntry, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().audited_entry().id().find(id.clone().into().value()) {
+            Some(audited_entry) => Ok(audited_entry),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "audited_entry".into(),
+                    column_names_and_row_values: format!(
+                        "{{ id : {} }}", id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
