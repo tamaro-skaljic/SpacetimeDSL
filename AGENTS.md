@@ -10,8 +10,9 @@ Code must be self-documenting through clear naming:
 
 - **No abbreviations**: Use `InputOutput` not `Io`, `FileSystemWatcher` not `Watcher`, `DirectoryWalker` not `Walk`.
 - **Descriptive identifiers**: Names should convey meaning without requiring comments.
-- **No redundant comments**: Never document "how" - the code shows that. Only document "what" and "why" when not obvious from the code itself.
+- **No redundant comments**: Never document "how" — the code shows that. Only document "what" and "why" when not obvious from the code itself.
 - **Remove comments that repeat the code**: A comment like `/// IO error.` above `Io(io::Error)` adds no value.
+- **Don't document the past**: A comment states what the code does, never how it came to look that way. Drop "now fixed", "this used to panic", "the plan moved this here", etc. and every reference to the task, issue or review behind a change — git holds that history, and a comment repeating it goes stale the moment the next change lands. A leftover `todo!("Task 8 fills this in")` is worse than no comment at all: it names a step no reader of the code can look up.
 
 ### Test Driven Development
 
