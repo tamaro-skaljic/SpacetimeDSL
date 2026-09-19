@@ -911,7 +911,7 @@ A new row is never born retired, so the create generator fills the marker in rat
 - Consumes: `SpacetimeDSLTable.soft_delete_marker` (Task 4).
 - Produces: the first soft-deletable fixture, reused as a reading aid by later tasks.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `derive/tests/fixtures/soft_delete_flag.rs`:
 
@@ -947,7 +947,7 @@ fn soft_delete_flag() {
 }
 ```
 
-- [ ] **Step 2: Run it to see the marker in `CreateTicket`**
+- [x] **Step 2: Run it to see the marker in `CreateTicket`**
 
 ```bash
 .\x.ps1 unit-test
@@ -955,7 +955,7 @@ fn soft_delete_flag() {
 
 Expected: FAIL, with new `.snap.new` files. Read `derive/tests/snapshots/soft_delete_flag/Ticket/table.snap.new`: `pub struct CreateTicket` currently holds a `deleted` member. That is the defect this task removes. Do not accept these snapshots yet.
 
-- [ ] **Step 3: Fill the marker in instead of asking for it**
+- [x] **Step 3: Fill the marker in instead of asking for it**
 
 In `create_method_column_parts`, add a branch to the `else if` chain that already handles the two timestamp roles, after the `on_update_set_current_timestamp_column_name` branch:
 
@@ -981,7 +981,7 @@ Add the import:
 use crate::api::dsl::soft_delete::SoftDeleteMarkerKind;
 ```
 
-- [ ] **Step 4: Run it again and read the snapshots**
+- [x] **Step 4: Run it again and read the snapshots**
 
 ```bash
 .\x.ps1 unit-test
@@ -991,7 +991,7 @@ Expected: FAIL again, because the snapshots are still new. Read them. `CreateTic
 
 There is no `soft_delete_ticket_by_id` yet; that arrives in Task 8.
 
-- [ ] **Step 5: Accept and verify**
+- [x] **Step 5: Accept and verify**
 
 ```bash
 Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
@@ -1004,7 +1004,7 @@ Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Objec
 
 Expected: both PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add derive-input/src/internal/dsl/method/create.rs \
