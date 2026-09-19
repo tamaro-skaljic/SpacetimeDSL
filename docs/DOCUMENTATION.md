@@ -555,8 +555,8 @@ pub struct Entity { ... }
 
 **Single-row tables for global config or state!**
 
-Add `singleton` to `#[spacetimedsl::dsl]` to create a table that holds at most one row, or
-`singleton(with_default)` for a table that always reads as exactly one row - see
+Use `#[spacetimedsl::dsl(singleton)]` to create a table that holds at most one row, or
+`#[spacetimedsl::dsl(singleton(with_default))]` for a table that always reads as exactly one row - see
 [Singletons With a Default](#singletons-with-a-default-exactly-one-row).
 
 The macro automatically injects a `#[primary_key] id: u8` column (always `0`) and generates simplified methods without the `_by_id` suffix.
@@ -613,7 +613,7 @@ dsl.delete_game_config()?;
 #### Singletons With a Default: Exactly One Row
 
 `#[spacetimedsl::dsl(singleton)]` holds **at most** one row, so `get_*` fails while the row
-is absent. Write `singleton(with_default)` instead to hold **exactly** one row from the
+is absent. Write `#[spacetimedsl::dsl(singleton(with_default))]` instead to hold **exactly** one row from the
 caller's point of view: `get_*` then answers with a default the table supplies itself.
 
 The default is **not** written to the table. A read path therefore needs no `WriteContext`,
@@ -631,13 +631,7 @@ use spacetimedb::Timestamp;
 #[spacetimedb::table(accessor = world_settings, public)]
 pub struct WorldSettings {
     pub maximum_player_count: u32,
-
     pub world_name: String,
-
-    #[created_at]
-    created_at: Timestamp,
-
-    #[updated_at]
     modified_at: Option<Timestamp>,
 }
 
@@ -651,46 +645,45 @@ impl DefaultSingleton for WorldSettings {
             id: 0,
             maximum_player_count: 8,
             world_name: "Default World".to_string(),
-            created_at: dsl.ctx().timestamp()?,
             modified_at: None,
         })
     }
 }
 ```
 
-The `ReadOnlyDSL` lets the default read other tables. Do not write to the database from
-`get_default`: it runs on every `get_*` that finds no row, and on a read-only context too.
+Through the `dsl: &ReadOnlyDSL` you have read-access to data of other tables but no write-access.
+If you want to change data of other tables, you should define [after-insert and/or after-update hooks](#hooks-system)
+and call the `upsert_<table_name>` method on `DSL` (the one with write-access).
 
 **Generated methods:**
 
-| Method                                                                        | Description                                                   |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `get_world_settings() -> Result<WorldSettings, SpacetimeDSLError>`            | Gets the row, or the default while no row exists               |
-| `upsert_world_settings(WorldSettings) -> Result<WorldSettings, SpacetimeDSLError>` | Writes the row, whether or not it exists yet (forces `id = 0`) |
-| `delete_world_settings() -> Result<DeletionResult, SpacetimeDSLError>`        | Deletes the row, after which `get_*` gives the default again   |
+| Method                                                                             | Description                                                           |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `get_world_settings() -> Result<WorldSettings, SpacetimeDSLError>`                 | Gets the row, or the default while no row exists (doesn't insert it!) |
+| `upsert_world_settings(WorldSettings) -> Result<WorldSettings, SpacetimeDSLError>` | Writes the row, whether or not it exists yet (forces `id = 0`)        |
+| `delete_world_settings() -> Result<DeletionResult, SpacetimeDSLError>`             | Deletes the row, after which `get_*` gives the default again          |
 
 **Differences to a plain `#[dsl(singleton)]`:**
 
 - There is **no** `create_*` method and **no** `Create*` argument struct. `upsert_*` is the
   only method that writes the row.
 - There is **no** `update_*` method. `upsert_*` replaces it.
-- `#[dsl(method(update = false))]` is rejected, because the table could then never hold a
-  row.
-- `delete_*` still fails with a `NotFoundError` while no row exists. It deletes a stored
-  row, and the default is not one.
+- `#[dsl(method(update = false))]` is rejected.
+- `delete_*` still fails with a `NotFoundError` when no row exists.
+  Calling `get_<table_name>` after that returns the default again.
+  If you want you can [disable the delete DSL method](#delete-methods).
 
 **Timestamp columns:**
 
 - A `#[created_at]` column is set when `upsert_*` inserts the row. When `upsert_*` updates
-  it, the stored value is kept, even if the caller hands in a row built from
-  `get_default`.
+  it, the stored value is kept, even if the caller hands in a row built from `get_default`.
 - An `#[updated_at]` column is set to the current time when `upsert_*` updates the row. On
   the insert path it follows `create_*`: `Option<Timestamp>` stays `None`, a plain
   `Timestamp` gets the insert time.
 
 **Hooks:**
 
-The `before_insert` hook of such a table takes the whole row instead of a create request,
+The [`before_insert` hook](#hooks-system) of such a table takes the whole row instead of a create request,
 because there is no `Create*` struct:
 
 ```rust
