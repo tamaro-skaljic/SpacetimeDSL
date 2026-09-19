@@ -171,6 +171,11 @@ fn soft_delete_flag() {
     snapshot_fixture("soft_delete_flag");
 }
 
+#[test]
+fn soft_delete_hooks() {
+    snapshot_fixture("soft_delete_hooks");
+}
+
 /// Expanding the same fixture twice must produce byte-identical output, otherwise the
 /// snapshots above would fail at random and a regenerated module would differ from the
 /// previous one for no reason.

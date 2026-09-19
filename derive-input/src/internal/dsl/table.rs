@@ -39,9 +39,11 @@ impl SpacetimeDSLTable {
                 before_insert: dsl_data.before_insert_hook,
                 before_update: dsl_data.before_update_hook,
                 before_delete: dsl_data.before_delete_hook,
+                before_soft_delete: dsl_data.before_soft_delete_hook,
                 after_insert: dsl_data.after_insert_hook,
                 after_update: dsl_data.after_update_hook,
                 after_delete: dsl_data.after_delete_hook,
+                after_soft_delete: dsl_data.after_soft_delete_hook,
             },
         );
 

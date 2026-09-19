@@ -8,9 +8,11 @@ pub struct SpacetimeDSLMethodHooks {
     pub before_insert: Option<SpacetimeDSLMethodHook>,
     pub before_update: Option<SpacetimeDSLMethodHook>,
     pub before_delete: Option<SpacetimeDSLMethodHook>,
+    pub before_soft_delete: Option<SpacetimeDSLMethodHook>,
     pub after_insert: Option<SpacetimeDSLMethodHook>,
     pub after_update: Option<SpacetimeDSLMethodHook>,
     pub after_delete: Option<SpacetimeDSLMethodHook>,
+    pub after_soft_delete: Option<SpacetimeDSLMethodHook>,
 }
 
 #[derive(Clone)]

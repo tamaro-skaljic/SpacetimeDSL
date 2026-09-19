@@ -63,9 +63,11 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     let mut before_insert_hook: Option<Span> = None;
     let mut before_update_hook: Option<Span> = None;
     let mut before_delete_hook: Option<Span> = None;
+    let mut before_soft_delete_hook: Option<Span> = None;
     let mut after_insert_hook: Option<Span> = None;
     let mut after_update_hook: Option<Span> = None;
     let mut after_delete_hook: Option<Span> = None;
+    let mut after_soft_delete_hook: Option<Span> = None;
 
     let mut methods = None;
     let mut update_method = None;
@@ -122,6 +124,10 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
                                         check_duplicate(&before_delete_hook, &meta)?;
                                         before_delete_hook = Some(meta.path.span());
                                     }
+                                    soft_delete => {
+                                        check_duplicate(&before_soft_delete_hook, &meta)?;
+                                        before_soft_delete_hook = Some(meta.path.span());
+                                    }
                                 });
                                 Ok(())
                             })?;
@@ -143,6 +149,10 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
                                     delete => {
                                         check_duplicate(&after_delete_hook, &meta)?;
                                         after_delete_hook = Some(meta.path.span());
+                                    }
+                                    soft_delete => {
+                                        check_duplicate(&after_soft_delete_hook, &meta)?;
+                                        after_soft_delete_hook = Some(meta.path.span());
                                     }
                                 });
                                 Ok(())
@@ -220,6 +230,22 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         }
     }
 
+    if soft_delete_method != Some(true) {
+        if let Some(span) = before_soft_delete_hook {
+            return Err(syn::Error::new(
+                span,
+                "Cannot have a `before_soft_delete` hook when the table is not soft-deletable. Enable it with `#[dsl(method(soft_delete = true))]`",
+            ));
+        }
+
+        if let Some(span) = after_soft_delete_hook {
+            return Err(syn::Error::new(
+                span,
+                "Cannot have an `after_soft_delete` hook when the table is not soft-deletable. Enable it with `#[dsl(method(soft_delete = true))]`",
+            ));
+        }
+    }
+
     let is_singleton = is_singleton.is_some();
 
     if let Some(span) = singleton_with_default
@@ -274,9 +300,11 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         before_insert_hook: before_insert_hook.is_some(),
         before_update_hook: before_update_hook.is_some(),
         before_delete_hook: before_delete_hook.is_some(),
+        before_soft_delete_hook: before_soft_delete_hook.is_some(),
         after_insert_hook: after_insert_hook.is_some(),
         after_update_hook: after_update_hook.is_some(),
         after_delete_hook: after_delete_hook.is_some(),
+        after_soft_delete_hook: after_soft_delete_hook.is_some(),
         update_method,
         delete_method,
         soft_delete_method,
@@ -290,9 +318,11 @@ struct DSLData {
     before_insert_hook: bool,
     before_update_hook: bool,
     before_delete_hook: bool,
+    before_soft_delete_hook: bool,
     after_insert_hook: bool,
     after_update_hook: bool,
     after_delete_hook: bool,
+    after_soft_delete_hook: bool,
     update_method: Option<bool>,
     delete_method: Option<bool>,
     soft_delete_method: Option<bool>,

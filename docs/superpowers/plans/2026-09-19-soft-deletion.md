@@ -1038,7 +1038,7 @@ The hooks take the shape of the update hooks, because a soft deletion writes a r
 - Consumes: `DSLData.soft_delete_method` (Task 3).
 - Produces: `SpacetimeDSLMethodHooks.before_soft_delete` and `.after_soft_delete`, both `Option<SpacetimeDSLMethodHook>`, read by Task 8 and Task 11.
 
-- [ ] **Step 1: Write the two failing tests**
+- [x] **Step 1: Write the two failing tests**
 
 Create `compile-tests/tests/ui/soft_delete_hook_without_soft_delete_method.rs`:
 
@@ -1106,7 +1106,7 @@ fn soft_delete_hooks() {
 }
 ```
 
-- [ ] **Step 2: Run them to make sure they fail**
+- [x] **Step 2: Run them to make sure they fail**
 
 ```bash
 .\x.ps1 unit-test
@@ -1114,7 +1114,7 @@ fn soft_delete_hooks() {
 
 Expected: the diagnostics case fails because the table compiles or because `soft_delete` is an unknown meta inside `before(...)`; the snapshot test fails because the fixture cannot be expanded. Both are red.
 
-- [ ] **Step 3: Parse the two hooks and reject them without the method**
+- [x] **Step 3: Parse the two hooks and reject them without the method**
 
 In `derive-input/src/internal.rs`, add the two locals beside the others:
 
@@ -1163,7 +1163,7 @@ After the `parse2` call, beside the other hook checks:
 
 Add the two `bool` fields to `DSLData` and fill them with `before_soft_delete_hook.is_some()` and `after_soft_delete_hook.is_some()`, matching how the six existing hook flags are carried.
 
-- [ ] **Step 4: Build the two hooks**
+- [x] **Step 4: Build the two hooks**
 
 In `derive-input/src/api/dsl/hook.rs`, add to `SpacetimeDSLMethodHooks`:
 
@@ -1179,8 +1179,8 @@ In `derive-input/src/internal/dsl/hook.rs`:
 - in `build`, add two `build_any` calls mirroring the update ones, with `Operation::SoftDelete`, and put both into the returned `SpacetimeDSLMethodHooks`;
 - in `get_trait_name`, map `Operation::SoftDelete => "SoftDelete"`;
 - in `get_function_name`, map `Operation::SoftDelete => "soft_delete"`;
-- in `get_function_args`, give `(Timing::Before, Operation::SoftDelete)` the same three arguments as `(Timing::Before, Operation::Update)` and `(Timing::After, Operation::SoftDelete)` the same three as `(Timing::After, Operation::Update)`. The existing `(_, Operation::Delete)` catch-all arm matches any timing, so the two soft-delete arms must be written **above** it or the compiler will route them into the delete shape. Write them directly after the update arms;
-- in `get_return_type`, add `(Timing::Before, Operation::SoftDelete)` to the arm that returns `Result<#singular_table_name_pascal_case, #error_type>`, beside `(Timing::Before, Operation::Update)`.
+- in `get_function_args`, widen the two update arms to or-patterns rather than writing two more arms: `(Timing::Before, Operation::Update | Operation::SoftDelete)` and `(Timing::After, Operation::Update | Operation::SoftDelete)`. A soft deletion writes the row, so its hooks take the update shape exactly; an or-pattern says that once instead of duplicating six `build_function_arg` calls. The `(_, Operation::Delete)` arm below matches only `Operation::Delete`, so it cannot capture the new variant and order does not matter;
+- in `get_return_type`, widen `(Timing::Before, Operation::Update)` to `(Timing::Before, Operation::Update | Operation::SoftDelete)`. This arm **must** be widened: the `_ =>` catch-all below it returns `Result<(), _>`, so a missing `before` arm silently gives the hook the wrong return type instead of failing to compile.
 
 In `derive-input/src/internal/dsl/table.rs`, pass the two new flags into the `DeclaredHooks { .. }` literal.
 
@@ -1191,7 +1191,7 @@ In `derive/src/output.rs`, add to the `hooks` vector:
         hook::build(&input.spacetimedsl_table.hooks.after_soft_delete)?,
 ```
 
-- [ ] **Step 5: Regenerate the diagnostic and read the snapshots**
+- [x] **Step 5: Regenerate the diagnostic and read the snapshots**
 
 ```bash
 $env:TRYBUILD = "overwrite"
@@ -1223,7 +1223,7 @@ pub trait AfterTicketSoftDeleteHook<T: crate::spacetimedsl::WriteContext> {
 
 A `before_ticket_soft_delete` taking only `old_ticket` means the arm was written below the `(_, Operation::Delete)` catch-all.
 
-- [ ] **Step 6: Accept and verify**
+- [x] **Step 6: Accept and verify**
 
 ```bash
 Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Object {
@@ -1236,7 +1236,7 @@ Get-ChildItem -Recurse derive\tests\snapshots -Filter *.snap.new | ForEach-Objec
 
 Expected: both PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add derive-input/src/api/dsl/hook.rs derive-input/src/internal/dsl/hook.rs \
