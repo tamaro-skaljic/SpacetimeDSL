@@ -1,0 +1,20 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `TimerRecord` row of the `timer_record` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_timer_record_by_id<'a>(
+        &'a self,
+        timer_record: TimerRecord,
+    ) -> Result<TimerRecord, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut timer_record = timer_record;
+        timer_record.finished_at = Some(self.ctx().timestamp()?);
+        let timer_record = self.db().timer_record().id().update(timer_record);
+        Ok(timer_record)
+    }
+}

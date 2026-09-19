@@ -1,0 +1,16 @@
+::spacetimedsl::spacetimedsl!();
+
+pub mod record {
+#[spacetimedsl::dsl(plural_name = records, method(update = false))]
+#[spacetimedb::table(accessor = record, public)]
+pub struct Record {
+    #[primary_key]
+    #[auto_inc]
+    id: u64,
+
+    #[updated_at]
+    finished_at: spacetimedb::Timestamp,
+}
+}
+
+fn main() {}

@@ -175,6 +175,33 @@ pub mod entity {
     }
 }
 
+pub mod timestamp_helper_test {
+    use spacetimedb::Timestamp;
+
+    #[spacetimedsl::dsl(
+        plural_name = timestamp_records,
+        method(update = true),
+    )]
+    #[spacetimedb::table(
+        accessor = timestamp_record,
+        public,
+    )]
+    pub struct TimestampRecord {
+        #[primary_key]
+        #[auto_inc]
+        #[create_wrapper]
+        id: u64,
+
+        #[created_at]
+        started_at: Timestamp,
+
+        #[updated_at]
+        finished_at: Option<Timestamp>,
+
+        pub value: u32,
+    }
+}
+
 pub mod component {
     pub mod identifier {
         use spacetimedb::Timestamp;
@@ -1201,6 +1228,7 @@ pub mod test {
         },
         hash_index_test::CreateSession,
         singleton_test::CreateGameConfig,
+        timestamp_helper_test::CreateTimestampRecord,
     };
 
     use log::info;
@@ -1240,6 +1268,30 @@ pub mod test {
     #[spacetimedb::reducer]
     fn tester(ctx: &ReducerContext) -> Result<(), String> {
         let dsl = dsl(ctx);
+
+        let timestamp_record = dsl.create_timestamp_record(CreateTimestampRecord { value: 1 })?;
+        if timestamp_record.get_started_at().ne(&ctx.timestamp)
+            || timestamp_record.get_finished_at().is_some()
+        {
+            return Err(
+                "The helper timestamp attributes should initialize create timestamps correctly."
+                    .to_string(),
+            );
+        }
+
+        let mut updated_timestamp_record = timestamp_record;
+        updated_timestamp_record.set_value(2);
+        let updated_timestamp_record =
+            dsl.update_timestamp_record_by_id(updated_timestamp_record)?;
+        if updated_timestamp_record
+            .get_finished_at()
+            .ne(&Some(ctx.timestamp))
+        {
+            return Err(
+                "The #[updated_at] helper attribute should refresh the timestamp on update."
+                    .to_string(),
+            );
+        }
 
         let mut player;
         match dsl.create_entity() {

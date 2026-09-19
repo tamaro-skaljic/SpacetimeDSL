@@ -111,7 +111,14 @@ fn derive_table_helper_attr() -> syn::Attribute {
 // TODO: Remove if https://github.com/rust-lang/rust/issues/65823 is implemented.
 #[proc_macro_derive(
     SpacetimeDSL,
-    attributes(create_wrapper, use_wrapper, foreign_key, referenced_by)
+    attributes(
+        create_wrapper,
+        use_wrapper,
+        foreign_key,
+        referenced_by,
+        created_at,
+        updated_at
+    )
 )]
 pub fn table_helper(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     proc_macro::TokenStream::default()

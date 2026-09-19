@@ -1,0 +1,5 @@
+error: A column cannot be both `created_at` and `updated_at`.
+  --> tests/ui/column_with_both_timestamp_roles.rs:13:5
+   |
+13 |     timestamp: spacetimedb::Timestamp,
+   |     ^^^^^^^^^

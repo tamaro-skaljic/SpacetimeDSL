@@ -7,6 +7,12 @@ use crate::internal::DSLData;
 use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::table::ColumnArgs;
 
+#[derive(Clone, Copy)]
+enum TimestampRole {
+    CreatedAt,
+    UpdatedAt,
+}
+
 impl SpacetimeDSLTable {
     pub(in crate::internal) fn try_parse(
         dsl_data: DSLData,
@@ -88,12 +94,13 @@ impl SpacetimeDSLTable {
             }
 
             let column_name = field.name.as_ref().expect("should have a name");
+            let timestamp_role = get_timestamp_role(field)?;
 
-            if column_name.eq("created_at") || column_name.eq("inserted_at") {
+            if matches!(timestamp_role, Some(TimestampRole::CreatedAt)) {
                 if on_insert_set_current_timestamp_column_name.is_some() {
                     return Err(syn::Error::new_spanned(
                         field.ident.expect("a named field has an identifier"),
-                        "Multiple columns for `on_insert_set_current_timestamp`: `created_at` and `inserted_at`! Only one column is allowed.".to_string(),
+                        "Multiple columns claim the `created_at` role! Only one column is allowed.",
                     ));
                 };
                 let field_type = field.ty.to_token_stream().to_string();
@@ -101,7 +108,7 @@ impl SpacetimeDSLTable {
                     return Err(syn::Error::new_spanned(
                         field.ty,
                         format!(
-                            "A column with name `created_at` or `inserted_at` should have the type `spacetimedb::Timestamp`! Found: {field_type}"
+                            "A column with the `created_at` role should have the type `spacetimedb::Timestamp`! Found: {field_type}"
                         ),
                     ));
                 }
@@ -110,13 +117,13 @@ impl SpacetimeDSLTable {
                     syn::Visibility::Public(_) => {
                         return Err(syn::Error::new_spanned(
                             field.vis,
-                            "A column with name `created_at` or `inserted_at` should have `Visibility::Inherited`! Found: Visibility::Public",
+                            "A column with the `created_at` role should have `Visibility::Inherited`! Found: Visibility::Public",
                         ));
                     }
                     syn::Visibility::Restricted(_) => {
                         return Err(syn::Error::new_spanned(
                             field.vis,
-                            "A column with name `created_at` or `inserted_at` should have `Visibility::Inherited`! Found: Visibility::Restricted",
+                            "A column with the `created_at` role should have `Visibility::Inherited`! Found: Visibility::Restricted",
                         ));
                     }
                     syn::Visibility::Inherited => {
@@ -125,18 +132,18 @@ impl SpacetimeDSLTable {
                     }
                 }
             }
-            if column_name.eq("modified_at") || column_name.eq("updated_at") {
+            if matches!(timestamp_role, Some(TimestampRole::UpdatedAt)) {
                 if on_update_set_current_timestamp_column_name.is_some() {
                     return Err(syn::Error::new_spanned(
                         field.ident.expect("a named field has an identifier"),
-                        "Multiple columns for `on_update_set_current_timestamp`: `modified_at` and `updated_at`! Only one column is allowed.".to_string(),
+                        "Multiple columns claim the `updated_at` role! Only one column is allowed.",
                     ));
                 };
 
                 if !has_update_method {
                     return Err(syn::Error::new_spanned(
                         field.ident.expect("a named field has an identifier"),
-                        "A column with name `modified_at` or `updated_at` requires the `update` method to be enabled in `#[dsl(method(update = true))]`!".to_string(),
+                        "A column with the `updated_at` role requires the `update` method to be enabled in `#[dsl(method(update = true))]`!",
                     ));
                 }
 
@@ -149,7 +156,7 @@ impl SpacetimeDSLTable {
                     return Err(syn::Error::new_spanned(
                         field.ty,
                         format!(
-                            "A column with name `modified_at` or `updated_at` should have the type `spacetimedb::Timestamp` or `Option<spacetimedb::Timestamp>`! Found: {field_type}"
+                            "A column with the `updated_at` role should have the type `spacetimedb::Timestamp` or `Option<spacetimedb::Timestamp>`! Found: {field_type}"
                         ),
                     ));
                 }
@@ -158,13 +165,13 @@ impl SpacetimeDSLTable {
                     syn::Visibility::Public(_) => {
                         return Err(syn::Error::new_spanned(
                             field.vis,
-                            "A column with name `modified_at` or `updated_at` should have `Visibility::Inherited`! Found: Visibility::Public",
+                            "A column with the `updated_at` role should have `Visibility::Inherited`! Found: Visibility::Public",
                         ));
                     }
                     syn::Visibility::Restricted(_) => {
                         return Err(syn::Error::new_spanned(
                             field.vis,
-                            "A column with name `modified_at` or `updated_at` should have `Visibility::Inherited`! Found: Visibility::Restricted",
+                            "A column with the `updated_at` role should have `Visibility::Inherited`! Found: Visibility::Restricted",
                         ));
                     }
                     syn::Visibility::Inherited => {
@@ -203,4 +210,36 @@ impl SpacetimeDSLTable {
             },
         ))
     }
+}
+
+fn get_timestamp_role(
+    field: &spacetime_bindings_macro_input::sats::SatsField<'_>,
+) -> syn::Result<Option<TimestampRole>> {
+    let column_name = field.name.as_ref().expect("should have a name");
+    let has_created_at_attribute = field
+        .original_attrs
+        .iter()
+        .any(|attribute| attribute.path().is_ident("created_at"));
+    let has_updated_at_attribute = field
+        .original_attrs
+        .iter()
+        .any(|attribute| attribute.path().is_ident("updated_at"));
+    let is_created_at =
+        column_name.eq("created_at") || column_name.eq("inserted_at") || has_created_at_attribute;
+    let is_updated_at =
+        column_name.eq("modified_at") || column_name.eq("updated_at") || has_updated_at_attribute;
+
+    if is_created_at && is_updated_at {
+        return Err(syn::Error::new_spanned(
+            field.ident.expect("a named field has an identifier"),
+            "A column cannot be both `created_at` and `updated_at`.",
+        ));
+    }
+
+    Ok(match (is_created_at, is_updated_at) {
+        (true, false) => Some(TimestampRole::CreatedAt),
+        (false, true) => Some(TimestampRole::UpdatedAt),
+        (false, false) => None,
+        (true, true) => unreachable!(),
+    })
 }

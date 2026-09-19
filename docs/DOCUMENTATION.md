@@ -787,7 +787,21 @@ You can see that the `consume_entity_timer`, `food` and `circle` tables each hav
 | `modified_at: Timestamp`         | `ctx.timestamp` on create                    |
 | `updated_at: Timestamp`          | `ctx.timestamp` on create                    |
 
-Both `created_at`/`inserted_at` and `modified_at`/`updated_at` are recognized aliases.
+Both `created_at`/`inserted_at` and `modified_at`/`updated_at` are recognized aliases. For other
+column names, use the bare `#[created_at]` or `#[updated_at]` helper attribute:
+
+```rust
+#[created_at]
+started_at: Timestamp,
+
+#[updated_at]
+finished_at: Option<Timestamp>,
+```
+
+`#[created_at]` requires `Timestamp`; `#[updated_at]` requires `Timestamp` or
+`Option<Timestamp>`. Both helper columns must have inherited visibility, and `#[updated_at]`
+requires `method(update = true)`. Only one column may claim each role, and a column may not use
+both helper attributes. Repeating a helper attribute on its conventional column name is harmless.
 
 #### Usage
 
@@ -938,9 +952,13 @@ On every update:
 - `modified_at: Timestamp` → set to `ctx.timestamp`
 - `updated_at: Timestamp` → set to `ctx.timestamp`
 
+An arbitrary column marked `#[updated_at]` follows the same rules.
+
 #### Requirement
 
-`update = true` requires at least one `pub` field (which generates a setter) OR a `modified_at`/`updated_at` column. Without either, there would be nothing to update.
+`update = true` requires at least one `pub` field (which generates a setter) OR a
+`modified_at`/`updated_at` column or a column marked `#[updated_at]`. Without either, there would
+be nothing to update.
 
 ### Delete Methods
 
