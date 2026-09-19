@@ -72,7 +72,9 @@ pub(crate) fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<Gen
     let mut table_methods = vec![];
     let mut dsl_methods = vec![];
 
-    dsl_methods.push(build_public_dsl_method(&input.spacetimedsl_methods.create)?);
+    if let Some(method) = &input.spacetimedsl_methods.create {
+        dsl_methods.push(build_public_dsl_method(method)?);
+    }
 
     if let Some(method) = &input.spacetimedsl_methods.get_all {
         dsl_methods.push(build_public_dsl_method(method)?);

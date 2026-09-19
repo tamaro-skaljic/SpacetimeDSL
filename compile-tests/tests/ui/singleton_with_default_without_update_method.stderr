@@ -1,0 +1,6 @@
+error: Cannot disable the `update` method with `#[dsl(method(update = false))]` on a table with `#[dsl(singleton(with_default))]`!
+       `upsert_<table>` is the only method which writes the row of such a table, so the table could never hold one.
+ --> tests/ui/singleton_with_default_without_update_method.rs:8:19
+  |
+8 |         singleton(with_default),
+  |                   ^^^^^^^^^^^^

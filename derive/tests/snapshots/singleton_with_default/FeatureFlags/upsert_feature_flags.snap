@@ -1,0 +1,50 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Write the `FeatureFlags` row of the singleton `feature_flags` table, whether or not it exists yet.
+    pub fn upsert_feature_flags<'a>(
+        &'a self,
+        feature_flags: FeatureFlags,
+    ) -> Result<FeatureFlags, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut feature_flags = feature_flags;
+        feature_flags.id = 0u8;
+        let the_same_or_another_feature_flags: Option<FeatureFlags> = self
+            .db()
+            .feature_flags()
+            .id()
+            .find(&0u8);
+        if the_same_or_another_feature_flags.is_some() {
+            let feature_flags = self.db().feature_flags().id().update(feature_flags);
+            Ok(feature_flags)
+        } else {
+            match self.db().feature_flags().try_insert(feature_flags.clone()) {
+                Ok(entity) => Ok(entity),
+                Err(error) => {
+                    match error {
+                        spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                            Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                                table_name: "feature_flags".into(),
+                                action: crate::spacetimedsl::error::Action::Create,
+                                error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                                one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                                column_names_and_row_values: format!(
+                                    "{{ feature_flags : {:?} }}", feature_flags
+                                )
+                                    .into(),
+                            })
+                        }
+                        spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                            Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                                table_name: "feature_flags".into(),
+                            })
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

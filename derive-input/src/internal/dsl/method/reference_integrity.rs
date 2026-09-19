@@ -14,7 +14,7 @@ use crate::{
     },
     internal::{
         column::{ColumnTypeKind, InternalColumn},
-        dsl::one_or_multiple::OneOrMultiple,
+        dsl::{one_or_multiple::OneOrMultiple, singleton},
     },
 };
 use itertools::Itertools;
@@ -117,6 +117,10 @@ pub(in crate::internal) fn reference_integrity_checks_on_create(
     })
 }
 
+/// `is_singleton` decides how the check finds the row it compares against. Every other table
+/// reads its primary key off the row through the key's wrapper, but a singleton's injected
+/// `id: u8` has neither a getter nor a wrapper, so the check names its only legal value
+/// instead.
 pub(in crate::internal) fn reference_integrity_checks_on_update(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &[InternalColumn],
@@ -124,6 +128,7 @@ pub(in crate::internal) fn reference_integrity_checks_on_update(
     index_columns: &[Ident],
     one_or_multiple: &OneOrMultiple,
     primary_key_column: &InternalColumn,
+    is_singleton: bool,
 ) -> Vec<TokenStream> {
     reference_integrity_checks(columns, true, |column, foreign_key| {
         let referenced_table_name = &foreign_key.table_name;
@@ -162,7 +167,17 @@ pub(in crate::internal) fn reference_integrity_checks_on_update(
             },
         };
 
-        let getter_name = format_ident!("get_{primary_key_column_name_of_referencing_table}");
+        let primary_key_value_of_referencing_table = match is_singleton {
+            true => {
+                let primary_key_value = singleton::primary_key_value();
+                quote! { &#primary_key_value }
+            }
+            false => {
+                let getter_name =
+                    format_ident!("get_{primary_key_column_name_of_referencing_table}");
+                quote! { #referencing_table_name.#getter_name().value() }
+            }
+        };
 
         let not_found_error = runtime::not_found_error(
             &referencing_table_name_as_string,
@@ -180,7 +195,7 @@ pub(in crate::internal) fn reference_integrity_checks_on_update(
 
         quote! {
             if #field_name_for_found_value.is_none() {
-                #field_name_for_found_value = match self.db().#referencing_table_name().#primary_key_column_name_of_referencing_table().find(#referencing_table_name.#getter_name().value()) {
+                #field_name_for_found_value = match self.db().#referencing_table_name().#primary_key_column_name_of_referencing_table().find(#primary_key_value_of_referencing_table) {
                     Some(#referencing_table_name) => Some(#referencing_table_name),
                     None => {
                         return Err(#not_found_error);

@@ -1,50 +1,24 @@
 use super::{
     context::MethodGenerationContext,
-    hook_call::{hook_tokens, hook_use_and_call},
     index::IndexShape,
     reference_integrity::{
         Action, multi_column_index_checks, reference_integrity_checks_on_update,
     },
+    upsert::{
+        ForeignKeyColumnScope, after_update_hook, before_update_hook_use_and_call,
+        row_value_getters_for_foreign_key_columns, set_singleton_primary_key,
+        set_updated_at_on_update,
+    },
 };
 use crate::{
     api::{
-        dsl::{
-            method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
-            wrapper::WrapperType,
-        },
+        dsl::method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
         runtime,
-        rust::visibility::RustVisibility,
     },
-    internal::{
-        column::{ColumnTypeKind, InternalColumn},
-        dsl::{one_or_multiple::OneOrMultiple, singleton},
-    },
+    internal::dsl::one_or_multiple::OneOrMultiple,
 };
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-
-/// The `let` binding the Update method's reference-integrity checks read a column's value
-/// through. Unlike the Create path there is always one, and the wrapper handling the Create
-/// path needs is irrelevant here, because Update reads the row rather than building it.
-fn update_method_row_value_getter(internal_column: &InternalColumn) -> TokenStream {
-    let singular_table_name = &internal_column.spacetimedb_table_singular_name;
-    let column_name = &internal_column.rust_field_name;
-    let getter_name = format_ident!("get_{column_name}");
-
-    let is_string = internal_column.rust_field_type_kind == ColumnTypeKind::String;
-
-    match &internal_column.spacetimedsl_column_wrapper_type {
-        Some(WrapperType::Used(_)) if !internal_column.spacetimedsl_column_is_option => quote! {
-            let #column_name = #singular_table_name.#getter_name().value();
-        },
-        Some(WrapperType::Created(_)) | None if is_string => quote! {
-            let #column_name = #singular_table_name.#getter_name();
-        },
-        _ => quote! {
-            let #column_name = #singular_table_name.#column_name;
-        },
-    }
-}
 
 /// `update_<table>_by_<index>`: write a row back over the one the index finds.
 ///
@@ -85,46 +59,13 @@ pub(in crate::internal) fn for_update(
         primary_key_column_name,
     );
 
-    let mut row_value_getters = vec![];
+    let row_value_getters = row_value_getters_for_foreign_key_columns(
+        internal_columns,
+        ForeignKeyColumnScope::CheckedOnUpdate,
+    );
 
-    internal_columns
-        .iter()
-        .filter(|internal_column| {
-            internal_column.spacetimedsl_column_foreign_key.is_some()
-                && internal_column
-                    .rust_field_visibility
-                    .to_string()
-                    .ne(&RustVisibility::Private.to_string())
-        })
-        .for_each(|internal_column| {
-            row_value_getters.push(update_method_row_value_getter(internal_column));
-        });
-
-    let on_update_set_current_timestamp = match &spacetimedsl_table
-        .on_update_set_current_timestamp_column_name
-    {
-        None => TokenStream::default(),
-        Some(column_name) => {
-            let on_update_set_current_timestamp_column = internal_columns
-                .iter()
-                .find(|c| c.rust_field_name.eq(column_name))
-                .unwrap_or_else(|| {
-                    panic!("The column {column_name} named by an on_update attribute must be one of this table's columns")
-                });
-
-            let timestamp_value = if on_update_set_current_timestamp_column.rust_field_type_kind
-                == ColumnTypeKind::Optional
-            {
-                quote! { Some(self.ctx().timestamp()?) }
-            } else {
-                quote! { self.ctx().timestamp()? }
-            };
-
-            quote! {
-                #singular_table_name.#column_name = #timestamp_value;
-            }
-        }
-    };
+    let on_update_set_current_timestamp =
+        set_updated_at_on_update(spacetimedsl_table, internal_columns, singular_table_name);
 
     let use_itertools = if !multi_column_index_checks.is_empty() {
         runtime::itertools_import()
@@ -144,6 +85,7 @@ pub(in crate::internal) fn for_update(
         &shape.index_columns,
         &one_or_multiple,
         primary_key_column,
+        is_singleton_pk,
     );
 
     let let_field_name_for_found_value = if multi_column_index_checks.is_empty()
@@ -160,22 +102,10 @@ pub(in crate::internal) fn for_update(
 
     // The found-value prelude has to run before the import, so this site
     // places both itself instead of taking them already joined.
-    let (use_before_update_hook_trait, before_update_hook_call) = hook_use_and_call(
-        &spacetimedsl_table.hooks.before_update,
-        |hook_function_name| {
-            let hook_call = runtime::dsl_method_hooks_call(
-                hook_function_name,
-                &quote! {
-                    self,
-                    #field_name_for_found_value.as_ref().unwrap(),
-                    #singular_table_name
-                },
-            );
-
-            quote! {
-                let #singular_table_name = #hook_call?;
-            }
-        },
+    let (use_before_update_hook_trait, before_update_hook_call) = before_update_hook_use_and_call(
+        spacetimedsl_table,
+        singular_table_name,
+        field_name_for_found_value,
     );
 
     let before_update_hook = if before_update_hook_call.is_empty() {
@@ -195,31 +125,15 @@ pub(in crate::internal) fn for_update(
         }
     };
 
-    let after_update_hook = hook_tokens(
-        &spacetimedsl_table.hooks.after_update,
-        |hook_function_name| {
-            let hook_call = runtime::dsl_method_hooks_call(
-                hook_function_name,
-                &quote! {
-                    self,
-                    #field_name_for_found_value.as_ref().unwrap(),
-                    &#singular_table_name
-                },
-            );
-
-            quote! {
-                #hook_call?;
-            }
-        },
+    let after_update_hook = after_update_hook(
+        spacetimedsl_table,
+        singular_table_name,
+        field_name_for_found_value,
     );
 
-    let set_singleton_id_to_zero = if is_singleton_pk {
-        let primary_key = singleton::primary_key_ident();
-        let primary_key_value = singleton::primary_key_value();
-
-        quote! { #singular_table_name.#primary_key = #primary_key_value; }
-    } else {
-        TokenStream::default()
+    let set_singleton_id_to_zero = match is_singleton_pk {
+        false => TokenStream::default(),
+        true => set_singleton_primary_key(singular_table_name),
     };
 
     SpacetimeDSLMethod {

@@ -555,7 +555,9 @@ pub struct Entity { ... }
 
 **Single-row tables for global config or state!**
 
-Add `singleton` to `#[spacetimedsl::dsl]` to create a table that holds at most one row.
+Use `#[spacetimedsl::dsl(singleton)]` to create a table that holds at most one row, or
+`#[spacetimedsl::dsl(singleton(with_default))]` for a table that always reads as exactly one row - see
+[Singletons With a Default](#singletons-with-a-default-exactly-one-row).
 
 The macro automatically injects a `#[primary_key] id: u8` column (always `0`) and generates simplified methods without the `_by_id` suffix.
 
@@ -606,6 +608,121 @@ cfg.set_max_players(128);
 dsl.update_game_config(cfg)?;
 
 dsl.delete_game_config()?;
+```
+
+#### Singletons With a Default: Exactly One Row
+
+`#[spacetimedsl::dsl(singleton)]` holds **at most** one row, so `get_*` fails while the row
+is absent. Write `#[spacetimedsl::dsl(singleton(with_default))]` instead to hold **exactly** one row from the
+caller's point of view: `get_*` then answers with a default the table supplies itself.
+
+The default is **not** written to the table. A read path therefore needs no `WriteContext`,
+which is the point of the feature.
+
+**The trait:**
+
+Implement `DefaultSingleton` on the table struct. It is part of the prelude.
+
+> **IMPORTANT:** Do not access `dsl.ctx()` inside the `get_default` method!
+>
+> SpacetimeDB's (Anonymous) Views allow almost no access to:
+>
+> - [auth](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_auth.rs),
+> - [connection id](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_connection_id.rs),
+> - [module identity](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_module_identity.rs),
+> - [random](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_random.rs),
+> - [random number generator](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_random_number_generator.rs),
+> - [sender (user identity)](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_sender.rs), and
+> - [timestamp]([TODO](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_timestamp.rs)) (see https://github.com/clockworklabs/SpacetimeDB/issues/4533).
+>
+> This is also the reason why you are only allowed to define `Option<Timestamp>` columns (even for `#[created_at]` columns) on `singleton(with_default)`-tables, not `Timestamp` columns.
+
+```rust
+use crate::spacetimedsl::prelude::*;
+use spacetimedb::Timestamp;
+
+#[spacetimedsl::dsl(singleton(with_default), method(update = true, delete = true))]
+#[spacetimedb::table(accessor = world_settings, public)]
+pub struct WorldSettings {
+    pub maximum_player_count: u32,
+    pub world_name: String,
+    modified_at: Option<Timestamp>,
+}
+
+impl DefaultSingleton for WorldSettings {
+    fn get_default(
+        dsl: &ReadOnlyDSL<'_, impl ReadContext>,
+    ) -> Result<WorldSettings, SpacetimeDSLError> {
+        Ok(WorldSettings {
+            // The injected primary key is a field like any other, so a struct literal has
+            // to name it. `get_*` overwrites it with `0` in any case.
+            id: 0,
+            maximum_player_count: 8,
+            world_name: "Default World".to_string(),
+            modified_at: None,
+        })
+    }
+}
+```
+
+Through the `dsl: &ReadOnlyDSL` you have read-access to data of other tables but no write-access.
+If you want to change data of other tables, you should define [after-insert and/or after-update hooks](#hooks-system)
+and call the `upsert_<table_name>` method on `DSL` (the one with write-access).
+
+**Generated methods:**
+
+| Method                                                                             | Description                                                           |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `get_world_settings() -> Result<WorldSettings, SpacetimeDSLError>`                 | Gets the row, or the default while no row exists (doesn't insert it!) |
+| `upsert_world_settings(WorldSettings) -> Result<WorldSettings, SpacetimeDSLError>` | Writes the row, whether or not it exists yet (forces `id = 0`)        |
+| `delete_world_settings() -> Result<DeletionResult, SpacetimeDSLError>`             | Deletes the row, after which `get_*` gives the default again          |
+
+**Differences to a plain `#[dsl(singleton)]`:**
+
+- There is **no** `create_*` method and **no** `Create*` argument struct. `upsert_*` is the
+  only method that writes the row.
+- There is **no** `update_*` method. `upsert_*` replaces it.
+- `#[dsl(method(update = false))]` is rejected.
+- `delete_*` still fails with a `NotFoundError` when no row exists.
+  Calling `get_<table_name>` after that returns the default again.
+  If you want you can [disable the delete DSL method](#delete-methods).
+
+**Timestamp columns:**
+
+- A `#[created_at]` column is set when `upsert_*` inserts the row. When `upsert_*` updates
+  it, the stored value is kept, even if the caller hands in a row built from `get_default`.
+- An `#[updated_at]` column is set to the current time when `upsert_*` updates the row. On
+  the insert path it follows `create_*`: `Option<Timestamp>` stays `None`, a plain
+  `Timestamp` gets the insert time.
+
+**Hooks:**
+
+The [`before_insert` hook](#hooks-system) of such a table takes the whole row instead of a create request,
+because there is no `Create*` struct:
+
+```rust
+#[spacetimedsl::hook]
+fn before_world_settings_insert(
+    dsl: &DSL<'_, T>,
+    new_world_settings: WorldSettings,
+) -> Result<WorldSettings, SpacetimeDSLError> {
+    Ok(new_world_settings)
+}
+```
+
+`upsert_*` runs the insert hooks on its insert path and the update hooks on its update
+path, never both.
+
+**Example:**
+
+```rust
+// In a view or a reducer - no row has to exist:
+let mut settings = dsl.get_world_settings()?;
+
+settings.set_maximum_player_count(64);
+
+// In a reducer: inserts the row the first time, updates it afterwards.
+dsl.upsert_world_settings(settings)?;
 ```
 
 ### `plural_name`
@@ -1383,6 +1500,10 @@ Apply `#[spacetimedsl::hook]` (or `#[hook]` with prelude) to each hook function.
 `fn before_{table}_insert(dsl: &DSL<'_, T>, create: Create{Table}) -> Result<Create{Table}, SpacetimeDSLError>`
 
 (e.g., `fn before_attribute_insert(dsl: &DSL<'_, T>, create: CreateAttribute) -> Result<CreateAttribute, SpacetimeDSLError>`)
+
+On a [`singleton(with_default)`](#singletons-with-a-default-exactly-one-row) table there is no `Create{Table}` struct, so this hook takes and returns the row itself:
+
+`fn before_{table}_insert(dsl: &DSL<'_, T>, new_{table}: {Table}) -> Result<{Table}, SpacetimeDSLError>`
 
 **after_insert** — React to a newly inserted row:
 

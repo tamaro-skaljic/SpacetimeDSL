@@ -1,0 +1,41 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Try to get the `ServerBinding` from the singleton `server_binding` table.
+    pub fn get_server_binding<'a>(
+        &'a self,
+    ) -> Result<ServerBinding, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().server_binding().id().find(&0u8) {
+            Some(server_binding) => Ok(server_binding),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "server_binding".into(),
+                    column_names_and_row_values: "{ id : 0 }".into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Try to get the `ServerBinding` from the singleton `server_binding` table.
+    pub fn get_server_binding<'a>(
+        &'a self,
+    ) -> Result<ServerBinding, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().server_binding().id().find(&0u8) {
+            Some(server_binding) => Ok(server_binding),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "server_binding".into(),
+                    column_names_and_row_values: "{ id : 0 }".into(),
+                });
+            }
+        }
+    }
+}

@@ -16,7 +16,7 @@ See [`docs/DOCUMENTATION.md`](docs/DOCUMENTATION.md)  for a comprehensive refere
 - [🎲 Unique Multi-Column Indices](docs/DOCUMENTATION.md#unique-multi-column-indices) — Enforce uniqueness across multiple columns (because **SpacetimeDB** has no native support).
 - [🪝 Hooks System](docs/DOCUMENTATION.md#hooks-system) — Execute custom logic automatically before and after inserts, updates and deletes.
 - [🎨 Ergonomic DSL Methods](docs/DOCUMENTATION.md#dsl-methods) — DSL equivalents for all **SpacetimeDB** operations with cleaner syntax and smart defaults.
-- [🎯 Singleton Tables](docs/DOCUMENTATION.md#singleton-tables) — Single-row tables for global config or state.
+- [🎯 Singleton Tables](docs/DOCUMENTATION.md#singleton-tables) — Single-row tables for global config or state, optionally with a default so a read never fails.
 - [👁️ Read-Only View Support](docs/DOCUMENTATION.md#views) — Use DSL methods in **SpacetimeDB** views.
 
 ### Enhanced Developer Experience

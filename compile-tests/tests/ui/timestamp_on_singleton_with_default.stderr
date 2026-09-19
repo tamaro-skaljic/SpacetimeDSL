@@ -1,0 +1,5 @@
+error: A column on a `singleton(with_default)` table should have the type `Option<spacetimedb::Timestamp>`! Found: spacetimedb :: Timestamp
+ --> tests/ui/timestamp_on_singleton_with_default.rs:7:16
+  |
+7 |         value: spacetimedb::Timestamp,
+  |                ^^^^^^^^^^^^^^^^^^^^^^

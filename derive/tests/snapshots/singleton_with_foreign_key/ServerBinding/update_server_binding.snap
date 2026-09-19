@@ -1,0 +1,63 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Try to update the `ServerBinding` row of the singleton `server_binding` table.
+    pub fn update_server_binding<'a>(
+        &'a self,
+        server_binding: ServerBinding,
+    ) -> Result<ServerBinding, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut server_binding = server_binding;
+        server_binding.id = 0u8;
+        let mut the_same_or_another_server_binding: Option<ServerBinding> = None;
+        let region_id = server_binding.get_region_id().value();
+        if region_id.ne(&0) {
+            if the_same_or_another_server_binding.is_none() {
+                the_same_or_another_server_binding = match self
+                    .db()
+                    .server_binding()
+                    .id()
+                    .find(&0u8)
+                {
+                    Some(server_binding) => Some(server_binding),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "server_binding".into(),
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", region_id
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_server_binding
+                .as_ref()
+                .expect("field_name_for_found_value should be Some(_)")
+                .get_region_id()
+                .ne(&server_binding.get_region_id())
+            {
+                match self.get_region_by_id(server_binding.get_region_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "server_binding".into(),
+                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", "region_id", region_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        let server_binding = self.db().server_binding().id().update(server_binding);
+        Ok(server_binding)
+    }
+}

@@ -1,0 +1,28 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl FeatureFlags {
+    ///
+    pub fn get_tutorial_is_enabled(&self) -> &bool {
+        use spacetimedsl::Wrapper;
+        &self.tutorial_is_enabled
+    }
+    ///
+    pub fn get_tutorial_is_enabled_mut(&mut self) -> &mut bool {
+        use spacetimedsl::Wrapper;
+        &mut self.tutorial_is_enabled
+    }
+    ///
+    pub fn set_tutorial_is_enabled(&mut self, tutorial_is_enabled: bool) -> bool {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(
+            &mut self.tutorial_is_enabled,
+            tutorial_is_enabled,
+        );
+        old_value
+    }
+}
+
+// Generated DSL methods:
+// get_feature_flags
+// upsert_feature_flags

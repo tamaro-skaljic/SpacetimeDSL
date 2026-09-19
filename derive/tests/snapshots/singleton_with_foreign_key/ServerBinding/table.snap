@@ -1,0 +1,29 @@
+---
+source: derive/src/characterization_tests.rs
+---
+pub trait this_compilation_error_occurs_because_the_server_binding_table_has_no_foreign_key_attribute_referencing_the_region_table {}
+impl ServerBinding {
+    ///
+    pub fn get_region_id(&self) -> RegionId {
+        use spacetimedsl::Wrapper;
+        RegionId::new(self.region_id.clone())
+    }
+    ///
+    pub fn set_region_id(&mut self, region_id: impl Into<RegionId>) -> RegionId {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.region_id, region_id.into().value());
+        RegionId::new(old_value)
+    }
+}
+///
+pub struct CreateServerBinding {
+    pub region_id: RegionId,
+}
+
+// Generated DSL methods:
+// create_server_binding
+// delete_server_binding
+// execute_on_delete_strategies_of_the_server_binding_table_after_multiple_rows_of_the_region_table_were_deleted
+// execute_on_delete_strategies_of_the_server_binding_table_after_one_row_of_the_region_table_was_deleted
+// get_server_binding
+// update_server_binding

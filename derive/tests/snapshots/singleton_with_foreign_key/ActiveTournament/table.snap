@@ -1,0 +1,29 @@
+---
+source: derive/src/characterization_tests.rs
+---
+pub trait this_compilation_error_occurs_because_the_active_tournament_table_has_no_foreign_key_attribute_referencing_the_region_table {}
+impl ActiveTournament {
+    ///
+    pub fn get_region_id(&self) -> RegionId {
+        use spacetimedsl::Wrapper;
+        RegionId::new(self.region_id.clone())
+    }
+    ///
+    pub fn set_region_id(&mut self, region_id: impl Into<RegionId>) -> RegionId {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.region_id, region_id.into().value());
+        RegionId::new(old_value)
+    }
+    ///
+    pub fn get_qualifier_region_id(&self) -> RegionId {
+        use spacetimedsl::Wrapper;
+        RegionId::new(self.qualifier_region_id.clone())
+    }
+}
+
+// Generated DSL methods:
+// delete_active_tournament
+// execute_on_delete_strategies_of_the_active_tournament_table_after_multiple_rows_of_the_region_table_were_deleted
+// execute_on_delete_strategies_of_the_active_tournament_table_after_one_row_of_the_region_table_was_deleted
+// get_active_tournament
+// upsert_active_tournament

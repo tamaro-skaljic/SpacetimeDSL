@@ -1,0 +1,50 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Try to delete the `ActiveTournament` row from the singleton `active_tournament` table.
+    pub fn delete_active_tournament<'a>(
+        &'a self,
+    ) -> Result<
+        crate::spacetimedsl::delete::DeletionResult,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use ::spacetimedsl::itertools::Itertools;
+        let row_to_delete = match self.db().active_tournament().id().find(&0u8) {
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "active_tournament".into(),
+                    column_names_and_row_values: "{ id : 0 }".into(),
+                });
+            }
+            Some(row_to_delete) => row_to_delete,
+        };
+        let mut deletion_result_entry = crate::spacetimedsl::delete::DeletionResultEntry {
+            table_name: "active_tournament".into(),
+            column_name: "id".into(),
+            strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
+            row_value: "0".into(),
+            child_entries: vec![],
+        };
+        match self.db().active_tournament().id().delete(&0u8) {
+            false => {
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                        "Delete One Error: `count_of_rows_to_delete ( 1 ) != ( 0 ) count_of_deleted_rows`!"
+                            .to_string(),
+                    ),
+                );
+            }
+            true => {}
+        };
+        return Ok(crate::spacetimedsl::delete::DeletionResult {
+            table_name: "active_tournament".into(),
+            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+            entries: vec![deletion_result_entry],
+            error_from_hook: None,
+        });
+    }
+}
