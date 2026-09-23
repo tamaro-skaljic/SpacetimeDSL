@@ -13,7 +13,10 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         let id = u64::default();
         let title = signed_document.title;
         let signature = signed_document.signature;
-        let created_at = self.ctx().timestamp()?;
+        let created_at = self
+            .ctx()
+            .timestamp()
+            .expect("a `WriteContext` always has a timestamp");
         let modified_at = None;
         let signed_document = SignedDocument {
             id,

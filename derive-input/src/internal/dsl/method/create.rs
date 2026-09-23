@@ -79,8 +79,9 @@ fn create_method_column_parts(
         &spacetimedsl_table.on_insert_set_current_timestamp_column_name
         && { internal_column.rust_field_name.eq(column_name) }
     {
+        let current_timestamp = runtime::current_timestamp(&quote! { self });
         constructor_arg = Some(quote! {
-            let #column_name = self.ctx().timestamp()?;
+            let #column_name = #current_timestamp;
         });
     } else if let Some(column_name) =
         &spacetimedsl_table.on_update_set_current_timestamp_column_name
@@ -89,7 +90,7 @@ fn create_method_column_parts(
         let timestamp_value = if internal_column.rust_field_type_kind == ColumnTypeKind::Optional {
             quote! { None }
         } else {
-            quote! { self.ctx().timestamp()? }
+            runtime::current_timestamp(&quote! { self })
         };
         constructor_arg = Some(quote! {
             let #column_name = #timestamp_value;

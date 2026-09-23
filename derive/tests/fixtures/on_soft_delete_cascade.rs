@@ -6,9 +6,8 @@
 //! cascade recurse.
 //!
 //! The two markers have different shapes on purpose. `Book`'s is the `Option<Timestamp>`
-//! one, and `Book` is the table whose marker a cascade writes, so this pins the one place
-//! that cannot reach a timestamp with `?`: a cascade function returns an
-//! `OnDeleteStrategyFailure`, not a `SpacetimeDSLError`.
+//! one, and `Book` is the table whose marker a cascade writes, so this pins the timestamp
+//! a cascade function writes - through the `dsl` it takes as an argument, not `self`.
 
 #[spacetimedsl::dsl(
     plural_name = authors,

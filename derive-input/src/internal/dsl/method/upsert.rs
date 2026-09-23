@@ -139,9 +139,10 @@ pub(in crate::internal) fn set_updated_at_on_update(
     match updated_at_column(spacetimedsl_table, internal_columns) {
         None => TokenStream::default(),
         Some((column_name, is_optional)) => {
+            let current_timestamp = runtime::current_timestamp(&quote! { self });
             let timestamp_value = match is_optional {
-                true => quote! { Some(self.ctx().timestamp()?) },
-                false => quote! { self.ctx().timestamp()? },
+                true => quote! { Some(#current_timestamp) },
+                false => current_timestamp,
             };
 
             quote! {
@@ -165,7 +166,7 @@ fn set_updated_at_on_insert(
         Some((column_name, is_optional)) => {
             let timestamp_value = match is_optional {
                 true => quote! { None },
-                false => quote! { self.ctx().timestamp()? },
+                false => runtime::current_timestamp(&quote! { self }),
             };
 
             quote! {
@@ -299,9 +300,10 @@ fn set_created_at_on_insert(
                         "The column {column_name} named by an on_insert attribute must be one of this table's columns"
                     )
                 });
+            let current_timestamp = runtime::current_timestamp(&quote! { self });
             let timestamp_value = match internal_column.rust_field_type_kind {
-                ColumnTypeKind::Optional => quote! { Some(self.ctx().timestamp()?) },
-                _ => quote! { self.ctx().timestamp()? },
+                ColumnTypeKind::Optional => quote! { Some(#current_timestamp) },
+                _ => current_timestamp,
             };
 
             quote! {

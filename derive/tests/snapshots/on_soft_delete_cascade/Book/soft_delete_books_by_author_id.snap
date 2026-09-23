@@ -95,7 +95,10 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         };
         for old_row in &rows_to_delete {
             let mut new_row = old_row.clone();
-            new_row.deleted_at = Some(self.ctx().timestamp()?);
+            new_row
+                .deleted_at = Some(
+                self.ctx().timestamp().expect("a `WriteContext` always has a timestamp"),
+            );
             self.db().book().id().update(new_row);
         }
         match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_soft_deleted(

@@ -47,7 +47,10 @@ Try to soft-delete a `Ticket` row in the `ticket` table whose value matches the 
         };
         let old_row = &row_to_delete;
         let mut new_row = old_row.clone();
-        new_row.retired_at = Some(self.ctx().timestamp()?);
+        new_row
+            .retired_at = Some(
+            self.ctx().timestamp().expect("a `WriteContext` always has a timestamp"),
+        );
         self.db().ticket().id().update(new_row);
         return Ok(crate::spacetimedsl::delete::DeletionResult {
             table_name: "ticket".into(),

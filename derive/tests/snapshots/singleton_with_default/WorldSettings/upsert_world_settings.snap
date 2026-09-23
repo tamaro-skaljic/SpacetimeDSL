@@ -30,7 +30,10 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 .as_ref()
                 .expect("The update path only runs when the row was found")
                 .created_at;
-            world_settings.modified_at = Some(self.ctx().timestamp()?);
+            world_settings
+                .modified_at = Some(
+                self.ctx().timestamp().expect("a `WriteContext` always has a timestamp"),
+            );
             let world_settings = self.db().world_settings().id().update(world_settings);
             use self::AfterWorldSettingsUpdateHook;
             crate::spacetimedsl::DSLMethodHooks::after_world_settings_update(
@@ -46,7 +49,10 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 world_settings,
             )?;
             let mut world_settings = world_settings;
-            world_settings.created_at = Some(self.ctx().timestamp()?);
+            world_settings
+                .created_at = Some(
+                self.ctx().timestamp().expect("a `WriteContext` always has a timestamp"),
+            );
             world_settings.modified_at = None;
             match self.db().world_settings().try_insert(world_settings.clone()) {
                 Ok(entity) => {

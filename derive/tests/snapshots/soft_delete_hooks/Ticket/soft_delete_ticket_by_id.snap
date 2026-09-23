@@ -51,7 +51,10 @@ Try to soft-delete a `Ticket` row in the `ticket` table whose value matches the 
             new_row,
         )?;
         let mut new_row = new_row;
-        new_row.deleted_at = Some(self.ctx().timestamp()?);
+        new_row
+            .deleted_at = Some(
+            self.ctx().timestamp().expect("a `WriteContext` always has a timestamp"),
+        );
         let new_row = self.db().ticket().id().update(new_row);
         use self::AfterTicketSoftDeleteHook;
         crate::spacetimedsl::DSLMethodHooks::after_ticket_soft_delete(

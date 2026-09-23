@@ -790,17 +790,13 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             .get(id)
                             .expect("Should exist");
                         let row = old_row.clone();
-                        let timestamp = match dsl.ctx().timestamp() {
-                            Err(error_raised_while_reading_the_timestamp) => {
-                                error = true;
-                                error_from_hook = Some(
-                                    Box::new(error_raised_while_reading_the_timestamp),
-                                );
-                                break 'outer;
-                            }
-                            Ok(timestamp) => timestamp,
-                        };
-                        row.deleted_at = Some(timestamp);
+                        row
+                            .deleted_at = Some(
+                            dsl
+                                .ctx()
+                                .timestamp()
+                                .expect("a `WriteContext` always has a timestamp"),
+                        );
                         dsl.db().book().id().update(row);
                     }
                     match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_soft_deleted(
@@ -1575,17 +1571,13 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             .get(id)
                             .expect("Should exist");
                         let row = old_row.clone();
-                        let timestamp = match dsl.ctx().timestamp() {
-                            Err(error_raised_while_reading_the_timestamp) => {
-                                error = true;
-                                error_from_hook = Some(
-                                    Box::new(error_raised_while_reading_the_timestamp),
-                                );
-                                break 'outer;
-                            }
-                            Ok(timestamp) => timestamp,
-                        };
-                        row.deleted_at = Some(timestamp);
+                        row
+                            .deleted_at = Some(
+                            dsl
+                                .ctx()
+                                .timestamp()
+                                .expect("a `WriteContext` always has a timestamp"),
+                        );
                         dsl.db().book().id().update(row);
                     }
                     match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_soft_deleted(

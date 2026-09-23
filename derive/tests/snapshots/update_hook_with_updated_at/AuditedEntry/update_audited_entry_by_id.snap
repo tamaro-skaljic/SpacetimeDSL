@@ -31,7 +31,10 @@ Try to update a `AuditedEntry` row of the `audited_entry` table whose value matc
             audited_entry,
         )?;
         let mut audited_entry = audited_entry;
-        audited_entry.modified_at = Some(self.ctx().timestamp()?);
+        audited_entry
+            .modified_at = Some(
+            self.ctx().timestamp().expect("a `WriteContext` always has a timestamp"),
+        );
         let audited_entry = self.db().audited_entry().id().update(audited_entry);
         use self::AfterAuditedEntryUpdateHook;
         crate::spacetimedsl::DSLMethodHooks::after_audited_entry_update(

@@ -13,7 +13,10 @@ Try to update a `TimerRecord` row of the `timer_record` table whose value matche
         use ::spacetimedsl::Wrapper;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut timer_record = timer_record;
-        timer_record.finished_at = Some(self.ctx().timestamp()?);
+        timer_record
+            .finished_at = Some(
+            self.ctx().timestamp().expect("a `WriteContext` always has a timestamp"),
+        );
         let timer_record = self.db().timer_record().id().update(timer_record);
         Ok(timer_record)
     }
