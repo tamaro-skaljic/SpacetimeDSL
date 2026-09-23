@@ -1,6 +1,5 @@
 ---
 source: derive/src/characterization_tests.rs
-assertion_line: 215
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
@@ -11,7 +10,10 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         use ::spacetimedsl::Wrapper;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let id = u64::default();
-        let started_at = self.ctx().timestamp()?;
+        let started_at = self
+            .ctx()
+            .timestamp()
+            .expect("a `WriteContext` always has a timestamp");
         let finished_at = None;
         let timer_record = TimerRecord {
             id,

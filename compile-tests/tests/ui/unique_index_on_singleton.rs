@@ -9,44 +9,10 @@ pub mod configuration {
         method(update = true),
         unique_index(name = world_name_and_seed),
     )]
-    #[spacetimedb::table(
-        accessor = configuration,
-        index(accessor = world_name_and_seed, btree(columns = [world_name, seed])),
-        public,
-    )]
+    #[spacetimedb::table(accessor = configuration, public)]
     pub struct Configuration {
         pub world_name: String,
 
-        pub seed: u64,
-    }
-
-    #[spacetimedsl::dsl(
-        singleton,
-        method(update = true),
-    )]
-    #[spacetimedb::table(
-        accessor = another_configuration,
-        public,
-    )]
-    pub struct AnotherConfiguration {
-        #[unique]
-        pub world_name: String,
-
-        pub seed: u64,
-    }
-
-    #[spacetimedsl::dsl(
-        singleton,
-        method(update = true),
-    )]
-    #[spacetimedb::table(
-        accessor = yet_another_configuration,
-        public,
-    )]
-    pub struct YetAnotherConfiguration {
-        pub world_name: String,
-
-        #[index(btree)]
         pub seed: u64,
     }
 }

@@ -510,6 +510,7 @@ Rules:
 
 - `update` is **required** — omitting it causes a compilation error
 - `delete` defaults to `true` — it is recommended to always specify it explicitly for clarity
+- `soft_delete` defaults to `false` and is described under [Soft Deletion](#soft-deletion)
 - `method(update = true, delete = true)` — explicit (recommended)
 - `method(update = false)` — delete defaults to true
 
@@ -1141,6 +1142,143 @@ Printing the result with `Display` prints the same CSV, preceded by an
 
 ---
 
+## Soft Deletion
+
+A soft deletion retires a row instead of removing it: the row stays in the table and a
+marker column records that it is gone. Enable it with `method(soft_delete = true)`:
+
+```rust
+#[spacetimedsl::dsl(
+    plural_name = archives,
+    method(update = true, delete = true, soft_delete = true),
+)]
+#[spacetimedb::table(accessor = archive, public)]
+pub struct Archive {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper(ArchiveId)]
+    id: u64,
+
+    pub label: String,
+
+    deleted: bool,
+}
+```
+
+Mentioning `soft_delete` at all — `true` or `false` — makes `delete` mandatory. Soft
+deletion only says something next to a decision about whether the table removes rows at
+all, and leaving `delete` to its default would hide that decision.
+
+A singleton table is never soft-deletable: it holds one row the DSL reaches through an
+injected primary key, so retiring that row would leave the table holding a row no method
+can reach. For the same reason no column of a singleton may claim the marker role.
+
+### The Marker Column
+
+A soft-deletable table has exactly one marker column, and a table which is not
+soft-deletable has none. The parser rejects either one without the other.
+
+A column claims the role in one of three ways:
+
+| How it claims the role                    | Required type                    |
+| ----------------------------------------- | -------------------------------- |
+| Named `deleted` or `removed`              | `bool`                           |
+| Named `deleted_at` or `removed_at`        | `Option<spacetimedb::Timestamp>` |
+| Carries `#[set_on_soft_delete]`, any name | either of the two above          |
+
+The `bool` shape is set to `true`. The `Option<Timestamp>` shape is set to the current
+timestamp, which records **when** the row was retired as well as that it was.
+
+The marker must be private. Only DSL methods set it, and they do so internally, so it
+earns a getter and no setter — a public marker would hand callers a second way to retire a
+row, one which runs no hook and cascades to nothing. It is also absent from
+`Create<Table>`: a new row is never born retired, so the create method fills it in.
+
+### Generated Methods
+
+One per index, mirroring the delete methods and returning the same
+`Result<DeletionResult, SpacetimeDSLError>`:
+
+```rust
+let result = dsl.soft_delete_archive_by_id(&archive)?;       // unique index
+let result = dsl.soft_delete_archives_by_label("draft")?;    // non-unique index
+```
+
+They are idempotent. A row already retired is not retired again: the many-row form filters
+it out before collecting, and the one-row form returns a `DeletionResult` with no entries
+rather than an error. Retiring a row leaves `updated_at` alone — the marker records the
+retirement, and `updated_at` keeps meaning the last ordinary edit.
+
+`method(delete = false, soft_delete = true)` is a table whose rows can only ever be
+retired. It earns `soft_delete_*` and no `delete_*`.
+
+### Hooks
+
+`hook(before(soft_delete))` and `hook(after(soft_delete))` take the shape of the update
+hooks, because a soft deletion writes the row rather than removing it:
+
+```rust
+pub trait BeforeArchiveSoftDeleteHook<T: WriteContext> {
+    fn before_archive_soft_delete(
+        dsl: &DSL<'_, T>,
+        old_archive: &Archive,
+        new_archive: Archive,
+    ) -> Result<Archive, SpacetimeDSLError>;
+}
+
+pub trait AfterArchiveSoftDeleteHook<T: WriteContext> {
+    fn after_archive_soft_delete(
+        dsl: &DSL<'_, T>,
+        old_archive: &Archive,
+        new_archive: &Archive,
+    ) -> Result<(), SpacetimeDSLError>;
+}
+```
+
+The before hook receives the row about to be written and hands back the row that is
+written, so it may adjust other columns in the same operation. It runs **before** the
+framework writes the marker, so it cannot suppress the retirement by clearing it.
+
+Both hooks require `method(soft_delete = true)`; declaring either on a table which is not
+soft-deletable is rejected.
+
+### Cascading
+
+`#[foreign_key(on_soft_delete = ...)]` decides what happens to a referencing table's rows
+when a referenced row is retired. See [OnDeleteStrategy](#ondeletestrategy) for the
+strategies and what each requires.
+
+```rust
+#[foreign_key(
+    path = self,
+    table = archive,
+    column = id,
+    on_delete = Delete,
+    on_soft_delete = SoftDelete,
+)]
+pub archive_id: u64,
+```
+
+Deleting an `Archive` removes its entries; retiring one retires them.
+
+### Reading Retired Rows
+
+`get_*`, `get_all_*` and `count_of_all_*` return retired rows like any other. The marker is
+readable through its getter, so filtering is the caller's decision:
+
+```rust
+let archive = dsl.get_archive_by_id(&archive_id)?;
+
+if *archive.get_deleted() {
+    return Ok(());
+}
+```
+
+There is no restore or undelete method; clearing the marker is not something the DSL
+offers.
+
+---
+
 ## Accessor Methods (Getters/Setters)
 
 All fields become private automatically when the last `#[spacetimedsl::dsl]` of a `#[spacetimedb::table]` struct is applied.
@@ -1233,20 +1371,33 @@ id: u128,
 entity_id: u128,
 ```
 
-All parameters are required:
+`path`, `table` and `column` are required:
 
 - `path` — module path: `path = self` for same module, `path = crate::module::path` for cross-module
 - `table` — the **SpacetimeDB** table accessor name
 - `column` — always the **primary key column** of the referenced table
-- `on_delete` — strategy: `Error`, `Delete`, `SetZero`, or `Ignore`
+
+At least one of the two strategy parameters is required, and both may be set:
+
+- `on_delete` — what happens to this table's rows when a referenced row is **deleted**: `Error`, `Delete`, `SoftDelete`, `SetZero`, or `Ignore`
+- `on_soft_delete` — what happens to them when a referenced row is **soft-deleted**: `Error`, `SoftDelete`, or `Ignore`
+
+Set `on_delete` when the referenced table has a delete method, `on_soft_delete` when it is soft-deletable, and both when it is both. Which of them is required is decided by the referenced table, through the pairing below.
 
 ### Pairing Requirement
 
 Every `#[foreign_key]` needs a corresponding `#[referenced_by]` on the referenced table's primary key. Missing either produces a descriptive compilation error:
 
 ```txt
-unresolved import crate::entity::this_compilation_error_occurs_because_the_entity_table_has_no_referenced_by_attribute_referencing_the_entity_relationship_table
-unresolved import crate::entity_relationship::this_compilation_error_occurs_because_the_entity_relationship_table_has_no_foreign_key_attribute_referencing_the_entity_table
+unresolved import crate::entity::this_compilation_error_occurs_because_the_entity_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_entity_relationship_table
+unresolved import crate::entity_relationship::this_compilation_error_occurs_because_the_entity_relationship_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_entity_table
+```
+
+The pairing is checked once per kind of removal, so a soft-deletable referenced table names the other field:
+
+```txt
+unresolved import crate::entity::this_compilation_error_occurs_because_the_entity_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_entity_relationship_table
+unresolved import crate::entity_relationship::this_compilation_error_occurs_because_the_entity_relationship_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_entity_table
 ```
 
 ### `path` Parameter
@@ -1272,6 +1423,14 @@ unresolved import crate::entity_relationship::this_compilation_error_occurs_beca
 - All-or-nothing: either all deletes succeed or none happen
 - Requires `method(delete = true)` on the referencing table's `#[spacetimedsl::dsl]`
 
+**`SoftDelete`** — Retire the referencing rows instead of removing them:
+
+- Available for all column types
+- Requires `method(soft_delete = true)` on the **referencing** table, because it writes that table's marker column
+- Allowed in `on_delete` and in `on_soft_delete`: a referenced row that is deleted outright may still only retire the rows which reference it
+- Rows already retired are skipped, so the cascade is idempotent
+- Cascades further, through the soft entry points of the retired rows' own referencing tables
+
 **`SetZero`** — Set foreign key column to `0`:
 
 - Numeric types only
@@ -1284,6 +1443,8 @@ unresolved import crate::entity_relationship::this_compilation_error_occurs_beca
 - Creates dangling references (referenced value no longer exists)
 - Integrity only enforced on create/update, not on delete
 - Use only for audit logs or append-only tables
+
+`on_soft_delete` takes only `Error`, `SoftDelete` and `Ignore`. `Delete` is rejected because retiring a row must not physically remove the rows which reference it, and `SetZero` because soft deletion preserves the row, so clearing the foreign key column would destroy exactly what the retirement preserved.
 
 ### Example: Full Foreign Key Setup
 
@@ -1485,9 +1646,9 @@ pub struct Attribute {
 
 ### Hook Function Naming
 
-Pattern: `{before|after}_{table_name}_{insert|update|delete}`
+Pattern: `{before|after}_{table_name}_{insert|update|delete|soft_delete}`
 
-Examples: `before_attribute_insert`, `after_player_update`, `before_entity_delete`
+Examples: `before_attribute_insert`, `after_player_update`, `before_entity_delete`, `after_archive_soft_delete`
 
 ### The `#[spacetimedsl::hook]` Attribute
 
@@ -1564,6 +1725,7 @@ from your reducer so SpacetimeDB rolls the transaction back.
 
 - `before_update`/`after_update` hooks require `method(update = true)`
 - `before_delete`/`after_delete` hooks require `method(delete = true)`
+- `before_soft_delete`/`after_soft_delete` hooks require `method(soft_delete = true)`
 - `before_insert`/`after_insert` hooks always allowed (create is always available)
 
 ### Location Requirement
@@ -1734,14 +1896,16 @@ All generated traits follow consistent naming patterns. The table name used in t
 
 ### Hook Trait Naming Patterns
 
-| Hook          | Trait Name Pattern        | Example                  |
-| ------------- | ------------------------- | ------------------------ |
-| Before insert | `Before{Table}InsertHook` | `BeforeEntityInsertHook` |
-| After insert  | `After{Table}InsertHook`  | `AfterEntityInsertHook`  |
-| Before update | `Before{Table}UpdateHook` | `BeforeEntityUpdateHook` |
-| After update  | `After{Table}UpdateHook`  | `AfterEntityUpdateHook`  |
-| Before delete | `Before{Table}DeleteHook` | `BeforeEntityDeleteHook` |
-| After delete  | `After{Table}DeleteHook`  | `AfterEntityDeleteHook`  |
+| Hook               | Trait Name Pattern            | Example                      |
+| ------------------ | ----------------------------- | ---------------------------- |
+| Before insert      | `Before{Table}InsertHook`     | `BeforeEntityInsertHook`     |
+| After insert       | `After{Table}InsertHook`      | `AfterEntityInsertHook`      |
+| Before update      | `Before{Table}UpdateHook`     | `BeforeEntityUpdateHook`     |
+| After update       | `After{Table}UpdateHook`      | `AfterEntityUpdateHook`      |
+| Before delete      | `Before{Table}DeleteHook`     | `BeforeEntityDeleteHook`     |
+| After delete       | `After{Table}DeleteHook`      | `AfterEntityDeleteHook`      |
+| Before soft delete | `Before{Table}SoftDeleteHook` | `BeforeEntitySoftDeleteHook` |
+| After soft delete  | `After{Table}SoftDeleteHook`  | `AfterEntitySoftDeleteHook`  |
 
 ### Cross-Module Usage
 
@@ -1839,14 +2003,14 @@ impl Config {
 
 ### **SpacetimeDB** API Mistakes
 
-| Mistake                                  | Fix                                                                        |
-| ---------------------------------------- | -------------------------------------------------------------------------- |
-| `ctx.db.player().find(id)`               | Use DSL methods like `dsl.get_player_by_id(PlayerId::new(id))?`            |
-| `&mut ReducerContext`                    | `&ReducerContext` — always an immutable reference                          |
-| `ScheduleAt::At(time)`                   | `ScheduleAt::Time(time)` — wrong variant name                              |
-| `#[spacetimedb::table(accessor = t, schedule(...))]`  | `#[spacetimedb::table(accessor = t, scheduled(...))]` — `scheduled` not `schedule`      |
-| Network/filesystem in reducer            | Use procedures instead — sandbox violation                                 |
-| Panic for expected errors                | Return `Result<(), SpacetimeDSLError>` — WASM instance destroyed otherwise |
+| Mistake                                              | Fix                                                                                |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `ctx.db.player().find(id)`                           | Use DSL methods like `dsl.get_player_by_id(PlayerId::new(id))?`                    |
+| `&mut ReducerContext`                                | `&ReducerContext` — always an immutable reference                                  |
+| `ScheduleAt::At(time)`                               | `ScheduleAt::Time(time)` — wrong variant name                                      |
+| `#[spacetimedb::table(accessor = t, schedule(...))]` | `#[spacetimedb::table(accessor = t, scheduled(...))]` — `scheduled` not `schedule` |
+| Network/filesystem in reducer                        | Use procedures instead — sandbox violation                                         |
+| Panic for expected errors                            | Return `Result<(), SpacetimeDSLError>` — WASM instance destroyed otherwise         |
 
 ### DSL-Specific Mistakes
 

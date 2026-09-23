@@ -27,6 +27,16 @@ pub fn spacetimedsl_error_type() -> TokenStream {
     }
 }
 
+/// `<dsl>.ctx().timestamp()`, unwrapped.
+///
+/// `GetTimestamp` only fails for the view contexts, and a `DSL` only ever wraps a
+/// `WriteContext`, so generated write code never reaches the `expect`.
+pub fn current_timestamp(dsl: &impl ToTokens) -> TokenStream {
+    quote! {
+        #dsl.ctx().timestamp().expect("a `WriteContext` always has a timestamp")
+    }
+}
+
 /// `SpacetimeDSLError::NotFoundError { .. }`
 pub fn not_found_error(
     table_name: &impl ToTokens,

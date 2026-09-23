@@ -13,7 +13,11 @@ Try to update a `Signature` row of the `signature` table whose value matches the
         use ::spacetimedsl::Wrapper;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut signature = signature;
-        signature.modified_at = self.ctx().timestamp()?;
+        signature
+            .modified_at = self
+            .ctx()
+            .timestamp()
+            .expect("a `WriteContext` always has a timestamp");
         let signature = self.db().signature().id().update(signature);
         Ok(signature)
     }

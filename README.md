@@ -14,7 +14,8 @@ See [`docs/DOCUMENTATION.md`](docs/DOCUMENTATION.md)  for a comprehensive refere
 - [🔗 Foreign Keys / Referential Integrity](docs/DOCUMENTATION.md#foreign-keys--referential-integrity) — Enforce relationships between tables with different strategies on deletion.
 - [🏷️ Wrapper Types](docs/DOCUMENTATION.md#wrapper-types) — Type-safe column identifiers that eliminate primitive obsession.
 - [🎲 Unique Multi-Column Indices](docs/DOCUMENTATION.md#unique-multi-column-indices) — Enforce uniqueness across multiple columns (because **SpacetimeDB** has no native support).
-- [🪝 Hooks System](docs/DOCUMENTATION.md#hooks-system) — Execute custom logic automatically before and after inserts, updates and deletes.
+- [🪝 Hooks System](docs/DOCUMENTATION.md#hooks-system) — Execute custom logic automatically before and after inserts, updates, deletes and soft deletions.
+- [🗑️ Soft Deletion](docs/DOCUMENTATION.md#soft-deletion) — Retire rows instead of removing them, with a marker column, hooks and its own cascade.
 - [🎨 Ergonomic DSL Methods](docs/DOCUMENTATION.md#dsl-methods) — DSL equivalents for all **SpacetimeDB** operations with cleaner syntax and smart defaults.
 - [🎯 Singleton Tables](docs/DOCUMENTATION.md#singleton-tables) — Single-row tables for global config or state, optionally with a default so a read never fails.
 - [👁️ Read-Only View Support](docs/DOCUMENTATION.md#views) — Use DSL methods in **SpacetimeDB** views.

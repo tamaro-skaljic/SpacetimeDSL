@@ -1,6 +1,5 @@
 ---
 source: derive/src/characterization_tests.rs
-assertion_line: 212
 ---
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
 pub struct TimerRecordId {

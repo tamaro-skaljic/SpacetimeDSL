@@ -6,6 +6,8 @@
 pub mod thing {
     #[spacetimedsl::dsl(plural_name = things, method(update = false))]
     pub struct Thing {
+        #[primary_key]
+        #[auto_inc]
         #[create_wrapper]
         id: u64,
     }

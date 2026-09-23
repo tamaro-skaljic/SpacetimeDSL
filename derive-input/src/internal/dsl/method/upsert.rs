@@ -7,9 +7,9 @@
 //! values, the `updated_at` assignment, the update hooks and the singleton primary key.
 //! `update.rs` is the other caller of those.
 //!
-//! Both paths set the columns the framework owns before they call their hook, so a hook can
-//! overrule a timestamp. `create_<table>` orders the two the other way round; inside one
-//! method the two paths agreeing with each other matters more.
+//! Both paths call their hook before they set the columns the framework owns, so the
+//! framework has the last word on a timestamp. `create_<table>`, `update_<table>_by_<key>`
+//! and `soft_delete_<table>_by_<index>` order the two the same way.
 
 use super::{
     context::MethodGenerationContext,
@@ -139,9 +139,10 @@ pub(in crate::internal) fn set_updated_at_on_update(
     match updated_at_column(spacetimedsl_table, internal_columns) {
         None => TokenStream::default(),
         Some((column_name, is_optional)) => {
+            let current_timestamp = runtime::current_timestamp(&quote! { self });
             let timestamp_value = match is_optional {
-                true => quote! { Some(self.ctx().timestamp()?) },
-                false => quote! { self.ctx().timestamp()? },
+                true => quote! { Some(#current_timestamp) },
+                false => current_timestamp,
             };
 
             quote! {
@@ -165,7 +166,7 @@ fn set_updated_at_on_insert(
         Some((column_name, is_optional)) => {
             let timestamp_value = match is_optional {
                 true => quote! { None },
-                false => quote! { self.ctx().timestamp()? },
+                false => runtime::current_timestamp(&quote! { self }),
             };
 
             quote! {
@@ -199,6 +200,29 @@ pub(in crate::internal) fn before_update_hook_use_and_call(
             }
         },
     )
+}
+
+/// `let mut <row> = <row>;`, needed only when a hook call shadowed the mutable outer binding
+/// with a non-`mut` one and a write to a framework-owned column follows it.
+///
+/// The hook's own `let #row = #hook_call?;` is never `mut`, because most tables have no
+/// framework-owned column left to write after it; making that binding `mut` unconditionally
+/// would leave `unused_mut` on every one of those. Rebinding once here, gated on a write
+/// actually following, keeps both shapes free of warnings, and doing it at the call site
+/// (rather than inside `keep_created_at`, `set_updated_at_on_update`, and their kin) means the
+/// two writes that can follow a hook cannot each emit their own rebinding.
+pub(in crate::internal) fn rebind_row_as_mutable_after_hook(
+    row: &Ident,
+    hook_call: &TokenStream,
+    framework_owned_writes: &[&TokenStream],
+) -> TokenStream {
+    let hook_shadowed_the_binding = !hook_call.is_empty();
+    let a_write_follows = framework_owned_writes.iter().any(|write| !write.is_empty());
+
+    match hook_shadowed_the_binding && a_write_follows {
+        true => quote! { let mut #row = #row; },
+        false => TokenStream::default(),
+    }
 }
 
 pub(in crate::internal) fn after_update_hook(
@@ -276,9 +300,10 @@ fn set_created_at_on_insert(
                         "The column {column_name} named by an on_insert attribute must be one of this table's columns"
                     )
                 });
+            let current_timestamp = runtime::current_timestamp(&quote! { self });
             let timestamp_value = match internal_column.rust_field_type_kind {
-                ColumnTypeKind::Optional => quote! { Some(self.ctx().timestamp()?) },
-                _ => quote! { self.ctx().timestamp()? },
+                ColumnTypeKind::Optional => quote! { Some(#current_timestamp) },
+                _ => current_timestamp,
             };
 
             quote! {
@@ -367,6 +392,11 @@ pub(in crate::internal) fn for_singleton_upsert(
         singular_table_name,
         field_name_for_found_value,
     );
+    let rebind_row_as_mutable_on_update = rebind_row_as_mutable_after_hook(
+        singular_table_name,
+        &before_update_hook_call,
+        &[&keep_created_at, &set_updated_at_on_update],
+    );
     let after_update_hook = after_update_hook(
         spacetimedsl_table,
         singular_table_name,
@@ -385,6 +415,11 @@ pub(in crate::internal) fn for_singleton_upsert(
                 let #singular_table_name = #hook_call?;
             }
         },
+    );
+    let rebind_row_as_mutable_on_insert = rebind_row_as_mutable_after_hook(
+        singular_table_name,
+        &before_insert_hook,
+        &[&set_created_at, &set_updated_at_on_insert],
     );
 
     let after_insert_hook = hook_tokens(
@@ -433,11 +468,12 @@ pub(in crate::internal) fn for_singleton_upsert(
                 #(#row_values_on_update)*
                 #(#checks_on_update)*
 
-                #keep_created_at
-                #set_updated_at_on_update
-
                 #use_before_update_hook_trait
                 #before_update_hook_call
+
+                #rebind_row_as_mutable_on_update
+                #keep_created_at
+                #set_updated_at_on_update
 
                 // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(crate::spacetimedsl::error::SpacetimeDSLError);
                 let #singular_table_name = self
@@ -453,10 +489,11 @@ pub(in crate::internal) fn for_singleton_upsert(
                 #(#row_values_on_create)*
                 #(#checks_on_create)*
 
+                #before_insert_hook
+
+                #rebind_row_as_mutable_on_insert
                 #set_created_at
                 #set_updated_at_on_insert
-
-                #before_insert_hook
 
                 match self
                     .db()

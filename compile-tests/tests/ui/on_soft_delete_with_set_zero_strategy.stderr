@@ -1,0 +1,46 @@
+error: `OnDeleteStrategy::SetZero` is not allowed in `on_soft_delete`! Soft deletion preserves the row, so clearing the foreign key column would destroy what it preserved. `on_soft_delete` must be one of `Error`, `SoftDelete` or `Ignore`.
+  --> tests/ui/on_soft_delete_with_set_zero_strategy.rs:41:11
+   |
+41 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_soft_delete = SetZero)]
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0432]: unresolved import `crate::shipment::this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_warehouse_table`
+  --> tests/ui/on_soft_delete_with_set_zero_strategy.rs:12:5
+   |
+12 | /     #[spacetimedsl::dsl(
+13 | |         plural_name = warehouses,
+14 | |         method(update = true, delete = false, soft_delete = true),
+15 | |     )]
+   | |______^ no `this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_warehouse_table` in `shipment`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no function or associated item named `execute_on_delete_strategies_of_the_shipment_table_after_one_row_of_the_warehouse_table_was_soft_deleted` found for struct `DSLInternals` in the current scope
+  --> tests/ui/on_soft_delete_with_set_zero_strategy.rs:12:5
+   |
+ 9 |   ::spacetimedsl::spacetimedsl!();
+   |   ------------------------------- function or associated item `execute_on_delete_strategies_of_the_shipment_table_after_one_row_of_the_warehouse_table_was_soft_deleted` not found for this struct
+...
+12 |       #[spacetimedsl::dsl(
+   |  _____^
+13 | |         plural_name = warehouses,
+14 | |         method(update = true, delete = false, soft_delete = true),
+15 | |     )]
+   | |______^ function or associated item not found in `DSLInternals`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no function or associated item named `execute_on_delete_strategies_of_the_shipment_table_after_multiple_rows_of_the_warehouse_table_were_soft_deleted` found for struct `DSLInternals` in the current scope
+  --> tests/ui/on_soft_delete_with_set_zero_strategy.rs:12:5
+   |
+ 9 |   ::spacetimedsl::spacetimedsl!();
+   |   ------------------------------- function or associated item `execute_on_delete_strategies_of_the_shipment_table_after_multiple_rows_of_the_warehouse_table_were_soft_deleted` not found for this struct
+...
+12 |       #[spacetimedsl::dsl(
+   |  _____^
+13 | |         plural_name = warehouses,
+14 | |         method(update = true, delete = false, soft_delete = true),
+15 | |     )]
+   | |______^ function or associated item not found in `DSLInternals`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

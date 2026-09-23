@@ -60,6 +60,7 @@ pub(in crate::internal) fn try_parse(
 
         let spacetimedsl_column = SpacetimeDSLColumn::try_parse(
             &spacetimedsl_table.has_delete_method,
+            spacetimedsl_table.is_soft_deletable(),
             spacetimedsl_table.is_singleton(),
             field,
             rust_struct,

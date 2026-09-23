@@ -1,0 +1,5 @@
+error: A column with the soft-delete marker role should have the type `bool`! Found: u8
+  --> tests/ui/marker_column_with_wrong_type.rs:21:18
+   |
+21 |         deleted: u8,
+   |                  ^^

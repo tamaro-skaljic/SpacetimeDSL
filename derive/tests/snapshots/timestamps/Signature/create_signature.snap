@@ -12,8 +12,14 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let id = u64::default();
         let value = signature.value;
-        let created_at = self.ctx().timestamp()?;
-        let modified_at = self.ctx().timestamp()?;
+        let created_at = self
+            .ctx()
+            .timestamp()
+            .expect("a `WriteContext` always has a timestamp");
+        let modified_at = self
+            .ctx()
+            .timestamp()
+            .expect("a `WriteContext` always has a timestamp");
         let signature = Signature {
             id,
             value,

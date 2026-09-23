@@ -1,0 +1,27 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Ticket` iterator that contains all rows in the `ticket` table whose value matches the value from the single-column btree index on the `priority` column.
+    pub fn get_tickets_by_priority<'a>(
+        &'a self,
+        priority: &'a u8,
+    ) -> impl Iterator<Item = Ticket> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().ticket().priority().filter(priority)
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Ticket` iterator that contains all rows in the `ticket` table whose value matches the value from the single-column btree index on the `priority` column.
+    pub fn get_tickets_by_priority<'a>(
+        &'a self,
+        priority: &'a u8,
+    ) -> impl Iterator<Item = Ticket> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().ticket().priority().filter(priority)
+    }
+}

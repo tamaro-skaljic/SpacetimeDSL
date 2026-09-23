@@ -1,0 +1,5 @@
+error: `unique_index` is not allowed on singleton tables! Remove `unique_index(name = world_name_and_seed)` and the `world_name_and_seed` index from `#[table]`.
+  --> tests/ui/unique_multi_column_index_on_singleton.rs:12:29
+   |
+12 |         unique_index(name = world_name_and_seed),
+   |                             ^^^^^^^^^^^^^^^^^^^

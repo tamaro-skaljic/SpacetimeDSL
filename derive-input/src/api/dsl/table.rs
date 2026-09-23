@@ -8,6 +8,7 @@ use crate::api::dsl::{
     column::SpacetimeDSLColumnMethods,
     hook::SpacetimeDSLMethodHooks,
     method::{SpacetimeDSLArg, SpacetimeDSLMethod},
+    soft_delete::SoftDeleteMarker,
 };
 
 /// How many rows a singleton table holds, which decides which methods it earns.
@@ -29,6 +30,11 @@ pub struct SpacetimeDSLTable {
     pub plural_name: Ident,
     pub has_update_method: bool,
     pub has_delete_method: bool,
+    /// The column a soft deletion writes, if the table is soft-deletable.
+    ///
+    /// `Some` and `#[dsl(method(soft_delete = true))]` imply each other: the parser rejects
+    /// either one without the other, so this is the single question every generator asks.
+    pub soft_delete_marker: Option<SoftDeleteMarker>,
     pub on_insert_set_current_timestamp_column_name: Option<Ident>,
     pub on_update_set_current_timestamp_column_name: Option<Ident>,
     pub referencing_tables: Vec<ReferencingTable>,
@@ -40,6 +46,10 @@ pub struct SpacetimeDSLTable {
 impl SpacetimeDSLTable {
     pub fn is_singleton(&self) -> bool {
         self.singleton.is_some()
+    }
+
+    pub fn is_soft_deletable(&self) -> bool {
+        self.soft_delete_marker.is_some()
     }
 
     /// Whether `get_<table>` falls back to `DefaultSingleton::get_default` instead of failing.
@@ -55,25 +65,35 @@ pub struct CreateDSLMethodArg {
     pub struct_impl: TokenStream,
 }
 
-/// The two cascade entry points a table earns when another table references it.
+/// The two entry points one kind of removal earns.
 ///
-/// Both exist or neither does: a referenced table needs the one-row and the many-row entry
-/// point, because a referencing table's foreign key does not know which delete method will
-/// reach it.
+/// Both exist or neither does: a removal reaches a table either one row at a time or many
+/// at once, and a foreign key on the other side does not know which method will reach it.
 #[derive(Clone)]
-pub struct OnDeleteStrategiesOfReferencingTables {
-    pub after_one_row_of_this_table_was_deleted: SpacetimeDSLMethod,
-    pub after_multiple_rows_of_this_table_were_deleted: SpacetimeDSLMethod,
+pub struct CascadeEntryPoints {
+    pub after_one_row: SpacetimeDSLMethod,
+    pub after_multiple_rows: SpacetimeDSLMethod,
 }
 
-/// The two strategy implementations a table earns for one table it references.
+/// The cascade entry points a table earns when another table references it.
 ///
-/// One pair per referenced table, which is why `SpacetimeDSLTableMethods` holds a `Vec` of
-/// these rather than two parallel `Vec`s that could go out of step.
+/// One pair per kind of removal the table can perform: `on_deletion` when it has a delete
+/// method, `on_soft_deletion` when it is soft-deletable, both when it is both.
+#[derive(Clone)]
+pub struct OnDeleteStrategiesOfReferencingTables {
+    pub on_deletion: Option<CascadeEntryPoints>,
+    pub on_soft_deletion: Option<CascadeEntryPoints>,
+}
+
+/// The strategy implementations a table earns for one table it references.
+///
+/// One of these per referenced table, which is why `SpacetimeDSLTableMethods` holds a
+/// `Vec` of them rather than parallel `Vec`s that could go out of step. Inside, one pair
+/// per kind of removal this table's foreign keys to that table declare a strategy for.
 #[derive(Clone)]
 pub struct OnDeleteStrategiesOfTheReferencedTable {
-    pub after_one_row_was_deleted: SpacetimeDSLMethod,
-    pub after_multiple_rows_were_deleted: SpacetimeDSLMethod,
+    pub on_deletion: Option<CascadeEntryPoints>,
+    pub on_soft_deletion: Option<CascadeEntryPoints>,
 }
 
 #[derive(Clone)]

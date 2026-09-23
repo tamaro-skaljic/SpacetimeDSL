@@ -5,7 +5,12 @@ pub struct ForeignKey {
     pub path: Path,
     pub table_name: Ident,
     pub primary_key_column_name: Ident,
-    pub on_delete_strategy: OnDeleteStrategy,
+    /// What happens to the rows of this table when a row of the referenced table is
+    /// deleted. `None` while the referenced table is not deletable.
+    pub on_delete_strategy: Option<OnDeleteStrategy>,
+    /// What happens to the rows of this table when a row of the referenced table is
+    /// soft-deleted. `None` while the referenced table is not soft-deletable.
+    pub on_soft_delete_strategy: Option<OnDeleteStrategy>,
 }
 
 // This enum is copy+paste of the enum in the SpacetimeDSL crate (which is the public API of the DSL).
@@ -27,6 +32,14 @@ pub enum OnDeleteStrategy {
      * If false, the on delete strategies of all affected rows are executed.
      */
     Delete,
+
+    /**
+     * Available only for tables with `#[dsl(method(soft_delete = true))]`.
+     * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
+     * ... the referencing rows are soft-deleted, which marks them through their marker column instead of removing them.
+     * Like `Delete`, this cascades further into the tables which reference the soft-deleted rows.
+     */
+    SoftDelete,
 
     /**
      * TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 SetNone
@@ -61,6 +74,9 @@ impl quote::ToTokens for OnDeleteStrategy {
             }
             OnDeleteStrategy::Delete => {
                 crate::api::runtime::on_delete_strategy(&quote::quote! { Delete })
+            }
+            OnDeleteStrategy::SoftDelete => {
+                crate::api::runtime::on_delete_strategy(&quote::quote! { SoftDelete })
             }
             OnDeleteStrategy::SetZero => {
                 crate::api::runtime::on_delete_strategy(&quote::quote! { SetZero })

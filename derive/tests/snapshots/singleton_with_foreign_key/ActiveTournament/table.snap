@@ -1,7 +1,7 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-pub trait this_compilation_error_occurs_because_the_active_tournament_table_has_no_foreign_key_attribute_referencing_the_region_table {}
+pub trait this_compilation_error_occurs_because_the_active_tournament_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_region_table {}
 impl ActiveTournament {
     ///
     pub fn get_region_id(&self) -> RegionId {

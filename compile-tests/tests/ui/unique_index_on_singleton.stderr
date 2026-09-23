@@ -1,17 +1,5 @@
-error: `unique_index` is not allowed on singleton tables!
+error: `unique_index` is not allowed on singleton tables! Remove `unique_index(name = world_name_and_seed)`.
   --> tests/ui/unique_index_on_singleton.rs:10:29
    |
 10 |         unique_index(name = world_name_and_seed),
    |                             ^^^^^^^^^^^^^^^^^^^
-
-error: `#[index]` and `#[unique]` are not allowed on singleton tables! Found index on column `world_name`.
-  --> tests/ui/unique_index_on_singleton.rs:33:13
-   |
-33 |         pub world_name: String,
-   |             ^^^^^^^^^^
-
-error: `#[index]` and `#[unique]` are not allowed on singleton tables! Found index on column `seed`.
-  --> tests/ui/unique_index_on_singleton.rs:50:13
-   |
-50 |         pub seed: u64,
-   |             ^^^^

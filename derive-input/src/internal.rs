@@ -1,10 +1,11 @@
 use crate::api::dsl::table::SingletonKind;
+use crate::internal::dsl::soft_delete::SoftDeleteMethodArgument;
 use crate::internal::dsl::{
-    after, before, delete, hook, insert, method, plural_name, singleton, unique_index, update,
-    with_default,
+    after, before, delete, hook, insert, method, plural_name, singleton, soft_delete, unique_index,
+    update, with_default,
 };
 use proc_macro2::Span;
-use spacetime_bindings_macro_input::{match_meta, sym, util::check_duplicate};
+use spacetime_bindings_macro_input::{match_meta, sym, table::TableArgs, util::check_duplicate};
 use syn::{
     Ident,
     meta::{ParseNestedMeta, parser},
@@ -38,6 +39,10 @@ pub(crate) fn try_parse(
         dsl_data.singleton.is_some(),
     )?;
 
+    if dsl_data.singleton.is_some() {
+        reject_unique_index_on_singleton(&dsl_data.unique_indices, &table_args)?;
+    }
+
     // For singletons, set plural_name to the singular name from the table accessor
     // (it's only used for get_all/count_of_all which won't be generated)
     if dsl_data.singleton.is_some() {
@@ -46,6 +51,38 @@ pub(crate) fn try_parse(
 
     // Pass the parsed plural_name to avoid re-parsing
     table::try_parse(input, dsl_data, &table_args, &column_args)
+}
+
+/// A singleton holds exactly one row, so a declared unique index would be a second way to
+/// fetch it.
+///
+/// When the index it names is declared in `#[table]`, the message names that index as
+/// well: removing only `unique_index` would leave a multi-column index, which
+/// `SpacetimeDBTable::map` rejects next.
+fn reject_unique_index_on_singleton(
+    unique_indices: &[Ident],
+    table_args: &TableArgs,
+) -> syn::Result<()> {
+    let Some(unique_index_name) = unique_indices.first() else {
+        return Ok(());
+    };
+
+    let names_a_declared_index = table_args
+        .indices
+        .iter()
+        .any(|index| index.accessor == *unique_index_name);
+
+    let removal = match names_a_declared_index {
+        true => format!(
+            "Remove `unique_index(name = {unique_index_name})` and the `{unique_index_name}` index from `#[table]`."
+        ),
+        false => format!("Remove `unique_index(name = {unique_index_name})`."),
+    };
+
+    Err(syn::Error::new_spanned(
+        unique_index_name,
+        format!("`unique_index` is not allowed on singleton tables! {removal}"),
+    ))
 }
 
 // Parse plural_name from DSL arguments
@@ -63,13 +100,16 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     let mut before_insert_hook: Option<Span> = None;
     let mut before_update_hook: Option<Span> = None;
     let mut before_delete_hook: Option<Span> = None;
+    let mut before_soft_delete_hook: Option<Span> = None;
     let mut after_insert_hook: Option<Span> = None;
     let mut after_update_hook: Option<Span> = None;
     let mut after_delete_hook: Option<Span> = None;
+    let mut after_soft_delete_hook: Option<Span> = None;
 
     let mut methods = None;
     let mut update_method = None;
     let mut delete_method = None;
+    let mut soft_delete_method: Option<SoftDeleteMethodArgument> = None;
 
     parser(|meta| {
         match_meta!(match meta {
@@ -120,6 +160,10 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
                                         check_duplicate(&before_delete_hook, &meta)?;
                                         before_delete_hook = Some(meta.path.span());
                                     }
+                                    soft_delete => {
+                                        check_duplicate(&before_soft_delete_hook, &meta)?;
+                                        before_soft_delete_hook = Some(meta.path.span());
+                                    }
                                 });
                                 Ok(())
                             })?;
@@ -141,6 +185,10 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
                                     delete => {
                                         check_duplicate(&after_delete_hook, &meta)?;
                                         after_delete_hook = Some(meta.path.span());
+                                    }
+                                    soft_delete => {
+                                        check_duplicate(&after_soft_delete_hook, &meta)?;
+                                        after_soft_delete_hook = Some(meta.path.span());
                                     }
                                 });
                                 Ok(())
@@ -164,6 +212,12 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
                             check_duplicate(&delete_method, &meta)?;
                             delete_method = Some(meta.value()?.parse::<syn::LitBool>()?.value);
                         }
+                        soft_delete => {
+                            check_duplicate(&soft_delete_method, &meta)?;
+                            let path = meta.path.clone();
+                            let value = meta.value()?.parse::<syn::LitBool>()?;
+                            soft_delete_method = Some(SoftDeleteMethodArgument { path, value });
+                        }
                     });
                     Ok(())
                 })?;
@@ -172,6 +226,15 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         Ok(())
     })
     .parse2(args.clone())?;
+
+    if let Some(soft_delete_method) = &soft_delete_method
+        && delete_method.is_none()
+    {
+        return Err(syn::Error::new_spanned(
+            &soft_delete_method.path,
+            "`#[dsl(method(soft_delete = ...))]` requires `#[dsl(method(delete = ...))]` to be set as well, e.g. `method(delete = true, soft_delete = true)`.\nSoft deletion retires a row instead of removing it, which only says something next to a decision about whether the table removes rows at all.",
+        ));
+    }
 
     if !update_method.unwrap_or(true) {
         if let Some(span) = before_update_hook {
@@ -204,6 +267,25 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         }
     }
 
+    if !soft_delete_method
+        .as_ref()
+        .is_some_and(SoftDeleteMethodArgument::is_enabled)
+    {
+        if let Some(span) = before_soft_delete_hook {
+            return Err(syn::Error::new(
+                span,
+                "Cannot have a `before_soft_delete` hook when the table is not soft-deletable. Enable it with `#[dsl(method(soft_delete = true))]`",
+            ));
+        }
+
+        if let Some(span) = after_soft_delete_hook {
+            return Err(syn::Error::new(
+                span,
+                "Cannot have an `after_soft_delete` hook when the table is not soft-deletable. Enable it with `#[dsl(method(soft_delete = true))]`",
+            ));
+        }
+    }
+
     let is_singleton = is_singleton.is_some();
 
     if let Some(span) = singleton_with_default
@@ -215,20 +297,11 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         ));
     }
 
-    if is_singleton {
-        if let Some(name_plural) = &name_plural {
-            return Err(syn::Error::new_spanned(
-                name_plural,
-                "`plural_name` is not allowed on singleton tables! Use `#[dsl(singleton)]` without `plural_name`.",
-            ));
-        }
-
-        if let Some(first_unique_index_name) = unique_indices.first() {
-            return Err(syn::Error::new_spanned(
-                first_unique_index_name,
-                "`unique_index` is not allowed on singleton tables!",
-            ));
-        }
+    if is_singleton && let Some(name_plural) = &name_plural {
+        return Err(syn::Error::new_spanned(
+            name_plural,
+            "`plural_name` is not allowed on singleton tables! Use `#[dsl(singleton)]` without `plural_name`.",
+        ));
     }
 
     // For singletons, plural_name will be set later from the table accessor.
@@ -258,11 +331,14 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         before_insert_hook: before_insert_hook.is_some(),
         before_update_hook: before_update_hook.is_some(),
         before_delete_hook: before_delete_hook.is_some(),
+        before_soft_delete_hook: before_soft_delete_hook.is_some(),
         after_insert_hook: after_insert_hook.is_some(),
         after_update_hook: after_update_hook.is_some(),
         after_delete_hook: after_delete_hook.is_some(),
+        after_soft_delete_hook: after_soft_delete_hook.is_some(),
         update_method,
         delete_method,
+        soft_delete_method,
     })
 }
 
@@ -273,11 +349,14 @@ struct DSLData {
     before_insert_hook: bool,
     before_update_hook: bool,
     before_delete_hook: bool,
+    before_soft_delete_hook: bool,
     after_insert_hook: bool,
     after_update_hook: bool,
     after_delete_hook: bool,
+    after_soft_delete_hook: bool,
     update_method: Option<bool>,
     delete_method: Option<bool>,
+    soft_delete_method: Option<SoftDeleteMethodArgument>,
 }
 
 // Parse unique index from meta

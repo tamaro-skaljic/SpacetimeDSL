@@ -1,8 +1,8 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-pub trait this_compilation_error_occurs_because_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_inspection_table {}
-pub trait this_compilation_error_occurs_because_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_shipment_table {}
+pub trait this_compilation_error_occurs_because_the_warehouse_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_inspection_table {}
+pub trait this_compilation_error_occurs_because_the_warehouse_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_shipment_table {}
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
 pub struct WarehouseId {
     value: u64,

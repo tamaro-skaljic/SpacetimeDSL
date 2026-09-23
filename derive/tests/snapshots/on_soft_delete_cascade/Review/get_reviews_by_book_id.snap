@@ -1,0 +1,27 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Review` iterator that contains all rows in the `review` table whose value matches the value from the single-column btree index on the `book_id` column.
+    pub fn get_reviews_by_book_id<'a>(
+        &'a self,
+        book_id: impl Into<BookId>,
+    ) -> impl Iterator<Item = Review> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().review().book_id().filter(book_id.into().value())
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Review` iterator that contains all rows in the `review` table whose value matches the value from the single-column btree index on the `book_id` column.
+    pub fn get_reviews_by_book_id<'a>(
+        &'a self,
+        book_id: impl Into<BookId>,
+    ) -> impl Iterator<Item = Review> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().review().book_id().filter(book_id.into().value())
+    }
+}
