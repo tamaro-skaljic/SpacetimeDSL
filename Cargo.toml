@@ -30,7 +30,7 @@ members = [
 
 [workspace.dependencies]
 # https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
-spacetimedb = { version = "=2.7.0", features = ["unstable"] }
+spacetimedb = { version = "=2.10.1", features = ["unstable"] }
 
 # https://crates.io/crates/spacetimedsl The SpacetimeDB Rust Server Module meta-framework
 spacetimedsl = { version = "=0.22.0", path = "." }
