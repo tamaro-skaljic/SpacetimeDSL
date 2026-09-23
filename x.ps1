@@ -2,7 +2,10 @@
 
 param(
     [Parameter(Position=0)]
-    [ValidateSet("test", "unit-test", "format", "debug", "loc")]
+    [ArgumentCompleter({
+        param($commandName, $parameterName, $wordToComplete)
+        "test", "unit-test", "format", "debug", "loc" | Where-Object { $_ -like "$wordToComplete*" }
+    })]
     [string]$Command
 )
 
