@@ -640,7 +640,7 @@ Implement `DefaultSingleton` on the table struct. It is part of the prelude.
 > - [sender (user identity)](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_sender.rs), and
 > - [timestamp]([TODO](https://github.com/tamaro-skaljic/SpacetimeDSL/blob/main/src/get_timestamp.rs)) (see https://github.com/clockworklabs/SpacetimeDB/issues/4533).
 >
-> This is also the reason why you are only allowed to define `Option<Timestamp>` columns (even for `#[created_at]` columns) on `singleton(with_default)`-tables, not `Timestamp` columns.
+> This is also the reason why you are only allowed to define `Option<Timestamp>` columns (even for `#[set_on_create]` columns) on `singleton(with_default)`-tables, not `Timestamp` columns.
 
 ```rust
 use crate::spacetimedsl::prelude::*;
@@ -694,9 +694,9 @@ and call the `upsert_<table_name>` method on `DSL` (the one with write-access).
 
 **Timestamp columns:**
 
-- A `#[created_at]` column is set when `upsert_*` inserts the row. When `upsert_*` updates
+- A `#[set_on_create]` column is set when `upsert_*` inserts the row. When `upsert_*` updates
   it, the stored value is kept, even if the caller hands in a row built from `get_default`.
-- An `#[updated_at]` column is set to the current time when `upsert_*` updates the row. On
+- An `#[set_on_update]` column is set to the current time when `upsert_*` updates the row. On
   the insert path it follows `create_*`: `Option<Timestamp>` stays `None`, a plain
   `Timestamp` gets the insert time.
 
@@ -923,18 +923,18 @@ You can see that the `consume_entity_timer`, `food` and `circle` tables each hav
 | `#[auto_gen(v7)]` columns        | A new sortable UUID v7                       |
 
 Both `created_at`/`inserted_at` and `modified_at`/`updated_at` are recognized aliases. For other
-column names, use the bare `#[created_at]` or `#[updated_at]` helper attribute:
+column names, use the bare `#[set_on_create]` or `#[set_on_update]` helper attribute:
 
 ```rust
-#[created_at]
+#[set_on_create]
 started_at: Timestamp,
 
-#[updated_at]
+#[set_on_update]
 finished_at: Option<Timestamp>,
 ```
 
-`#[created_at]` requires `Timestamp`; `#[updated_at]` requires `Timestamp` or
-`Option<Timestamp>`. Both helper columns must have inherited visibility, and `#[updated_at]`
+`#[set_on_create]` requires `Timestamp`; `#[set_on_update]` requires `Timestamp` or
+`Option<Timestamp>`. Both helper columns must have inherited visibility, and `#[set_on_update]`
 requires `method(update = true)`. Only one column may claim each role, and a column may not use
 both helper attributes. Repeating a helper attribute on its conventional column name is harmless.
 
@@ -1109,12 +1109,12 @@ On every update:
 - `modified_at: Timestamp` → set to `ctx.timestamp`
 - `updated_at: Timestamp` → set to `ctx.timestamp`
 
-An arbitrary column marked `#[updated_at]` follows the same rules.
+An arbitrary column marked `#[set_on_update]` follows the same rules.
 
 #### Requirement
 
 `update = true` requires at least one `pub` field (which generates a setter) OR a
-`modified_at`/`updated_at` column or a column marked `#[updated_at]`. Without either, there would
+`modified_at`/`updated_at` column or a column marked `#[set_on_update]`. Without either, there would
 be nothing to update.
 
 ### Delete Methods

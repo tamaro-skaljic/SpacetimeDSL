@@ -148,8 +148,8 @@ fn timestamps() {
 }
 
 #[test]
-fn update_hook_with_updated_at() {
-    snapshot_fixture("update_hook_with_updated_at");
+fn update_hook_with_set_on_update() {
+    snapshot_fixture("update_hook_with_set_on_update");
 }
 
 #[test]

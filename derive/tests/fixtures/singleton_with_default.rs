@@ -22,10 +22,10 @@ pub struct WorldSettings {
 
     pub world_name: String,
 
-    #[created_at]
+    #[set_on_create]
     created_at: Option<Timestamp>,
 
-    #[updated_at]
+    #[set_on_update]
     modified_at: Option<Timestamp>,
 }
 

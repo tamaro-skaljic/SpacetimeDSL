@@ -9,7 +9,7 @@ pub struct Record {
     #[create_wrapper]
     id: u64,
 
-    #[updated_at]
+    #[set_on_update]
     pub(crate) finished_at: spacetimedb::Timestamp,
 }
 }

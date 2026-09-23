@@ -1,5 +1,5 @@
 error: A column on a `singleton(with_default)` table should have the type `Option<spacetimedb::Timestamp>`! Found: spacetimedb :: Timestamp
-  --> tests/ui/created_at_timestamp_on_singleton_with_default.rs:12:21
+  --> tests/ui/created_at_timestamp_on_singleton_with_default.rs:12:24
    |
 12 |         created_at: spacetimedb::Timestamp,
-   |                     ^^^^^^^^^^^^^^^^^^^^^^
+   |                        ^^^^^^^^^^^^^^^^^^^^^^

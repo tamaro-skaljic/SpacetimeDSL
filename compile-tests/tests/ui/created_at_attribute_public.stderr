@@ -1,4 +1,4 @@
-error: A column with the `created_at` role should have `Visibility::Inherited`! Found: Visibility::Public
+error: A column with the `set_on_create` role should have `Visibility::Inherited`! Found: Visibility::Public
   --> tests/ui/created_at_attribute_public.rs:13:5
    |
 13 |     pub started_at: spacetimedb::Timestamp,

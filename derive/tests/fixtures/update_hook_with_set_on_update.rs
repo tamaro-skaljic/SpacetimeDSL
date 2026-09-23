@@ -1,4 +1,4 @@
-//! Pairs a `before_update`/`after_update` hook with an `#[updated_at]` column on a
+//! Pairs a `before_update`/`after_update` hook with an `#[set_on_update]` column on a
 //! non-singleton table - the one combination the rest of the corpus never puts on the same
 //! table. `update_<table>_by_<primary_key>` shadows the row with the hook's own, non-`mut`
 //! binding before it writes the timestamp; only this fixture proves the generator rebinds it
@@ -18,6 +18,6 @@ pub struct AuditedEntry {
 
     pub label: String,
 
-    #[updated_at]
+    #[set_on_update]
     modified_at: Option<spacetimedb::Timestamp>,
 }
