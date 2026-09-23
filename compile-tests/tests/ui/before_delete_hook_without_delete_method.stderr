@@ -1,5 +1,19 @@
 error: Cannot have a `before_delete` hook when the `delete` method is disabled with `#[dsl(method(delete = false))]`
-  --> tests/ui/before_delete_hook_without_delete_method.rs:13:21
+  --> tests/ui/before_delete_hook_without_delete_method.rs:18:21
    |
-13 |         hook(before(delete)),
+18 |         hook(before(delete)),
    |                     ^^^^^^
+
+error[E0405]: cannot find trait `BeforeAuditEntryDeleteHook` in this scope
+  --> tests/ui/before_delete_hook_without_delete_method.rs:30:5
+   |
+30 |     #[spacetimedsl::hook]
+   |     ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::hook` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0425]: cannot find type `AuditEntry` in this scope
+  --> tests/ui/before_delete_hook_without_delete_method.rs:33:28
+   |
+33 |         _old_audit_entry: &AuditEntry,
+   |                            ^^^^^^^^^^ not found in this scope

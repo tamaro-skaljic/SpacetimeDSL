@@ -1,5 +1,28 @@
 error: A column on a `singleton(with_default)` table should have the type `Option<spacetimedb::Timestamp>`! Found: spacetimedb :: Timestamp
- --> tests/ui/timestamp_on_singleton_with_default.rs:7:16
-  |
-7 |         value: spacetimedb::Timestamp,
-  |                ^^^^^^^^^^^^^^^^^^^^^^
+  --> tests/ui/timestamp_on_singleton_with_default.rs:17:16
+   |
+17 |         value: spacetimedb::Timestamp,
+   |                ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0425]: cannot find type `Record` in this scope
+  --> tests/ui/timestamp_on_singleton_with_default.rs:20:52
+   |
+20 |     impl crate::spacetimedsl::DefaultSingleton for Record {
+   |                                                    ^^^^^^ not found in this scope
+
+error[E0425]: cannot find type `Record` in this scope
+  --> tests/ui/timestamp_on_singleton_with_default.rs:23:21
+   |
+23 |         ) -> Result<Record, crate::spacetimedsl::SpacetimeDSLError> {
+   |                     ^^^^^^ not found in this scope
+   |
+help: you might be missing a type parameter
+   |
+20 |     impl<Record> crate::spacetimedsl::DefaultSingleton for Record {
+   |         ++++++++
+
+error[E0422]: cannot find struct, variant or union type `Record` in this scope
+  --> tests/ui/timestamp_on_singleton_with_default.rs:24:16
+   |
+24 |             Ok(Record { id: 0, value: None })
+   |                ^^^^^^ not found in this scope
