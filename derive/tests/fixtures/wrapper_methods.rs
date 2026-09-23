@@ -17,7 +17,7 @@
 pub struct Account {
     #[primary_key]
     #[auto_inc]
-    #[create_wrapper(AccountId)]
+    #[create_wrapper]
     #[referenced_by(path = self, table = profile)]
     #[referenced_by(path = self, table = account_note)]
     #[referenced_by(path = self, table = active_membership)]
