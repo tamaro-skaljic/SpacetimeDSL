@@ -1,5 +1,0 @@
-error: Cannot have a `before_soft_delete` hook when the table is not soft-deletable. Enable it with `#[dsl(method(soft_delete = true))]`
-  --> tests/ui/soft_delete_hook_without_soft_delete_method.rs:11:21
-   |
-11 |         hook(before(soft_delete)),
-   |                     ^^^^^^^^^^^

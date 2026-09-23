@@ -1,0 +1,38 @@
+//! An `after_soft_delete` hook runs once a row is retired. On a table which never retires
+//! a row, the trait would be emitted and never used, and the developer would wait for a
+//! call that cannot come.
+//!
+//! The hook function is here for the fix: once the table is soft-deletable, it calls the
+//! function. Until then a rejected `#[dsl]` emits nothing else, so the function misses the
+//! `Ticket` struct and the `AfterTicketSoftDeleteHook` trait it implements, which is where
+//! the errors after the first come from.
+
+::spacetimedsl::spacetimedsl!();
+
+pub mod ticket {
+    #[spacetimedsl::dsl(
+        plural_name = tickets,
+        method(update = true, delete = true),
+        hook(after(soft_delete)),
+    )]
+    #[spacetimedb::table(accessor = ticket, public)]
+    pub struct Ticket {
+        #[primary_key]
+        #[auto_inc]
+        #[create_wrapper]
+        id: u64,
+
+        pub title: String,
+    }
+
+    #[spacetimedsl::hook]
+    fn after_ticket_soft_delete(
+        _dsl: &crate::spacetimedsl::DSL<'_, T>,
+        _old_ticket: &Ticket,
+        _new_ticket: &Ticket,
+    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError> {
+        Ok(())
+    }
+}
+
+fn main() {}
