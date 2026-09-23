@@ -32,6 +32,9 @@ members = [
 # https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
 spacetimedb = { version = "=2.10.1", features = ["unstable"] }
 
+# https://crates.io/crates/spacetime-bindings-macro-input Unofficial Input Crate for the SpacetimeDB Macro Bindings.
+spacetime-bindings-macro-input = { version = "=2.10.1" }
+
 # https://crates.io/crates/spacetimedsl The SpacetimeDB Rust Server Module meta-framework
 spacetimedsl = { version = "=0.22.0", path = "." }
 
@@ -70,9 +73,6 @@ insta = { version = "=1.48.0" }
 
 # https://crates.io/crates/ident_case Utility for applying case rules to Rust identifiers.
 ident_case = { version = "=1.0.1" }
-
-# https://crates.io/crates/spacetime-bindings-macro-input Unofficial Input Crate for the SpacetimeDB Macro Bindings.
-spacetime-bindings-macro-input = { version = "=2.0.1" }
 
 # https://crates.io/crates/strum Helpful macros for working with enums and strings
 strum = { version = "=0.28.0", features = ["derive"] }
