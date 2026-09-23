@@ -4,6 +4,7 @@
         "maincloud",
         "Semijoins",
         "spacetimedb",
-        "spacetimedsl"
+        "spacetimedsl",
+        "trybuild"
     ]
 }
