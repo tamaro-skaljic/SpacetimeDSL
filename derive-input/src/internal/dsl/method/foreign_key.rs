@@ -34,6 +34,7 @@ use quote::{ToTokens, format_ident, quote};
 use std::collections::BTreeMap;
 use strum::IntoEnumIterator;
 
+#[allow(clippy::too_many_arguments)]
 pub(in crate::internal) fn for_foreign_key(
     removal: Removal,
     one_or_multiple: &OneOrMultiple,
