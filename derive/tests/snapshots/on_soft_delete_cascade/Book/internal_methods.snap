@@ -789,7 +789,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                         let old_row = row_to_delete_by_primary_key_value
                             .get(id)
                             .expect("Should exist");
-                        let row = old_row.clone();
+                        let mut row = old_row.clone();
                         row
                             .deleted_at = Some(
                             dsl
@@ -1570,7 +1570,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                         let old_row = row_to_delete_by_primary_key_value
                             .get(id)
                             .expect("Should exist");
-                        let row = old_row.clone();
+                        let mut row = old_row.clone();
                         row
                             .deleted_at = Some(
                             dsl

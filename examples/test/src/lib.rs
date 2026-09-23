@@ -1543,7 +1543,8 @@ pub mod soft_deletion {
     pub struct ArchiveEntry {
         #[primary_key]
         #[auto_inc]
-        #[create_wrapper]
+        #[create_wrapper(ArchiveEntryId)]
+        #[referenced_by(path = crate::soft_deletion, table = archive_entry_note)]
         id: u64,
 
         #[index(btree)]
@@ -1559,6 +1560,36 @@ pub mod soft_deletion {
 
         #[set_on_soft_delete]
         retired_at: Option<Timestamp>,
+    }
+
+    /// Being referenced itself makes `ArchiveEntry` retire its rows in bulk and consult
+    /// this table in turn, so an `Archive` cascade reaches a second level.
+    #[spacetimedsl::dsl(
+        plural_name = archive_entry_notes,
+        method(update = true, delete = true, soft_delete = true),
+    )]
+    #[spacetimedb::table(
+        accessor = archive_entry_note,
+        public,
+    )]
+    pub struct ArchiveEntryNote {
+        #[primary_key]
+        #[auto_inc]
+        #[create_wrapper]
+        id: u64,
+
+        #[index(btree)]
+        #[use_wrapper(ArchiveEntryId)]
+        #[foreign_key(
+            path = crate::soft_deletion,
+            table = archive_entry,
+            column = id,
+            on_delete = Delete,
+            on_soft_delete = SoftDelete,
+        )]
+        pub archive_entry_id: u64,
+
+        deleted: bool,
     }
 }
 
@@ -1584,7 +1615,7 @@ pub mod test {
         singleton_test::CreateGameConfig,
         singleton_with_default_test::{INSERTED_SUFFIX, UPDATED_SUFFIX, WorldSettings},
         singleton_with_foreign_key_test::{CreateRegion, CreateServerBinding, RegionId},
-        soft_deletion::{CreateArchive, CreateArchiveEntry},
+        soft_deletion::{CreateArchive, CreateArchiveEntry, CreateArchiveEntryNote},
         timestamp_helper_test::CreateTimestampRecord,
     };
 
@@ -2546,7 +2577,8 @@ pub mod test {
 
     /// Exercises soft deletion end to end: the marker is written, the row stays readable,
     /// `modified_at` is left alone, the cascade retires the referencing row through
-    /// `on_soft_delete = SoftDelete`, and retiring an already retired row does nothing.
+    /// `on_soft_delete = SoftDelete` and on to the row referencing that one, and retiring an
+    /// already retired row does nothing.
     fn soft_deletion_test<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
         let archive = dsl.create_archive(CreateArchive {
             label: "first".to_string(),
@@ -2557,6 +2589,11 @@ pub mod test {
             archive_id: archive_id.clone(),
         })?;
         let entry_id = entry.get_id();
+
+        let note = dsl.create_archive_entry_note(CreateArchiveEntryNote {
+            archive_entry_id: entry_id.clone(),
+        })?;
+        let note_id = note.get_id();
 
         let modified_at_before_soft_delete = *archive.get_modified_at();
 
@@ -2592,6 +2629,23 @@ pub mod test {
         if retired_entry.get_retired_at().is_none() {
             return Err(
                 "on_soft_delete = SoftDelete should have retired the ArchiveEntry!".to_string(),
+            );
+        }
+
+        let retired_note = match dsl.get_archive_entry_note_by_id(&note_id) {
+            Err(_) => {
+                return Err(
+                    "An ArchiveEntryNote of a soft-deleted ArchiveEntry should still exist!"
+                        .to_string(),
+                );
+            }
+            Ok(retired_note) => retired_note,
+        };
+
+        if !retired_note.get_deleted() {
+            return Err(
+                "Retiring an Archive should have retired the ArchiveEntryNote of its ArchiveEntry!"
+                    .to_string(),
             );
         }
 
