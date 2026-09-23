@@ -5,7 +5,7 @@ use crate::internal::dsl::{
     update, with_default,
 };
 use proc_macro2::Span;
-use spacetime_bindings_macro_input::{match_meta, sym, util::check_duplicate};
+use spacetime_bindings_macro_input::{match_meta, sym, table::TableArgs, util::check_duplicate};
 use syn::{
     Ident,
     meta::{ParseNestedMeta, parser},
@@ -39,6 +39,10 @@ pub(crate) fn try_parse(
         dsl_data.singleton.is_some(),
     )?;
 
+    if dsl_data.singleton.is_some() {
+        reject_unique_index_on_singleton(&dsl_data.unique_indices, &table_args)?;
+    }
+
     // For singletons, set plural_name to the singular name from the table accessor
     // (it's only used for get_all/count_of_all which won't be generated)
     if dsl_data.singleton.is_some() {
@@ -47,6 +51,38 @@ pub(crate) fn try_parse(
 
     // Pass the parsed plural_name to avoid re-parsing
     table::try_parse(input, dsl_data, &table_args, &column_args)
+}
+
+/// A singleton holds exactly one row, so a declared unique index would be a second way to
+/// fetch it.
+///
+/// When the index it names is declared in `#[table]`, the message names that index as
+/// well: removing only `unique_index` would leave a multi-column index, which
+/// `SpacetimeDBTable::map` rejects next.
+fn reject_unique_index_on_singleton(
+    unique_indices: &[Ident],
+    table_args: &TableArgs,
+) -> syn::Result<()> {
+    let Some(unique_index_name) = unique_indices.first() else {
+        return Ok(());
+    };
+
+    let names_a_declared_index = table_args
+        .indices
+        .iter()
+        .any(|index| index.accessor == *unique_index_name);
+
+    let removal = match names_a_declared_index {
+        true => format!(
+            "Remove `unique_index(name = {unique_index_name})` and the `{unique_index_name}` index from `#[table]`."
+        ),
+        false => format!("Remove `unique_index(name = {unique_index_name})`."),
+    };
+
+    Err(syn::Error::new_spanned(
+        unique_index_name,
+        format!("`unique_index` is not allowed on singleton tables! {removal}"),
+    ))
 }
 
 // Parse plural_name from DSL arguments
@@ -261,20 +297,11 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         ));
     }
 
-    if is_singleton {
-        if let Some(name_plural) = &name_plural {
-            return Err(syn::Error::new_spanned(
-                name_plural,
-                "`plural_name` is not allowed on singleton tables! Use `#[dsl(singleton)]` without `plural_name`.",
-            ));
-        }
-
-        if let Some(first_unique_index_name) = unique_indices.first() {
-            return Err(syn::Error::new_spanned(
-                first_unique_index_name,
-                "`unique_index` is not allowed on singleton tables!",
-            ));
-        }
+    if is_singleton && let Some(name_plural) = &name_plural {
+        return Err(syn::Error::new_spanned(
+            name_plural,
+            "`plural_name` is not allowed on singleton tables! Use `#[dsl(singleton)]` without `plural_name`.",
+        ));
     }
 
     // For singletons, plural_name will be set later from the table accessor.

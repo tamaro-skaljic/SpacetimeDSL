@@ -1,0 +1,5 @@
+error: `#[index]` and `#[unique]` are not allowed on singleton tables! Found index on column `world_name`.
+  --> tests/ui/unique_attribute_on_singleton.rs:11:13
+   |
+11 |         pub world_name: String,
+   |             ^^^^^^^^^^

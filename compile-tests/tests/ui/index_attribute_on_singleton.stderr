@@ -1,0 +1,5 @@
+error: `#[index]` and `#[unique]` are not allowed on singleton tables! Found index on column `seed`.
+  --> tests/ui/index_attribute_on_singleton.rs:11:13
+   |
+11 |         pub seed: u64,
+   |             ^^^^
