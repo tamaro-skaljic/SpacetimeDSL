@@ -81,7 +81,7 @@ use crate::spacetimedsl::prelude::*;
 - `SpacetimeDSLError`, `ReferenceIntegrityViolationError` — error types
 - `hook` — hook attribute macro
 - `WriteContext`, `ReadContext` — context traits
-- `GetAuth`, `GetSender`, `GetTimestamp`, `GetConnectionId`, `GetModuleIdentity`, `GetRandom`, `GetRandomNumberGenerator`, `GetImmutableDatabase`, `GetMutableDatabase`, `AsReducerContext`, `AsViewContext`, `AsAnonymousViewContext` — context accessor traits
+- `GetAuth`, `GetSender`, `GetTimestamp`, `NewUUID`, `GetConnectionId`, `GetModuleIdentity`, `GetRandom`, `GetRandomNumberGenerator`, `GetImmutableDatabase`, `GetMutableDatabase`, `AsReducerContext`, `AsViewContext`, `AsAnonymousViewContext` — context accessor traits
 - `Itertools` — re-exported from `itertools` crate
 - `AnonymousViewContext`, `Identity`, `ProcedureContext`, `ReducerContext`, `ScheduleAt`, `SpacetimeType`, `Table`, `TimeDuration`, `Timestamp`, `ViewContext`, `rand::Rng` — re-exported from `spacetimedb`
 
@@ -225,6 +225,8 @@ pub struct Task {
 #[use_wrapper(Name)]     // Reuses an existing wrapper type
 #[foreign_key(path = self, table = entity, column = id, on_delete = Delete)]  // Foreign key constraint
 #[referenced_by(path = self, table = position)]                               // Marks PK as referenced by another table's FK
+#[auto_gen(v4)]          // Fills a private `Uuid` column with a random UUID v4 on create (needs #[create_wrapper])
+#[auto_gen(v7)]          // Fills a private `Uuid` column with a sortable UUID v7 on create (needs #[create_wrapper])
 ```
 
 ### ReducerContext API
@@ -246,6 +248,8 @@ dsl.ctx().sender()     // Identity of the caller
 dsl.ctx().timestamp    // Current Timestamp
 dsl.ctx().db           // Database handle (avoid using directly — prefer DSL methods)
 dsl.ctx().rng()        // Deterministic RNG
+dsl.ctx().new_uuid_v4()? // Random UUID v4 (`NewUUID` trait, fails outside reducers)
+dsl.ctx().new_uuid_v7()? // Sortable UUID v7 (`NewUUID` trait, fails outside reducers)
 ```
 
 **Common mistakes**:
@@ -816,13 +820,24 @@ Default name: `{SingularTableNamePascalCase}{ColumnNamePascalCase}`
 All wrappers implement:
 
 ```rust
-pub trait Wrapper<WrappedType: Clone + Default, WrapperType>:
-    Default + Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
+pub trait Wrapper<WrappedType: Clone, WrapperType>:
+    Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
 {
-    fn new(value: WrappedType) -> WrapperType;
+    fn new(value: WrappedType) -> Self;
     fn value(&self) -> WrappedType;
 }
 ```
+
+A generated wrapper also implements `Default`, except when it wraps a `spacetimedb::Uuid`:
+`Uuid` has no `Default`. A `Uuid` wrapper has two constructors instead, which generate a fresh
+value:
+
+```rust
+let id = AccountId::v4(&dsl)?; // Random UUID v4
+let id = AccountId::v7(&dsl)?; // UUID v7, sorts in the order the values were generated
+```
+
+Use `new` only to wrap a UUID which already exists.
 
 ### Requirement
 
@@ -904,6 +919,8 @@ You can see that the `consume_entity_timer`, `food` and `circle` tables each hav
 | `updated_at: Option<Timestamp>`  | `None` on create                             |
 | `modified_at: Timestamp`         | `ctx.timestamp` on create                    |
 | `updated_at: Timestamp`          | `ctx.timestamp` on create                    |
+| `#[auto_gen(v4)]` columns        | A new random UUID v4                         |
+| `#[auto_gen(v7)]` columns        | A new sortable UUID v7                       |
 
 Both `created_at`/`inserted_at` and `modified_at`/`updated_at` are recognized aliases. For other
 column names, use the bare `#[created_at]` or `#[updated_at]` helper attribute:
@@ -920,6 +937,28 @@ finished_at: Option<Timestamp>,
 `Option<Timestamp>`. Both helper columns must have inherited visibility, and `#[updated_at]`
 requires `method(update = true)`. Only one column may claim each role, and a column may not use
 both helper attributes. Repeating a helper attribute on its conventional column name is harmless.
+
+A `spacetimedb::Uuid` column marked `#[auto_gen(v4)]` or `#[auto_gen(v7)]` is excluded as well.
+The create method fills it through the `v4` or `v7` constructor of its wrapper:
+
+```rust
+#[primary_key]
+#[create_wrapper]
+#[auto_gen(v7)]
+id: Uuid,
+
+#[unique]
+#[create_wrapper]
+#[auto_gen(v4)]
+token: Uuid,
+```
+
+Use `v7` when the values should sort in creation order, for example on a primary key, and `v4`
+when they should reveal nothing about it. An `#[auto_gen]` column must have the type
+`spacetimedb::Uuid`, must be private, and must have `#[create_wrapper]`. A table may have more
+than one. `#[auto_gen]` works on ordinary and `#[dsl(singleton)]` tables, but not on
+`#[dsl(singleton(with_default))]` tables, because they have no create method. Generating a UUID
+fails outside reducers, like `ctx.timestamp` does.
 
 #### Usage
 
