@@ -6,6 +6,7 @@ pub mod record {
 pub struct Record {
     #[primary_key]
     #[auto_inc]
+    #[create_wrapper]
     id: u64,
 
     #[updated_at]

@@ -1,5 +1,5 @@
 error: A column with the `created_at` role should have the type `spacetimedb::Timestamp`! Found: String
-  --> tests/ui/created_at_attribute_wrong_type.rs:12:17
+  --> tests/ui/created_at_attribute_wrong_type.rs:13:17
    |
-12 |     started_at: String,
+13 |     started_at: String,
    |                 ^^^^^^

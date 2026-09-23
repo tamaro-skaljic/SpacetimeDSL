@@ -1,5 +1,5 @@
 error: A column with the `updated_at` role requires the `update` method to be enabled in `#[dsl(method(update = true))]`!
-  --> tests/ui/updated_at_attribute_without_update_method.rs:12:5
+  --> tests/ui/updated_at_attribute_without_update_method.rs:13:5
    |
-12 |     finished_at: spacetimedb::Timestamp,
+13 |     finished_at: spacetimedb::Timestamp,
    |     ^^^^^^^^^^^
