@@ -204,10 +204,11 @@ fn inject_singleton_primary_key(derive_input: &mut syn::DeriveInput) -> syn::Res
         let pk_field = syn::Field {
             attrs: vec![syn::parse_quote!(#[primary_key])],
             vis: syn::Visibility::Inherited,
-            mutability: syn::FieldMutability::None,
+            modifiers: syn::FieldModifiers::default(),
             ident: Some(syn::Ident::new("id", proc_macro2::Span::call_site())),
             colon_token: Some(syn::token::Colon::default()),
             ty: syn::parse_quote!(u8),
+            default: None,
         };
 
         // Insert as the first field

@@ -1597,7 +1597,8 @@ pub mod test {
         let _ = dsl.count_of_all_entities();
         let _ = EntityId::new(0).get_position(&dsl);
         let _ = EntityId::new(0)
-            .get_entity_relationships_by_parent_entity_id(&dsl).len();
+            .get_entity_relationships_by_parent_entity_id(&dsl)
+            .len();
         dsl.get_entity_by_obj_id(EntityId::new(0)).ok()
     }
 
@@ -1872,7 +1873,8 @@ pub mod test {
 
         if player
             .get_obj_id()
-            .get_entity_relationships_by_parent_entity_id(&dsl).len()
+            .get_entity_relationships_by_parent_entity_id(&dsl)
+            .len()
             .ne(&2)
         {
             return Err(
@@ -1883,7 +1885,8 @@ pub mod test {
 
         if player3
             .get_obj_id()
-            .get_entity_relationships_by_child_entity_id(&dsl).len()
+            .get_entity_relationships_by_child_entity_id(&dsl)
+            .len()
             .ne(&2)
         {
             return Err(
