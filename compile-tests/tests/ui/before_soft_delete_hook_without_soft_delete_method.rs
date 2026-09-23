@@ -1,11 +1,6 @@
 //! A `before_soft_delete` hook runs when a row is retired. On a table which never retires
 //! a row, the trait would be emitted and never used, and the developer would wait for a
 //! call that cannot come.
-//!
-//! The hook function is here for the fix: once the table is soft-deletable, it calls the
-//! function. Until then a rejected `#[dsl]` emits nothing else, so the function misses the
-//! `Ticket` struct and the `BeforeTicketSoftDeleteHook` trait it implements, which is
-//! where the errors after the first come from.
 
 ::spacetimedsl::spacetimedsl!();
 

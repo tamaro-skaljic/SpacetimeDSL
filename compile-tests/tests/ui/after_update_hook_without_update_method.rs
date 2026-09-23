@@ -1,10 +1,5 @@
 //! An `after_update` hook can never run when the update method it would wrap is not
 //! generated.
-//!
-//! The hook function is here for the fix: once `update` is enabled, the table calls it.
-//! Until then a rejected `#[dsl]` emits nothing else, so the function misses the
-//! `AuditEntry` struct and the `AfterAuditEntryUpdateHook` trait it implements, which is
-//! where the errors after the first come from.
 
 ::spacetimedsl::spacetimedsl!();
 

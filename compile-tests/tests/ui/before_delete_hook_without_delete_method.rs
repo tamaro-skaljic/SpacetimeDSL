@@ -3,11 +3,6 @@
 //! `method(delete = false)` removes every delete method, which the snapshot fixture
 //! `methods_disabled` pins, and rejects the three things that would have needed one: a
 //! delete hook, an `on_delete = Delete` foreign key, and a `#[referenced_by]` attribute.
-//!
-//! The hook function is here for the fix: once `delete` is enabled, the table calls it.
-//! Until then a rejected `#[dsl]` emits nothing else, so the function misses the
-//! `AuditEntry` struct and the `BeforeAuditEntryDeleteHook` trait it implements, which is
-//! where the errors after the first come from.
 
 ::spacetimedsl::spacetimedsl!();
 
