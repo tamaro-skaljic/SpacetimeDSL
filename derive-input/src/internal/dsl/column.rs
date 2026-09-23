@@ -39,13 +39,12 @@ impl SpacetimeDSLColumn {
             ));
         }
 
-        let foreign_key =
-            ForeignKey::try_parse(
-                &spacetimedsl_table.has_delete_method,
-                spacetimedsl_table.is_soft_deletable(),
-                is_singleton,
-                field,
-            )?;
+        let foreign_key = ForeignKey::try_parse(
+            &spacetimedsl_table.has_delete_method,
+            spacetimedsl_table.is_soft_deletable(),
+            is_singleton,
+            field,
+        )?;
 
         if foreign_key.is_some() {
             match &wrapper_type {
