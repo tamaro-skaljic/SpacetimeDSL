@@ -209,7 +209,7 @@ fn before_position_hook_helper(
 - 🆔 `#[auto_gen(v4)]` or `#[auto_gen(v7)]` fills private `Uuid` columns with a fresh UUID on create.
 - ⏰ `created_at` is set automatically on create.
 - 🔄 `modified_at` is set to `None` on create and updated to `Some(ctx.timestamp)` on update.
-- 🏷️ Use `#[created_at]` or `#[updated_at]` on private timestamp columns when their names differ from the conventional aliases.
+- 🏷️ Use `#[set_on_create]` or `#[set_on_update]` on private timestamp columns when their names differ from the conventional aliases.
 
 **Data Integrity by Construction:**
 

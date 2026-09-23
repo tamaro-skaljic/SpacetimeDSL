@@ -1,4 +1,4 @@
-error: A column with the `created_at` role should have the type `spacetimedb::Timestamp`! Found: String
+error: A column with the `set_on_create` role should have the type `spacetimedb::Timestamp`! Found: String
   --> tests/ui/created_at_attribute_wrong_type.rs:13:17
    |
 13 |     started_at: String,

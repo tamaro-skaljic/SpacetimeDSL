@@ -1,0 +1,107 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct AuditedEntryId {
+    value: u64,
+}
+impl Default for AuditedEntryId {
+    fn default() -> AuditedEntryId {
+        AuditedEntryId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for AuditedEntryId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "AuditedEntryId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, AuditedEntryId> for AuditedEntryId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&AuditedEntry> for AuditedEntryId {
+    fn from(value: &AuditedEntry) -> Self {
+        AuditedEntryId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&AuditedEntry> for Option<AuditedEntryId> {
+    fn from(value: &AuditedEntry) -> Option<AuditedEntryId> {
+        Some(AuditedEntryId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&AuditedEntryId> for Option<AuditedEntryId> {
+    fn from(value: &AuditedEntryId) -> Option<AuditedEntryId> {
+        use spacetimedsl::Wrapper;
+        Some(AuditedEntryId::new(value.value()))
+    }
+}
+impl From<&AuditedEntryId> for AuditedEntryId {
+    fn from(value: &AuditedEntryId) -> Self {
+        use spacetimedsl::Wrapper;
+        AuditedEntryId::new(value.value())
+    }
+}
+impl AuditedEntry {
+    ///
+    pub fn get_id(&self) -> AuditedEntryId {
+        use spacetimedsl::Wrapper;
+        AuditedEntryId::new(self.id.clone())
+    }
+    ///
+    pub fn get_label(&self) -> &String {
+        use spacetimedsl::Wrapper;
+        &self.label
+    }
+    ///
+    pub fn get_label_mut(&mut self) -> &mut String {
+        use spacetimedsl::Wrapper;
+        &mut self.label
+    }
+    ///
+    pub fn set_label(&mut self, label: String) -> String {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.label, label);
+        old_value
+    }
+    ///
+    pub fn get_modified_at(&self) -> &Option<spacetimedb::Timestamp> {
+        use spacetimedsl::Wrapper;
+        &self.modified_at
+    }
+}
+///
+pub struct CreateAuditedEntry {
+    pub label: String,
+}
+pub trait BeforeAuditedEntryUpdateHook<T: crate::spacetimedsl::WriteContext> {
+    fn before_audited_entry_update(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_audited_entry: &AuditedEntry,
+        new_audited_entry: AuditedEntry,
+    ) -> Result<AuditedEntry, crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+pub trait AfterAuditedEntryUpdateHook<T: crate::spacetimedsl::WriteContext> {
+    fn after_audited_entry_update(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_audited_entry: &AuditedEntry,
+        new_audited_entry: &AuditedEntry,
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+
+// Generated DSL methods:
+// count_of_all_audited_entries
+// create_audited_entry
+// delete_audited_entry_by_id
+// get_all_audited_entries
+// get_audited_entry_by_id
+// update_audited_entry_by_id

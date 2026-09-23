@@ -116,8 +116,8 @@ fn derive_table_helper_attr() -> syn::Attribute {
         use_wrapper,
         foreign_key,
         referenced_by,
-        created_at,
-        updated_at,
+        set_on_create,
+        set_on_update,
         set_on_soft_delete,
         auto_gen
     )

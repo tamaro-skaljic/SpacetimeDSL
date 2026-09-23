@@ -192,10 +192,10 @@ pub mod timestamp_helper_test {
         #[create_wrapper]
         id: u64,
 
-        #[created_at]
+        #[set_on_create]
         started_at: Timestamp,
 
-        #[updated_at]
+        #[set_on_update]
         finished_at: Option<Timestamp>,
 
         pub value: u32,
@@ -1195,7 +1195,7 @@ pub mod singleton_with_default_test {
 
         pub world_name: String,
 
-        #[created_at]
+        #[set_on_create]
         created_at: Option<Timestamp>,
 
         modified_at: Option<Timestamp>,
@@ -1525,7 +1525,7 @@ pub mod soft_deletion {
 
         pub label: String,
 
-        #[updated_at]
+        #[set_on_update]
         modified_at: Option<Timestamp>,
 
         deleted: bool,
@@ -1787,7 +1787,7 @@ pub mod test {
             .ne(&Some(ctx.timestamp))
         {
             return Err(
-                "The #[updated_at] helper attribute should refresh the timestamp on update."
+                "The #[set_on_update] helper attribute should refresh the timestamp on update."
                     .to_string(),
             );
         }

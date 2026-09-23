@@ -1,4 +1,4 @@
-error: Multiple columns claim the `created_at` role! Only one column is allowed.
+error: Multiple columns claim the `set_on_create` role! Only one column is allowed.
   --> tests/ui/duplicate_created_at_roles.rs:15:5
    |
 15 |     started_at: spacetimedb::Timestamp,

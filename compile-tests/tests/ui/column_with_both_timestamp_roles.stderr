@@ -1,4 +1,4 @@
-error: A column cannot be both `created_at` and `updated_at`.
+error: A column cannot be both `set_on_create` and `set_on_update`.
   --> tests/ui/column_with_both_timestamp_roles.rs:14:5
    |
 14 |     timestamp: spacetimedb::Timestamp,

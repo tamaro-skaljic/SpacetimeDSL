@@ -9,8 +9,8 @@ pub struct Record {
     #[create_wrapper]
     id: u64,
 
-    #[created_at]
-    #[updated_at]
+    #[set_on_create]
+    #[set_on_update]
     timestamp: spacetimedb::Timestamp,
 }
 }

@@ -19,10 +19,10 @@ pub struct SignedDocument {
 
     signature: SignatureId,
 
-    #[created_at]
+    #[set_on_create]
     created_at: Timestamp,
 
-    #[updated_at]
+    #[set_on_update]
     modified_at: Option<Timestamp>,
 }
 
@@ -51,9 +51,9 @@ pub struct TimerRecord {
     #[create_wrapper]
     id: u64,
 
-    #[created_at]
+    #[set_on_create]
     started_at: Timestamp,
 
-    #[updated_at]
+    #[set_on_update]
     finished_at: Option<Timestamp>,
 }

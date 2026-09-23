@@ -11,7 +11,7 @@ pub struct Record {
 
     created_at: spacetimedb::Timestamp,
 
-    #[created_at]
+    #[set_on_create]
     started_at: spacetimedb::Timestamp,
 }
 }
