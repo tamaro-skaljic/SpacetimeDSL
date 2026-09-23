@@ -1,36 +1,36 @@
 error: A `#[foreign_key]` must set `on_delete`, `on_soft_delete`, or both, e.g. `on_delete = Delete`.
        Set `on_delete` when the referenced table has a delete method, set `on_soft_delete` when it is soft-deletable, and set both when it is both. The referenced table's own `#[referenced_by]` decides which of them is required; leaving out a required one is an unresolved import naming the field to add.
-  --> tests/ui/foreign_key_without_any_on_delete_field.rs:32:11
+  --> tests/ui/foreign_key_without_any_on_delete_field.rs:36:11
    |
-32 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id)]
+36 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id)]
    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0432]: unresolved import `crate::shipment::this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_warehouse_table`
- --> tests/ui/foreign_key_without_any_on_delete_field.rs:8:5
-  |
-8 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = true, delete = true))]
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_warehouse_table` in `shipment`
-  |
-  = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+  --> tests/ui/foreign_key_without_any_on_delete_field.rs:12:5
+   |
+12 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = true, delete = true))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_warehouse_table` in `shipment`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0599]: no function or associated item named `execute_on_delete_strategies_of_the_shipment_table_after_one_row_of_the_warehouse_table_was_deleted` found for struct `DSLInternals` in the current scope
- --> tests/ui/foreign_key_without_any_on_delete_field.rs:8:5
-  |
-5 | ::spacetimedsl::spacetimedsl!();
-  | ------------------------------- function or associated item `execute_on_delete_strategies_of_the_shipment_table_after_one_row_of_the_warehouse_table_was_deleted` not found for this struct
+  --> tests/ui/foreign_key_without_any_on_delete_field.rs:12:5
+   |
+ 9 | ::spacetimedsl::spacetimedsl!();
+   | ------------------------------- function or associated item `execute_on_delete_strategies_of_the_shipment_table_after_one_row_of_the_warehouse_table_was_deleted` not found for this struct
 ...
-8 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = true, delete = true))]
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `DSLInternals`
-  |
-  = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+12 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = true, delete = true))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `DSLInternals`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0599]: no function or associated item named `execute_on_delete_strategies_of_the_shipment_table_after_multiple_rows_of_the_warehouse_table_were_deleted` found for struct `DSLInternals` in the current scope
- --> tests/ui/foreign_key_without_any_on_delete_field.rs:8:5
-  |
-5 | ::spacetimedsl::spacetimedsl!();
-  | ------------------------------- function or associated item `execute_on_delete_strategies_of_the_shipment_table_after_multiple_rows_of_the_warehouse_table_were_deleted` not found for this struct
+  --> tests/ui/foreign_key_without_any_on_delete_field.rs:12:5
+   |
+ 9 | ::spacetimedsl::spacetimedsl!();
+   | ------------------------------- function or associated item `execute_on_delete_strategies_of_the_shipment_table_after_multiple_rows_of_the_warehouse_table_were_deleted` not found for this struct
 ...
-8 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = true, delete = true))]
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `DSLInternals`
-  |
-  = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+12 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = true, delete = true))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `DSLInternals`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -1,6 +1,10 @@
 //! A `#[foreign_key]` states what becomes of this table's rows when a row of the
 //! referenced table goes away. Naming neither `on_delete` nor `on_soft_delete` states
 //! nothing, and the referenced table's cascade would find no strategy to run.
+//!
+//! The errors after the first follow from it: a rejected `#[dsl]` emits nothing else, so
+//! the `warehouse` table's expansion misses the trait and the two cascade functions the
+//! `shipment` table would have generated for it.
 
 ::spacetimedsl::spacetimedsl!();
 

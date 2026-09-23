@@ -1,6 +1,42 @@
 error: `#[referenced_by]` is only allowed when the table has a delete method (`#[dsl(method(delete = true))]`) or is soft-deletable (`#[dsl(method(soft_delete = true))]`)!
        The on-delete strategies it declares run when a row of this table is deleted or soft-deleted, neither of which the DSL can do while both are disabled.
-  --> tests/ui/referenced_by_without_delete_or_soft_delete_method.rs:26:9
+  --> tests/ui/referenced_by_without_delete_or_soft_delete_method.rs:32:9
    |
-26 |         #[referenced_by(path = crate::shipment, table = shipment)]
+32 |         #[referenced_by(path = crate::shipment, table = shipment)]
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0432]: unresolved import `crate::warehouse::this_compilation_error_occurs_because_the_warehouse_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_shipment_table`
+  --> tests/ui/referenced_by_without_delete_or_soft_delete_method.rs:40:5
+   |
+40 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `this_compilation_error_occurs_because_the_warehouse_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_shipment_table` in `warehouse`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: could not find `WarehouseId` in `warehouse`
+  --> tests/ui/referenced_by_without_delete_or_soft_delete_method.rs:40:5
+   |
+40 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `WarehouseId` in `warehouse`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0425]: cannot find type `WarehouseId` in module `crate::warehouse`
+  --> tests/ui/referenced_by_without_delete_or_soft_delete_method.rs:40:5
+   |
+40 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `crate::warehouse`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no method named `get_warehouse_by_id` found for reference `&'a DSL<'_, T>` in the current scope
+  --> tests/ui/referenced_by_without_delete_or_soft_delete_method.rs:40:5
+   |
+40 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&'a DSL<'_, T>`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: you are looking for the module in `std`, not the primitive type
+   |
+40 |     std::#[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
+   |     +++++

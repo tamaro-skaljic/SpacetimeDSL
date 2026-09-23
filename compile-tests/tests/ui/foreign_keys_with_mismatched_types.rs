@@ -4,6 +4,10 @@
 //!
 //! The diagnostic is spanned on the second of the two columns, the one whose type
 //! contradicts the first.
+//!
+//! The errors after the first follow from it: a rejected `#[dsl]` emits nothing else, so
+//! the `warehouse` table's expansion misses the trait and the two cascade functions the
+//! `shipment` table would have generated for it.
 
 ::spacetimedsl::spacetimedsl!();
 
