@@ -17,14 +17,6 @@ pub mod audit_entry {
 
         message: String,
     }
-
-    #[spacetimedsl::hook]
-    fn after_audit_entry_delete(
-        _dsl: &crate::spacetimedsl::DSL<'_, T>,
-        _old_audit_entry: &AuditEntry,
-    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError> {
-        Ok(())
-    }
 }
 
 fn main() {}

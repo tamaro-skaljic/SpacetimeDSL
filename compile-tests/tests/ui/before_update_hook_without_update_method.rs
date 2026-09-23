@@ -18,15 +18,6 @@ pub mod audit_entry {
 
         message: String,
     }
-
-    #[spacetimedsl::hook]
-    fn before_audit_entry_update(
-        _dsl: &crate::spacetimedsl::DSL<'_, T>,
-        _old_audit_entry: &AuditEntry,
-        new_audit_entry: AuditEntry,
-    ) -> Result<AuditEntry, crate::spacetimedsl::SpacetimeDSLError> {
-        Ok(new_audit_entry)
-    }
 }
 
 fn main() {}

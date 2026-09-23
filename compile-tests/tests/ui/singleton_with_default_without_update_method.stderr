@@ -1,29 +1,6 @@
 error: Cannot disable the `update` method with `#[dsl(method(update = false))]` on a table with `#[dsl(singleton(with_default))]`!
        `upsert_<table>` is the only method which writes the row of such a table, so the table could never hold one.
-  --> tests/ui/singleton_with_default_without_update_method.rs:13:19
-   |
-13 |         singleton(with_default),
-   |                   ^^^^^^^^^^^^
-
-error[E0425]: cannot find type `WorldSettings` in this scope
-  --> tests/ui/singleton_with_default_without_update_method.rs:24:52
-   |
-24 |     impl crate::spacetimedsl::DefaultSingleton for WorldSettings {
-   |                                                    ^^^^^^^^^^^^^ not found in this scope
-
-error[E0425]: cannot find type `WorldSettings` in this scope
-  --> tests/ui/singleton_with_default_without_update_method.rs:27:21
-   |
-27 |         ) -> Result<WorldSettings, crate::spacetimedsl::SpacetimeDSLError> {
-   |                     ^^^^^^^^^^^^^ not found in this scope
-   |
-help: you might be missing a type parameter
-   |
-24 |     impl<WorldSettings> crate::spacetimedsl::DefaultSingleton for WorldSettings {
-   |         +++++++++++++++
-
-error[E0422]: cannot find struct, variant or union type `WorldSettings` in this scope
-  --> tests/ui/singleton_with_default_without_update_method.rs:28:16
-   |
-28 |             Ok(WorldSettings {
-   |                ^^^^^^^^^^^^^ not found in this scope
+ --> tests/ui/singleton_with_default_without_update_method.rs:8:19
+  |
+8 |         singleton(with_default),
+  |                   ^^^^^^^^^^^^

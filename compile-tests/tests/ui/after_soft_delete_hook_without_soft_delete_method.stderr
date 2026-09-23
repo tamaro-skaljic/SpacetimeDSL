@@ -1,25 +1,5 @@
 error: Cannot have an `after_soft_delete` hook when the table is not soft-deletable. Enable it with `#[dsl(method(soft_delete = true))]`
-  --> tests/ui/after_soft_delete_hook_without_soft_delete_method.rs:16:20
+  --> tests/ui/after_soft_delete_hook_without_soft_delete_method.rs:11:20
    |
-16 |         hook(after(soft_delete)),
+11 |         hook(after(soft_delete)),
    |                    ^^^^^^^^^^^
-
-error[E0405]: cannot find trait `AfterTicketSoftDeleteHook` in this scope
-  --> tests/ui/after_soft_delete_hook_without_soft_delete_method.rs:28:5
-   |
-28 |     #[spacetimedsl::hook]
-   |     ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
-   |
-   = note: this error originates in the attribute macro `spacetimedsl::hook` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0425]: cannot find type `Ticket` in this scope
-  --> tests/ui/after_soft_delete_hook_without_soft_delete_method.rs:31:23
-   |
-31 |         _old_ticket: &Ticket,
-   |                       ^^^^^^ not found in this scope
-
-error[E0425]: cannot find type `Ticket` in this scope
-  --> tests/ui/after_soft_delete_hook_without_soft_delete_method.rs:32:23
-   |
-32 |         _new_ticket: &Ticket,
-   |                       ^^^^^^ not found in this scope

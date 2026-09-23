@@ -1,25 +1,5 @@
 error: Cannot have an `after_update` hook when the `update` method is disabled with `#[dsl(method(update = false))]`
-  --> tests/ui/after_update_hook_without_update_method.rs:15:20
+  --> tests/ui/after_update_hook_without_update_method.rs:10:20
    |
-15 |         hook(after(update)),
+10 |         hook(after(update)),
    |                    ^^^^^^
-
-error[E0405]: cannot find trait `AfterAuditEntryUpdateHook` in this scope
-  --> tests/ui/after_update_hook_without_update_method.rs:27:5
-   |
-27 |     #[spacetimedsl::hook]
-   |     ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
-   |
-   = note: this error originates in the attribute macro `spacetimedsl::hook` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0425]: cannot find type `AuditEntry` in this scope
-  --> tests/ui/after_update_hook_without_update_method.rs:30:28
-   |
-30 |         _old_audit_entry: &AuditEntry,
-   |                            ^^^^^^^^^^ not found in this scope
-
-error[E0425]: cannot find type `AuditEntry` in this scope
-  --> tests/ui/after_update_hook_without_update_method.rs:31:28
-   |
-31 |         _new_audit_entry: &AuditEntry,
-   |                            ^^^^^^^^^^ not found in this scope

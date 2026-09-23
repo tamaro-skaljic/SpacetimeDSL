@@ -19,15 +19,6 @@ pub mod ticket {
 
         pub title: String,
     }
-
-    #[spacetimedsl::hook]
-    fn after_ticket_soft_delete(
-        _dsl: &crate::spacetimedsl::DSL<'_, T>,
-        _old_ticket: &Ticket,
-        _new_ticket: &Ticket,
-    ) -> Result<(), crate::spacetimedsl::SpacetimeDSLError> {
-        Ok(())
-    }
 }
 
 fn main() {}
