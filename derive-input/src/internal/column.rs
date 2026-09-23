@@ -147,6 +147,8 @@ pub(in crate::internal) enum ColumnTypeKind {
     String,
     UnsignedInteger,
     Optional,
+    // The project spells the acronym `UUID`, as in `NewUUID` and `UUIDVersion`.
+    #[allow(clippy::upper_case_acronyms)]
     UUID,
     Other,
 }
