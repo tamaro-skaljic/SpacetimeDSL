@@ -1171,7 +1171,7 @@ all, and leaving `delete` to its default would hide that decision.
 
 A singleton table is never soft-deletable: it holds one row the DSL reaches through an
 injected primary key, so retiring that row would leave the table holding a row no method
-can reach.
+can reach. For the same reason no column of a singleton may claim the marker role.
 
 ### The Marker Column
 

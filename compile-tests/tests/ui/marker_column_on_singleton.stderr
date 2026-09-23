@@ -1,0 +1,6 @@
+error: This column claims the soft-delete marker role, but a singleton table is never soft-deletable!
+       A singleton holds one row which the DSL looks up by its injected primary key, so retiring that row would leave the table with a row no method can reach. Remove the `deleted` column.
+  --> tests/ui/marker_column_on_singleton.rs:13:9
+   |
+13 |         deleted: bool,
+   |         ^^^^^^^

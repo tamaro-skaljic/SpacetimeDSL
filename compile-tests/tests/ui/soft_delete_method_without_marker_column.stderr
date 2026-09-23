@@ -1,6 +1,6 @@
 error: `#[dsl(method(soft_delete = true))]` requires a column which the soft deletion writes!
        Name a column `deleted` or `removed` and give it the type `bool`, name a column `deleted_at` or `removed_at` and give it the type `Option<spacetimedb::Timestamp>`, or put `#[set_on_soft_delete]` on a column of either type.
-  --> tests/ui/soft_delete_method_without_marker_column.rs:13:16
+  --> tests/ui/soft_delete_method_without_marker_column.rs:10:46
    |
-13 |     pub struct Ticket {
-   |                ^^^^^^
+10 |         method(update = true, delete = true, soft_delete = true),
+   |                                              ^^^^^^^^^^^^^^^^^^

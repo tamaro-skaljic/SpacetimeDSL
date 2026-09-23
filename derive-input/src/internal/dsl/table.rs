@@ -73,10 +73,9 @@ impl SpacetimeDSLTable {
         };
 
         let soft_delete_marker = super::soft_delete::try_parse(
-            dsl_data.soft_delete_method,
+            dsl_data.soft_delete_method.as_ref(),
             dsl_data.singleton,
             column_args,
-            &column_args.original_struct_name,
         )?;
 
         let mut on_insert_set_current_timestamp_column_name = None;

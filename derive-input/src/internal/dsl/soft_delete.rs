@@ -9,27 +9,50 @@ use crate::api::dsl::{
     soft_delete::{SoftDeleteMarker, SoftDeleteMarkerKind},
     table::SingletonKind,
 };
-use quote::{ToTokens, format_ident};
+use proc_macro2::TokenStream;
+use quote::{ToTokens, format_ident, quote};
 use spacetime_bindings_macro_input::{sats::SatsField, table::ColumnArgs};
-use syn::Ident;
+use syn::{LitBool, Path};
 
 const FLAG_COLUMN_NAMES: [&str; 2] = ["deleted", "removed"];
 const TIMESTAMP_COLUMN_NAMES: [&str; 2] = ["deleted_at", "removed_at"];
 
+/// Why a singleton is never soft-deletable, shared by the three shapes it is rejected in.
+const SINGLETON_IS_NEVER_SOFT_DELETABLE: &str = "A singleton holds one row which the DSL looks up by its injected primary key, so retiring that row would leave the table with a row no method can reach.";
+
+/// `soft_delete = <bool>` exactly as written in `#[dsl(method(..))]`, kept whole so a
+/// diagnostic can underline all of it rather than the struct it sits on.
+pub(in crate::internal) struct SoftDeleteMethodArgument {
+    pub(in crate::internal) path: Path,
+    pub(in crate::internal) value: LitBool,
+}
+
+impl SoftDeleteMethodArgument {
+    pub(in crate::internal) fn is_enabled(&self) -> bool {
+        self.value.value
+    }
+}
+
+impl ToTokens for SoftDeleteMethodArgument {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let SoftDeleteMethodArgument { path, value } = self;
+
+        tokens.extend(quote! { #path = #value });
+    }
+}
+
 pub(in crate::internal) fn try_parse(
-    has_soft_delete_method: Option<bool>,
+    soft_delete_method: Option<&SoftDeleteMethodArgument>,
     singleton: Option<SingletonKind>,
     column_args: &ColumnArgs<'_>,
-    original_struct_name: &Ident,
 ) -> syn::Result<Option<SoftDeleteMarker>> {
-    let is_soft_deletable = has_soft_delete_method == Some(true);
+    let enabling_argument = soft_delete_method.filter(|argument| argument.is_enabled());
 
-    if is_soft_deletable && singleton.is_some() {
-        return Err(syn::Error::new_spanned(
-            original_struct_name,
-            "`#[dsl(method(soft_delete = true))]` is not allowed on a singleton table!\nA singleton holds one row which the DSL looks up by its injected primary key, so retiring that row would leave the table with a row no method can reach.",
-        ));
+    if singleton.is_some() {
+        reject_soft_deletion_on_singleton(enabling_argument, column_args)?;
     }
+
+    let is_soft_deletable = enabling_argument.is_some();
 
     let mut marker: Option<SoftDeleteMarker> = None;
 
@@ -87,14 +110,62 @@ pub(in crate::internal) fn try_parse(
         });
     }
 
-    if is_soft_deletable && marker.is_none() {
+    if let Some(enabling_argument) = enabling_argument
+        && marker.is_none()
+    {
         return Err(syn::Error::new_spanned(
-            original_struct_name,
+            enabling_argument,
             "`#[dsl(method(soft_delete = true))]` requires a column which the soft deletion writes!\nName a column `deleted` or `removed` and give it the type `bool`, name a column `deleted_at` or `removed_at` and give it the type `Option<spacetimedb::Timestamp>`, or put `#[set_on_soft_delete]` on a column of either type.",
         ));
     }
 
     Ok(marker)
+}
+
+/// A singleton is never soft-deletable, neither by the flag nor by a marker column.
+///
+/// Each message names everything its fix has to remove, so following it leaves nothing
+/// behind for another soft-delete rejection to find.
+fn reject_soft_deletion_on_singleton(
+    enabling_argument: Option<&SoftDeleteMethodArgument>,
+    column_args: &ColumnArgs<'_>,
+) -> syn::Result<()> {
+    // `claimed_kind` fails for a `#[set_on_soft_delete]` column of the wrong type, which
+    // claims the role all the same.
+    let marker_column = column_args
+        .fields
+        .iter()
+        .find(|field| !matches!(claimed_kind(field), Ok(None)))
+        .map(|field| {
+            (
+                field.ident.expect("a named field has an identifier"),
+                field.name.as_ref().expect("should have a name"),
+            )
+        });
+
+    match (enabling_argument, marker_column) {
+        (None, None) => Ok(()),
+        (Some(enabling_argument), None) => Err(syn::Error::new_spanned(
+            enabling_argument,
+            format!(
+                "`#[dsl(method(soft_delete = true))]` is not allowed on a singleton table!\n{SINGLETON_IS_NEVER_SOFT_DELETABLE} Remove `soft_delete = true`."
+            ),
+        )),
+        (Some(enabling_argument), Some((_, marker_column_name))) => Err(syn::Error::new_spanned(
+            enabling_argument,
+            format!(
+                "`#[dsl(method(soft_delete = true))]` is not allowed on a singleton table!\n{SINGLETON_IS_NEVER_SOFT_DELETABLE} Remove `soft_delete = true` and the `{marker_column_name}` column."
+            ),
+        )),
+        (None, Some((marker_column_identifier, marker_column_name))) => {
+            Err(syn::Error::new_spanned(
+                marker_column_identifier,
+                format!(
+                    "This column claims the soft-delete marker role, but a singleton table is never soft-deletable!\n{SINGLETON_IS_NEVER_SOFT_DELETABLE} Remove the `{marker_column_name}` column."
+                ),
+            ))
+        }
+    }
 }
 
 /// Which role a column's name or attribute claims, if any.

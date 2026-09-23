@@ -1,8 +1,8 @@
 //! A singleton is never soft-deletable: it holds one row which the DSL reaches through
 //! an injected primary key, so retiring that row would leave a row no method can reach.
 //!
-//! The table also lacks a marker column, but asking for one would lead the fix astray:
-//! once `soft_delete = true` is gone, no marker column is needed.
+//! With both the flag and a marker column present, removing only the flag would leave a
+//! column claiming a role nothing writes, so the message names both.
 
 ::spacetimedsl::spacetimedsl!();
 
@@ -14,6 +14,8 @@ pub mod configuration {
     #[spacetimedb::table(accessor = configuration, public)]
     pub struct Configuration {
         pub world_name: String,
+
+        deleted: bool,
     }
 }
 

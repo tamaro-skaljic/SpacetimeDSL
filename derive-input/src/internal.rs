@@ -1,4 +1,5 @@
 use crate::api::dsl::table::SingletonKind;
+use crate::internal::dsl::soft_delete::SoftDeleteMethodArgument;
 use crate::internal::dsl::{
     after, before, delete, hook, insert, method, plural_name, singleton, soft_delete, unique_index,
     update, with_default,
@@ -72,8 +73,7 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     let mut methods = None;
     let mut update_method = None;
     let mut delete_method = None;
-    let mut soft_delete_method: Option<bool> = None;
-    let mut soft_delete_method_span: Option<Span> = None;
+    let mut soft_delete_method: Option<SoftDeleteMethodArgument> = None;
 
     parser(|meta| {
         match_meta!(match meta {
@@ -178,8 +178,9 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
                         }
                         soft_delete => {
                             check_duplicate(&soft_delete_method, &meta)?;
-                            soft_delete_method_span = Some(meta.path.span());
-                            soft_delete_method = Some(meta.value()?.parse::<syn::LitBool>()?.value);
+                            let path = meta.path.clone();
+                            let value = meta.value()?.parse::<syn::LitBool>()?;
+                            soft_delete_method = Some(SoftDeleteMethodArgument { path, value });
                         }
                     });
                     Ok(())
@@ -190,11 +191,11 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     })
     .parse2(args.clone())?;
 
-    if let Some(span) = soft_delete_method_span
+    if let Some(soft_delete_method) = &soft_delete_method
         && delete_method.is_none()
     {
-        return Err(syn::Error::new(
-            span,
+        return Err(syn::Error::new_spanned(
+            &soft_delete_method.path,
             "`#[dsl(method(soft_delete = ...))]` requires `#[dsl(method(delete = ...))]` to be set as well, e.g. `method(delete = true, soft_delete = true)`.\nSoft deletion retires a row instead of removing it, which only says something next to a decision about whether the table removes rows at all.",
         ));
     }
@@ -230,7 +231,10 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         }
     }
 
-    if soft_delete_method != Some(true) {
+    if !soft_delete_method
+        .as_ref()
+        .is_some_and(SoftDeleteMethodArgument::is_enabled)
+    {
         if let Some(span) = before_soft_delete_hook {
             return Err(syn::Error::new(
                 span,
@@ -325,7 +329,7 @@ struct DSLData {
     after_soft_delete_hook: bool,
     update_method: Option<bool>,
     delete_method: Option<bool>,
-    soft_delete_method: Option<bool>,
+    soft_delete_method: Option<SoftDeleteMethodArgument>,
 }
 
 // Parse unique index from meta
