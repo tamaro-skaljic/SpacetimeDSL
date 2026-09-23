@@ -18,7 +18,7 @@ proc-macro = true
 [dependencies]
 ident_case.workspace = true
 proc-macro2.workspace = true
-syn = { workspace = true, default-features = true }
+syn = { workspace = true, default-features = true, features = ["full", "extra-traits"] }
 quote.workspace = true
 rust-format.workspace = true
 spacetimedsl_derive-input.workspace = true
