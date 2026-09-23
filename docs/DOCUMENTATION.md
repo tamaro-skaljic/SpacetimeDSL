@@ -1189,7 +1189,7 @@ A column claims the role in one of three ways:
 The `bool` shape is set to `true`. The `Option<Timestamp>` shape is set to the current
 timestamp, which records **when** the row was retired as well as that it was.
 
-The marker must be private. `soft_delete_<table>_by_<index>` is its only writer, so it
+The marker must be private. Only DSL methods set it, and they do so internally, so it
 earns a getter and no setter — a public marker would hand callers a second way to retire a
 row, one which runs no hook and cascades to nothing. It is also absent from
 `Create<Table>`: a new row is never born retired, so the create method fills it in.

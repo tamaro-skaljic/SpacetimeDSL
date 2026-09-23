@@ -1,6 +1,6 @@
-//! `soft_delete_<table>_by_<index>` is the only writer of the marker column, so the
-//! column gets a getter but no setter. A public column would hand callers a second way
-//! to retire a row, one which runs no hook and cascades to nothing.
+//! Only DSL methods write the soft-delete marker column, internally, so the column gets
+//! a getter but no setter. A public column would hand callers a second way to retire a
+//! row, one which runs no hook and cascades to nothing.
 
 ::spacetimedsl::spacetimedsl!();
 

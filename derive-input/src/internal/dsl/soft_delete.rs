@@ -100,7 +100,7 @@ pub(in crate::internal) fn try_parse(
         if !matches!(field.vis, syn::Visibility::Inherited) {
             return Err(syn::Error::new_spanned(
                 field.vis,
-                "A column with the soft-delete marker role should have `Visibility::Inherited`!\n`soft_delete_<table>_by_<index>` is its only writer, so it has a getter but no setter.",
+                "A column with the soft-delete marker role should have `Visibility::Inherited`!\nOnly DSL methods are allowed to set this column, and they do it internally, so it has a getter but no setter.",
             ));
         }
 
