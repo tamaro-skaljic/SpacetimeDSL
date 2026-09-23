@@ -62,7 +62,11 @@ Every input the DSL rejects. The pair pins the message *and* the span it underli
 
 - `trybuild` globs the directory — a new file needs no registration.
 - One rejection per file, named after the rejection.
-- A fixture carries only what its diagnostic needs. Anything more pulls in unrelated rejections that fire first and mask the one being pinned.
+- A fixture is valid except for the one rejection it pins: applying the fix its diagnostic suggests leaves a program that compiles. Write the companions that fix relies on — a `#[spacetimedsl::hook]` function, an `impl DefaultSingleton`, the module of the table on the other side of a foreign key — into the fixture up front.
+- Leave out only what would be a rejection of its own before the fix, such as the marker column a table gains together with `method(soft_delete = true)`. That belongs to the fix; writing it up front would hide a second rejection behind the first.
+- Anything beyond the fix's companions stays out. It pulls in unrelated rejections that fire first and mask the one being pinned.
+- A rejected `#[dsl]` emits the error and nothing else, so every companion or neighbouring table naming its struct or a generated item fails as well. Those follow-on errors stay in the `.stderr`, and the fixture's `//!` comment names where they come from in one sentence.
+- When one rule has several shapes, each shape gets its own file and each message names everything its fix removes. `soft_delete_method_on_singleton`, `soft_delete_method_with_marker_column_on_singleton` and `marker_column_on_singleton` are one rule in three shapes.
 - Blind spot: says nothing whatsoever about input the DSL accepts.
 
 **Snapshot — `derive/tests/fixtures/<fixture>.rs` → `derive/tests/snapshots/<fixture>/<Struct>/*.snap`**
