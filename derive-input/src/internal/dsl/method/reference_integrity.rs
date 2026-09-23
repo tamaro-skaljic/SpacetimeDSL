@@ -70,7 +70,7 @@ fn reference_integrity_checks(
                     #check
                 }
             },
-            ColumnTypeKind::String | ColumnTypeKind::Other => quote! {
+            ColumnTypeKind::String | ColumnTypeKind::UUID | ColumnTypeKind::Other => quote! {
                 #check
             },
         });

@@ -77,6 +77,11 @@ fn wrapper_created_named() {
 }
 
 #[test]
+fn wrapper_created_uuid() {
+    snapshot_fixture("wrapper_created_uuid");
+}
+
+#[test]
 fn wrapper_used() {
     snapshot_fixture("wrapper_used");
 }

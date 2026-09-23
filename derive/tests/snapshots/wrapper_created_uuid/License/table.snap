@@ -1,0 +1,165 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct LicenseId {
+    value: Uuid,
+}
+impl LicenseId {
+    /// Generate a random UUID v4.
+    pub fn v4(
+        dsl: &crate::spacetimedsl::DSL<'_, impl crate::spacetimedsl::WriteContext>,
+    ) -> Result<Self, crate::spacetimedsl::error::SpacetimeDSLError> {
+        Ok(Self {
+            value: crate::spacetimedsl::NewUUID::new_uuid_v4(dsl.ctx())?,
+        })
+    }
+    /// Generate a UUID v7, which sorts in the order the values were generated.
+    pub fn v7(
+        dsl: &crate::spacetimedsl::DSL<'_, impl crate::spacetimedsl::WriteContext>,
+    ) -> Result<Self, crate::spacetimedsl::error::SpacetimeDSLError> {
+        Ok(Self {
+            value: crate::spacetimedsl::NewUUID::new_uuid_v7(dsl.ctx())?,
+        })
+    }
+}
+impl std::fmt::Display for LicenseId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "LicenseId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<Uuid, LicenseId> for LicenseId {
+    fn new(value: Uuid) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> Uuid {
+        self.value.clone()
+    }
+}
+impl From<&License> for LicenseId {
+    fn from(value: &License) -> Self {
+        LicenseId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&License> for Option<LicenseId> {
+    fn from(value: &License) -> Option<LicenseId> {
+        Some(LicenseId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&LicenseId> for Option<LicenseId> {
+    fn from(value: &LicenseId) -> Option<LicenseId> {
+        use spacetimedsl::Wrapper;
+        Some(LicenseId::new(value.value()))
+    }
+}
+impl From<&LicenseId> for LicenseId {
+    fn from(value: &LicenseId) -> Self {
+        use spacetimedsl::Wrapper;
+        LicenseId::new(value.value())
+    }
+}
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct ExternalReference {
+    value: spacetimedb::Uuid,
+}
+impl ExternalReference {
+    /// Generate a random UUID v4.
+    pub fn v4(
+        dsl: &crate::spacetimedsl::DSL<'_, impl crate::spacetimedsl::WriteContext>,
+    ) -> Result<Self, crate::spacetimedsl::error::SpacetimeDSLError> {
+        Ok(Self {
+            value: crate::spacetimedsl::NewUUID::new_uuid_v4(dsl.ctx())?,
+        })
+    }
+    /// Generate a UUID v7, which sorts in the order the values were generated.
+    pub fn v7(
+        dsl: &crate::spacetimedsl::DSL<'_, impl crate::spacetimedsl::WriteContext>,
+    ) -> Result<Self, crate::spacetimedsl::error::SpacetimeDSLError> {
+        Ok(Self {
+            value: crate::spacetimedsl::NewUUID::new_uuid_v7(dsl.ctx())?,
+        })
+    }
+}
+impl std::fmt::Display for ExternalReference {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "ExternalReference", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<spacetimedb::Uuid, ExternalReference>
+for ExternalReference {
+    fn new(value: spacetimedb::Uuid) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> spacetimedb::Uuid {
+        self.value.clone()
+    }
+}
+impl From<&License> for ExternalReference {
+    fn from(value: &License) -> Self {
+        ExternalReference {
+            value: value.external_reference.clone(),
+        }
+    }
+}
+impl From<&License> for Option<ExternalReference> {
+    fn from(value: &License) -> Option<ExternalReference> {
+        Some(ExternalReference {
+            value: value.external_reference.clone(),
+        })
+    }
+}
+impl From<&ExternalReference> for Option<ExternalReference> {
+    fn from(value: &ExternalReference) -> Option<ExternalReference> {
+        use spacetimedsl::Wrapper;
+        Some(ExternalReference::new(value.value()))
+    }
+}
+impl From<&ExternalReference> for ExternalReference {
+    fn from(value: &ExternalReference) -> Self {
+        use spacetimedsl::Wrapper;
+        ExternalReference::new(value.value())
+    }
+}
+impl License {
+    ///
+    pub fn get_id(&self) -> LicenseId {
+        use spacetimedsl::Wrapper;
+        LicenseId::new(self.id.clone())
+    }
+    ///
+    pub fn get_external_reference(&self) -> ExternalReference {
+        use spacetimedsl::Wrapper;
+        ExternalReference::new(self.external_reference.clone())
+    }
+    ///
+    pub fn set_external_reference(
+        &mut self,
+        external_reference: spacetimedb::Uuid,
+    ) -> ExternalReference {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(
+            &mut self.external_reference,
+            external_reference,
+        );
+        ExternalReference::new(old_value)
+    }
+}
+///
+pub struct CreateLicense {
+    pub id: Uuid,
+    pub external_reference: spacetimedb::Uuid,
+}
+
+// Generated DSL methods:
+// count_of_all_licenses
+// create_license
+// delete_license_by_external_reference
+// delete_license_by_id
+// get_all_licenses
+// get_license_by_external_reference
+// get_license_by_id
+// update_license_by_id

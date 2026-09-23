@@ -146,6 +146,7 @@ pub(in crate::internal) enum ColumnTypeKind {
     String,
     UnsignedInteger,
     Optional,
+    UUID,
     Other,
 }
 
@@ -157,23 +158,20 @@ impl ColumnTypeKind {
     /// user's own `my_crate::String` stays `Other`.
     ///
     /// Unsigned integers are matched bare only: they are primitives, so a qualified
-    /// spelling would not be the same type.
+    /// spelling would not be the same type. `Uuid` is matched bare or as `spacetimedb::Uuid`.
     pub(in crate::internal) fn of(type_name_or_path: &Path) -> ColumnTypeKind {
         let Some(last_segment) = type_name_or_path.segments.last() else {
             return ColumnTypeKind::Other;
         };
 
         let is_bare = type_name_or_path.segments.len() == 1;
-        let is_rooted_in_std = matches!(
-            type_name_or_path.segments[0].ident.to_string().as_str(),
-            "std" | "core" | "alloc"
-        );
-
-        if !is_bare && !is_rooted_in_std {
-            return ColumnTypeKind::Other;
-        }
+        let root = type_name_or_path.segments[0].ident.to_string();
+        let is_rooted_in_std = matches!(root.as_str(), "std" | "core" | "alloc");
+        let is_spacetimedb_uuid = type_name_or_path.segments.len() == 2 && root == "spacetimedb";
 
         match last_segment.ident.to_string().as_str() {
+            "Uuid" if is_bare || is_spacetimedb_uuid => ColumnTypeKind::UUID,
+            _ if !is_bare && !is_rooted_in_std => ColumnTypeKind::Other,
             "String" => ColumnTypeKind::String,
             "Option" => ColumnTypeKind::Optional,
             "u8" | "u16" | "u32" | "u64" | "u128" if is_bare => ColumnTypeKind::UnsignedInteger,
