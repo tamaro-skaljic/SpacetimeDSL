@@ -587,13 +587,20 @@ pub(in crate::internal) fn on_delete_strategy_implementation(
                             }
                         };
 
+                        // Mirrors the row binding of the `Absent` arm: a before hook hands
+                        // back its own binding, which `rebind_row` makes mutable.
+                        let clone_old_row = match before_soft_delete_hook.is_empty() {
+                            true => quote! { let mut row = old_row.clone(); },
+                            false => quote! { let row = old_row.clone(); },
+                        };
+
                         let soft_delete_many_impl = quote! {
                             for #primary_key_column_name in &primary_key_values_of_rows_to_delete {
                                 let old_row = row_to_delete_by_primary_key_value
                                     .get(#primary_key_column_name)
                                     .expect("Should exist");
 
-                                let row = old_row.clone();
+                                #clone_old_row
 
                                 #before_soft_delete_hook
 
