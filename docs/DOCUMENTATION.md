@@ -1595,12 +1595,12 @@ let position: Position = entity.get_id().get_position(&dsl)?;
 let circles: Vec<Circle> = player.get_id().get_circles(&dsl);
 ```
 
-- A unique column (`#[primary_key]` or `#[unique]`) adds `get_<table>`. It returns `Result<Row, SpacetimeDSLError>`, like `get_<table>_by_<column>`.
-- A non-unique column (`#[index]`) adds `get_<tables>`. It returns a `Vec<Row>`.
+- A unique column (`#[primary_key]` or `#[unique]`) adds `get_<singular_table_name>`. It returns `Result<Row, SpacetimeDSLError>`, like `dsl.get_<singular_table_name>_by_<column>(...)`.
+- A non-unique column (`#[index]`) adds `get_<plural_table_name>`. It returns a `Vec<Row>`.
+  - Note that the `dsl.get_<plural_table_name>_by_<column>(...)` returns an `impl Iterator` rather than a `Vec`, which is preferred because it avoids allocating a `Vec` unnecessarily. This is because the method creates an internal `ReadOnlyDSL` which that iterator would borrow.
 - Two or more columns of one table reference the same table, or a column references its own table: each method takes the full name of the DSL method it calls, for example `get_entity_relationships_by_parent_entity_id`.
 - Multi-column indices and the foreign key columns of singleton tables add no method.
 - Pass `&dsl` from a reducer or `&read_only_dsl` from a view.
-- A non-unique column returns a `Vec` rather than the DSL method's iterator, because the method creates the `ReadOnlyDSL` which that iterator would borrow.
 
 ### Critical Rule
 
