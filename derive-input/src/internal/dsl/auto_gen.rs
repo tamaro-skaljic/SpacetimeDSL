@@ -38,7 +38,7 @@ impl UUIDVersion {
         if singleton_has_default {
             return Err(Error::new_spanned(
                 auto_gen_attribute,
-                "`#[auto_gen]` is not allowed on a `singleton(with_default)` table, because it has no create method!",
+                "`#[auto_gen]` is not allowed on a `singleton(with_default)` table, because views aren't able to access UUID generators!",
             ));
         }
 
@@ -56,17 +56,28 @@ impl UUIDVersion {
             return Err(Error::new_spanned(
                 field.vis,
                 format!(
-                    "A column with `#[auto_gen]` should be private, because its value is generated! Found: `{}`",
+                    "A column with `#[auto_gen]` should be private, because its value is generated and should never change! Found: `{}`",
                     field.vis.to_token_stream()
                 ),
             ));
         }
 
-        if !matches!(wrapper_type, Some(WrapperType::Created(_))) {
-            return Err(Error::new_spanned(
-                auto_gen_attribute,
-                "A column with `#[auto_gen]` must be accompanied by `#[create_wrapper]`!",
-            ));
+        match wrapper_type {
+            Some(wrapper_type) => match wrapper_type {
+                WrapperType::Created(_) => {}
+                _ => {
+                    return Err(Error::new_spanned(
+                        auto_gen_attribute,
+                        "A column with `#[auto_gen]` must be accompanied by `#[create_wrapper]`, not `#[use_wrapper(...)]`!",
+                    ));
+                }
+            },
+            None => {
+                return Err(Error::new_spanned(
+                    auto_gen_attribute,
+                    "A column with `#[auto_gen]` must be accompanied by `#[create_wrapper]`!",
+                ));
+            }
         }
 
         Ok(Some(uuid_version))

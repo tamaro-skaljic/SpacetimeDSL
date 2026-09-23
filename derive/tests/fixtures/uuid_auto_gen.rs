@@ -41,7 +41,7 @@ pub struct SessionToken {
 #[spacetimedsl::dsl(singleton, method(update = true))]
 #[spacetimedb::table(accessor = installation, public)]
 pub struct Installation {
-    #[create_wrapper]
+    #[create_wrapper(InstallationId)]
     #[auto_gen(v4)]
     installation_id: Uuid,
 

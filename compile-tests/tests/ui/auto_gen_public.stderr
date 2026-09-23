@@ -1,4 +1,4 @@
-error: A column with `#[auto_gen]` should be private, because its value is generated! Found: `pub`
+error: A column with `#[auto_gen]` should be private, because its value is generated and should never change! Found: `pub`
   --> tests/ui/auto_gen_public.rs:14:9
    |
 14 |         pub token: spacetimedb::Uuid,

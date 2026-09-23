@@ -519,7 +519,7 @@ pub mod component {
         )]
         pub struct UUIDPrimaryKeyRecord {
             #[primary_key]
-            #[create_wrapper(UUIDPrimaryKeyRecordId)]
+            #[create_wrapper]
             #[auto_gen(v7)]
             #[referenced_by(path = crate::component::uuid_reference_test, table = uuid_reference)]
             id: Uuid,
@@ -538,11 +538,11 @@ pub mod component {
         pub struct UUIDUniqueRecord {
             #[primary_key]
             #[auto_inc]
-            #[create_wrapper(UUIDUniqueRecordId)]
+            #[create_wrapper]
             id: u64,
 
             #[unique]
-            #[create_wrapper(UUIDUniqueRecordToken)]
+            #[create_wrapper]
             #[auto_gen(v4)]
             token: spacetimedb::Uuid,
         }
@@ -558,11 +558,11 @@ pub mod component {
         pub struct UUIDIndexRecord {
             #[primary_key]
             #[auto_inc]
-            #[create_wrapper(UUIDIndexRecordId)]
+            #[create_wrapper]
             id: u64,
 
             #[index(btree)]
-            #[create_wrapper(UUIDIndexRecordToken)]
+            #[create_wrapper]
             #[auto_gen(v4)]
             token: Uuid,
         }
@@ -579,10 +579,10 @@ pub mod component {
         pub struct UUIDMultiColumnIndexRecord {
             #[primary_key]
             #[auto_inc]
-            #[create_wrapper(UUIDMultiColumnIndexRecordId)]
+            #[create_wrapper]
             id: u64,
 
-            #[create_wrapper(UUIDMultiColumnIndexRecordToken)]
+            #[create_wrapper]
             #[auto_gen(v4)]
             token: Uuid,
 
@@ -602,10 +602,10 @@ pub mod component {
         pub struct UUIDUniqueMultiColumnIndexRecord {
             #[primary_key]
             #[auto_inc]
-            #[create_wrapper(UUIDUniqueMultiColumnIndexRecordId)]
+            #[create_wrapper]
             id: u64,
 
-            #[create_wrapper(UUIDUniqueMultiColumnIndexRecordToken)]
+            #[create_wrapper]
             #[auto_gen(v7)]
             token: Uuid,
 
@@ -618,7 +618,7 @@ pub mod component {
             public,
         )]
         pub struct UUIDSingletonRecord {
-            #[create_wrapper(UUIDSingletonRecordToken)]
+            #[create_wrapper]
             #[auto_gen(v4)]
             token: Uuid,
         }
@@ -640,7 +640,7 @@ pub mod component {
         pub struct UUIDReference {
             #[primary_key]
             #[auto_inc]
-            #[create_wrapper(UUIDReferenceId)]
+            #[create_wrapper]
             id: u64,
 
             #[index(btree)]

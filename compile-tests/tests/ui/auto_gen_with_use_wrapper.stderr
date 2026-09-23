@@ -1,4 +1,4 @@
-error: A column with `#[auto_gen]` must be accompanied by `#[create_wrapper]`!
+error: A column with `#[auto_gen]` must be accompanied by `#[create_wrapper]`, not `#[use_wrapper(...)]`!
   --> tests/ui/auto_gen_with_use_wrapper.rs:13:9
    |
 13 |         #[auto_gen(v4)]

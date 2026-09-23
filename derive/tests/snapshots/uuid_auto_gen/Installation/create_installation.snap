@@ -11,7 +11,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         use ::spacetimedsl::Wrapper;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let id = 0u8;
-        let installation_id = InstallationInstallationId::v4(self)?.value();
+        let installation_id = InstallationId::v4(self)?.value();
         let name = installation.name;
         let installation = Installation {
             id,
