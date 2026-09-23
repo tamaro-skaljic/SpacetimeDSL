@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl crate::accounts::AccountId {
+    /**Get all `AccountNote` rows whose `account_id` column references this `AccountId`.
+
+Use it like `account_id.get_account_notes(&dsl)`.*/
+    pub fn get_account_notes<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<AccountNote> {
+        dsl.into().get_account_notes_by_account_id(self).collect()
+    }
+}

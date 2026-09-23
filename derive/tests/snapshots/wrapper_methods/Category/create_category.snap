@@ -1,0 +1,60 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `category` table.
+    pub fn create_category<'a>(
+        &'a self,
+        category: CreateCategory,
+    ) -> Result<Category, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let parent_category_id = category.parent_category_id.value();
+        let category = Category { id, parent_category_id };
+        let mut the_same_or_another_category: Option<Category> = None;
+        if parent_category_id.ne(&0) {
+            match self.get_category_by_id(category.get_parent_category_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "category".into(),
+                            create_or_update: crate::spacetimedsl::error::Action::Create,
+                            column_names_and_row_values: format!(
+                                "{{ {} : {} }}", parent_category_id, category
+                                .get_parent_category_id()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        match self.db().category().try_insert(category.clone()) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "category".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ category : {:?} }}", category
+                            )
+                                .into(),
+                        })
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "category".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

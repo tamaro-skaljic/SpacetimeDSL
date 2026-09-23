@@ -1,0 +1,68 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Membership` row of the `expired_membership` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_expired_membership_by_id<'a>(
+        &'a self,
+        expired_membership: Membership,
+    ) -> Result<Membership, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut expired_membership = expired_membership;
+        let mut the_same_or_another_expired_membership: Option<Membership> = None;
+        let account_id = expired_membership.get_account_id().value();
+        if account_id.ne(&0) {
+            if the_same_or_another_expired_membership.is_none() {
+                the_same_or_another_expired_membership = match self
+                    .db()
+                    .expired_membership()
+                    .id()
+                    .find(expired_membership.get_id().value())
+                {
+                    Some(expired_membership) => Some(expired_membership),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "expired_membership".into(),
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", account_id
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_expired_membership
+                .as_ref()
+                .expect("field_name_for_found_value should be Some(_)")
+                .get_account_id()
+                .ne(&expired_membership.get_account_id())
+            {
+                match self.get_account_by_id(expired_membership.get_account_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "expired_membership".into(),
+                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", "account_id", account_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        let expired_membership = self
+            .db()
+            .expired_membership()
+            .id()
+            .update(expired_membership);
+        Ok(expired_membership)
+    }
+}

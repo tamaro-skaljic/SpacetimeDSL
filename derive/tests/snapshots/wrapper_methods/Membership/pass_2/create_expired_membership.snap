@@ -1,0 +1,60 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `expired_membership` table.
+    pub fn create_expired_membership<'a>(
+        &'a self,
+        expired_membership: CreateExpiredMembership,
+    ) -> Result<Membership, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let account_id = expired_membership.account_id.value();
+        let expired_membership = Membership { id, account_id };
+        let mut the_same_or_another_expired_membership: Option<Membership> = None;
+        if account_id.ne(&0) {
+            match self.get_account_by_id(expired_membership.get_account_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "expired_membership".into(),
+                            create_or_update: crate::spacetimedsl::error::Action::Create,
+                            column_names_and_row_values: format!(
+                                "{{ {} : {} }}", account_id, expired_membership
+                                .get_account_id()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        match self.db().expired_membership().try_insert(expired_membership.clone()) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "expired_membership".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ expired_membership : {:?} }}", expired_membership
+                            )
+                                .into(),
+                        })
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "expired_membership".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

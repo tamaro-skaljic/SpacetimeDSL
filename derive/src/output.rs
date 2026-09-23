@@ -15,14 +15,17 @@ mod create_method_arg;
 mod doc_comment;
 mod function;
 mod hook;
+mod wrapper_method;
 
 /// The generated output, split so callers can inspect every DSL method on its own
 /// instead of walking the [`Table`] a second time themselves.
 pub(crate) struct GeneratedOutput {
-    /// Compile-error checks, wrapper types, the accessor `impl`, the create-argument
-    /// struct and the hook traits - everything the macro emits that is not a DSL method.
+    /// Compile-error checks, wrapper types, the accessor `impl`, the create-argument struct and
+    /// the hook traits - everything the macro emits that is neither a DSL method nor a wrapper method.
     pub items_outside_dsl_methods: TokenStream,
     pub dsl_methods: Vec<GeneratedDSLMethod>,
+    /// The `impl` blocks which add lookup methods to the wrapper types of foreign key columns.
+    pub wrapper_methods: TokenStream,
 }
 
 impl GeneratedOutput {
@@ -33,11 +36,14 @@ impl GeneratedOutput {
             .dsl_methods
             .into_iter()
             .map(|dsl_method| dsl_method.tokens);
+        let wrapper_methods = self.wrapper_methods;
 
         quote! {
             #items_outside_dsl_methods
 
             #(#dsl_methods)*
+
+            #wrapper_methods
         }
     }
 }
@@ -178,6 +184,13 @@ pub(crate) fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<Gen
         hook::build(&input.spacetimedsl_table.hooks.after_soft_delete)?,
     ];
 
+    let wrapper_methods = input
+        .spacetimedsl_methods
+        .wrapper_methods
+        .iter()
+        .map(wrapper_method::build)
+        .collect();
+
     Ok(GeneratedOutput {
         items_outside_dsl_methods: quote! {
             #(#compile_error_checks)*
@@ -193,6 +206,7 @@ pub(crate) fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<Gen
             #(#hooks)*
         },
         dsl_methods,
+        wrapper_methods,
     })
 }
 

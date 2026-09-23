@@ -1,0 +1,33 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Category` iterator that contains all rows in the `category` table whose value matches the value from the single-column btree index on the `parent_category_id` column.
+    pub fn get_categories_by_parent_category_id<'a>(
+        &'a self,
+        parent_category_id: impl Into<CategoryId>,
+    ) -> impl Iterator<Item = Category> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db()
+            .category()
+            .parent_category_id()
+            .filter(parent_category_id.into().value())
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Category` iterator that contains all rows in the `category` table whose value matches the value from the single-column btree index on the `parent_category_id` column.
+    pub fn get_categories_by_parent_category_id<'a>(
+        &'a self,
+        parent_category_id: impl Into<CategoryId>,
+    ) -> impl Iterator<Item = Category> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db()
+            .category()
+            .parent_category_id()
+            .filter(parent_category_id.into().value())
+    }
+}

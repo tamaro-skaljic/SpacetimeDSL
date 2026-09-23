@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl ParentRecordId {
+    /**Get the `ChildMarker` whose `parent_id` column references this `ParentRecordId`.
+
+Use it like `parent_record_id.get_child_marker(&dsl)`.*/
+    pub fn get_child_marker<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<ChildMarker, crate::spacetimedsl::error::SpacetimeDSLError> {
+        dsl.into().get_child_marker_by_parent_id(self)
+    }
+}

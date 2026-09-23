@@ -9,6 +9,7 @@ use crate::api::dsl::{
     hook::SpacetimeDSLMethodHooks,
     method::{SpacetimeDSLArg, SpacetimeDSLMethod},
     soft_delete::SoftDeleteMarker,
+    wrapper::WrapperMethod,
 };
 
 /// How many rows a singleton table holds, which decides which methods it earns.
@@ -106,4 +107,6 @@ pub struct SpacetimeDSLTableMethods {
     pub on_delete_strategies_of_referencing_tables: Option<OnDeleteStrategiesOfReferencingTables>,
     pub on_delete_strategies_of_this_table: Vec<OnDeleteStrategiesOfTheReferencedTable>,
     pub multi_column_indices: Vec<SpacetimeDSLColumnMethods>,
+    /// Methods this table adds to the wrapper types of its foreign key columns.
+    pub wrapper_methods: Vec<WrapperMethod>,
 }

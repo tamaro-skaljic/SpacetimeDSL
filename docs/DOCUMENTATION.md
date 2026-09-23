@@ -1540,6 +1540,8 @@ pub struct Entity {
 }
 ```
 
+`parent_entity_id` references its own table, so `EntityId` gets `get_entities_by_parent_entity_id(&dsl)` - the children of an entity - rather than `get_entities(&dsl)`.
+
 ### Multiple Foreign Keys to Same Table
 
 ```rust
@@ -1576,6 +1578,29 @@ pub struct EntityRelationship {
     child_entity_id: u128,
 }
 ```
+
+Both columns reference `entity`, so `EntityId` gets `get_entity_relationships_by_parent_entity_id(&dsl)` and `get_entity_relationships_by_child_entity_id(&dsl)`.
+
+### Look Up Referencing Rows From a Wrapper
+
+Every `#[foreign_key]` column with a single-column index adds a method to its `#[use_wrapper]`
+type. The method looks up the rows which reference one value of that wrapper. You do not have
+to add anything.
+
+```rust
+// Position has `#[unique] #[use_wrapper(EntityId)] #[foreign_key(… table = entity …)] entity_id`:
+let position: Position = entity.get_id().get_position(&dsl)?;
+
+// Circle has `#[index(btree)] #[use_wrapper(PlayerId)] #[foreign_key(… table = player …)] player_id`:
+let circles: Vec<Circle> = player.get_id().get_circles(&dsl);
+```
+
+- A unique column (`#[primary_key]` or `#[unique]`) adds `get_<table>`. It returns `Result<Row, SpacetimeDSLError>`, like `get_<table>_by_<column>`.
+- A non-unique column (`#[index]`) adds `get_<tables>`. It returns a `Vec<Row>`.
+- Two or more columns of one table reference the same table, or a column references its own table: each method takes the full name of the DSL method it calls, for example `get_entity_relationships_by_parent_entity_id`.
+- Multi-column indices and the foreign key columns of singleton tables add no method.
+- Pass `&dsl` from a reducer or `&read_only_dsl` from a view.
+- A non-unique column returns a `Vec` rather than the DSL method's iterator, because the method creates the `ReadOnlyDSL` which that iterator would borrow.
 
 ### Critical Rule
 

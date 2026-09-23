@@ -1,0 +1,63 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Membership` from the `expired_membership` table whose value matches the value from the unique single-column btree index on the `account_id` column.*/
+    pub fn get_expired_membership_by_account_id<'a>(
+        &'a self,
+        account_id: impl Into<AccountId> + Clone,
+    ) -> Result<Membership, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self
+            .db()
+            .expired_membership()
+            .account_id()
+            .find(account_id.clone().into().value())
+        {
+            Some(expired_membership) => Ok(expired_membership),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "expired_membership".into(),
+                    column_names_and_row_values: format!(
+                        "{{ account_id : {} }}", account_id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Membership` from the `expired_membership` table whose value matches the value from the unique single-column btree index on the `account_id` column.*/
+    pub fn get_expired_membership_by_account_id<'a>(
+        &'a self,
+        account_id: impl Into<AccountId> + Clone,
+    ) -> Result<Membership, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self
+            .db()
+            .expired_membership()
+            .account_id()
+            .find(account_id.clone().into().value())
+        {
+            Some(expired_membership) => Ok(expired_membership),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "expired_membership".into(),
+                    column_names_and_row_values: format!(
+                        "{{ account_id : {} }}", account_id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl AccountId {
+    /**Get the `Membership` whose `account_id` column references this `AccountId`.
+
+Use it like `account_id.get_expired_membership(&dsl)`.*/
+    pub fn get_expired_membership<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<Membership, crate::spacetimedsl::error::SpacetimeDSLError> {
+        dsl.into().get_expired_membership_by_account_id(self)
+    }
+}

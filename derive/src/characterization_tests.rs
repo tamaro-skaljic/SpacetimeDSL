@@ -5,10 +5,11 @@
 //! Each fixture in `tests/fixtures` isolates one feature and names the branch it covers.
 //! Its snapshots live in `tests/snapshots/<fixture>/<StructName>`: `table.snap` holds
 //! everything the macro emits that is not a DSL method, plus a manifest of the generated
-//! method names, one `<method_name>.snap` holds each public DSL method, and
-//! `internal_methods.snap` holds all internal DSL methods together. A struct carrying
-//! more than one `#[dsl]` attribute is expanded once per attribute and snapshotted into
-//! a `pass_<n>` directory per expansion.
+//! method names, one `<method_name>.snap` holds each public DSL method,
+//! `internal_methods.snap` holds all internal DSL methods together, and
+//! `wrapper_methods.snap` holds all methods the struct adds to the wrapper types of its
+//! foreign key columns. A struct carrying more than one `#[dsl]` attribute is expanded
+//! once per attribute and snapshotted into a `pass_<n>` directory per expansion.
 //!
 //! Run `cargo insta review` to inspect and accept changed snapshots.
 
@@ -177,6 +178,11 @@ fn delete_hooks_with_foreign_key_on_unique_index() {
 }
 
 #[test]
+fn wrapper_methods() {
+    snapshot_fixture("wrapper_methods");
+}
+
+#[test]
 fn soft_delete_flag() {
     snapshot_fixture("soft_delete_flag");
 }
@@ -276,6 +282,13 @@ fn snapshot_fixture(fixture_name: &str) {
             if let Some(internal_methods) = internal_methods_snapshot(&generated_output) {
                 insta::assert_snapshot!(INTERNAL_METHODS_SNAPSHOT_NAME, internal_methods);
             }
+
+            if !generated_output.wrapper_methods.is_empty() {
+                insta::assert_snapshot!(
+                    WRAPPER_METHODS_SNAPSHOT_NAME,
+                    format_tokens(&generated_output.wrapper_methods)
+                );
+            }
         });
     }
 }
@@ -357,6 +370,9 @@ fn expand_fixture_to_string(fixture_name: &str) -> String {
 /// top of a long fixed phrase, so a file per internal method produced paths that no longer
 /// fit into the Windows path limit once the repository was checked out into a worktree.
 const INTERNAL_METHODS_SNAPSHOT_NAME: &str = "internal_methods";
+
+/// The name of the snapshot that holds every wrapper method of a struct at once.
+const WRAPPER_METHODS_SNAPSHOT_NAME: &str = "wrapper_methods";
 
 /// Every internal DSL method of the struct, each one preceded by its name, or `None` when
 /// the struct generates no internal method at all.

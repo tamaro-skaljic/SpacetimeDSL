@@ -1,0 +1,19 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Profile` row of the `profile` table whose value matches the value from the unique single-column btree index on the `account_id` column.*/
+    pub fn update_profile_by_account_id<'a>(
+        &'a self,
+        profile: Profile,
+    ) -> Result<Profile, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut profile = profile;
+        let profile = self.db().profile().account_id().update(profile);
+        Ok(profile)
+    }
+}

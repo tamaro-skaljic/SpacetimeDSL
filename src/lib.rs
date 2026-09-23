@@ -159,6 +159,25 @@ macro_rules! spacetimedsl {
                 }
             }
 
+            impl<'a, T: ::spacetimedsl::WriteContext + ::spacetimedsl::ReadContext>
+                From<&'a DSL<'a, T>> for ReadOnlyDSL<'a, T>
+            {
+                fn from(dsl: &'a DSL<'a, T>) -> Self {
+                    read_only_dsl(dsl.ctx)
+                }
+            }
+
+            impl<'a, T: ::spacetimedsl::ReadContext> From<&'a ReadOnlyDSL<'a, T>>
+                for ReadOnlyDSL<'a, T>
+            {
+                fn from(dsl: &'a ReadOnlyDSL<'a, T>) -> Self {
+                    ReadOnlyDSL {
+                        ctx: dsl.ctx,
+                        db: dsl.db,
+                    }
+                }
+            }
+
             pub struct DSLMethodHooks {}
 
             /// The row a `#[dsl(singleton(with_default))]` table gives when its row is absent.

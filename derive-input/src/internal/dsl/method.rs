@@ -37,6 +37,7 @@ mod singleton_table;
 mod soft_delete;
 mod update;
 mod upsert;
+mod wrapper_method;
 
 pub(in crate::internal) use context::{MethodGenerationContext, TableContributions};
 
@@ -52,6 +53,7 @@ use singleton_table::{for_singleton_delete, for_singleton_get};
 use soft_delete::{for_soft_delete_many, for_soft_delete_one};
 use update::for_update;
 use upsert::for_singleton_upsert;
+use wrapper_method::for_wrapper_methods;
 
 /// The update method an index earns, if any.
 ///
@@ -263,6 +265,7 @@ impl SpacetimeDSLTableMethods {
             };
 
         let mut on_delete_strategies_of_this_table = vec![];
+        let mut wrapper_methods = vec![];
 
         let columns_with_foreign_keys: Vec<&Column> = columns
             .iter()
@@ -361,6 +364,12 @@ impl SpacetimeDSLTableMethods {
                     on_deletion,
                     on_soft_deletion,
                 });
+
+                wrapper_methods.extend(for_wrapper_methods(
+                    referenced_table_name,
+                    &columns_with_foreign_key,
+                    context,
+                ));
             }
         }
 
@@ -388,6 +397,7 @@ impl SpacetimeDSLTableMethods {
             on_delete_strategies_of_referencing_tables,
             on_delete_strategies_of_this_table,
             multi_column_indices,
+            wrapper_methods,
         };
 
         Ok((methods, contributions))

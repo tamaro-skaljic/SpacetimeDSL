@@ -1,0 +1,59 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `account_note` table.
+    pub fn create_account_note<'a>(
+        &'a self,
+        account_note: CreateAccountNote,
+    ) -> Result<AccountNote, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let account_id = account_note.account_id.value();
+        let account_note = AccountNote { id, account_id };
+        let mut the_same_or_another_account_note: Option<AccountNote> = None;
+        if account_id.ne(&0) {
+            match self.get_account_by_id(account_note.get_account_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "account_note".into(),
+                            create_or_update: crate::spacetimedsl::error::Action::Create,
+                            column_names_and_row_values: format!(
+                                "{{ {} : {} }}", account_id, account_note.get_account_id()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        match self.db().account_note().try_insert(account_note.clone()) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "account_note".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ account_note : {:?} }}", account_note
+                            )
+                                .into(),
+                        })
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "account_note".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

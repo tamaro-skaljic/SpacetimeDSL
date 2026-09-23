@@ -1,0 +1,315 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Try to delete all `Category` rows in the `category` table whose value matches the value from the single-column btree index on the `parent_category_id` column.
+    pub fn delete_categories_by_parent_category_id<'a>(
+        &'a self,
+        parent_category_id: impl Into<CategoryId>,
+    ) -> Result<
+        crate::spacetimedsl::delete::DeletionResult,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use ::spacetimedsl::itertools::Itertools;
+        let parent_category_id = parent_category_id.into().value();
+        let rows_to_delete: Vec<Category> = self
+            .db()
+            .category()
+            .parent_category_id()
+            .filter(parent_category_id)
+            .collect();
+        if rows_to_delete.is_empty() {
+            return Ok(crate::spacetimedsl::delete::DeletionResult {
+                table_name: "category".into(),
+                one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                entries: vec![],
+                error_from_hook: None,
+            });
+        }
+        let mut deletion_result_entries = std::collections::HashMap::new();
+        for row_to_delete in &rows_to_delete {
+            deletion_result_entries
+                .insert(
+                    &row_to_delete.id,
+                    crate::spacetimedsl::delete::DeletionResultEntry {
+                        table_name: "category".into(),
+                        column_name: "id".into(),
+                        strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
+                        row_value: format!(
+                            "{}", CategoryId::new(row_to_delete.id.clone())
+                        )
+                            .into(),
+                        child_entries: vec![],
+                    },
+                );
+        }
+        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_category_table_were_deleted(
+            self,
+            crate::spacetimedsl::delete::OnDeleteStrategy::Error,
+            &rows_to_delete.iter().map(|row| row.id).collect_vec()[..],
+        ) {
+            Err(failure) => {
+                for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure
+                    .entries
+                {
+                    deletion_result_entries
+                        .get_mut(primary_key_value_of_a_row_to_delete)
+                        .expect(
+                            &format!(
+                                "{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries."
+                            ),
+                        )
+                        .child_entries
+                        .append(&mut child_entries);
+                }
+                let error_from_hook = failure.error_from_hook;
+                let error = crate::spacetimedsl::delete::DeletionResult {
+                    table_name: "category".into(),
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    entries: deletion_result_entries.into_values().collect_vec(),
+                    error_from_hook: error_from_hook,
+                };
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(
+                        crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnDelete(
+                            error,
+                        ),
+                    ),
+                );
+            }
+            Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
+                for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
+                    deletion_result_entries
+                        .get_mut(primary_key_value_of_a_row_to_delete)
+                        .expect(
+                            &format!(
+                                "{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries."
+                            ),
+                        )
+                        .child_entries
+                        .append(&mut child_entries);
+                }
+            }
+        };
+        let count_of_rows_to_delete: u64 = rows_to_delete
+            .len()
+            .try_into()
+            .unwrap_or(u64::MAX);
+        let count_of_deleted_rows = self
+            .db()
+            .category()
+            .parent_category_id()
+            .delete(parent_category_id);
+        if count_of_rows_to_delete.ne(&count_of_deleted_rows) {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Delete Many Error: `count_of_rows_to_delete ( {} ) != ( {} ) count_of_deleted_rows`!",
+                        & count_of_rows_to_delete, & count_of_deleted_rows
+                    ),
+                ),
+            );
+        }
+        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_category_table_were_deleted(
+            self,
+            crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
+            &rows_to_delete.iter().map(|row| row.id).collect_vec()[..],
+        ) {
+            Err(failure) => {
+                for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure
+                    .entries
+                {
+                    deletion_result_entries
+                        .get_mut(primary_key_value_of_a_row_to_delete)
+                        .expect(
+                            &format!(
+                                "{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries."
+                            ),
+                        )
+                        .child_entries
+                        .append(&mut child_entries);
+                }
+                let error_from_hook = failure.error_from_hook;
+                let error = crate::spacetimedsl::delete::DeletionResult {
+                    table_name: "category".into(),
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    entries: deletion_result_entries.into_values().collect_vec(),
+                    error_from_hook: error_from_hook,
+                };
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                        format!(
+                            "Delete Many Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
+                        ),
+                    ),
+                );
+            }
+            Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
+                for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
+                    deletion_result_entries
+                        .get_mut(primary_key_value_of_a_row_to_delete)
+                        .expect(
+                            &format!(
+                                "{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries."
+                            ),
+                        )
+                        .child_entries
+                        .append(&mut child_entries);
+                }
+            }
+        };
+        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_category_table_were_deleted(
+            self,
+            crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
+            &rows_to_delete.iter().map(|row| row.id).collect_vec()[..],
+        ) {
+            Err(failure) => {
+                for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure
+                    .entries
+                {
+                    deletion_result_entries
+                        .get_mut(primary_key_value_of_a_row_to_delete)
+                        .expect(
+                            &format!(
+                                "{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries."
+                            ),
+                        )
+                        .child_entries
+                        .append(&mut child_entries);
+                }
+                let error_from_hook = failure.error_from_hook;
+                let error = crate::spacetimedsl::delete::DeletionResult {
+                    table_name: "category".into(),
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    entries: deletion_result_entries.into_values().collect_vec(),
+                    error_from_hook: error_from_hook,
+                };
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                        format!(
+                            "Delete Many Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
+                        ),
+                    ),
+                );
+            }
+            Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
+                for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
+                    deletion_result_entries
+                        .get_mut(primary_key_value_of_a_row_to_delete)
+                        .expect(
+                            &format!(
+                                "{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries."
+                            ),
+                        )
+                        .child_entries
+                        .append(&mut child_entries);
+                }
+            }
+        };
+        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_category_table_were_deleted(
+            self,
+            crate::spacetimedsl::delete::OnDeleteStrategy::SetZero,
+            &rows_to_delete.iter().map(|row| row.id).collect_vec()[..],
+        ) {
+            Err(failure) => {
+                for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure
+                    .entries
+                {
+                    deletion_result_entries
+                        .get_mut(primary_key_value_of_a_row_to_delete)
+                        .expect(
+                            &format!(
+                                "{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries."
+                            ),
+                        )
+                        .child_entries
+                        .append(&mut child_entries);
+                }
+                let error_from_hook = failure.error_from_hook;
+                let error = crate::spacetimedsl::delete::DeletionResult {
+                    table_name: "category".into(),
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    entries: deletion_result_entries.into_values().collect_vec(),
+                    error_from_hook: error_from_hook,
+                };
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                        format!(
+                            "Delete Many Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
+                        ),
+                    ),
+                );
+            }
+            Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
+                for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
+                    deletion_result_entries
+                        .get_mut(primary_key_value_of_a_row_to_delete)
+                        .expect(
+                            &format!(
+                                "{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries."
+                            ),
+                        )
+                        .child_entries
+                        .append(&mut child_entries);
+                }
+            }
+        };
+        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_category_table_were_deleted(
+            self,
+            crate::spacetimedsl::delete::OnDeleteStrategy::Ignore,
+            &rows_to_delete.iter().map(|row| row.id).collect_vec()[..],
+        ) {
+            Err(failure) => {
+                for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure
+                    .entries
+                {
+                    deletion_result_entries
+                        .get_mut(primary_key_value_of_a_row_to_delete)
+                        .expect(
+                            &format!(
+                                "{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries."
+                            ),
+                        )
+                        .child_entries
+                        .append(&mut child_entries);
+                }
+                let error_from_hook = failure.error_from_hook;
+                let error = crate::spacetimedsl::delete::DeletionResult {
+                    table_name: "category".into(),
+                    one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                    entries: deletion_result_entries.into_values().collect_vec(),
+                    error_from_hook: error_from_hook,
+                };
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                        format!(
+                            "Delete Many Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
+                        ),
+                    ),
+                );
+            }
+            Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
+                for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
+                    deletion_result_entries
+                        .get_mut(primary_key_value_of_a_row_to_delete)
+                        .expect(
+                            &format!(
+                                "{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries."
+                            ),
+                        )
+                        .child_entries
+                        .append(&mut child_entries);
+                }
+            }
+        };
+        return Ok(crate::spacetimedsl::delete::DeletionResult {
+            table_name: "category".into(),
+            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+            entries: deletion_result_entries.into_values().collect_vec(),
+            error_from_hook: None,
+        });
+    }
+}

@@ -214,6 +214,7 @@ fn before_position_hook_helper(
 **Data Integrity by Construction:**
 
 - 🏷️ Wrapper types (`#[create_wrapper]` + `#[use_wrapper(EntityId)]`) make cross-table ID misuse much harder.
+- 🧭 Foreign-key columns add lookups to their wrapper types, like `entity_id.get_position(&dsl)`.
 - 🔗 Foreign-key validation ensures referenced `Entity` exists on create (and update, if the `entity_id` column would be mutable).
 - 🧹 Referential cleanup on delete keeps dependent `Position` rows in sync automatically when deleting their corresponding `Entity`.
 - 🎲 `unique_index(name = x_y)` enforces unique multi-column `(x, y)` positions.

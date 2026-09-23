@@ -1,0 +1,64 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Category` row of the `category` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_category_by_id<'a>(
+        &'a self,
+        category: Category,
+    ) -> Result<Category, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut category = category;
+        let mut the_same_or_another_category: Option<Category> = None;
+        let parent_category_id = category.get_parent_category_id().value();
+        if parent_category_id.ne(&0) {
+            if the_same_or_another_category.is_none() {
+                the_same_or_another_category = match self
+                    .db()
+                    .category()
+                    .id()
+                    .find(category.get_id().value())
+                {
+                    Some(category) => Some(category),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "category".into(),
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", parent_category_id
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_category
+                .as_ref()
+                .expect("field_name_for_found_value should be Some(_)")
+                .get_parent_category_id()
+                .ne(&category.get_parent_category_id())
+            {
+                match self.get_category_by_id(category.get_parent_category_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "category".into(),
+                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", "parent_category_id", parent_category_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        let category = self.db().category().id().update(category);
+        Ok(category)
+    }
+}

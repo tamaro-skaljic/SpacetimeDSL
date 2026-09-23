@@ -1,0 +1,27 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `AccountNote` iterator that contains all rows in the `account_note` table whose value matches the value from the single-column btree index on the `account_id` column.
+    pub fn get_account_notes_by_account_id<'a>(
+        &'a self,
+        account_id: impl Into<crate::accounts::AccountId>,
+    ) -> impl Iterator<Item = AccountNote> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().account_note().account_id().filter(account_id.into().value())
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `AccountNote` iterator that contains all rows in the `account_note` table whose value matches the value from the single-column btree index on the `account_id` column.
+    pub fn get_account_notes_by_account_id<'a>(
+        &'a self,
+        account_id: impl Into<crate::accounts::AccountId>,
+    ) -> impl Iterator<Item = AccountNote> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().account_note().account_id().filter(account_id.into().value())
+    }
+}
