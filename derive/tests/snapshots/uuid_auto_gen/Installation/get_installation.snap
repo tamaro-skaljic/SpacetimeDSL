@@ -1,0 +1,41 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Try to get the `Installation` from the singleton `installation` table.
+    pub fn get_installation<'a>(
+        &'a self,
+    ) -> Result<Installation, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().installation().id().find(&0u8) {
+            Some(installation) => Ok(installation),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "installation".into(),
+                    column_names_and_row_values: "{ id : 0 }".into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Try to get the `Installation` from the singleton `installation` table.
+    pub fn get_installation<'a>(
+        &'a self,
+    ) -> Result<Installation, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().installation().id().find(&0u8) {
+            Some(installation) => Ok(installation),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "installation".into(),
+                    column_names_and_row_values: "{ id : 0 }".into(),
+                });
+            }
+        }
+    }
+}

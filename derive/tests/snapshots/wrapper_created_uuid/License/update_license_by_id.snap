@@ -1,0 +1,19 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `License` row of the `license` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_license_by_id<'a>(
+        &'a self,
+        license: License,
+    ) -> Result<License, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut license = license;
+        let license = self.db().license().id().update(license);
+        Ok(license)
+    }
+}

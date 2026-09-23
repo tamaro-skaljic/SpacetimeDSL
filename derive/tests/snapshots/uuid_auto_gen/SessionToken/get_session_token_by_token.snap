@@ -1,0 +1,53 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `SessionToken` from the `session_token` table whose value matches the value from the unique single-column btree index on the `token` column.*/
+    pub fn get_session_token_by_token<'a>(
+        &'a self,
+        token: impl Into<SessionTokenToken> + Clone,
+    ) -> Result<SessionToken, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().session_token().token().find(token.clone().into().value()) {
+            Some(session_token) => Ok(session_token),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "session_token".into(),
+                    column_names_and_row_values: format!(
+                        "{{ token : {} }}", token.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `SessionToken` from the `session_token` table whose value matches the value from the unique single-column btree index on the `token` column.*/
+    pub fn get_session_token_by_token<'a>(
+        &'a self,
+        token: impl Into<SessionTokenToken> + Clone,
+    ) -> Result<SessionToken, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().session_token().token().find(token.clone().into().value()) {
+            Some(session_token) => Ok(session_token),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "session_token".into(),
+                    column_names_and_row_values: format!(
+                        "{{ token : {} }}", token.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

@@ -77,6 +77,11 @@ fn wrapper_created_named() {
 }
 
 #[test]
+fn wrapper_created_uuid() {
+    snapshot_fixture("wrapper_created_uuid");
+}
+
+#[test]
 fn wrapper_used() {
     snapshot_fixture("wrapper_used");
 }
@@ -144,6 +149,11 @@ fn timestamps() {
 #[test]
 fn update_hook_with_updated_at() {
     snapshot_fixture("update_hook_with_updated_at");
+}
+
+#[test]
+fn uuid_auto_gen() {
+    snapshot_fixture("uuid_auto_gen");
 }
 
 #[test]

@@ -1,0 +1,160 @@
+---
+source: derive/src/characterization_tests.rs
+---
+pub trait this_compilation_error_occurs_because_the_session_token_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_account_table {}
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct SessionTokenId {
+    value: u64,
+}
+impl Default for SessionTokenId {
+    fn default() -> SessionTokenId {
+        SessionTokenId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for SessionTokenId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "SessionTokenId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, SessionTokenId> for SessionTokenId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&SessionToken> for SessionTokenId {
+    fn from(value: &SessionToken) -> Self {
+        SessionTokenId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&SessionToken> for Option<SessionTokenId> {
+    fn from(value: &SessionToken) -> Option<SessionTokenId> {
+        Some(SessionTokenId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&SessionTokenId> for Option<SessionTokenId> {
+    fn from(value: &SessionTokenId) -> Option<SessionTokenId> {
+        use spacetimedsl::Wrapper;
+        Some(SessionTokenId::new(value.value()))
+    }
+}
+impl From<&SessionTokenId> for SessionTokenId {
+    fn from(value: &SessionTokenId) -> Self {
+        use spacetimedsl::Wrapper;
+        SessionTokenId::new(value.value())
+    }
+}
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct SessionTokenToken {
+    value: spacetimedb::Uuid,
+}
+impl SessionTokenToken {
+    /// Generate a random UUID v4.
+    pub fn v4(
+        dsl: &crate::spacetimedsl::DSL<'_, impl crate::spacetimedsl::WriteContext>,
+    ) -> Result<Self, crate::spacetimedsl::error::SpacetimeDSLError> {
+        Ok(Self {
+            value: crate::spacetimedsl::NewUUID::new_uuid_v4(dsl.ctx())?,
+        })
+    }
+    /// Generate a UUID v7, which sorts in the order the values were generated.
+    pub fn v7(
+        dsl: &crate::spacetimedsl::DSL<'_, impl crate::spacetimedsl::WriteContext>,
+    ) -> Result<Self, crate::spacetimedsl::error::SpacetimeDSLError> {
+        Ok(Self {
+            value: crate::spacetimedsl::NewUUID::new_uuid_v7(dsl.ctx())?,
+        })
+    }
+}
+impl std::fmt::Display for SessionTokenToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "SessionTokenToken", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<spacetimedb::Uuid, SessionTokenToken>
+for SessionTokenToken {
+    fn new(value: spacetimedb::Uuid) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> spacetimedb::Uuid {
+        self.value.clone()
+    }
+}
+impl From<&SessionToken> for SessionTokenToken {
+    fn from(value: &SessionToken) -> Self {
+        SessionTokenToken {
+            value: value.token.clone(),
+        }
+    }
+}
+impl From<&SessionToken> for Option<SessionTokenToken> {
+    fn from(value: &SessionToken) -> Option<SessionTokenToken> {
+        Some(SessionTokenToken {
+            value: value.token.clone(),
+        })
+    }
+}
+impl From<&SessionTokenToken> for Option<SessionTokenToken> {
+    fn from(value: &SessionTokenToken) -> Option<SessionTokenToken> {
+        use spacetimedsl::Wrapper;
+        Some(SessionTokenToken::new(value.value()))
+    }
+}
+impl From<&SessionTokenToken> for SessionTokenToken {
+    fn from(value: &SessionTokenToken) -> Self {
+        use spacetimedsl::Wrapper;
+        SessionTokenToken::new(value.value())
+    }
+}
+impl SessionToken {
+    ///
+    pub fn get_id(&self) -> SessionTokenId {
+        use spacetimedsl::Wrapper;
+        SessionTokenId::new(self.id.clone())
+    }
+    ///
+    pub fn get_token(&self) -> SessionTokenToken {
+        use spacetimedsl::Wrapper;
+        SessionTokenToken::new(self.token.clone())
+    }
+    ///
+    pub fn get_account_id(&self) -> AccountId {
+        use spacetimedsl::Wrapper;
+        AccountId::new(self.account_id.clone())
+    }
+    ///
+    pub fn set_account_id(&mut self, account_id: impl Into<AccountId>) -> AccountId {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(
+            &mut self.account_id,
+            account_id.into().value(),
+        );
+        AccountId::new(old_value)
+    }
+}
+///
+pub struct CreateSessionToken {
+    pub account_id: AccountId,
+}
+
+// Generated DSL methods:
+// count_of_all_session_tokens
+// create_session_token
+// delete_session_token_by_id
+// delete_session_token_by_token
+// delete_session_tokens_by_account_id
+// execute_on_delete_strategies_of_the_session_token_table_after_multiple_rows_of_the_account_table_were_deleted
+// execute_on_delete_strategies_of_the_session_token_table_after_one_row_of_the_account_table_was_deleted
+// get_all_session_tokens
+// get_session_token_by_id
+// get_session_token_by_token
+// get_session_tokens_by_account_id
+// update_session_token_by_id

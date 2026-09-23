@@ -2,6 +2,7 @@ use super::{create_wrapper, use_wrapper};
 use crate::api::dsl::wrapper::{CreatedWrapper, UsedWrapper, WrapperType};
 use crate::api::runtime;
 use crate::api::rust::{column::RustField, table::RustStruct};
+use crate::internal::column::ColumnTypeKind;
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -79,6 +80,7 @@ impl WrapperType {
                     &wrapper_struct_name_or_path,
                     &wrapped_type_name_or_path,
                     &rust_field.name,
+                    ColumnTypeKind::of(&rust_field.type_name_or_path) == ColumnTypeKind::UUID,
                 );
 
                 let wrapped_type_name_or_path =
@@ -112,6 +114,7 @@ fn get_wrapper_impl(
     wrapper_struct_name: &Ident,
     wrapped_type_name_or_path: &str,
     field_name: &Ident,
+    wraps_uuid: bool,
 ) -> TokenStream {
     let wrapped_type: Type = parse_str(wrapped_type_name_or_path).unwrap_or_else(|_| {
         panic!("Expected to parse {wrapped_type_name_or_path} as Type in get_wrapper_impl!")
@@ -121,17 +124,26 @@ fn get_wrapper_impl(
 
     let wrapper_trait = runtime::wrapper_trait(&wrapped_type, wrapper_struct_name);
 
+    // `Uuid` has no `Default`, so its wrapper generates a fresh value instead.
+    let constructors = if wraps_uuid {
+        uuid_wrapper_constructors(wrapper_struct_name)
+    } else {
+        quote! {
+            impl Default for #wrapper_struct_name {
+                fn default() -> #wrapper_struct_name {
+                    #wrapper_struct_name { value: Default::default() }
+                }
+            }
+        }
+    };
+
     quote! {
         #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
         pub struct #wrapper_struct_name {
             value: #wrapped_type,
         }
 
-        impl Default for #wrapper_struct_name {
-            fn default() -> #wrapper_struct_name {
-                #wrapper_struct_name { value: Default::default() }
-            }
-        }
+        #constructors
 
         impl std::fmt::Display for #wrapper_struct_name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -171,6 +183,26 @@ fn get_wrapper_impl(
             fn from(value: &#wrapper_struct_name) -> Self {
                 use spacetimedsl::Wrapper;
                 #wrapper_struct_name::new(value.value())
+            }
+        }
+    }
+}
+
+fn uuid_wrapper_constructors(wrapper_struct_name: &Ident) -> TokenStream {
+    let dsl_reference_type = runtime::dsl_reference_type_with_any_write_context();
+    let new_uuid_trait = runtime::new_uuid_trait();
+    let result_type = runtime::error_result_type(&quote! { Self });
+
+    quote! {
+        impl #wrapper_struct_name {
+            /// Generate a random UUID v4.
+            pub fn v4(dsl: #dsl_reference_type) -> #result_type {
+                Ok(Self { value: #new_uuid_trait::new_uuid_v4(dsl.ctx())? })
+            }
+
+            /// Generate a UUID v7, which sorts in the order the values were generated.
+            pub fn v7(dsl: #dsl_reference_type) -> #result_type {
+                Ok(Self { value: #new_uuid_trait::new_uuid_v7(dsl.ctx())? })
             }
         }
     }

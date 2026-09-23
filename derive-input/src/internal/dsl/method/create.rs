@@ -71,7 +71,19 @@ fn create_method_column_parts(
         };
     }
 
-    if internal_column.spacetimedb_column_is_auto_inc {
+    if let Some(uuid_version) = &internal_column.spacetimedsl_column_auto_generated_uuid_version {
+        let wrapper_type = WrapperType::map(
+            internal_column
+                .spacetimedsl_column_wrapper_type
+                .as_ref()
+                .expect("an #[auto_gen] column has a #[create_wrapper]"),
+        );
+        let wrapper_constructor_name = uuid_version.wrapper_constructor_name();
+
+        constructor_arg = Some(quote! {
+            let #column_name = #wrapper_type::#wrapper_constructor_name(self)?.value();
+        });
+    } else if internal_column.spacetimedb_column_is_auto_inc {
         constructor_arg = Some(quote! {
             let #column_name = #column_type::default();
         });

@@ -1,0 +1,65 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `License` from the `license` table whose value matches the value from the unique single-column btree index on the `external_reference` column.*/
+    pub fn get_license_by_external_reference<'a>(
+        &'a self,
+        external_reference: impl Into<ExternalReference> + Clone,
+    ) -> Result<License, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self
+            .db()
+            .license()
+            .external_reference()
+            .find(external_reference.clone().into().value())
+        {
+            Some(license) => Ok(license),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "license".into(),
+                    column_names_and_row_values: format!(
+                        "{{ external_reference : {} }}", external_reference.clone()
+                        .into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `License` from the `license` table whose value matches the value from the unique single-column btree index on the `external_reference` column.*/
+    pub fn get_license_by_external_reference<'a>(
+        &'a self,
+        external_reference: impl Into<ExternalReference> + Clone,
+    ) -> Result<License, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self
+            .db()
+            .license()
+            .external_reference()
+            .find(external_reference.clone().into().value())
+        {
+            Some(license) => Ok(license),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "license".into(),
+                    column_names_and_row_values: format!(
+                        "{{ external_reference : {} }}", external_reference.clone()
+                        .into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

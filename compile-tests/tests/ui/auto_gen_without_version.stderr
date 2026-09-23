@@ -1,0 +1,5 @@
+error: Expected `#[auto_gen(v4)]` or `#[auto_gen(v7)]`!
+  --> tests/ui/auto_gen_without_version.rs:13:9
+   |
+13 |         #[auto_gen]
+   |         ^^^^^^^^^^^

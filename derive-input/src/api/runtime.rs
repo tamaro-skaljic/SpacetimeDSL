@@ -264,6 +264,23 @@ pub fn dsl_reference_type() -> TokenStream {
     }
 }
 
+/// `&DSL<'_, impl WriteContext>`, the argument of the `v4` and `v7` constructors of a
+/// `Uuid` wrapper, which are not generic over a `T` of their own.
+pub fn dsl_reference_type_with_any_write_context() -> TokenStream {
+    let write_context = write_context();
+
+    quote! {
+        &crate::spacetimedsl::DSL<'_, impl #write_context>
+    }
+}
+
+/// `NewUUID`, the context trait `v4` and `v7` generate their value through.
+pub fn new_uuid_trait() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::NewUUID
+    }
+}
+
 /// `ReadOnlyDSL<'_, T>`, the second receiver a read-compatible method is emitted on.
 pub fn read_only_dsl_type() -> TokenStream {
     quote! {

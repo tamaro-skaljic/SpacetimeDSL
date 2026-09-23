@@ -18,4 +18,6 @@ pub mod setter;
 
 pub mod method;
 
+pub mod auto_gen;
+
 pub mod soft_delete;

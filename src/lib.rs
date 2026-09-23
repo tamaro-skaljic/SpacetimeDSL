@@ -18,6 +18,7 @@ pub mod get_random;
 pub mod get_random_number_generator;
 pub mod get_sender;
 pub mod get_timestamp;
+pub mod new_uuid;
 
 pub mod delete;
 pub mod error;
@@ -34,6 +35,7 @@ use get_random::GetRandom;
 use get_random_number_generator::GetRandomNumberGenerator;
 use get_sender::GetSender;
 use get_timestamp::GetTimestamp;
+use new_uuid::NewUUID;
 
 pub enum ContextType {
     AnonymousView,
@@ -64,6 +66,7 @@ pub trait Context:
     + GetRandomNumberGenerator
     + GetSender
     + GetTimestamp
+    + NewUUID
     + AsAnonymousViewContext
     + AsReducerContext
     + AsViewContext
@@ -74,8 +77,8 @@ pub trait WriteContext: ReadContext + Context + spacetimedb::CtxDbWrite {}
 
 pub trait ReadContext: Context + spacetimedb::CtxDbRead {}
 
-pub trait Wrapper<WrappedType: Clone + Default, WrapperType>:
-    Default + Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
+pub trait Wrapper<WrappedType: Clone, WrapperType>:
+    Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
 {
     fn new(value: WrappedType) -> Self;
     fn value(&self) -> WrappedType;
@@ -183,6 +186,7 @@ macro_rules! spacetimedsl {
             pub use ::spacetimedsl::delete;
             pub use ::spacetimedsl::error;
             pub use ::spacetimedsl::itertools;
+            pub use ::spacetimedsl::new_uuid::NewUUID;
             // Flat re-exports so that `spacetimedsl::X` paths (which in user crates resolve to
             // `crate::spacetimedsl::X`) work without needing the sub-module prefix.
             pub use ::spacetimedsl::delete::{
@@ -217,6 +221,7 @@ macro_rules! spacetimedsl {
                 pub use ::spacetimedsl::get_random_number_generator::GetRandomNumberGenerator;
                 pub use ::spacetimedsl::get_sender::GetSender;
                 pub use ::spacetimedsl::get_timestamp::GetTimestamp;
+                pub use ::spacetimedsl::new_uuid::NewUUID;
 
                 pub use ::spacetimedsl::as_anonymous_view_context::AsAnonymousViewContext;
                 pub use ::spacetimedsl::as_reducer_context::AsReducerContext;

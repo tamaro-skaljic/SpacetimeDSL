@@ -1,0 +1,5 @@
+error: `#[auto_gen]` is not allowed on a `singleton(with_default)` table, because views aren't able to access UUID generators!
+ --> tests/ui/auto_gen_on_singleton_with_default.rs:8:9
+  |
+8 |         #[auto_gen(v4)]
+  |         ^^^^^^^^^^^^^^^

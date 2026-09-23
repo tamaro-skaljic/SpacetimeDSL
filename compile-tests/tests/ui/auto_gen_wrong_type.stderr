@@ -1,0 +1,5 @@
+error: A column with `#[auto_gen]` should have the type `spacetimedb::Uuid`! Found: u128
+  --> tests/ui/auto_gen_wrong_type.rs:14:16
+   |
+14 |         token: u128,
+   |                ^^^^

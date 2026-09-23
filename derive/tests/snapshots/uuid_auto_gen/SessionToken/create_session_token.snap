@@ -1,0 +1,62 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `session_token` table.
+    pub fn create_session_token<'a>(
+        &'a self,
+        session_token: CreateSessionToken,
+    ) -> Result<SessionToken, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let token = SessionTokenToken::v4(self)?.value();
+        let account_id = session_token.account_id.value();
+        let session_token = SessionToken {
+            id,
+            token,
+            account_id,
+        };
+        let mut the_same_or_another_session_token: Option<SessionToken> = None;
+        match self.get_account_by_id(session_token.get_account_id()) {
+            Ok(_) => {}
+            Err(_) => {
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                        table_name: "session_token".into(),
+                        create_or_update: crate::spacetimedsl::error::Action::Create,
+                        column_names_and_row_values: format!(
+                            "{{ {} : {} }}", account_id, session_token.get_account_id()
+                        )
+                            .into(),
+                    }),
+                );
+            }
+        };
+        match self.db().session_token().try_insert(session_token.clone()) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "session_token".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ session_token : {:?} }}", session_token
+                            )
+                                .into(),
+                        })
+                    }
+                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "session_token".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}
