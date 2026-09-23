@@ -1,0 +1,60 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `SessionToken` row of the `session_token` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_session_token_by_id<'a>(
+        &'a self,
+        session_token: SessionToken,
+    ) -> Result<SessionToken, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut session_token = session_token;
+        let mut the_same_or_another_session_token: Option<SessionToken> = None;
+        let account_id = session_token.get_account_id().value();
+        if the_same_or_another_session_token.is_none() {
+            the_same_or_another_session_token = match self
+                .db()
+                .session_token()
+                .id()
+                .find(session_token.get_id().value())
+            {
+                Some(session_token) => Some(session_token),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "session_token".into(),
+                        column_names_and_row_values: format!("{{ id : {} }}", account_id)
+                            .into(),
+                    });
+                }
+            };
+        }
+        if the_same_or_another_session_token
+            .as_ref()
+            .expect("field_name_for_found_value should be Some(_)")
+            .get_account_id()
+            .ne(&session_token.get_account_id())
+        {
+            match self.get_account_by_id(session_token.get_account_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "session_token".into(),
+                            create_or_update: crate::spacetimedsl::error::Action::Update,
+                            column_names_and_row_values: format!(
+                                "{{ {} : {} }}", "account_id", account_id
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        let session_token = self.db().session_token().id().update(session_token);
+        Ok(session_token)
+    }
+}

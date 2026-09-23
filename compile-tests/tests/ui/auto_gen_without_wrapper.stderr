@@ -1,0 +1,5 @@
+error: A column with `#[auto_gen]` must be accompanied by `#[create_wrapper]`!
+  --> tests/ui/auto_gen_without_wrapper.rs:12:9
+   |
+12 |         #[auto_gen(v4)]
+   |         ^^^^^^^^^^^^^^^

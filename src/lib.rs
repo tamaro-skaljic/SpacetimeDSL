@@ -182,11 +182,11 @@ macro_rules! spacetimedsl {
             pub use ::spacetimedsl::Context;
             pub use ::spacetimedsl::ReadContext;
             pub use ::spacetimedsl::Wrapper;
-            pub use ::spacetimedsl::new_uuid::NewUUID;
             pub use ::spacetimedsl::WriteContext;
             pub use ::spacetimedsl::delete;
             pub use ::spacetimedsl::error;
             pub use ::spacetimedsl::itertools;
+            pub use ::spacetimedsl::new_uuid::NewUUID;
             // Flat re-exports so that `spacetimedsl::X` paths (which in user crates resolve to
             // `crate::spacetimedsl::X`) work without needing the sub-module prefix.
             pub use ::spacetimedsl::delete::{

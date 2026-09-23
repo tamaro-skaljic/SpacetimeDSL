@@ -152,6 +152,11 @@ fn update_hook_with_updated_at() {
 }
 
 #[test]
+fn uuid_auto_gen() {
+    snapshot_fixture("uuid_auto_gen");
+}
+
+#[test]
 fn scheduled_table() {
     snapshot_fixture("scheduled_table");
 }

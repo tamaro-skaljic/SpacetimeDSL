@@ -2,6 +2,7 @@ use crate::api::{
     Column,
     db::{column::SpacetimeDBColumn, table::SpacetimeDBTable},
     dsl::{
+        auto_gen::UUIDVersion,
         column::{SpacetimeDSLColumn, SpacetimeDSLColumnMethods},
         foreign_key::ForeignKey,
         table::SpacetimeDSLTable,
@@ -59,9 +60,7 @@ pub(in crate::internal) fn try_parse(
         let spacetimedb_column = res.1;
 
         let spacetimedsl_column = SpacetimeDSLColumn::try_parse(
-            &spacetimedsl_table.has_delete_method,
-            spacetimedsl_table.is_soft_deletable(),
-            spacetimedsl_table.is_singleton(),
+            spacetimedsl_table,
             field,
             rust_struct,
             &rust_field,
@@ -78,6 +77,8 @@ pub(in crate::internal) fn try_parse(
             spacetimedb_column_is_auto_inc: spacetimedb_column.is_auto_inc,
             spacetimedsl_column_is_option: spacetimedsl_column.is_option,
             spacetimedsl_column_wrapper_type: spacetimedsl_column.wrapper_type.clone(),
+            spacetimedsl_column_auto_generated_uuid_version: spacetimedsl_column
+                .auto_generated_uuid_version,
         };
 
         rust_fields.push(rust_field);
@@ -191,6 +192,7 @@ pub(in crate::internal) struct InternalColumn {
     pub spacetimedsl_column_is_option: bool,
     pub spacetimedsl_column_foreign_key: Option<ForeignKey>,
     pub spacetimedsl_column_wrapper_type: Option<WrapperType>,
+    pub spacetimedsl_column_auto_generated_uuid_version: Option<UUIDVersion>,
 }
 
 fn get_auto_inc_column_names(column_args: &ColumnArgs<'_>) -> Vec<Ident> {

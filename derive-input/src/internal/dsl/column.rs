@@ -1,8 +1,9 @@
+use crate::api::dsl::table::SpacetimeDSLTable;
 use crate::api::{
     db::column::SpacetimeDBColumn,
     dsl::{
-        column::SpacetimeDSLColumn, foreign_key::ForeignKey, getter::Getter, mut_getter::MutGetter,
-        setter::Setter, wrapper::WrapperType,
+        auto_gen::UUIDVersion, column::SpacetimeDSLColumn, foreign_key::ForeignKey, getter::Getter,
+        mut_getter::MutGetter, setter::Setter, wrapper::WrapperType,
     },
     rust::{column::RustField, table::RustStruct},
 };
@@ -12,18 +13,24 @@ use syn::Error;
 
 impl SpacetimeDSLColumn {
     pub(in crate::internal) fn try_parse(
-        has_delete_method: &bool,
-        is_soft_deletable: bool,
-        is_singleton: bool,
+        spacetimedsl_table: &SpacetimeDSLTable,
         field: &SatsField<'_>,
         rust_struct: &RustStruct,
         rust_field: &RustField,
         spacetimedb_column: &SpacetimeDBColumn,
     ) -> syn::Result<SpacetimeDSLColumn> {
+        let is_singleton = spacetimedsl_table.is_singleton();
         let is_option =
             ColumnTypeKind::of(&rust_field.type_name_or_path) == ColumnTypeKind::Optional;
 
         let wrapper_type = WrapperType::try_parse(rust_struct, rust_field, field)?;
+
+        let auto_generated_uuid_version = UUIDVersion::try_parse(
+            field,
+            rust_field,
+            &wrapper_type,
+            spacetimedsl_table.singleton_has_default(),
+        )?;
 
         if !is_singleton && spacetimedb_column.is_primary_key && wrapper_type.is_none() {
             return Err(Error::new_spanned(
@@ -33,7 +40,12 @@ impl SpacetimeDSLColumn {
         }
 
         let foreign_key =
-            ForeignKey::try_parse(has_delete_method, is_soft_deletable, is_singleton, field)?;
+            ForeignKey::try_parse(
+                &spacetimedsl_table.has_delete_method,
+                spacetimedsl_table.is_soft_deletable(),
+                is_singleton,
+                field,
+            )?;
 
         if foreign_key.is_some() {
             match &wrapper_type {
@@ -72,6 +84,7 @@ impl SpacetimeDSLColumn {
             is_option,
             wrapper_type,
             foreign_key,
+            auto_generated_uuid_version,
             getter,
             mut_getter,
             setter,

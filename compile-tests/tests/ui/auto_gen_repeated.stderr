@@ -1,0 +1,5 @@
+error: Only one `#[auto_gen]` is allowed per column!
+  --> tests/ui/auto_gen_repeated.rs:14:9
+   |
+14 |         #[auto_gen(v7)]
+   |         ^^^^^^^^^^^^^^^
