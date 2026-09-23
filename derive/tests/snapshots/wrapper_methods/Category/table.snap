@@ -1,0 +1,97 @@
+---
+source: derive/src/characterization_tests.rs
+---
+pub trait this_compilation_error_occurs_because_the_category_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_category_table {}
+pub trait this_compilation_error_occurs_because_the_category_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_category_table {}
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct CategoryId {
+    value: u64,
+}
+impl Default for CategoryId {
+    fn default() -> CategoryId {
+        CategoryId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for CategoryId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "CategoryId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, CategoryId> for CategoryId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Category> for CategoryId {
+    fn from(value: &Category) -> Self {
+        CategoryId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Category> for Option<CategoryId> {
+    fn from(value: &Category) -> Option<CategoryId> {
+        Some(CategoryId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&CategoryId> for Option<CategoryId> {
+    fn from(value: &CategoryId) -> Option<CategoryId> {
+        use spacetimedsl::Wrapper;
+        Some(CategoryId::new(value.value()))
+    }
+}
+impl From<&CategoryId> for CategoryId {
+    fn from(value: &CategoryId) -> Self {
+        use spacetimedsl::Wrapper;
+        CategoryId::new(value.value())
+    }
+}
+impl Category {
+    ///
+    pub fn get_id(&self) -> CategoryId {
+        use spacetimedsl::Wrapper;
+        CategoryId::new(self.id.clone())
+    }
+    ///
+    pub fn get_parent_category_id(&self) -> CategoryId {
+        use spacetimedsl::Wrapper;
+        CategoryId::new(self.parent_category_id.clone())
+    }
+    ///
+    pub fn set_parent_category_id(
+        &mut self,
+        parent_category_id: impl Into<CategoryId>,
+    ) -> CategoryId {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(
+            &mut self.parent_category_id,
+            parent_category_id.into().value(),
+        );
+        CategoryId::new(old_value)
+    }
+}
+///
+pub struct CreateCategory {
+    pub parent_category_id: CategoryId,
+}
+
+// Generated DSL methods:
+// count_of_all_categories
+// create_category
+// delete_categories_by_parent_category_id
+// delete_category_by_id
+// execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_category_table_were_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_category_table_was_deleted
+// execute_on_delete_strategies_of_the_category_table_after_multiple_rows_of_the_category_table_were_deleted
+// execute_on_delete_strategies_of_the_category_table_after_one_row_of_the_category_table_was_deleted
+// get_all_categories
+// get_categories_by_parent_category_id
+// get_category_by_id
+// update_category_by_id

@@ -236,6 +236,20 @@ impl WrapperType {
         }
     }
 
+    /// The wrapper's own name without its module path, as doc comments name it.
+    pub(in crate::internal) fn struct_name(&self) -> Ident {
+        match self {
+            WrapperType::Created(created_wrapper) => created_wrapper.wrapper_struct_name.clone(),
+            WrapperType::Used(used_wrapper) => used_wrapper
+                .wrapper_struct_name_or_path
+                .segments
+                .last()
+                .expect("A parsed path always has a last segment")
+                .ident
+                .clone(),
+        }
+    }
+
     pub(in crate::internal) fn map(value: &WrapperType) -> Type {
         match value {
             WrapperType::Created(w) => parse_str(&w.wrapper_struct_name.to_token_stream().to_string()).unwrap_or_else(|_| panic!("Failed to parse {} as Ident in WrapperType::map_to_wrapper_type for WrapperType::Wrap.",

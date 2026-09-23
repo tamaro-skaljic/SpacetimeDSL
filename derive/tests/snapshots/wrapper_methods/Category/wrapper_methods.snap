@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl CategoryId {
+    /**Get all `Category` rows whose `parent_category_id` column references this `CategoryId`.
+
+Use it like `category_id.get_categories_by_parent_category_id(&dsl)`.*/
+    pub fn get_categories_by_parent_category_id<
+        'a,
+        T: 'a + crate::spacetimedsl::ReadContext,
+    >(&self, dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>) -> Vec<Category> {
+        dsl.into().get_categories_by_parent_category_id(self).collect()
+    }
+}

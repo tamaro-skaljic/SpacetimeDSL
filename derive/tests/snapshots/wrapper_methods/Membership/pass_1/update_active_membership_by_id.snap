@@ -1,0 +1,68 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Membership` row of the `active_membership` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_active_membership_by_id<'a>(
+        &'a self,
+        active_membership: Membership,
+    ) -> Result<Membership, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut active_membership = active_membership;
+        let mut the_same_or_another_active_membership: Option<Membership> = None;
+        let account_id = active_membership.get_account_id().value();
+        if account_id.ne(&0) {
+            if the_same_or_another_active_membership.is_none() {
+                the_same_or_another_active_membership = match self
+                    .db()
+                    .active_membership()
+                    .id()
+                    .find(active_membership.get_id().value())
+                {
+                    Some(active_membership) => Some(active_membership),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "active_membership".into(),
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", account_id
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_active_membership
+                .as_ref()
+                .expect("field_name_for_found_value should be Some(_)")
+                .get_account_id()
+                .ne(&active_membership.get_account_id())
+            {
+                match self.get_account_by_id(active_membership.get_account_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "active_membership".into(),
+                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", "account_id", account_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        let active_membership = self
+            .db()
+            .active_membership()
+            .id()
+            .update(active_membership);
+        Ok(active_membership)
+    }
+}

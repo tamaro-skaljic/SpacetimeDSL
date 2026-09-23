@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl AccountId {
+    /**Get all `SessionToken` rows whose `account_id` column references this `AccountId`.
+
+Use it like `account_id.get_session_tokens(&dsl)`.*/
+    pub fn get_session_tokens<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<SessionToken> {
+        dsl.into().get_session_tokens_by_account_id(self).collect()
+    }
+}

@@ -1,0 +1,21 @@
+---
+source: derive/src/characterization_tests.rs
+---
+pub trait this_compilation_error_occurs_because_the_expired_membership_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_account_table {}
+impl Membership {}
+///
+pub struct CreateExpiredMembership {
+    pub account_id: AccountId,
+}
+
+// Generated DSL methods:
+// count_of_all_expired_memberships
+// create_expired_membership
+// delete_expired_membership_by_account_id
+// delete_expired_membership_by_id
+// execute_on_delete_strategies_of_the_expired_membership_table_after_multiple_rows_of_the_account_table_were_deleted
+// execute_on_delete_strategies_of_the_expired_membership_table_after_one_row_of_the_account_table_was_deleted
+// get_all_expired_memberships
+// get_expired_membership_by_account_id
+// get_expired_membership_by_id
+// update_expired_membership_by_id

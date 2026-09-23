@@ -288,6 +288,14 @@ pub fn read_only_dsl_type() -> TokenStream {
     }
 }
 
+/// `ReadOnlyDSL<#lifetime, T>`, the DSL a wrapper method reads through, for a lifetime the
+/// method declares itself.
+pub fn read_only_dsl_type_with_lifetime(lifetime: &impl ToTokens) -> TokenStream {
+    quote! {
+        crate::spacetimedsl::ReadOnlyDSL<#lifetime, T>
+    }
+}
+
 /// `read_only_dsl(#context)`, the read-only DSL a singleton's default is asked for through.
 pub fn read_only_dsl_call(context: &impl ToTokens) -> TokenStream {
     quote! {

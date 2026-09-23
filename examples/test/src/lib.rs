@@ -1595,6 +1595,9 @@ pub mod test {
         let dsl = read_only_dsl(ctx);
 
         let _ = dsl.count_of_all_entities();
+        let _ = EntityId::new(0).get_position(&dsl);
+        let _ = EntityId::new(0)
+            .get_entity_relationships_by_parent_entity_id(&dsl).len();
         dsl.get_entity_by_obj_id(EntityId::new(0)).ok()
     }
 
@@ -1865,6 +1868,28 @@ pub mod test {
 
         if dsl.count_of_all_entity_relationships().ne(&3) {
             return Err("Count of entity relationships should be 3!".to_string());
+        }
+
+        if player
+            .get_obj_id()
+            .get_entity_relationships_by_parent_entity_id(&dsl).len()
+            .ne(&2)
+        {
+            return Err(
+                "EntityId::get_entity_relationships_by_parent_entity_id should find the 2 relationships whose parent is the player!"
+                    .to_string(),
+            );
+        }
+
+        if player3
+            .get_obj_id()
+            .get_entity_relationships_by_child_entity_id(&dsl).len()
+            .ne(&2)
+        {
+            return Err(
+                "EntityId::get_entity_relationships_by_child_entity_id should find the 2 relationships whose child is player3!"
+                    .to_string(),
+            );
         }
 
         if dsl.delete_entity_by_obj_id(&player).is_ok() {
@@ -2164,6 +2189,17 @@ pub mod test {
             }
         };
 
+        if player
+            .get_obj_id()
+            .get_position(&dsl)?
+            .get_id()
+            .ne(&player_position.get_id())
+        {
+            return Err(
+                "EntityId::get_position should find the Position of the player!".to_string(),
+            );
+        }
+
         player_position.set_x(0);
         player_position.set_y(0);
         player_position.set_z(0);
@@ -2263,6 +2299,18 @@ pub mod test {
                 ));
             }
         };
+
+        if player
+            .get_obj_id()
+            .get_unique_position(&dsl)?
+            .get_id()
+            .ne(&unique_player_position.get_id())
+        {
+            return Err(
+                "EntityId::get_unique_position should find the UniquePosition of the player!"
+                    .to_string(),
+            );
+        }
 
         unique_player_position.set_x(1);
         unique_player_position.set_y(4);

@@ -1,0 +1,25 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl WarehouseId {
+    /**Get all `Shipment` rows whose `origin_warehouse_id` column references this `WarehouseId`.
+
+Use it like `warehouse_id.get_shipments_by_origin_warehouse_id(&dsl)`.*/
+    pub fn get_shipments_by_origin_warehouse_id<
+        'a,
+        T: 'a + crate::spacetimedsl::ReadContext,
+    >(&self, dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>) -> Vec<Shipment> {
+        dsl.into().get_shipments_by_origin_warehouse_id(self).collect()
+    }
+}
+impl WarehouseId {
+    /**Get all `Shipment` rows whose `destination_warehouse_id` column references this `WarehouseId`.
+
+Use it like `warehouse_id.get_shipments_by_destination_warehouse_id(&dsl)`.*/
+    pub fn get_shipments_by_destination_warehouse_id<
+        'a,
+        T: 'a + crate::spacetimedsl::ReadContext,
+    >(&self, dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>) -> Vec<Shipment> {
+        dsl.into().get_shipments_by_destination_warehouse_id(self).collect()
+    }
+}

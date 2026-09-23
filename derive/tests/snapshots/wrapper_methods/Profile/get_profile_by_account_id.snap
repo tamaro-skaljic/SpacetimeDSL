@@ -1,0 +1,53 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Profile` from the `profile` table whose value matches the value from the unique single-column btree index on the `account_id` column.*/
+    pub fn get_profile_by_account_id<'a>(
+        &'a self,
+        account_id: impl Into<AccountId> + Clone,
+    ) -> Result<Profile, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().profile().account_id().find(account_id.clone().into().value()) {
+            Some(profile) => Ok(profile),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "profile".into(),
+                    column_names_and_row_values: format!(
+                        "{{ account_id : {} }}", account_id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Profile` from the `profile` table whose value matches the value from the unique single-column btree index on the `account_id` column.*/
+    pub fn get_profile_by_account_id<'a>(
+        &'a self,
+        account_id: impl Into<AccountId> + Clone,
+    ) -> Result<Profile, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().profile().account_id().find(account_id.clone().into().value()) {
+            Some(profile) => Ok(profile),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "profile".into(),
+                    column_names_and_row_values: format!(
+                        "{{ account_id : {} }}", account_id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

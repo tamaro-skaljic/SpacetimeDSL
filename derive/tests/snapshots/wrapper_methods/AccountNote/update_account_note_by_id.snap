@@ -1,0 +1,64 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `AccountNote` row of the `account_note` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_account_note_by_id<'a>(
+        &'a self,
+        account_note: AccountNote,
+    ) -> Result<AccountNote, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut account_note = account_note;
+        let mut the_same_or_another_account_note: Option<AccountNote> = None;
+        let account_id = account_note.get_account_id().value();
+        if account_id.ne(&0) {
+            if the_same_or_another_account_note.is_none() {
+                the_same_or_another_account_note = match self
+                    .db()
+                    .account_note()
+                    .id()
+                    .find(account_note.get_id().value())
+                {
+                    Some(account_note) => Some(account_note),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "account_note".into(),
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", account_id
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_account_note
+                .as_ref()
+                .expect("field_name_for_found_value should be Some(_)")
+                .get_account_id()
+                .ne(&account_note.get_account_id())
+            {
+                match self.get_account_by_id(account_note.get_account_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "account_note".into(),
+                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", "account_id", account_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        let account_note = self.db().account_note().id().update(account_note);
+        Ok(account_note)
+    }
+}

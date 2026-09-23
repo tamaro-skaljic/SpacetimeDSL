@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl BookId {
+    /**Get all `Review` rows whose `book_id` column references this `BookId`.
+
+Use it like `book_id.get_reviews(&dsl)`.*/
+    pub fn get_reviews<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Review> {
+        dsl.into().get_reviews_by_book_id(self).collect()
+    }
+}

@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl AccountId {
+    /**Get the `Profile` whose `account_id` column references this `AccountId`.
+
+Use it like `account_id.get_profile(&dsl)`.*/
+    pub fn get_profile<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<Profile, crate::spacetimedsl::error::SpacetimeDSLError> {
+        dsl.into().get_profile_by_account_id(self)
+    }
+}

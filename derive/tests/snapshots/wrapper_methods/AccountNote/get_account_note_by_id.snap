@@ -1,0 +1,53 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `AccountNote` from the `account_note` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn get_account_note_by_id<'a>(
+        &'a self,
+        id: impl Into<AccountNoteId> + Clone,
+    ) -> Result<AccountNote, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().account_note().id().find(id.clone().into().value()) {
+            Some(account_note) => Ok(account_note),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "account_note".into(),
+                    column_names_and_row_values: format!(
+                        "{{ id : {} }}", id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `AccountNote` from the `account_note` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn get_account_note_by_id<'a>(
+        &'a self,
+        id: impl Into<AccountNoteId> + Clone,
+    ) -> Result<AccountNote, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().account_note().id().find(id.clone().into().value()) {
+            Some(account_note) => Ok(account_note),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "account_note".into(),
+                    column_names_and_row_values: format!(
+                        "{{ id : {} }}", id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
