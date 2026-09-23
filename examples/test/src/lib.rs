@@ -504,22 +504,149 @@ pub mod component {
         }
     }
 
+    /// Covers `#[auto_gen(v4)]` and `#[auto_gen(v7)]` on every index shape a `Uuid` column
+    /// can take part in, and on a `#[dsl(singleton)]` table.
     pub mod uuid_test {
-        // FIXME: use spacetimedb::Uuid;
+        use spacetimedb::Uuid;
 
         #[spacetimedsl::dsl(
-            plural_name = uuid_holders1,
+            plural_name = uuid_primary_key_records,
             method(update = true),
         )]
         #[spacetimedb::table(
-            accessor = uuid_holder1,
+            accessor = uuid_primary_key_record,
             public,
         )]
-        pub struct UuidHolder1 {
+        pub struct UUIDPrimaryKeyRecord {
             #[primary_key]
-            #[create_wrapper]
-            // FIXME: the trait bound `spacetimedb::Uuid: Default` is not satisfied. the trait `Default` is not implemented for `spacetimedb::Uuid`rustcClick for full compiler diagnostic. lib.rs(168, 40): required by a bound in `spacetimedsl::Wrapper`
-            id: u128,
+            #[create_wrapper(UUIDPrimaryKeyRecordId)]
+            #[auto_gen(v7)]
+            #[referenced_by(path = crate::component::uuid_reference_test, table = uuid_reference)]
+            id: Uuid,
+
+            pub name: String,
+        }
+
+        #[spacetimedsl::dsl(
+            plural_name = uuid_unique_records,
+            method(update = false),
+        )]
+        #[spacetimedb::table(
+            accessor = uuid_unique_record,
+            public,
+        )]
+        pub struct UUIDUniqueRecord {
+            #[primary_key]
+            #[auto_inc]
+            #[create_wrapper(UUIDUniqueRecordId)]
+            id: u64,
+
+            #[unique]
+            #[create_wrapper(UUIDUniqueRecordToken)]
+            #[auto_gen(v4)]
+            token: spacetimedb::Uuid,
+        }
+
+        #[spacetimedsl::dsl(
+            plural_name = uuid_index_records,
+            method(update = false),
+        )]
+        #[spacetimedb::table(
+            accessor = uuid_index_record,
+            public,
+        )]
+        pub struct UUIDIndexRecord {
+            #[primary_key]
+            #[auto_inc]
+            #[create_wrapper(UUIDIndexRecordId)]
+            id: u64,
+
+            #[index(btree)]
+            #[create_wrapper(UUIDIndexRecordToken)]
+            #[auto_gen(v4)]
+            token: Uuid,
+        }
+
+        #[spacetimedsl::dsl(
+            plural_name = uuid_multi_column_index_records,
+            method(update = false),
+        )]
+        #[spacetimedb::table(
+            accessor = uuid_multi_column_index_record,
+            index(accessor = token_and_group, btree(columns = [token, group])),
+            public,
+        )]
+        pub struct UUIDMultiColumnIndexRecord {
+            #[primary_key]
+            #[auto_inc]
+            #[create_wrapper(UUIDMultiColumnIndexRecordId)]
+            id: u64,
+
+            #[create_wrapper(UUIDMultiColumnIndexRecordToken)]
+            #[auto_gen(v4)]
+            token: Uuid,
+
+            group: u32,
+        }
+
+        #[spacetimedsl::dsl(
+            plural_name = uuid_unique_multi_column_index_records,
+            method(update = false),
+            unique_index(name = token_and_group),
+        )]
+        #[spacetimedb::table(
+            accessor = uuid_unique_multi_column_index_record,
+            index(accessor = token_and_group, btree(columns = [token, group])),
+            public,
+        )]
+        pub struct UUIDUniqueMultiColumnIndexRecord {
+            #[primary_key]
+            #[auto_inc]
+            #[create_wrapper(UUIDUniqueMultiColumnIndexRecordId)]
+            id: u64,
+
+            #[create_wrapper(UUIDUniqueMultiColumnIndexRecordToken)]
+            #[auto_gen(v7)]
+            token: Uuid,
+
+            group: u32,
+        }
+
+        #[spacetimedsl::dsl(singleton, method(update = false))]
+        #[spacetimedb::table(
+            accessor = uuid_singleton_record,
+            public,
+        )]
+        pub struct UUIDSingletonRecord {
+            #[create_wrapper(UUIDSingletonRecordToken)]
+            #[auto_gen(v4)]
+            token: Uuid,
+        }
+    }
+
+    /// References an auto-generated `Uuid` primary key from another module, where the private
+    /// field of its wrapper is out of reach.
+    pub mod uuid_reference_test {
+        use spacetimedb::Uuid;
+
+        #[spacetimedsl::dsl(
+            plural_name = uuid_references,
+            method(update = false),
+        )]
+        #[spacetimedb::table(
+            accessor = uuid_reference,
+            public,
+        )]
+        pub struct UUIDReference {
+            #[primary_key]
+            #[auto_inc]
+            #[create_wrapper(UUIDReferenceId)]
+            id: u64,
+
+            #[index(btree)]
+            #[use_wrapper(crate::component::uuid_test::UUIDPrimaryKeyRecordId)]
+            #[foreign_key(path = crate::component::uuid_test, table = uuid_primary_key_record, column = id, on_delete = Delete)]
+            record_id: Uuid,
         }
     }
 
@@ -1443,6 +1570,11 @@ pub mod test {
             identifier::{CreateIdentifier, update_modified_at},
             position::{CreatePosition, CreateUniquePosition, PositionId, UniquePositionId},
             test::{CreateShipObject, CreateTest},
+            uuid_reference_test::CreateUuidReference,
+            uuid_test::{
+                CreateUuidMultiColumnIndexRecord, CreateUuidPrimaryKeyRecord,
+                CreateUuidUniqueMultiColumnIndexRecord,
+            },
         },
         entity::{
             CreateEntityRelationship, CreateEntityRelationship2, CreateEntityRelationship4, Entity,
@@ -1490,9 +1622,147 @@ pub mod test {
         }
     }
 
+    fn expect_uuid_version(
+        uuid: spacetimedb::Uuid,
+        expected_version: spacetimedb::sats::uuid::Version,
+        column: &str,
+    ) -> Result<(), String> {
+        if uuid.get_version() != Some(expected_version) {
+            return Err(format!(
+                "`{column}` should be a UUID {expected_version:?}, found {uuid}."
+            ));
+        }
+        Ok(())
+    }
+
+    /// Each `#[auto_gen]` table gets two rows, which must receive different UUIDs of the
+    /// configured version, and must be found again by the stored UUID.
+    fn test_auto_generated_uuids(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
+        use spacetimedb::sats::uuid::Version;
+
+        let first_record = dsl.create_uuid_primary_key_record(CreateUuidPrimaryKeyRecord {
+            name: "first".to_string(),
+        })?;
+        let second_record = dsl.create_uuid_primary_key_record(CreateUuidPrimaryKeyRecord {
+            name: "second".to_string(),
+        })?;
+        expect_uuid_version(first_record.get_id().value(), Version::V7, "id")?;
+        if first_record.get_id().value() >= second_record.get_id().value() {
+            return Err("A UUID v7 primary key should sort in creation order.".to_string());
+        }
+        if dsl
+            .get_uuid_primary_key_record_by_id(second_record.get_id())?
+            .ne(&second_record)
+        {
+            return Err("The row should be found by its UUID v7 primary key.".to_string());
+        }
+
+        let reference = dsl.create_uuid_reference(CreateUuidReference {
+            record_id: first_record.get_id(),
+        })?;
+        if reference.get_record_id().ne(&first_record.get_id()) {
+            return Err("The foreign key getter should return the referenced UUID.".to_string());
+        }
+        dsl.delete_uuid_primary_key_record_by_id(first_record.get_id())?;
+        if dsl.get_uuid_reference_by_id(reference.get_id()).is_ok() {
+            return Err("Deleting the UUID row should delete the referencing row.".to_string());
+        }
+
+        let first_unique = dsl.create_uuid_unique_record()?;
+        let second_unique = dsl.create_uuid_unique_record()?;
+        expect_uuid_version(first_unique.get_token().value(), Version::V4, "token")?;
+        if first_unique.get_token().eq(&second_unique.get_token()) {
+            return Err("Two rows should get different UUIDs v4.".to_string());
+        }
+        if dsl
+            .get_uuid_unique_record_by_token(second_unique.get_token())?
+            .ne(&second_unique)
+        {
+            return Err("The row should be found by its unique UUID.".to_string());
+        }
+
+        let first_indexed = dsl.create_uuid_index_record()?;
+        let second_indexed = dsl.create_uuid_index_record()?;
+        expect_uuid_version(first_indexed.get_token().value(), Version::V4, "token")?;
+        if first_indexed.get_token().eq(&second_indexed.get_token()) {
+            return Err("Two rows should get different indexed UUIDs.".to_string());
+        }
+        if dsl
+            .get_uuid_index_records_by_token(first_indexed.get_token())
+            .collect_vec()
+            .ne(&vec![first_indexed])
+        {
+            return Err("The row should be found by its indexed UUID.".to_string());
+        }
+
+        let first_multi_column_indexed = dsl
+            .create_uuid_multi_column_index_record(CreateUuidMultiColumnIndexRecord { group: 1 })?;
+        let second_multi_column_indexed = dsl
+            .create_uuid_multi_column_index_record(CreateUuidMultiColumnIndexRecord { group: 1 })?;
+        expect_uuid_version(
+            first_multi_column_indexed.get_token().value(),
+            Version::V4,
+            "token",
+        )?;
+        if first_multi_column_indexed
+            .get_token()
+            .eq(&second_multi_column_indexed.get_token())
+        {
+            return Err("Two rows should get different multi-column indexed UUIDs.".to_string());
+        }
+        if dsl
+            .get_uuid_multi_column_index_records_by_token_and_group(
+                first_multi_column_indexed.get_token(),
+                first_multi_column_indexed.get_group(),
+            )
+            .collect_vec()
+            .ne(&vec![first_multi_column_indexed])
+        {
+            return Err("The row should be found by its multi-column indexed UUID.".to_string());
+        }
+
+        let first_unique_multi_column_indexed = dsl.create_uuid_unique_multi_column_index_record(
+            CreateUuidUniqueMultiColumnIndexRecord { group: 1 },
+        )?;
+        let second_unique_multi_column_indexed = dsl.create_uuid_unique_multi_column_index_record(
+            CreateUuidUniqueMultiColumnIndexRecord { group: 1 },
+        )?;
+        expect_uuid_version(
+            first_unique_multi_column_indexed.get_token().value(),
+            Version::V7,
+            "token",
+        )?;
+        if first_unique_multi_column_indexed.get_token().value()
+            >= second_unique_multi_column_indexed.get_token().value()
+        {
+            return Err("UUIDs v7 should sort in creation order.".to_string());
+        }
+        if dsl
+            .get_uuid_unique_multi_column_index_record_by_token_and_group(
+                second_unique_multi_column_indexed.get_token(),
+                second_unique_multi_column_indexed.get_group(),
+            )?
+            .ne(&second_unique_multi_column_indexed)
+        {
+            return Err(
+                "The row should be found by its unique multi-column indexed UUID.".to_string(),
+            );
+        }
+
+        let singleton = dsl.create_uuid_singleton_record()?;
+        expect_uuid_version(singleton.get_token().value(), Version::V4, "token")?;
+        if dsl.get_uuid_singleton_record()?.ne(&singleton) {
+            return Err("The singleton row should keep its generated UUID.".to_string());
+        }
+
+        Ok(())
+    }
+
     #[spacetimedb::reducer]
     fn tester(ctx: &ReducerContext) -> Result<(), String> {
         let dsl = dsl(ctx);
+
+        test_auto_generated_uuids(&dsl)?;
 
         let timestamp_record = dsl.create_timestamp_record(CreateTimestampRecord { value: 1 })?;
         if timestamp_record.get_started_at().ne(&ctx.timestamp)
