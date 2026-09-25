@@ -1593,30 +1593,40 @@ pub mod soft_deletion {
     }
 }
 
+/// Which hooks run when something other than `update_guild_member_by_id` writes a member row.
+///
 /// `on_delete = SetZero` writes every row which referenced the deleted one, so the update
 /// hooks of the referencing table see that write and its `set_on_update` column records it,
-/// as with any other update.
-pub mod set_zero_update_hook_test {
+/// as with any other update. A soft deletion writes the row as well, but it is not an update:
+/// it runs the soft-delete hooks alone, whether it is called directly or reached through
+/// `on_soft_delete = SoftDelete`.
+pub mod update_and_soft_delete_hook_test {
     use crate::spacetimedsl::prelude::*;
 
     /// What a locked member's before-update hook says when it refuses.
     pub const LOCKED_GUILD_MEMBER_MESSAGE: &str = "this guild member is locked";
 
-    #[spacetimedsl::dsl(plural_name = guilds, method(update = false, delete = true))]
+    #[spacetimedsl::dsl(
+        plural_name = guilds,
+        method(update = false, delete = true, soft_delete = true)
+    )]
     #[spacetimedb::table(accessor = guild)]
     pub struct Guild {
         #[primary_key]
         #[auto_inc]
         #[create_wrapper(GuildId)]
-        #[referenced_by(path = crate::set_zero_update_hook_test, table = guild_member)]
+        #[referenced_by(path = crate::update_and_soft_delete_hook_test, table = guild_member)]
         id: u64,
+
+        deleted: bool,
     }
 
-    /// A member outlives its guild and keeps a `guild_id` of 0 afterwards.
+    /// A member outlives a deleted guild and keeps a `guild_id` of 0 afterwards, but is
+    /// retired together with a retired one.
     #[spacetimedsl::dsl(
         plural_name = guild_members,
-        method(update = true, delete = false),
-        hook(before(update), after(update))
+        method(update = true, delete = false, soft_delete = true),
+        hook(before(update, soft_delete), after(update, soft_delete))
     )]
     #[spacetimedb::table(accessor = guild_member)]
     pub struct GuildMember {
@@ -1628,10 +1638,11 @@ pub mod set_zero_update_hook_test {
         #[index(btree)]
         #[use_wrapper(GuildId)]
         #[foreign_key(
-            path = crate::set_zero_update_hook_test,
+            path = crate::update_and_soft_delete_hook_test,
             table = guild,
             column = id,
-            on_delete = SetZero
+            on_delete = SetZero,
+            on_soft_delete = SoftDelete
         )]
         pub guild_id: u64,
 
@@ -1639,16 +1650,18 @@ pub mod set_zero_update_hook_test {
 
         #[set_on_update]
         modified_at: Option<Timestamp>,
+
+        deleted: bool,
     }
 
-    /// One row per update hook call on `guild_member`, in the order the hooks ran, naming the
-    /// hook and the change of `guild_id` it saw.
+    /// One row per hook call on `guild_member`, in the order the hooks ran, naming the hook
+    /// and, for an update hook, the change of `guild_id` it saw.
     #[spacetimedsl::dsl(
-        plural_name = guild_member_update_hook_calls,
+        plural_name = guild_member_hook_calls,
         method(update = false, delete = false)
     )]
-    #[spacetimedb::table(accessor = guild_member_update_hook_call)]
-    pub struct GuildMemberUpdateHookCall {
+    #[spacetimedb::table(accessor = guild_member_hook_call)]
+    pub struct GuildMemberHookCall {
         #[primary_key]
         #[auto_inc]
         #[create_wrapper]
@@ -1669,7 +1682,7 @@ pub mod set_zero_update_hook_test {
             ));
         }
 
-        dsl.create_guild_member_update_hook_call(CreateGuildMemberUpdateHookCall {
+        dsl.create_guild_member_hook_call(CreateGuildMemberHookCall {
             description: format!(
                 "before_guild_member_update: guild_id {} -> {}",
                 old_guild_member.get_guild_id().value(),
@@ -1686,12 +1699,38 @@ pub mod set_zero_update_hook_test {
         old_guild_member: &GuildMember,
         new_guild_member: &GuildMember,
     ) -> Result<(), SpacetimeDSLError> {
-        dsl.create_guild_member_update_hook_call(CreateGuildMemberUpdateHookCall {
+        dsl.create_guild_member_hook_call(CreateGuildMemberHookCall {
             description: format!(
                 "after_guild_member_update: guild_id {} -> {}",
                 old_guild_member.get_guild_id().value(),
                 new_guild_member.get_guild_id().value()
             ),
+        })?;
+
+        Ok(())
+    }
+
+    #[spacetimedsl::hook]
+    fn before_guild_member_soft_delete(
+        dsl: &DSL<'_, T>,
+        _old_guild_member: &GuildMember,
+        new_guild_member: GuildMember,
+    ) -> Result<GuildMember, SpacetimeDSLError> {
+        dsl.create_guild_member_hook_call(CreateGuildMemberHookCall {
+            description: "before_guild_member_soft_delete".to_string(),
+        })?;
+
+        Ok(new_guild_member)
+    }
+
+    #[spacetimedsl::hook]
+    fn after_guild_member_soft_delete(
+        dsl: &DSL<'_, T>,
+        _old_guild_member: &GuildMember,
+        _new_guild_member: &GuildMember,
+    ) -> Result<(), SpacetimeDSLError> {
+        dsl.create_guild_member_hook_call(CreateGuildMemberHookCall {
+            description: "after_guild_member_soft_delete".to_string(),
         })?;
 
         Ok(())
@@ -1717,12 +1756,12 @@ pub mod test {
             EntityId, EntityRelationship4Id,
         },
         hash_index_test::CreateSession,
-        set_zero_update_hook_test::{CreateGuildMember, LOCKED_GUILD_MEMBER_MESSAGE},
         singleton_test::CreateGameConfig,
         singleton_with_default_test::{INSERTED_SUFFIX, UPDATED_SUFFIX, WorldSettings},
         singleton_with_foreign_key_test::{CreateRegion, CreateServerBinding, RegionId},
         soft_deletion::{CreateArchive, CreateArchiveEntry, CreateArchiveEntryNote},
         timestamp_helper_test::CreateTimestampRecord,
+        update_and_soft_delete_hook_test::{CreateGuildMember, LOCKED_GUILD_MEMBER_MESSAGE},
     };
 
     use log::info;
@@ -2679,6 +2718,8 @@ pub mod test {
 
         set_zero_update_hook_test(&dsl)?;
 
+        soft_delete_skips_update_hooks_test(&dsl)?;
+
         info!("Test executed successfully!");
         Ok(())
     }
@@ -2805,7 +2846,11 @@ pub mod test {
             locked: false,
         })?;
 
+        let logged_before = guild_member_hook_calls(dsl).len();
+
         dsl.delete_guild_by_id(&guild)?;
+
+        let hook_calls = guild_member_hook_calls(dsl).split_off(logged_before);
 
         let member = dsl.get_guild_member_by_id(&member)?;
 
@@ -2815,11 +2860,6 @@ pub mod test {
                     .to_string(),
             );
         }
-
-        let hook_calls: Vec<_> = dsl
-            .get_all_guild_member_update_hook_calls()
-            .map(|hook_call| hook_call.get_description().to_string())
-            .collect();
 
         let expected_hook_calls = vec![
             format!("before_guild_member_update: guild_id {guild_id} -> 0"),
@@ -2840,6 +2880,65 @@ pub mod test {
         }
 
         Ok(())
+    }
+
+    /// A soft deletion writes the member row as well, but it is not an update: it runs the
+    /// soft-delete hooks of `guild_member` and none of its update hooks, both when it is called
+    /// directly and when `on_soft_delete = SoftDelete` reaches it.
+    fn soft_delete_skips_update_hooks_test<T: WriteContext>(
+        dsl: &DSL<'_, T>,
+    ) -> Result<(), String> {
+        let expected_hook_calls = vec![
+            "before_guild_member_soft_delete".to_string(),
+            "after_guild_member_soft_delete".to_string(),
+        ];
+
+        let guild = dsl.create_guild()?;
+
+        let member = dsl.create_guild_member(CreateGuildMember {
+            guild_id: guild.get_id(),
+            locked: false,
+        })?;
+
+        let logged_before = guild_member_hook_calls(dsl).len();
+
+        dsl.soft_delete_guild_member_by_id(&member)?;
+
+        let hook_calls = guild_member_hook_calls(dsl).split_off(logged_before);
+
+        if hook_calls.ne(&expected_hook_calls) {
+            return Err(format!(
+                "soft_delete_guild_member_by_id should run the soft-delete hooks of guild_member and none of its update hooks!\n\nExpected:\n{expected_hook_calls:?}\n\nActual:\n{hook_calls:?}"
+            ));
+        }
+
+        let retired_guild = dsl.create_guild()?;
+
+        dsl.create_guild_member(CreateGuildMember {
+            guild_id: retired_guild.get_id(),
+            locked: false,
+        })?;
+
+        let logged_before = guild_member_hook_calls(dsl).len();
+
+        dsl.soft_delete_guild_by_id(&retired_guild)?;
+
+        let hook_calls = guild_member_hook_calls(dsl).split_off(logged_before);
+
+        if hook_calls.ne(&expected_hook_calls) {
+            return Err(format!(
+                "Retiring a guild through on_soft_delete = SoftDelete should run the soft-delete hooks of guild_member and none of its update hooks!\n\nExpected:\n{expected_hook_calls:?}\n\nActual:\n{hook_calls:?}"
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// What the hooks of `guild_member` logged so far, in the order they ran.
+    fn guild_member_hook_calls<T: WriteContext>(dsl: &DSL<'_, T>) -> Vec<String> {
+        dsl.get_all_guild_member_hook_calls()
+            .map(|hook_call| hook_call.get_description().to_string())
+            .collect()
     }
 
     /// Exercises every method shape a hash index produces: `filter` through the
