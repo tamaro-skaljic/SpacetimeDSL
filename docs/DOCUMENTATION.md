@@ -12,7 +12,7 @@
 
 Authoritative reference to transform **SpacetimeDB** Rust Server Modules to use **SpacetimeDSL**.
 
-- **SpacetimeDSL** version **0.23.1**
+- **SpacetimeDSL** version **0.23.2**
 - **SpacetimeDB** version **2.10.1**
 
 ## Quick Transformation Checklist
