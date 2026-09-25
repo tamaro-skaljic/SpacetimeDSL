@@ -5,7 +5,8 @@
 //! row. Its body is an update path and an insert path side by side, which is why the parts
 //! it has in common with `update.rs` live here instead of being copied: the foreign-key row
 //! values, the `updated_at` assignment, the update hooks and the singleton primary key.
-//! `update.rs` is the other caller of those.
+//! `update.rs` is the other caller of those, and the `SetZero` cascade in
+//! `on_delete_strategy.rs` writes `updated_at` through the same assignment.
 //!
 //! Both paths call their hook before they set the columns the framework owns, so the
 //! framework has the last word on a timestamp. `create_<table>`, `update_<table>_by_<key>`
@@ -131,15 +132,19 @@ fn updated_at_column<'a>(
 }
 
 /// `<row>.<updated_at> = <now>;`, or nothing when the table declares no such column.
+///
+/// `dsl` is what the timestamp is read through: `self` in a DSL method, the `dsl` argument
+/// in a cascade function.
 pub(in crate::internal) fn set_updated_at_on_update(
     spacetimedsl_table: &SpacetimeDSLTable,
     internal_columns: &[InternalColumn],
+    dsl: &TokenStream,
     row: &Ident,
 ) -> TokenStream {
     match updated_at_column(spacetimedsl_table, internal_columns) {
         None => TokenStream::default(),
         Some((column_name, is_optional)) => {
-            let current_timestamp = runtime::current_timestamp(&quote! { self });
+            let current_timestamp = runtime::current_timestamp(dsl);
             let timestamp_value = match is_optional {
                 true => quote! { Some(#current_timestamp) },
                 false => current_timestamp,
@@ -382,8 +387,12 @@ pub(in crate::internal) fn for_singleton_upsert(
     let set_created_at =
         set_created_at_on_insert(spacetimedsl_table, internal_columns, singular_table_name);
 
-    let set_updated_at_on_update =
-        set_updated_at_on_update(spacetimedsl_table, internal_columns, singular_table_name);
+    let set_updated_at_on_update = set_updated_at_on_update(
+        spacetimedsl_table,
+        internal_columns,
+        &quote! { self },
+        singular_table_name,
+    );
     let set_updated_at_on_insert =
         set_updated_at_on_insert(spacetimedsl_table, internal_columns, singular_table_name);
 

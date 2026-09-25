@@ -329,11 +329,9 @@ impl SpacetimeDSLTableMethods {
                         removal,
                         &OneOrMultiple::One,
                         referencing_tables,
-                        spacetimedb_table,
+                        context,
                         referenced_table_name,
                         &columns_with_foreign_key,
-                        primary_key_column,
-                        spacetimedsl_table,
                     )?;
                     contributions.merge(after_one_row_contributions);
 
@@ -341,11 +339,9 @@ impl SpacetimeDSLTableMethods {
                         removal,
                         &OneOrMultiple::Multiple,
                         referencing_tables,
-                        spacetimedb_table,
+                        context,
                         referenced_table_name,
                         &columns_with_foreign_key,
-                        primary_key_column,
-                        spacetimedsl_table,
                     )?;
                     contributions.merge(after_multiple_rows_contributions);
 

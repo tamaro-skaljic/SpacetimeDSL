@@ -1593,6 +1593,111 @@ pub mod soft_deletion {
     }
 }
 
+/// `on_delete = SetZero` writes every row which referenced the deleted one, so the update
+/// hooks of the referencing table see that write and its `set_on_update` column records it,
+/// as with any other update.
+pub mod set_zero_update_hook_test {
+    use crate::spacetimedsl::prelude::*;
+
+    /// What a locked member's before-update hook says when it refuses.
+    pub const LOCKED_GUILD_MEMBER_MESSAGE: &str = "this guild member is locked";
+
+    #[spacetimedsl::dsl(plural_name = guilds, method(update = false, delete = true))]
+    #[spacetimedb::table(accessor = guild)]
+    pub struct Guild {
+        #[primary_key]
+        #[auto_inc]
+        #[create_wrapper(GuildId)]
+        #[referenced_by(path = crate::set_zero_update_hook_test, table = guild_member)]
+        id: u64,
+    }
+
+    /// A member outlives its guild and keeps a `guild_id` of 0 afterwards.
+    #[spacetimedsl::dsl(
+        plural_name = guild_members,
+        method(update = true, delete = false),
+        hook(before(update), after(update))
+    )]
+    #[spacetimedb::table(accessor = guild_member)]
+    pub struct GuildMember {
+        #[primary_key]
+        #[auto_inc]
+        #[create_wrapper]
+        id: u64,
+
+        #[index(btree)]
+        #[use_wrapper(GuildId)]
+        #[foreign_key(
+            path = crate::set_zero_update_hook_test,
+            table = guild,
+            column = id,
+            on_delete = SetZero
+        )]
+        pub guild_id: u64,
+
+        locked: bool,
+
+        #[set_on_update]
+        modified_at: Option<Timestamp>,
+    }
+
+    /// One row per update hook call on `guild_member`, in the order the hooks ran, naming the
+    /// hook and the change of `guild_id` it saw.
+    #[spacetimedsl::dsl(
+        plural_name = guild_member_update_hook_calls,
+        method(update = false, delete = false)
+    )]
+    #[spacetimedb::table(accessor = guild_member_update_hook_call)]
+    pub struct GuildMemberUpdateHookCall {
+        #[primary_key]
+        #[auto_inc]
+        #[create_wrapper]
+        id: u64,
+
+        description: String,
+    }
+
+    #[spacetimedsl::hook]
+    fn before_guild_member_update(
+        dsl: &DSL<'_, T>,
+        old_guild_member: &GuildMember,
+        new_guild_member: GuildMember,
+    ) -> Result<GuildMember, SpacetimeDSLError> {
+        if *old_guild_member.get_locked() {
+            return Err(SpacetimeDSLError::Error(
+                LOCKED_GUILD_MEMBER_MESSAGE.to_string(),
+            ));
+        }
+
+        dsl.create_guild_member_update_hook_call(CreateGuildMemberUpdateHookCall {
+            description: format!(
+                "before_guild_member_update: guild_id {} -> {}",
+                old_guild_member.get_guild_id().value(),
+                new_guild_member.get_guild_id().value()
+            ),
+        })?;
+
+        Ok(new_guild_member)
+    }
+
+    #[spacetimedsl::hook]
+    fn after_guild_member_update(
+        dsl: &DSL<'_, T>,
+        old_guild_member: &GuildMember,
+        new_guild_member: &GuildMember,
+    ) -> Result<(), SpacetimeDSLError> {
+        dsl.create_guild_member_update_hook_call(CreateGuildMemberUpdateHookCall {
+            description: format!(
+                "after_guild_member_update: guild_id {} -> {}",
+                old_guild_member.get_guild_id().value(),
+                new_guild_member.get_guild_id().value()
+            ),
+        })?;
+
+        Ok(())
+    }
+}
+
 pub mod test {
     use crate::spacetimedsl::prelude::*;
     use crate::{
@@ -1612,6 +1717,7 @@ pub mod test {
             EntityId, EntityRelationship4Id,
         },
         hash_index_test::CreateSession,
+        set_zero_update_hook_test::{CreateGuildMember, LOCKED_GUILD_MEMBER_MESSAGE},
         singleton_test::CreateGameConfig,
         singleton_with_default_test::{INSERTED_SUFFIX, UPDATED_SUFFIX, WorldSettings},
         singleton_with_foreign_key_test::{CreateRegion, CreateServerBinding, RegionId},
@@ -2571,6 +2677,8 @@ pub mod test {
 
         soft_deletion_test(&dsl)?;
 
+        set_zero_update_hook_test(&dsl)?;
+
         info!("Test executed successfully!");
         Ok(())
     }
@@ -2654,6 +2762,80 @@ pub mod test {
         if !repeated.entries.is_empty() {
             return Err(
                 "Soft-deleting an already retired row should report no entries!".to_string(),
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Deleting a guild sets `guild_id` of its members to 0 through `on_delete = SetZero`.
+    /// That is an update of each member row, so it runs the update hooks of `guild_member`
+    /// around the write, stops at an error one of them returns, and sets `modified_at` the way
+    /// `update_guild_member_by_id` does.
+    fn set_zero_update_hook_test<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
+        let guild_of_a_locked_member = dsl.create_guild()?;
+
+        dsl.create_guild_member(CreateGuildMember {
+            guild_id: guild_of_a_locked_member.get_id(),
+            locked: true,
+        })?;
+
+        match dsl.delete_guild_by_id(&guild_of_a_locked_member) {
+            Ok(_) => {
+                return Err(
+                    "Deleting a guild whose member's before_update hook refuses should fail!"
+                        .to_string(),
+                );
+            }
+            Err(error) => {
+                let error = error.to_string();
+                if !error.contains(LOCKED_GUILD_MEMBER_MESSAGE) {
+                    return Err(format!(
+                        "The error the before_update hook raised during on_delete = SetZero should reach the caller! Got:\n{error}"
+                    ));
+                }
+            }
+        };
+
+        let guild = dsl.create_guild()?;
+        let guild_id = guild.get_id().value();
+
+        let member = dsl.create_guild_member(CreateGuildMember {
+            guild_id: guild.get_id(),
+            locked: false,
+        })?;
+
+        dsl.delete_guild_by_id(&guild)?;
+
+        let member = dsl.get_guild_member_by_id(&member)?;
+
+        if member.get_guild_id().value().ne(&0) {
+            return Err(
+                "Deleting the Guild should have set guild_id of its GuildMember to 0 through on_delete = SetZero!"
+                    .to_string(),
+            );
+        }
+
+        let hook_calls: Vec<_> = dsl
+            .get_all_guild_member_update_hook_calls()
+            .map(|hook_call| hook_call.get_description().to_string())
+            .collect();
+
+        let expected_hook_calls = vec![
+            format!("before_guild_member_update: guild_id {guild_id} -> 0"),
+            format!("after_guild_member_update: guild_id {guild_id} -> 0"),
+        ];
+
+        if hook_calls.ne(&expected_hook_calls) {
+            return Err(format!(
+                "Setting guild_id to 0 through on_delete = SetZero should run the update hooks of guild_member!\n\nExpected:\n{expected_hook_calls:?}\n\nActual:\n{hook_calls:?}"
+            ));
+        }
+
+        if member.get_modified_at().is_none() {
+            return Err(
+                "Setting guild_id to 0 through on_delete = SetZero should set modified_at, as update_guild_member_by_id does!"
+                    .to_string(),
             );
         }
 

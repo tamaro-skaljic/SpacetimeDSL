@@ -128,6 +128,11 @@ fn on_delete_set_zero() {
 }
 
 #[test]
+fn on_delete_set_zero_with_update_hooks_and_set_on_update() {
+    snapshot_fixture("on_delete_set_zero_with_update_hooks_and_set_on_update");
+}
+
+#[test]
 fn on_delete_ignore() {
     snapshot_fixture("on_delete_ignore");
 }
@@ -205,6 +210,11 @@ fn soft_delete_without_delete_method() {
 #[test]
 fn on_soft_delete_cascade() {
     snapshot_fixture("on_soft_delete_cascade");
+}
+
+#[test]
+fn on_soft_delete_cascade_with_soft_delete_hooks() {
+    snapshot_fixture("on_soft_delete_cascade_with_soft_delete_hooks");
 }
 
 /// Expanding the same fixture twice must produce byte-identical output, otherwise the

@@ -64,8 +64,12 @@ pub(in crate::internal) fn for_update(
         ForeignKeyColumnScope::CheckedOnUpdate,
     );
 
-    let on_update_set_current_timestamp =
-        set_updated_at_on_update(spacetimedsl_table, internal_columns, singular_table_name);
+    let on_update_set_current_timestamp = set_updated_at_on_update(
+        spacetimedsl_table,
+        internal_columns,
+        &quote! { self },
+        singular_table_name,
+    );
 
     let use_itertools = if !multi_column_index_checks.is_empty() {
         runtime::itertools_import()
