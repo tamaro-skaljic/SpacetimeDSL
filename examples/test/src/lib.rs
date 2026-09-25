@@ -2931,6 +2931,13 @@ pub mod test {
             ));
         }
 
+        if member.get_modified_at().is_some() {
+            return Err(
+                "Setting deleted_at to Some(...) through on_soft_delete = SoftDelete should NOT set modified_at, as update_guild_member_by_id does!"
+                    .to_string(),
+            );
+        }
+
         Ok(())
     }
 
