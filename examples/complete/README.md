@@ -118,7 +118,7 @@ Self-check before returning: all checklist items filled, no orphan tables, no mi
 | `examples/complete/docs/spacetimedb/Features.md`  | Extracted feature checklist                        |
 | `examples/complete/docs/spacetimedsl/Features.md` | Extracted feature checklist                        |
 | `examples/blackholio/src/lib.rs`                  | Existing game example for patterns                 |
-| `examples/test/src/lib.rs`                        | Existing DSL feature test for patterns             |
+| `examples/test/src/`                              | Existing DSL feature test for patterns             |
 | `docs/spacetimedb/05-tutorials-chat-app-.md`      | Chat App tutorial to build upon                    |
 
 ## Implementation Steps

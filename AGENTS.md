@@ -52,7 +52,7 @@ Start from what the change does to the DSL's input:
 | ------------------------------------------------ | -------------------------------------- |
 | rejects an input                                 | Diagnostics — `compile-tests/tests/ui` |
 | changes what is generated for an accepted input  | Snapshot — `derive/tests/fixtures`     |
-| changes what the generated code does at run time | Runtime — `examples/test/src/lib.rs`   |
+| changes what the generated code does at run time | Runtime — `examples/test/src`          |
 
 Most generator work needs two of them and a whole feature needs all three, because each kind is blind to what the next one sees. Write the cheapest kind that can fail for the reason under test, then add the kinds its blind spots require — never substitute a cheap one for a blind spot.
 
@@ -84,12 +84,13 @@ fn soft_delete_flag() {
 - Blind spot: an accepted snapshot is only as correct as the reading that accepted it. Green afterwards means *unchanged*, not *right* — which is why the `git diff` is the real test and rubber-stamping it defeats the whole corpus.
 - Name a fixture after the one shape it pins. Let it carry a second shape only when the subject needs both at once — a cascade fixture covering both marker shapes is honest, because the cascade needs a referenced table and a referencing one anyway.
 
-**Runtime — `examples/test/src/lib.rs`**
+**Runtime — `examples/test/src`**
 
-The only gate that compiles, links and runs generated code against a real **SpacetimeDB**. Put tables in their own `pub mod`, assertions in a helper function called from the `tester` reducer, and return `Err(String)` naming what should have happened.
+The only gate that compiles, links and runs generated code against a real **SpacetimeDB**. Put tables which belong together in a file of their own, with their hooks and a `pub(crate) fn run_tests` holding their assertions, and call it from the `tester` reducer in `lib.rs`. Return `Err(String)` naming what should have happened.
 
 - Use it for what no token stream can show: a value actually written, a cascade actually reaching a row, an operation actually being idempotent.
-- Blind spot: it is one module, so table and accessor names are global and collide.
+- Blind spot: it is one **SpacetimeDB** module, so table and accessor names are global across all of its files and collide.
+- Blind spot: the assertions sit in the module of their tables, where private items are in reach, so they still compile when a generated item they call has lost its `pub`. Only the snapshots pin that visibility.
 - Blind spot: a failure points at a reducer line, not at the generator that caused it.
 
 When this gate catches something the other two could not, add the missing cheap test in the same commit. A `?` inside a generated cascade compiled fine as tokens and failed only here; the fixture corpus had no case pairing that marker shape with a cascade, so one was added rather than leaving the next regression to the slowest gate.
