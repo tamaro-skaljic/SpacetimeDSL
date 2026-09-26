@@ -69,7 +69,7 @@ switch ($Command) {
         $env:RUSTFLAGS = "-Zmacro-backtrace"
         cargo +nightly expand > ..\..\debug-helper\output\lib.expanded.rs
         Set-Location ..\..\debug-helper
-        cargo run -- ..\examples\test\src\lib.rs > output\lib.rs.ast
+        cargo run -- ..\examples\test\src output
         Set-Location ..
     }
 
