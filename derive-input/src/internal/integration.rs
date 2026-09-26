@@ -1,6 +1,7 @@
+use crate::internal::dsl::error;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
-use syn::{DeriveInput, Error};
+use syn::DeriveInput;
 
 pub(in crate::internal) fn spacetime_bindings_macro_input<'a>(
     item: &'a DeriveInput,
@@ -11,12 +12,9 @@ pub(in crate::internal) fn spacetime_bindings_macro_input<'a>(
         let all_tables = get_all_table_attributes(item)?;
 
         if all_tables.len() != 1 {
-            return Err(Error::new_spanned(
+            return Err(error::singleton_without_exactly_one_table_attribute(
                 &item.ident,
-                format!(
-                    "Singleton tables must have exactly one `#[table]` attribute, but found {}!",
-                    all_tables.len()
-                ),
+                all_tables.len(),
             ));
         }
 
@@ -45,10 +43,7 @@ fn get_all_table_attributes<'a>(
     }
 
     if table_attrs.is_empty() {
-        return Err(Error::new_spanned(
-            &input.ident,
-            "Haven't found `#[table]`/`#[spacetimedb::table]` attribute macro! Make sure `#[dsl]`/`#[spacetimedsl::dsl]` is directly above one.".to_string(),
-        ));
+        return Err(error::missing_table_attribute(&input.ident));
     }
 
     // Parse all table attributes and return them
@@ -70,10 +65,7 @@ fn select_table_with_heuristics<'a>(
     let all_tables = get_all_table_attributes(input)?;
 
     if all_tables.is_empty() {
-        return Err(Error::new_spanned(
-            &input.ident,
-            "No `#[table]`/`#[spacetimedb::table]` attribute macro found",
-        ));
+        return Err(error::no_table_attribute_found(&input.ident));
     }
 
     // If only one table, return it

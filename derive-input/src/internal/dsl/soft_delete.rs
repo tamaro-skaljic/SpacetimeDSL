@@ -9,6 +9,7 @@ use crate::api::dsl::{
     soft_delete::{SoftDeleteMarker, SoftDeleteMarkerKind},
     table::SingletonKind,
 };
+use crate::internal::dsl::error;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use spacetime_bindings_macro_input::{sats::SatsField, table::ColumnArgs};
@@ -16,9 +17,6 @@ use syn::{LitBool, Path};
 
 const FLAG_COLUMN_NAMES: [&str; 2] = ["deleted", "removed"];
 const TIMESTAMP_COLUMN_NAMES: [&str; 2] = ["deleted_at", "removed_at"];
-
-/// Why a singleton is never soft-deletable, shared by the three shapes it is rejected in.
-const SINGLETON_IS_NEVER_SOFT_DELETABLE: &str = "A singleton holds one row which the DSL looks up by its injected primary key, so retiring that row would leave the table with a row no method can reach.";
 
 /// `soft_delete = <bool>` exactly as written in `#[dsl(method(..))]`, kept whole so a
 /// diagnostic can underline all of it rather than the struct it sits on.
@@ -69,39 +67,23 @@ pub(in crate::internal) fn try_parse(
         // column. A `SoftDeleteMarker` carries a synthesized `Ident` whose span is the
         // call site, which would point at the `#[dsl(..)]` attribute instead.
         if !is_soft_deletable {
-            return Err(syn::Error::new_spanned(
+            return Err(error::marker_column_on_table_not_soft_deletable(
                 field_identifier,
-                "This column claims the soft-delete marker role, but the table is not soft-deletable!\nAdd `#[dsl(method(soft_delete = true))]` to the table, or rename the column and remove `#[set_on_soft_delete]` from it.",
             ));
         }
 
         let field_type = field.ty.to_token_stream().to_string();
 
         if !type_fits(kind, &field_type) {
-            return Err(syn::Error::new_spanned(
-                field.ty,
-                format!(
-                    "A column with the soft-delete marker role should have the type `{}`! Found: {field_type}",
-                    match kind {
-                        SoftDeleteMarkerKind::Flag => "bool",
-                        SoftDeleteMarkerKind::Timestamp => "Option<spacetimedb::Timestamp>",
-                    }
-                ),
-            ));
+            return Err(error::marker_column_type_mismatch(field.ty, kind));
         }
 
         if marker.is_some() {
-            return Err(syn::Error::new_spanned(
-                field_identifier,
-                "Multiple columns claim the soft-delete marker role! Only one column is allowed.",
-            ));
+            return Err(error::multiple_marker_columns(field_identifier));
         }
 
         if !matches!(field.vis, syn::Visibility::Inherited) {
-            return Err(syn::Error::new_spanned(
-                field.vis,
-                "A column with the soft-delete marker role should have `Visibility::Inherited`!\nOnly DSL methods are allowed to set this column, and they do it internally, so it has a getter but no setter.",
-            ));
+            return Err(error::marker_column_not_private(field.vis));
         }
 
         marker = Some(SoftDeleteMarker {
@@ -113,9 +95,8 @@ pub(in crate::internal) fn try_parse(
     if let Some(enabling_argument) = enabling_argument
         && marker.is_none()
     {
-        return Err(syn::Error::new_spanned(
+        return Err(error::soft_delete_method_without_marker_column(
             enabling_argument,
-            "`#[dsl(method(soft_delete = true))]` requires a column which the soft deletion writes!\nName a column `deleted` or `removed` and give it the type `bool`, name a column `deleted_at` or `removed_at` and give it the type `Option<spacetimedb::Timestamp>`, or put `#[set_on_soft_delete]` on a column of either type.",
         ));
     }
 
@@ -145,26 +126,18 @@ fn reject_soft_deletion_on_singleton(
 
     match (enabling_argument, marker_column) {
         (None, None) => Ok(()),
-        (Some(enabling_argument), None) => Err(syn::Error::new_spanned(
-            enabling_argument,
-            format!(
-                "`#[dsl(method(soft_delete = true))]` is not allowed on a singleton table!\n{SINGLETON_IS_NEVER_SOFT_DELETABLE} Remove `soft_delete = true`."
-            ),
-        )),
-        (Some(enabling_argument), Some((_, marker_column_name))) => Err(syn::Error::new_spanned(
-            enabling_argument,
-            format!(
-                "`#[dsl(method(soft_delete = true))]` is not allowed on a singleton table!\n{SINGLETON_IS_NEVER_SOFT_DELETABLE} Remove `soft_delete = true` and the `{marker_column_name}` column."
-            ),
-        )),
-        (None, Some((marker_column_identifier, marker_column_name))) => {
-            Err(syn::Error::new_spanned(
-                marker_column_identifier,
-                format!(
-                    "This column claims the soft-delete marker role, but a singleton table is never soft-deletable!\n{SINGLETON_IS_NEVER_SOFT_DELETABLE} Remove the `{marker_column_name}` column."
-                ),
+        (Some(enabling_argument), None) => {
+            Err(error::soft_delete_method_on_singleton(enabling_argument))
+        }
+        (Some(enabling_argument), Some((_, marker_column_name))) => {
+            Err(error::soft_delete_method_with_marker_column_on_singleton(
+                enabling_argument,
+                marker_column_name,
             ))
         }
+        (None, Some((marker_column_identifier, marker_column_name))) => Err(
+            error::marker_column_on_singleton(marker_column_identifier, marker_column_name),
+        ),
     }
 }
 
@@ -203,12 +176,7 @@ fn claimed_kind(field: &SatsField<'_>) -> syn::Result<Option<SoftDeleteMarkerKin
         return Ok(Some(SoftDeleteMarkerKind::Timestamp));
     }
 
-    Err(syn::Error::new_spanned(
-        field.ty,
-        format!(
-            "A column with `#[set_on_soft_delete]` should have the type `bool` or `Option<spacetimedb::Timestamp>`! Found: {field_type}"
-        ),
-    ))
+    Err(error::set_on_soft_delete_column_type_mismatch(field.ty))
 }
 
 fn type_fits(kind: SoftDeleteMarkerKind, field_type: &str) -> bool {

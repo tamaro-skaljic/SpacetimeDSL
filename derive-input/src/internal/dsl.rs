@@ -28,6 +28,8 @@ pub mod auto_gen;
 
 pub mod soft_delete;
 
+pub mod error;
+
 symbol!(table);
 symbol!(singleton);
 symbol!(with_default);
