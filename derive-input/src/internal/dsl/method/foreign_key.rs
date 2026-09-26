@@ -24,7 +24,7 @@ use crate::{
         },
         runtime,
     },
-    internal::dsl::one_or_multiple::OneOrMultiple,
+    internal::dsl::{error, one_or_multiple::OneOrMultiple},
 };
 use itertools::Itertools;
 use proc_macro2::TokenStream;
@@ -70,9 +70,8 @@ pub(in crate::internal) fn for_foreign_key(
                 .to_string())
         {
             // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 If Option is supported, the type of the primary key values needs to be without option and it's allowed to have both, option and non-option columns. There is already a function to remove option from the type representation, search for `Option <`` in the code.
-            return Err(syn::Error::new_spanned(
+            return Err(error::foreign_key_columns_type_mismatch(
                 &column_with_foreign_key.rust_field.name,
-                "All foreign key columns which reference the same primary key of another table should have the same type",
             ));
         }
 
@@ -86,9 +85,8 @@ pub(in crate::internal) fn for_foreign_key(
             .to_string()
             .ne(&referenced_table_path.to_string())
         {
-            return Err(syn::Error::new_spanned(
+            return Err(error::foreign_key_columns_path_mismatch(
                 &column_with_foreign_key.rust_field.name,
-                "All foreign key columns which reference the same primary key of another table should have the same path",
             ));
         }
 

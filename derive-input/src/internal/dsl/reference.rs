@@ -1,5 +1,6 @@
 use super::{path, referenced_by, table};
 use crate::api::dsl::reference::ReferencingTable;
+use crate::internal::dsl::error;
 use spacetime_bindings_macro_input::{
     match_meta, sats::SatsField, sym::primary_key, util::check_duplicate,
 };
@@ -27,16 +28,12 @@ impl ReferencingTable {
             }
 
             if !is_primary_key {
-                return Err(syn::Error::new_spanned(
-                    attr,
-                    "`#[referenced_by]` is only allowed in combination with `#[primary_key]`!",
-                ));
+                return Err(error::referenced_by_without_primary_key(attr));
             }
 
             if !has_delete_method && !is_soft_deletable {
-                return Err(syn::Error::new_spanned(
+                return Err(error::referenced_by_without_delete_or_soft_delete_method(
                     attr,
-                    "`#[referenced_by]` is only allowed when the table has a delete method (`#[dsl(method(delete = true))]`) or is soft-deletable (`#[dsl(method(soft_delete = true))]`)!\nThe on-delete strategies it declares run when a row of this table is deleted or soft-deleted, neither of which the DSL can do while both are disabled.",
                 ));
             }
 
@@ -58,17 +55,11 @@ impl ReferencingTable {
                 Ok(())
             })?;
 
-            let path_value = path_value
-            .ok_or_else(|| syn::Error::new_spanned(
-                &attr.meta,
-                "PathToTable must be set in `#[referenced_by(path = PathToTable)]`, e.g. `path = crate::path::to::my::table`.",
-            ))?;
+            let path_value =
+                path_value.ok_or_else(|| error::missing_referenced_by_path(&attr.meta))?;
 
-            let table_name = table_name
-            .ok_or_else(|| syn::Error::new_spanned(
-                &attr.meta,
-                "TableName must be set in `#[referenced_by(table = TableName)]`, e.g. `table = my_table`.",
-            ))?;
+            let table_name =
+                table_name.ok_or_else(|| error::missing_referenced_by_table(&attr.meta))?;
 
             referencing_tables.push(ReferencingTable {
                 path: path_value,

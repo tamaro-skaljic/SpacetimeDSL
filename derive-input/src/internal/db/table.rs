@@ -4,13 +4,13 @@ use crate::{
         reducer::ScheduledReducer,
         table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
     },
-    internal::table::rm_rsharp,
+    internal::{dsl::error, table::rm_rsharp},
 };
 use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::table::{
     IndexArg, IndexType as SpacetimeIndexType, ScheduledArg, TableAccess, TableArgs,
 };
-use syn::{Error, Ident};
+use syn::Ident;
 
 impl SpacetimeDBTable {
     pub(in crate::internal) fn map(
@@ -28,18 +28,7 @@ impl SpacetimeDBTable {
                 match &index.index_type {
                     IndexType::BTreeMultiColumn { columns }
                     | IndexType::HashMultiColumn { columns } => {
-                        return Err(Error::new_spanned(
-                            &index.name,
-                            format!(
-                                "Multi-column indices are not allowed on singleton tables! Found index `{}` on columns `{}`.",
-                                index.name,
-                                columns
-                                    .iter()
-                                    .map(|c| c.to_string())
-                                    .collect::<Vec<_>>()
-                                    .join(", "),
-                            ),
-                        ));
+                        return Err(error::multi_column_index_on_singleton(&index.name, columns));
                     }
                     _ => {}
                 }

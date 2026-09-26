@@ -4,9 +4,10 @@ use crate::api::{
     rust::{column::RustField, visibility::RustVisibility},
 };
 use crate::internal::column::ColumnTypeKind;
-use quote::{ToTokens, format_ident};
+use crate::internal::dsl::error;
+use quote::format_ident;
 use spacetime_bindings_macro_input::sats::SatsField;
-use syn::{Attribute, Error, Ident};
+use syn::{Attribute, Ident};
 
 impl UUIDVersion {
     /// Reads `#[auto_gen(v4)]` or `#[auto_gen(v7)]` from a column, and rejects the column
@@ -27,56 +28,34 @@ impl UUIDVersion {
         };
 
         if let Some(repeated_attribute) = auto_gen_attributes.next() {
-            return Err(Error::new_spanned(
-                repeated_attribute,
-                "Only one `#[auto_gen]` is allowed per column!",
-            ));
+            return Err(error::multiple_auto_gen_attributes(repeated_attribute));
         }
 
         let uuid_version = parse_uuid_version(auto_gen_attribute)?;
 
         if singleton_has_default {
-            return Err(Error::new_spanned(
+            return Err(error::auto_gen_on_singleton_with_default(
                 auto_gen_attribute,
-                "`#[auto_gen]` is not allowed on a `singleton(with_default)` table, because views aren't able to access UUID generators!",
             ));
         }
 
         if ColumnTypeKind::of(&rust_field.type_name_or_path) != ColumnTypeKind::UUID {
-            return Err(Error::new_spanned(
-                field.ty,
-                format!(
-                    "A column with `#[auto_gen]` should have the type `spacetimedb::Uuid`! Found: {}",
-                    field.ty.to_token_stream()
-                ),
-            ));
+            return Err(error::auto_gen_column_type_mismatch(field.ty));
         }
 
         if !matches!(rust_field.visibility, RustVisibility::Private) {
-            return Err(Error::new_spanned(
-                field.vis,
-                format!(
-                    "A column with `#[auto_gen]` should be private, because its value is generated and should never change! Found: `{}`",
-                    field.vis.to_token_stream()
-                ),
-            ));
+            return Err(error::auto_gen_column_not_private(field.vis));
         }
 
         match wrapper_type {
             Some(wrapper_type) => match wrapper_type {
                 WrapperType::Created(_) => {}
                 _ => {
-                    return Err(Error::new_spanned(
-                        auto_gen_attribute,
-                        "A column with `#[auto_gen]` must be accompanied by `#[create_wrapper]`, not `#[use_wrapper(...)]`!",
-                    ));
+                    return Err(error::auto_gen_with_used_wrapper(auto_gen_attribute));
                 }
             },
             None => {
-                return Err(Error::new_spanned(
-                    auto_gen_attribute,
-                    "A column with `#[auto_gen]` must be accompanied by `#[create_wrapper]`!",
-                ));
+                return Err(error::auto_gen_without_wrapper(auto_gen_attribute));
             }
         }
 
@@ -93,22 +72,15 @@ impl UUIDVersion {
 }
 
 fn parse_uuid_version(auto_gen_attribute: &Attribute) -> syn::Result<UUIDVersion> {
-    let invalid_version = || {
-        Error::new_spanned(
-            auto_gen_attribute,
-            "Expected `#[auto_gen(v4)]` or `#[auto_gen(v7)]`!",
-        )
-    };
-
     let version: Ident = auto_gen_attribute
         .meta
         .require_list()
         .and_then(|list| list.parse_args())
-        .map_err(|_| invalid_version())?;
+        .map_err(|_| error::invalid_uuid_version(auto_gen_attribute))?;
 
     match version.to_string().as_str() {
         "v4" => Ok(UUIDVersion::V4),
         "v7" => Ok(UUIDVersion::V7),
-        _ => Err(invalid_version()),
+        _ => Err(error::invalid_uuid_version(auto_gen_attribute)),
     }
 }

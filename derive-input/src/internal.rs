@@ -1,4 +1,5 @@
 use crate::api::dsl::table::SingletonKind;
+use crate::internal::dsl::error;
 use crate::internal::dsl::soft_delete::SoftDeleteMethodArgument;
 use crate::internal::dsl::{
     after, before, delete, hook, insert, method, plural_name, singleton, soft_delete, unique_index,
@@ -72,16 +73,9 @@ fn reject_unique_index_on_singleton(
         .iter()
         .any(|index| index.accessor == *unique_index_name);
 
-    let removal = match names_a_declared_index {
-        true => format!(
-            "Remove `unique_index(name = {unique_index_name})` and the `{unique_index_name}` index from `#[table]`."
-        ),
-        false => format!("Remove `unique_index(name = {unique_index_name})`."),
-    };
-
-    Err(syn::Error::new_spanned(
+    Err(error::unique_index_on_singleton(
         unique_index_name,
-        format!("`unique_index` is not allowed on singleton tables! {removal}"),
+        names_a_declared_index,
     ))
 }
 
@@ -230,40 +224,27 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     if let Some(soft_delete_method) = &soft_delete_method
         && delete_method.is_none()
     {
-        return Err(syn::Error::new_spanned(
+        return Err(error::soft_delete_method_without_delete_method(
             &soft_delete_method.path,
-            "`#[dsl(method(soft_delete = ...))]` requires `#[dsl(method(delete = ...))]` to be set as well, e.g. `method(delete = true, soft_delete = true)`.\nSoft deletion retires a row instead of removing it, which only says something next to a decision about whether the table removes rows at all.",
         ));
     }
 
     if !update_method.unwrap_or(true) {
         if let Some(span) = before_update_hook {
-            return Err(syn::Error::new(
-                span,
-                "Cannot have a `before_update` hook when the `update` method is disabled with `#[dsl(method(update = false))]`",
-            ));
+            return Err(error::before_update_hook_without_update_method(span));
         }
         if let Some(span) = after_update_hook {
-            return Err(syn::Error::new(
-                span,
-                "Cannot have an `after_update` hook when the `update` method is disabled with `#[dsl(method(update = false))]`",
-            ));
+            return Err(error::after_update_hook_without_update_method(span));
         }
     }
 
     if !delete_method.unwrap_or(true) {
         if let Some(span) = before_delete_hook {
-            return Err(syn::Error::new(
-                span,
-                "Cannot have a `before_delete` hook when the `delete` method is disabled with `#[dsl(method(delete = false))]`",
-            ));
+            return Err(error::before_delete_hook_without_delete_method(span));
         }
 
         if let Some(span) = after_delete_hook {
-            return Err(syn::Error::new(
-                span,
-                "Cannot have an `after_delete` hook when the `delete` method is disabled with `#[dsl(method(delete = false))]`",
-            ));
+            return Err(error::after_delete_hook_without_delete_method(span));
         }
     }
 
@@ -272,16 +253,14 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         .is_some_and(SoftDeleteMethodArgument::is_enabled)
     {
         if let Some(span) = before_soft_delete_hook {
-            return Err(syn::Error::new(
+            return Err(error::before_soft_delete_hook_on_table_not_soft_deletable(
                 span,
-                "Cannot have a `before_soft_delete` hook when the table is not soft-deletable. Enable it with `#[dsl(method(soft_delete = true))]`",
             ));
         }
 
         if let Some(span) = after_soft_delete_hook {
-            return Err(syn::Error::new(
+            return Err(error::after_soft_delete_hook_on_table_not_soft_deletable(
                 span,
-                "Cannot have an `after_soft_delete` hook when the table is not soft-deletable. Enable it with `#[dsl(method(soft_delete = true))]`",
             ));
         }
     }
@@ -291,17 +270,13 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     if let Some(span) = singleton_with_default
         && update_method == Some(false)
     {
-        return Err(syn::Error::new(
+        return Err(error::update_method_disabled_on_singleton_with_default(
             span,
-            "Cannot disable the `update` method with `#[dsl(method(update = false))]` on a table with `#[dsl(singleton(with_default))]`!\n`upsert_<table>` is the only method which writes the row of such a table, so the table could never hold one.",
         ));
     }
 
     if is_singleton && let Some(name_plural) = &name_plural {
-        return Err(syn::Error::new_spanned(
-            name_plural,
-            "`plural_name` is not allowed on singleton tables! Use `#[dsl(singleton)]` without `plural_name`.",
-        ));
+        return Err(error::plural_name_on_singleton(name_plural));
     }
 
     // For singletons, plural_name will be set later from the table accessor.
@@ -309,12 +284,7 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     let parsed_plural_name = if is_singleton {
         syn::Ident::new("__singleton_placeholder", proc_macro2::Span::call_site())
     } else {
-        name_plural.ok_or_else(|| {
-            syn::Error::new_spanned(
-                args,
-                "PluralName must be set in `#[dsl(plural_name = PluralName)]`",
-            )
-        })?
+        name_plural.ok_or_else(|| error::missing_plural_name(args))?
     };
 
     // `singleton` itself is the attribute symbol in this scope, so the parsed kind needs a
@@ -373,8 +343,7 @@ fn try_parse_unique_index(meta: ParseNestedMeta<'_>) -> syn::Result<Ident> {
         Ok(())
     })?;
 
-    let name = name
-        .ok_or_else(|| meta.error("IndexName must be set in `#[dsl(unique_index(name = IndexName))]`, e.g. `name = my_index`."))?;
+    let name = name.ok_or_else(|| error::missing_unique_index_name(&meta))?;
 
     Ok(name)
 }

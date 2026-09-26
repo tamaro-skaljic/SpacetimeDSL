@@ -10,6 +10,7 @@ use crate::api::{
     },
     rust::{column::RustField, table::RustStruct, visibility::RustVisibility},
 };
+use crate::internal::dsl::error;
 use crate::internal::dsl::method::MethodGenerationContext;
 use itertools::izip;
 use spacetime_bindings_macro_input::table::ColumnArgs;
@@ -31,10 +32,7 @@ pub(in crate::internal) fn try_parse(
     let primary_key_column_name = match get_primary_key_column_name(column_args) {
         Some(pk) => pk,
         None => {
-            return Err(syn::Error::new_spanned(
-                &rust_struct.name,
-                "Your table should have a `#[primary_key]` column!",
-            ));
+            return Err(error::missing_primary_key(&rust_struct.name));
         }
     };
 

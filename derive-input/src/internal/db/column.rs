@@ -2,7 +2,8 @@ use crate::api::{
     db::{column::SpacetimeDBColumn, index::IndexType, table::SpacetimeDBTable},
     rust::column::RustField,
 };
-use syn::{Error, Ident};
+use crate::internal::dsl::error;
+use syn::Ident;
 
 impl SpacetimeDBColumn {
     pub(in crate::internal) fn map(
@@ -11,7 +12,7 @@ impl SpacetimeDBColumn {
         auto_inc_column_names: &[Ident],
         primary_key_column_name: &Ident,
         is_singleton: bool,
-    ) -> Result<(SpacetimeDBTable, SpacetimeDBColumn), Error> {
+    ) -> syn::Result<(SpacetimeDBTable, SpacetimeDBColumn)> {
         let column_name = &rust_field.name;
 
         let is_primary_key = column_name.eq(primary_key_column_name);
@@ -21,16 +22,9 @@ impl SpacetimeDBColumn {
                 .to_string()
                 .starts_with(&spacetimedb_table.singular_name.to_string())
         {
-            return Err(Error::new_spanned(
-                &rust_field.name,
-                format!(
-                    "A #[primary_key] column must not be prefixed with the table's name! Use `{}` instead of `{}`.",
-                    column_name
-                        .to_string()
-                        .strip_prefix(&format!("{}_", spacetimedb_table.singular_name))
-                        .unwrap_or("id"),
-                    column_name,
-                ),
+            return Err(error::primary_key_prefixed_with_table_name(
+                column_name,
+                &spacetimedb_table.singular_name,
             ));
         }
 
@@ -44,12 +38,7 @@ impl SpacetimeDBColumn {
                     | IndexType::Direct { column }
                     | IndexType::HashSingleColumn { column } => {
                         if column.eq(column_name) {
-                            return Err(Error::new_spanned(
-                                &rust_field.name,
-                                format!(
-                                    "`#[index]` and `#[unique]` are not allowed on singleton tables! Found index on column `{column_name}`.",
-                                ),
-                            ));
+                            return Err(error::single_column_index_on_singleton(column_name));
                         }
                     }
                     _ => {}

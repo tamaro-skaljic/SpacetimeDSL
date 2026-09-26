@@ -4,6 +4,7 @@ use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::{SingletonKind, SpacetimeDSLTable};
 use crate::internal::DSLData;
+use crate::internal::dsl::error;
 use crate::internal::dsl::hook::DeclaredHooks;
 use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::table::ColumnArgs;
@@ -58,15 +59,13 @@ impl SpacetimeDSLTable {
                         field.vis,
                         syn::Visibility::Public(_) | syn::Visibility::Restricted(_)
                     ) {
-                        return Err(syn::Error::new_spanned(
-                        &column_args.original_struct_name,
-                        "HasUpdateMethod must be set in `#[dsl(method(update = HasUpdateMethod))]`\nBecause you have at least one column which is not private, you should set `#[dsl(method(update = true))]`.\nIf, instead, you want immutable rows in this table which don't have setters and can't be updated, all columns must be private and you must specify `#[dsl(method(update = false))]`.".to_string(),
-                    ));
+                        return Err(error::missing_update_method_with_non_private_column(
+                            &column_args.original_struct_name,
+                        ));
                     }
                 }
-                return Err(syn::Error::new_spanned(
+                return Err(error::missing_update_method_with_only_private_columns(
                     &column_args.original_struct_name,
-                    "HasUpdateMethod must be set in `#[dsl(method(update = HasUpdateMethod))]`, e.g. `update = false`.\nBecause all your columns are private, you should set `#[dsl(method(update = false))]`.\nIf, instead, you want mutable rows in this table which have setters and can be updated, at least one column must be non-private or named `modified_at`/`updated_at` and you must specify `#[dsl(method(update = true))]`.",
                 ));
             }
             Some(has_update_method) => *has_update_method,
@@ -98,13 +97,7 @@ impl SpacetimeDSLTable {
                 syn::Visibility::Public(_) | syn::Visibility::Restricted(_)
             ) {
                 if !has_update_method {
-                    return Err(syn::Error::new_spanned(
-                        field.vis,
-                        format!(
-                            "All columns in a table with disabled `update` DSL method should be private! Found: {:?}",
-                            field.vis.to_token_stream().to_string()
-                        ),
-                    ));
+                    return Err(error::non_private_column_without_update_method(field.vis));
                 }
                 all_columns_are_private = false;
             }
@@ -116,19 +109,13 @@ impl SpacetimeDSLTable {
             if dsl_data.singleton == Some(SingletonKind::WithDefault)
                 && is_bare_timestamp_type(&field_type)
             {
-                return Err(syn::Error::new_spanned(
-                    field.ty,
-                    format!(
-                        "A column on a `singleton(with_default)` table should have the type `Option<spacetimedb::Timestamp>`! Found: {field_type}"
-                    ),
-                ));
+                return Err(error::bare_timestamp_on_singleton_with_default(field.ty));
             }
 
             if matches!(timestamp_role, Some(TimestampRole::CreatedAt)) {
                 if on_insert_set_current_timestamp_column_name.is_some() {
-                    return Err(syn::Error::new_spanned(
+                    return Err(error::multiple_set_on_create_columns(
                         field.ident.expect("a named field has an identifier"),
-                        "Multiple columns claim the `set_on_create` role! Only one column is allowed.",
                     ));
                 };
                 let set_on_create_type_is_valid = match dsl_data.singleton {
@@ -136,50 +123,27 @@ impl SpacetimeDSLTable {
                     _ => is_bare_timestamp_type(&field_type),
                 };
                 if !set_on_create_type_is_valid {
-                    return Err(syn::Error::new_spanned(
+                    return Err(error::set_on_create_column_type_mismatch(
                         field.ty,
-                        format!(
-                            "A column with the `set_on_create` role should have the type `{}`! Found: {field_type}",
-                            match dsl_data.singleton {
-                                Some(SingletonKind::WithDefault) =>
-                                    "Option<spacetimedb::Timestamp>",
-                                _ => "spacetimedb::Timestamp",
-                            }
-                        ),
+                        dsl_data.singleton,
                     ));
                 }
 
-                match field.vis {
-                    syn::Visibility::Public(_) => {
-                        return Err(syn::Error::new_spanned(
-                            field.vis,
-                            "A column with the `set_on_create` role should have `Visibility::Inherited`! Found: Visibility::Public",
-                        ));
-                    }
-                    syn::Visibility::Restricted(_) => {
-                        return Err(syn::Error::new_spanned(
-                            field.vis,
-                            "A column with the `set_on_create` role should have `Visibility::Inherited`! Found: Visibility::Restricted",
-                        ));
-                    }
-                    syn::Visibility::Inherited => {
-                        on_insert_set_current_timestamp_column_name =
-                            Some(format_ident!("{column_name}"));
-                    }
+                if !matches!(field.vis, syn::Visibility::Inherited) {
+                    return Err(error::set_on_create_column_not_private(field.vis));
                 }
+                on_insert_set_current_timestamp_column_name = Some(format_ident!("{column_name}"));
             }
             if matches!(timestamp_role, Some(TimestampRole::UpdatedAt)) {
                 if on_update_set_current_timestamp_column_name.is_some() {
-                    return Err(syn::Error::new_spanned(
+                    return Err(error::multiple_set_on_update_columns(
                         field.ident.expect("a named field has an identifier"),
-                        "Multiple columns claim the `set_on_update` role! Only one column is allowed.",
                     ));
                 };
 
                 if !has_update_method {
-                    return Err(syn::Error::new_spanned(
+                    return Err(error::set_on_update_column_without_update_method(
                         field.ident.expect("a named field has an identifier"),
-                        "A column with the `set_on_update` role requires the `update` method to be enabled in `#[dsl(method(update = true))]`!",
                     ));
                 }
 
@@ -188,32 +152,13 @@ impl SpacetimeDSLTable {
                     && !field_type.eq("Option < Timestamp >")
                     && !field_type.eq("Option < spacetimedb :: Timestamp >")
                 {
-                    return Err(syn::Error::new_spanned(
-                        field.ty,
-                        format!(
-                            "A column with the `set_on_update` role should have the type `spacetimedb::Timestamp` or `Option<spacetimedb::Timestamp>`! Found: {field_type}"
-                        ),
-                    ));
+                    return Err(error::set_on_update_column_type_mismatch(field.ty));
                 }
 
-                match field.vis {
-                    syn::Visibility::Public(_) => {
-                        return Err(syn::Error::new_spanned(
-                            field.vis,
-                            "A column with the `set_on_update` role should have `Visibility::Inherited`! Found: Visibility::Public",
-                        ));
-                    }
-                    syn::Visibility::Restricted(_) => {
-                        return Err(syn::Error::new_spanned(
-                            field.vis,
-                            "A column with the `set_on_update` role should have `Visibility::Inherited`! Found: Visibility::Restricted",
-                        ));
-                    }
-                    syn::Visibility::Inherited => {
-                        on_update_set_current_timestamp_column_name =
-                            Some(format_ident!("{column_name}"));
-                    }
+                if !matches!(field.vis, syn::Visibility::Inherited) {
+                    return Err(error::set_on_update_column_not_private(field.vis));
                 }
+                on_update_set_current_timestamp_column_name = Some(format_ident!("{column_name}"));
             }
         }
 
@@ -221,9 +166,8 @@ impl SpacetimeDSLTable {
             && !has_update_method
             && on_update_set_current_timestamp_column_name.is_some()
         {
-            return Err(syn::Error::new_spanned(
+            return Err(error::update_method_disabled_with_set_on_update_column(
                 &column_args.original_struct_name,
-                "Because you have a column named `modified_at`/`updated_at`, you must specify `#[dsl(method(update = true))]`\nIf, instead, you want immutable rows in this table which don't have setters and can't be updated, all columns must be private, you must remove the `modified_at`/`updated_at` column and you must specify `#[dsl(method(update = false))]`.",
             ));
         }
 
@@ -268,9 +212,8 @@ fn get_timestamp_role(
         || has_set_on_update_attribute;
 
     if is_set_on_create && is_set_on_update {
-        return Err(syn::Error::new_spanned(
+        return Err(error::set_on_create_and_set_on_update(
             field.ident.expect("a named field has an identifier"),
-            "A column cannot be both `set_on_create` and `set_on_update`.",
         ));
     }
 
