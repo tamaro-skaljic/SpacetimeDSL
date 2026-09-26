@@ -1,0 +1,91 @@
+---
+source: derive/src/characterization_tests.rs
+---
+pub trait this_compilation_error_occurs_because_the_author_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table {}
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+pub struct AuthorId {
+    value: u64,
+}
+impl Default for AuthorId {
+    fn default() -> AuthorId {
+        AuthorId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for AuthorId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "AuthorId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64, AuthorId> for AuthorId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Author> for AuthorId {
+    fn from(value: &Author) -> Self {
+        AuthorId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Author> for Option<AuthorId> {
+    fn from(value: &Author) -> Option<AuthorId> {
+        Some(AuthorId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&AuthorId> for Option<AuthorId> {
+    fn from(value: &AuthorId) -> Option<AuthorId> {
+        use spacetimedsl::Wrapper;
+        Some(AuthorId::new(value.value()))
+    }
+}
+impl From<&AuthorId> for AuthorId {
+    fn from(value: &AuthorId) -> Self {
+        use spacetimedsl::Wrapper;
+        AuthorId::new(value.value())
+    }
+}
+impl Author {
+    ///
+    pub fn get_id(&self) -> AuthorId {
+        use spacetimedsl::Wrapper;
+        AuthorId::new(self.id.clone())
+    }
+    ///
+    pub fn get_name(&self) -> &String {
+        use spacetimedsl::Wrapper;
+        &self.name
+    }
+    ///
+    pub fn get_name_mut(&mut self) -> &mut String {
+        use spacetimedsl::Wrapper;
+        &mut self.name
+    }
+    ///
+    pub fn set_name(&mut self, name: String) -> String {
+        use spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.name, name);
+        old_value
+    }
+}
+///
+pub struct CreateAuthor {
+    pub name: String,
+}
+
+// Generated DSL methods:
+// count_of_all_authors
+// create_author
+// delete_author_by_id
+// execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_author_table_were_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_author_table_was_deleted
+// get_all_authors
+// get_author_by_id
+// update_author_by_id

@@ -5,7 +5,7 @@
 //! referenced side is [`super::referenced_by`].
 
 use super::{
-    context::TableContributions,
+    context::{MethodGenerationContext, TableContributions},
     naming::{
         referenced_table_compile_error_check_for_deletions,
         referenced_table_compile_error_check_for_soft_deletions,
@@ -18,15 +18,13 @@ use super::{
 use crate::{
     api::{
         Column,
-        db::table::SpacetimeDBTable,
         dsl::{
             foreign_key::OnDeleteStrategy,
             method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
-            table::SpacetimeDSLTable,
         },
         runtime,
     },
-    internal::{column::InternalColumn, dsl::one_or_multiple::OneOrMultiple},
+    internal::dsl::one_or_multiple::OneOrMultiple,
 };
 use itertools::Itertools;
 use proc_macro2::TokenStream;
@@ -34,16 +32,13 @@ use quote::{ToTokens, format_ident, quote};
 use std::collections::BTreeMap;
 use strum::IntoEnumIterator;
 
-#[allow(clippy::too_many_arguments)]
 pub(in crate::internal) fn for_foreign_key(
     removal: Removal,
     one_or_multiple: &OneOrMultiple,
     referencing_tables: ReferencingTables,
-    spacetimedb_table: &SpacetimeDBTable,
+    context: &MethodGenerationContext,
     referenced_table_name: &syn::Ident,
     columns_with_foreign_key: &[&Column],
-    primary_key_column: &InternalColumn,
-    spacetimedsl_table: &SpacetimeDSLTable,
 ) -> syn::Result<(SpacetimeDSLMethod, TableContributions)> {
     let mut contributions = TableContributions::default();
 
@@ -131,7 +126,7 @@ pub(in crate::internal) fn for_foreign_key(
             .push(*column_with_foreign_key);
     }
 
-    let singular_table_name = &spacetimedb_table.singular_name;
+    let singular_table_name = &context.singular_table_name;
     let referenced_table_name = format_ident!("{}", *referenced_table_name);
 
     let doc_comment;
@@ -235,13 +230,11 @@ pub(in crate::internal) fn for_foreign_key(
         .map(|on_delete_strategy| {
             let implementation = match columns_by_on_delete_strategies.remove(&on_delete_strategy) {
                 Some(columns_by_on_delete_strategy) => on_delete_strategy_implementation(
-                    spacetimedsl_table,
+                    context,
                     referencing_tables,
-                    singular_table_name,
                     &on_delete_strategy,
                     columns_by_on_delete_strategy,
                     one_or_multiple,
-                    primary_key_column,
                 ),
                 None => TokenStream::default(),
             };

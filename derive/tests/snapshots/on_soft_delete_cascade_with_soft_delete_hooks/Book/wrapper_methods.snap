@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl AuthorId {
+    /**Get all `Book` rows whose `author_id` column references this `AuthorId`.
+
+Use it like `author_id.get_books(&dsl)`.*/
+    pub fn get_books<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Book> {
+        dsl.into().get_books_by_author_id(self).collect()
+    }
+}

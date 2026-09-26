@@ -12,7 +12,7 @@
 
 Authoritative reference to transform **SpacetimeDB** Rust Server Modules to use **SpacetimeDSL**.
 
-- **SpacetimeDSL** version **0.23.1**
+- **SpacetimeDSL** version **0.23.2**
 - **SpacetimeDB** version **2.10.1**
 
 ## Quick Transformation Checklist
@@ -1483,6 +1483,7 @@ unresolved import crate::entity_relationship::this_compilation_error_occurs_beca
 - Numeric types only
 - Requires `method(update = true)` on the referencing table's `#[spacetimedsl::dsl]`
 - Requires the foreign key column to be `pub` (so a setter exists)
+- Clearing the column is an update of the referencing row: its [`before_update` and `after_update` hooks](#during-a-cascading-delete) run around the write, and its `#[set_on_update]` column is set, as in `update_<table>_by_<key>`
 
 **`Ignore`** — Allow dangling references:
 
@@ -1779,7 +1780,12 @@ A `before_delete` or `after_delete` hook also runs when the row is deleted by a 
 is when a referenced row is deleted and this table's `#[foreign_key(… on_delete = Delete)]`
 removes the referencing rows.
 
-If the hook returns an error there, the cascade stops and the delete method that started it
+Likewise, a `before_update` or `after_update` hook runs when a cascade clears this table's
+`#[foreign_key(… on_delete = SetZero)]` column, because that writes the row. Both hooks
+receive the row as it was and the row with the column set to `0`, so a hook can tell this
+update apart by comparing the column in the two.
+
+If a hook returns an error there, the cascade stops and the delete method that started it
 returns an error. The hook's own error is carried on the `DeletionResult` as
 `error_from_hook`, and `Display` prints it above the CSV:
 

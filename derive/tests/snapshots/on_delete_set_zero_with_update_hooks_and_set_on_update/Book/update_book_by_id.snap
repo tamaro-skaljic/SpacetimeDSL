@@ -1,0 +1,86 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Book` row of the `book` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_book_by_id<'a>(
+        &'a self,
+        book: Book,
+    ) -> Result<Book, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut book = book;
+        let mut the_same_or_another_book: Option<Book> = None;
+        let author_id = book.get_author_id().value();
+        if author_id.ne(&0) {
+            if the_same_or_another_book.is_none() {
+                the_same_or_another_book = match self
+                    .db()
+                    .book()
+                    .id()
+                    .find(book.get_id().value())
+                {
+                    Some(book) => Some(book),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "book".into(),
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", author_id
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_book
+                .as_ref()
+                .expect("field_name_for_found_value should be Some(_)")
+                .get_author_id()
+                .ne(&book.get_author_id())
+            {
+                match self.get_author_by_id(book.get_author_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "book".into(),
+                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", "author_id", author_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        if the_same_or_another_book.is_none() {
+            the_same_or_another_book = Some(
+                self.db().book().id().find(book.id).expect("Row should exist for update"),
+            );
+        }
+        use self::BeforeBookUpdateHook;
+        let book = crate::spacetimedsl::DSLMethodHooks::before_book_update(
+            self,
+            the_same_or_another_book.as_ref().unwrap(),
+            book,
+        )?;
+        let mut book = book;
+        book
+            .modified_at = Some(
+            self.ctx().timestamp().expect("a `WriteContext` always has a timestamp"),
+        );
+        let book = self.db().book().id().update(book);
+        use self::AfterBookUpdateHook;
+        crate::spacetimedsl::DSLMethodHooks::after_book_update(
+            self,
+            the_same_or_another_book.as_ref().unwrap(),
+            &book,
+        )?;
+        Ok(book)
+    }
+}

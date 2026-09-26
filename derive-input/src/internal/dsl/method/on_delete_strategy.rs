@@ -1,26 +1,25 @@
 //! What one on-delete strategy does to the rows that reference a deleted row.
 //!
 //! `Error` refuses, `Delete` removes them — and cascades further if they are themselves
-//! referenced — `SetZero` clears the column, `Ignore` does nothing. Each is generated into
-//! one arm of the match in [`super::foreign_key`].
+//! referenced — `SoftDelete` retires them, `SetZero` clears the column in an update of the
+//! row, `Ignore` does nothing. Each is generated into one arm of the match in
+//! [`super::foreign_key`].
 
 use super::{
-    context::{self},
+    context::{self, MethodGenerationContext},
     hook_call::hook_use_and_call,
     naming::referenced_table_function_name,
     removal::Removal,
     soft_delete,
+    upsert::{rebind_row_as_mutable_after_hook, set_updated_at_on_update},
 };
 use crate::{
     api::{
         Column,
-        dsl::{foreign_key::OnDeleteStrategy, table::SpacetimeDSLTable},
+        dsl::{foreign_key::OnDeleteStrategy, hook::SpacetimeDSLMethodHook},
         runtime,
     },
-    internal::{
-        column::InternalColumn,
-        dsl::{one_or_multiple::OneOrMultiple, singleton},
-    },
+    internal::dsl::{one_or_multiple::OneOrMultiple, singleton},
 };
 use proc_macro2::TokenStream;
 use quote::{TokenStreamExt, format_ident, quote};
@@ -49,23 +48,27 @@ pub(in crate::internal) enum ReferencingTables {
 }
 
 pub(in crate::internal) fn on_delete_strategy_implementation(
-    spacetimedsl_table: &SpacetimeDSLTable,
+    context: &MethodGenerationContext,
     referencing_tables: ReferencingTables,
-    singular_table_name: &Ident,
     on_delete_strategy: &OnDeleteStrategy,
     columns_by_on_delete_strategy: Vec<&Column>,
     one_or_multiple: &OneOrMultiple,
-    primary_key_column: &InternalColumn,
 ) -> TokenStream {
+    let MethodGenerationContext {
+        spacetimedsl_table,
+        internal_columns,
+        primary_key_column,
+        singular_table_name,
+        singular_table_name_as_string,
+        primary_key_column_name,
+        ..
+    } = context;
+
     let spacetimedb_call_prefix = quote! {
         dsl
             .db()
             .#singular_table_name()
     };
-
-    let primary_key_column_name = &primary_key_column.rust_field_name;
-
-    let singular_table_name_as_string = singular_table_name.to_string();
 
     // Deliberate empty slot, symmetric with strategy_after_all.
     let strategy_before_all = quote! {};
@@ -136,7 +139,7 @@ pub(in crate::internal) fn on_delete_strategy_implementation(
         };
 
         let create_entry = runtime::deletion_result_entry(
-            &singular_table_name_as_string,
+            singular_table_name_as_string,
             &column_name_as_string,
             on_delete_strategy,
             &row_value_format,
@@ -383,67 +386,27 @@ pub(in crate::internal) fn on_delete_strategy_implementation(
                 // The two imports have to escape the per-row loop their guard sits in, so
                 // they are hoisted the way the `Delete` arm hoists its own.
                 let build_hooks = |old_row: TokenStream| {
-                    let before = hook_use_and_call(
+                    hooks_around_the_write(
                         &spacetimedsl_table.hooks.before_soft_delete,
-                        |hook_function_name| {
-                            let hook_call = runtime::dsl_method_hooks_call(
-                                hook_function_name,
-                                &quote! { &dsl, #old_row, row },
-                            );
-
-                            quote! {
-                                let row = match #hook_call {
-                                    Err(error_raised_by_the_hook) => {
-                                        error = true;
-                                        error_from_hook = Some(Box::new(error_raised_by_the_hook));
-                                        break 'outer;
-                                    }
-                                    Ok(row) => row,
-                                };
-                            }
-                        },
-                    );
-
-                    let after = hook_use_and_call(
                         &spacetimedsl_table.hooks.after_soft_delete,
-                        |hook_function_name| {
-                            let hook_call = runtime::dsl_method_hooks_call(
-                                hook_function_name,
-                                &quote! { &dsl, #old_row, &row },
-                            );
-
-                            quote! {
-                                if let Err(error_raised_by_the_hook) = #hook_call {
-                                    error = true;
-                                    error_from_hook = Some(Box::new(error_raised_by_the_hook));
-                                    break 'outer;
-                                }
-                            }
-                        },
-                    );
-
-                    (before, after)
+                        &old_row,
+                    )
                 };
 
                 // The marker is written into the row the before hook handed back, so the
                 // `mut` sits on whichever binding that hook left behind. Without a hook
-                // the row arrives mutable already; the store is named only when the after
-                // hook reads it.
+                // the row arrives mutable already.
                 let write_and_store = |before_hook: &TokenStream, after_hook: &TokenStream| {
                     let rebind_row = match before_hook.is_empty() {
                         true => TokenStream::default(),
                         false => quote! { let mut row = row; },
                     };
 
-                    let store_row = match after_hook.is_empty() {
-                        true => quote! {
-                            // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update
-                            #spacetimedb_call_prefix.#primary_key_column_name().update(row);
-                        },
-                        false => quote! {
-                            let row = #spacetimedb_call_prefix.#primary_key_column_name().update(row);
-                        },
-                    };
+                    let store_row = store_the_row(
+                        &spacetimedb_call_prefix,
+                        primary_key_column_name,
+                        after_hook,
+                    );
 
                     (rebind_row, store_row)
                 };
@@ -638,19 +601,67 @@ pub(in crate::internal) fn on_delete_strategy_implementation(
                 };
             }
             OnDeleteStrategy::SetZero => {
+                let row = format_ident!("row");
+
+                // Clearing the column is an update of the row, so the update hooks run around
+                // the write as they do around the one `update_<table>_by_<key>` makes. Their
+                // imports are hoisted the way the `Delete` arm hoists its own.
+                let (
+                    (use_before_update_hook_trait, before_update_hook),
+                    (use_after_update_hook_trait, after_update_hook),
+                ) = hooks_around_the_write(
+                    &spacetimedsl_table.hooks.before_update,
+                    &spacetimedsl_table.hooks.after_update,
+                    &quote! { &old_row },
+                );
+                strategy_for_before_hook = use_before_update_hook_trait;
+                strategy_for_after_hook = use_after_update_hook_trait;
+
+                // The hooks see the row as it was before the column was cleared.
+                let clone_old_row =
+                    match before_update_hook.is_empty() && after_update_hook.is_empty() {
+                        true => TokenStream::default(),
+                        false => quote! { let old_row = row.clone(); },
+                    };
+
+                // Written after the before hook, as `update_<table>_by_<key>` does, so the
+                // framework has the last word on the timestamp.
+                let set_updated_at = set_updated_at_on_update(
+                    spacetimedsl_table,
+                    internal_columns,
+                    &quote! { dsl },
+                    &row,
+                );
+                let rebind_row =
+                    rebind_row_as_mutable_after_hook(&row, &before_update_hook, &[&set_updated_at]);
+
+                let store_row = store_the_row(
+                    &spacetimedb_call_prefix,
+                    primary_key_column_name,
+                    &after_update_hook,
+                );
+
                 strategy_by_column.push(strategy_by_row(
                     RowBinding::Mutable,
                     index_uniqueness,
                     &row_finder,
                     quote! {
+                        #clone_old_row
+
                         row.#column_name = 0;
 
                         let child_entries = vec![];
                         let #primary_key_column_name = &row.#primary_key_column_name;
                         #create_entry_and_add_it_to_entries
 
-                        // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update and on error return Err(crate::spacetimedsl::error::SpacetimeDSLError);
-                        #spacetimedb_call_prefix.#primary_key_column_name().update(row);
+                        #before_update_hook
+
+                        #rebind_row
+                        #set_updated_at
+
+                        #store_row
+
+                        #after_update_hook
                     },
                 ));
             }
@@ -723,6 +734,69 @@ fn strategy_by_row(
             for #row_or_mut_row in #row_finder {
                 #strategy_for_each_row
             }
+        },
+    }
+}
+
+/// The before and after hooks of a strategy which writes the row back rather than removing
+/// it, each as the `use` of its trait and its call, kept apart so the `use` can escape the
+/// per-row loop the call sits in.
+///
+/// A soft deletion and `SetZero` both write the row, so their hooks take the shape of the
+/// update hooks: the before hook receives the stored row and the row to write and hands the
+/// latter back, the after hook reads what was stored. An error from either stops the
+/// cascade and is carried on the `DeletionResult`.
+fn hooks_around_the_write(
+    before_hook: &Option<SpacetimeDSLMethodHook>,
+    after_hook: &Option<SpacetimeDSLMethodHook>,
+    old_row: &TokenStream,
+) -> ((TokenStream, TokenStream), (TokenStream, TokenStream)) {
+    let before = hook_use_and_call(before_hook, |hook_function_name| {
+        let hook_call =
+            runtime::dsl_method_hooks_call(hook_function_name, &quote! { &dsl, #old_row, row });
+
+        quote! {
+            let row = match #hook_call {
+                Err(error_raised_by_the_hook) => {
+                    error = true;
+                    error_from_hook = Some(Box::new(error_raised_by_the_hook));
+                    break 'outer;
+                }
+                Ok(row) => row,
+            };
+        }
+    });
+
+    let after = hook_use_and_call(after_hook, |hook_function_name| {
+        let hook_call =
+            runtime::dsl_method_hooks_call(hook_function_name, &quote! { &dsl, #old_row, &row });
+
+        quote! {
+            if let Err(error_raised_by_the_hook) = #hook_call {
+                error = true;
+                error_from_hook = Some(Box::new(error_raised_by_the_hook));
+                break 'outer;
+            }
+        }
+    });
+
+    (before, after)
+}
+
+/// Writes the row back through its primary key, binding what was stored only when the after
+/// hook reads it.
+fn store_the_row(
+    spacetimedb_call_prefix: &TokenStream,
+    primary_key_column_name: &Ident,
+    after_hook: &TokenStream,
+) -> TokenStream {
+    match after_hook.is_empty() {
+        true => quote! {
+            // FIXME: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/60 try_update instead of update
+            #spacetimedb_call_prefix.#primary_key_column_name().update(row);
+        },
+        false => quote! {
+            let row = #spacetimedb_call_prefix.#primary_key_column_name().update(row);
         },
     }
 }
