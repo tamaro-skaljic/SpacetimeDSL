@@ -375,7 +375,7 @@ pub(crate) fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
         parent_entity_relationship4_id: EntityRelationship4Id::new(0),
     })?;
     let mut er4_2 = dsl.create_entity_relationship4(CreateEntityRelationship4 {
-        parent_entity_relationship4_id: er4_1.get_parent_entity_relationship4_id(),
+        parent_entity_relationship4_id: er4_1.get_id(),
     })?;
 
     match dsl.delete_entity_relationship4_by_id(&er4_1) {

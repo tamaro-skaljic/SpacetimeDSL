@@ -1,12 +1,13 @@
-//! Parse a Rust source file into a `syn::File` and print out a debug
-//! representation of the syntax tree.
+//! Parse every Rust source file below a directory into a `syn::File` and write a debug
+//! representation of each syntax tree to an output directory, mirroring the source tree:
+//! `src/component/identifier.rs` is written to `<output>/component/identifier.rs.ast`.
 //!
 //! Use the following command from this directory to test this program by
 //! running it on its own source code:
 //!
-//!     cargo run -- src/main.rs
+//!     cargo run -- src output
 //!
-//! The output will begin with:
+//! `output/main.rs.ast` will then begin with:
 //!
 //!     File {
 //!         shebang: None,
@@ -29,7 +30,9 @@ use std::process;
 
 enum Error {
     IncorrectUsage,
+    ReadDirectory(io::Error),
     ReadFile(io::Error),
+    WriteFile(io::Error),
     ParseFile {
         error: syn::Error,
         filepath: PathBuf,
@@ -40,8 +43,13 @@ enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::IncorrectUsage => write!(f, "Usage: dump-syntax path/to/filename.rs"),
+            Error::IncorrectUsage => write!(
+                f,
+                "Usage: dump-syntax path/to/source/directory path/to/output/directory"
+            ),
+            Error::ReadDirectory(error) => write!(f, "Unable to read directory: {}", error),
             Error::ReadFile(error) => write!(f, "Unable to read file: {}", error),
+            Error::WriteFile(error) => write!(f, "Unable to write file: {}", error),
             Error::ParseFile {
                 error,
                 filepath,
@@ -62,22 +70,51 @@ fn try_main() -> Result<(), Error> {
     let mut args = env::args_os();
     let _ = args.next(); // executable name
 
-    let filepath = match (args.next(), args.next()) {
-        (Some(arg), None) => PathBuf::from(arg),
+    let (source_directory, output_directory) = match (args.next(), args.next(), args.next()) {
+        (Some(source), Some(output), None) => (PathBuf::from(source), PathBuf::from(output)),
         _ => return Err(Error::IncorrectUsage),
     };
 
-    let code = fs::read_to_string(&filepath).map_err(Error::ReadFile)?;
-    let syntax = syn::parse_file(&code).map_err({
-        |error| Error::ParseFile {
-            error,
-            filepath,
-            source_code: code,
+    for source_file in rust_files_below(&source_directory).map_err(Error::ReadDirectory)? {
+        let syntax = parse(&source_file)?;
+
+        let relative_path = source_file
+            .strip_prefix(&source_directory)
+            .expect("a file found below the source directory should be relative to it");
+        let mut output_file = output_directory.join(relative_path).into_os_string();
+        output_file.push(".ast");
+        let output_file = PathBuf::from(output_file);
+
+        if let Some(parent) = output_file.parent() {
+            fs::create_dir_all(parent).map_err(Error::WriteFile)?;
         }
-    })?;
-    println!("{:#?}", syntax);
+        fs::write(&output_file, format!("{:#?}\n", syntax)).map_err(Error::WriteFile)?;
+    }
 
     Ok(())
+}
+
+fn rust_files_below(directory: &Path) -> io::Result<Vec<PathBuf>> {
+    let mut rust_files = Vec::new();
+    for entry in fs::read_dir(directory)? {
+        let path = entry?.path();
+        if path.is_dir() {
+            rust_files.extend(rust_files_below(&path)?);
+        } else if path.extension() == Some(OsStr::new("rs")) {
+            rust_files.push(path);
+        }
+    }
+    rust_files.sort();
+    Ok(rust_files)
+}
+
+fn parse(filepath: &Path) -> Result<syn::File, Error> {
+    let code = fs::read_to_string(filepath).map_err(Error::ReadFile)?;
+    syn::parse_file(&code).map_err(|error| Error::ParseFile {
+        error,
+        filepath: filepath.to_path_buf(),
+        source_code: code,
+    })
 }
 
 // Render a rustc-style error message, including colors.

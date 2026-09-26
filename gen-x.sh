@@ -215,9 +215,9 @@ generate_debug() {
     fi
     cmd_cd "$shell" "../../debug-helper"
     if [ "$shell" = "bash" ]; then
-        echo "        cargo run -- ../examples/test/src/lib.rs > output/lib.rs.ast"
+        echo "        cargo run -- ../examples/test/src output"
     else
-        echo "        cargo run -- ..\\examples\\test\\src\\lib.rs > output\\lib.rs.ast"
+        echo "        cargo run -- ..\\examples\\test\\src output"
     fi
     cmd_cd "$shell" ".."
     switch_case_end "$shell"

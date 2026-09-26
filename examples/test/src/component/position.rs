@@ -101,7 +101,7 @@ pub(crate) fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
         .ne(&time)
     {
         return Err(
-            "The create method should have set the modified_at column of the identifier to the current time!"
+            "The create method should have set the modified_at column of the position to the current time!"
                 .to_string(),
         );
     }
