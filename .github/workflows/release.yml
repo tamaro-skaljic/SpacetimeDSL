@@ -85,9 +85,9 @@ jobs:
           echo "🏷️ Release triggered by tag: ${{ github.ref }}"
 
       - name: Install Rust toolchain
+        # The toolchain and its targets come from `rust-toolchain.toml`,
+        # so the release builds with the exact same rustc as CI and local development.
         uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
 
       # Authenticate with crates.io using OIDC/Trusted Publishing
       - name: Authenticate with crates.io
