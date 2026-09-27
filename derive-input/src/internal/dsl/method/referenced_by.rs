@@ -188,9 +188,18 @@ pub fn for_referenced_by(
                 let mut entries = vec![];
             }
         }
+        // A cascade calls this dispatcher for the rows it removed, even when it removed
+        // none. Without the early return, a table which references itself, or two tables
+        // which reference each other, would call it again and again until the stack
+        // overflows.
         OneOrMultiple::Multiple => {
             quote! {
                 let mut entries = std::collections::HashMap::new();
+
+                if primary_key_values_of_rows_to_delete.is_empty() {
+                    return Ok(entries);
+                }
+
                 for primary_key_value_of_a_row_to_delete in primary_key_values_of_rows_to_delete {
                     entries.insert(primary_key_value_of_a_row_to_delete, vec![]);
                 }

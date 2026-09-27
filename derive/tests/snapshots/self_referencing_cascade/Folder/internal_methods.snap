@@ -1,10 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-// execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_book_table_was_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_folder_table_was_deleted
 impl crate::spacetimedsl::internal::DSLInternals {
-    ///Execute On Delete Strategies of all referencing tables after one row of the referenced table `book` was deleted.
-    pub fn execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_book_table_was_deleted<
+    ///Execute On Delete Strategies of all referencing tables after one row of the referenced table `folder` was deleted.
+    pub fn execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_folder_table_was_deleted<
         'a,
         T: crate::spacetimedsl::WriteContext,
     >(
@@ -19,13 +19,13 @@ impl crate::spacetimedsl::internal::DSLInternals {
     > {
         use ::spacetimedsl::Wrapper;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use self::this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_book_table;
+        use self::this_compilation_error_occurs_because_the_folder_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_folder_table;
         let mut entries = vec![];
         let mut error_from_hook: Option<
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_the_review_table_after_one_row_of_the_book_table_was_deleted(
+        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_the_folder_table_after_one_row_of_the_folder_table_was_deleted(
             dsl,
             &strategy,
             primary_key_value_of_a_row_to_delete,
@@ -54,10 +54,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
     }
 }
 
-// execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_deleted
 impl crate::spacetimedsl::internal::DSLInternals {
-    ///Execute On Delete Strategies of all referencing tables after multiple rows of the referenced table `book` were deleted.
-    pub fn execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_deleted<
+    ///Execute On Delete Strategies of all referencing tables after multiple rows of the referenced table `folder` were deleted.
+    pub fn execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_deleted<
         'a,
         T: crate::spacetimedsl::WriteContext,
     >(
@@ -78,7 +78,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
     > {
         use ::spacetimedsl::Wrapper;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use self::this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_book_table;
+        use self::this_compilation_error_occurs_because_the_folder_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_folder_table;
         let mut entries = std::collections::HashMap::new();
         if primary_key_values_of_rows_to_delete.is_empty() {
             return Ok(entries);
@@ -90,7 +90,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_the_review_table_after_multiple_rows_of_the_book_table_were_deleted(
+        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_the_folder_table_after_multiple_rows_of_the_folder_table_were_deleted(
             dsl,
             &strategy,
             primary_key_values_of_rows_to_delete,
@@ -138,10 +138,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
     }
 }
 
-// execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_book_table_was_soft_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_folder_table_was_soft_deleted
 impl crate::spacetimedsl::internal::DSLInternals {
-    ///Execute On Delete Strategies of all referencing tables after one row of the referenced table `book` was soft-deleted.
-    pub fn execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_book_table_was_soft_deleted<
+    ///Execute On Delete Strategies of all referencing tables after one row of the referenced table `folder` was soft-deleted.
+    pub fn execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_folder_table_was_soft_deleted<
         'a,
         T: crate::spacetimedsl::WriteContext,
     >(
@@ -156,13 +156,13 @@ impl crate::spacetimedsl::internal::DSLInternals {
     > {
         use ::spacetimedsl::Wrapper;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use self::this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_book_table;
+        use self::this_compilation_error_occurs_because_the_folder_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_folder_table;
         let mut entries = vec![];
         let mut error_from_hook: Option<
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_the_review_table_after_one_row_of_the_book_table_was_soft_deleted(
+        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_the_folder_table_after_one_row_of_the_folder_table_was_soft_deleted(
             dsl,
             &strategy,
             primary_key_value_of_a_row_to_delete,
@@ -191,10 +191,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
     }
 }
 
-// execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_soft_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_soft_deleted
 impl crate::spacetimedsl::internal::DSLInternals {
-    ///Execute On Delete Strategies of all referencing tables after multiple rows of the referenced table `book` were soft-deleted.
-    pub fn execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_soft_deleted<
+    ///Execute On Delete Strategies of all referencing tables after multiple rows of the referenced table `folder` were soft-deleted.
+    pub fn execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_soft_deleted<
         'a,
         T: crate::spacetimedsl::WriteContext,
     >(
@@ -215,7 +215,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
     > {
         use ::spacetimedsl::Wrapper;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use self::this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_book_table;
+        use self::this_compilation_error_occurs_because_the_folder_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_folder_table;
         let mut entries = std::collections::HashMap::new();
         if primary_key_values_of_rows_to_delete.is_empty() {
             return Ok(entries);
@@ -227,7 +227,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_the_review_table_after_multiple_rows_of_the_book_table_were_soft_deleted(
+        match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_the_folder_table_after_multiple_rows_of_the_folder_table_were_soft_deleted(
             dsl,
             &strategy,
             primary_key_values_of_rows_to_delete,
@@ -275,10 +275,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
     }
 }
 
-// execute_on_delete_strategies_of_the_book_table_after_one_row_of_the_author_table_was_deleted
+// execute_on_delete_strategies_of_the_folder_table_after_one_row_of_the_folder_table_was_deleted
 impl crate::spacetimedsl::internal::DSLInternals {
-    ///Execute On Delete Strategies of the referencing table `book` after one row of the referenced table `author` was deleted.
-    pub fn execute_on_delete_strategies_of_the_book_table_after_one_row_of_the_author_table_was_deleted<
+    ///Execute On Delete Strategies of the referencing table `folder` after one row of the referenced table `folder` was deleted.
+    pub fn execute_on_delete_strategies_of_the_folder_table_after_one_row_of_the_folder_table_was_deleted<
         'a,
         T: crate::spacetimedsl::WriteContext,
     >(
@@ -293,7 +293,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
     > {
         use ::spacetimedsl::Wrapper;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use self::this_compilation_error_occurs_because_the_author_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
+        use self::this_compilation_error_occurs_because_the_folder_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_folder_table;
         use ::spacetimedsl::itertools::Itertools;
         let mut entries = vec![];
         let mut error_from_hook: Option<
@@ -314,8 +314,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
                         );
                     for row in dsl
                         .db()
-                        .book()
-                        .author_id()
+                        .folder()
+                        .parent_folder_id()
                         .filter(primary_key_value_of_a_row_of_another_table_to_delete)
                     {
                         if !child_entries_by_primary_key_value_of_row_to_delete
@@ -340,7 +340,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                         .keys()
                         .cloned()
                         .collect_vec();
-                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_deleted(
+                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_deleted(
                         dsl,
                         crate::spacetimedsl::delete::OnDeleteStrategy::Error,
                         &primary_key_values_of_rows_to_delete[..],
@@ -374,10 +374,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                         );
                                     entries
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -407,7 +407,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                         let row = row_to_delete_by_primary_key_value
                             .get(id)
                             .expect("Should exist");
-                        if !dsl.db().book().id().delete(id) {
+                        if !dsl.db().folder().id().delete(id) {
                             for (
                                 primary_key_value_of_a_row_of_another_table_to_delete,
                                 primary_key_values_of_rows_to_delete,
@@ -420,10 +420,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                         );
                                     entries
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -434,7 +434,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             });
                         }
                     }
-                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_deleted(
+                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_deleted(
                         dsl,
                         crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                         &primary_key_values_of_rows_to_delete[..],
@@ -468,10 +468,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                         );
                                     entries
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -497,7 +497,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             }
                         }
                     };
-                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_deleted(
+                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_deleted(
                         dsl,
                         crate::spacetimedsl::delete::OnDeleteStrategy::SetZero,
                         &primary_key_values_of_rows_to_delete[..],
@@ -531,10 +531,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                         );
                                     entries
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -560,7 +560,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             }
                         }
                     };
-                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_deleted(
+                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_deleted(
                         dsl,
                         crate::spacetimedsl::delete::OnDeleteStrategy::Ignore,
                         &primary_key_values_of_rows_to_delete[..],
@@ -594,10 +594,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                         );
                                     entries
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -635,10 +635,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                 );
                             entries
                                 .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                    table_name: "book".into(),
-                                    column_name: "author_id".into(),
+                                    table_name: "folder".into(),
+                                    column_name: "parent_folder_id".into(),
                                     strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
-                                    row_value: format!("{}", BookId::new(id.clone())).into(),
+                                    row_value: format!("{}", FolderId::new(id.clone())).into(),
                                     child_entries,
                                 });
                         }
@@ -661,10 +661,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
     }
 }
 
-// execute_on_delete_strategies_of_the_book_table_after_one_row_of_the_author_table_was_soft_deleted
+// execute_on_delete_strategies_of_the_folder_table_after_one_row_of_the_folder_table_was_soft_deleted
 impl crate::spacetimedsl::internal::DSLInternals {
-    ///Execute On Delete Strategies of the referencing table `book` after one row of the referenced table `author` was soft-deleted.
-    pub fn execute_on_delete_strategies_of_the_book_table_after_one_row_of_the_author_table_was_soft_deleted<
+    ///Execute On Delete Strategies of the referencing table `folder` after one row of the referenced table `folder` was soft-deleted.
+    pub fn execute_on_delete_strategies_of_the_folder_table_after_one_row_of_the_folder_table_was_soft_deleted<
         'a,
         T: crate::spacetimedsl::WriteContext,
     >(
@@ -679,7 +679,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
     > {
         use ::spacetimedsl::Wrapper;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use self::this_compilation_error_occurs_because_the_author_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
+        use self::this_compilation_error_occurs_because_the_folder_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_folder_table;
         use ::spacetimedsl::itertools::Itertools;
         let mut entries = vec![];
         let mut error_from_hook: Option<
@@ -701,11 +701,11 @@ impl crate::spacetimedsl::internal::DSLInternals {
                         );
                     for row in dsl
                         .db()
-                        .book()
-                        .author_id()
+                        .folder()
+                        .parent_folder_id()
                         .filter(primary_key_value_of_a_row_of_another_table_to_delete)
                     {
-                        if !(row.deleted_at.is_some())
+                        if !(row.deleted)
                             && !child_entries_by_primary_key_value_of_row_to_delete
                                 .contains_key(&row.id)
                         {
@@ -728,7 +728,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                         .keys()
                         .cloned()
                         .collect_vec();
-                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_soft_deleted(
+                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_soft_deleted(
                         dsl,
                         crate::spacetimedsl::delete::OnDeleteStrategy::Error,
                         &primary_key_values_of_rows_to_delete[..],
@@ -762,10 +762,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                         );
                                     entries
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -796,16 +796,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             .get(id)
                             .expect("Should exist");
                         let mut row = old_row.clone();
-                        row
-                            .deleted_at = Some(
-                            dsl
-                                .ctx()
-                                .timestamp()
-                                .expect("a `WriteContext` always has a timestamp"),
-                        );
-                        dsl.db().book().id().update(row);
+                        row.deleted = true;
+                        dsl.db().folder().id().update(row);
                     }
-                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_soft_deleted(
+                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_soft_deleted(
                         dsl,
                         crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
                         &primary_key_values_of_rows_to_delete[..],
@@ -839,10 +833,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                         );
                                     entries
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -868,7 +862,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             }
                         }
                     };
-                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_soft_deleted(
+                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_soft_deleted(
                         dsl,
                         crate::spacetimedsl::delete::OnDeleteStrategy::Ignore,
                         &primary_key_values_of_rows_to_delete[..],
@@ -902,10 +896,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                         );
                                     entries
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -943,10 +937,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                 );
                             entries
                                 .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                    table_name: "book".into(),
-                                    column_name: "author_id".into(),
+                                    table_name: "folder".into(),
+                                    column_name: "parent_folder_id".into(),
                                     strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
-                                    row_value: format!("{}", BookId::new(id.clone())).into(),
+                                    row_value: format!("{}", FolderId::new(id.clone())).into(),
                                     child_entries,
                                 });
                         }
@@ -968,10 +962,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
     }
 }
 
-// execute_on_delete_strategies_of_the_book_table_after_multiple_rows_of_the_author_table_were_deleted
+// execute_on_delete_strategies_of_the_folder_table_after_multiple_rows_of_the_folder_table_were_deleted
 impl crate::spacetimedsl::internal::DSLInternals {
-    ///Execute On Delete Strategies of the referencing table `book` after multiple rows of the referenced table `author` were deleted.
-    pub fn execute_on_delete_strategies_of_the_book_table_after_multiple_rows_of_the_author_table_were_deleted<
+    ///Execute On Delete Strategies of the referencing table `folder` after multiple rows of the referenced table `folder` were deleted.
+    pub fn execute_on_delete_strategies_of_the_folder_table_after_multiple_rows_of_the_folder_table_were_deleted<
         'a,
         T: crate::spacetimedsl::WriteContext,
     >(
@@ -992,7 +986,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
     > {
         use ::spacetimedsl::Wrapper;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use self::this_compilation_error_occurs_because_the_author_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
+        use self::this_compilation_error_occurs_because_the_folder_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_folder_table;
         use ::spacetimedsl::itertools::Itertools;
         let mut entries = std::collections::HashMap::new();
         for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
@@ -1020,8 +1014,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
                     for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
                         for row in dsl
                             .db()
-                            .book()
-                            .author_id()
+                            .folder()
+                            .parent_folder_id()
                             .filter(
                                 primary_key_value_of_a_row_of_another_table_to_delete,
                             )
@@ -1049,7 +1043,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                         .keys()
                         .cloned()
                         .collect_vec();
-                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_deleted(
+                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_deleted(
                         dsl,
                         crate::spacetimedsl::delete::OnDeleteStrategy::Error,
                         &primary_key_values_of_rows_to_delete[..],
@@ -1091,10 +1085,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             ),
                                         )
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -1124,7 +1118,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                         let row = row_to_delete_by_primary_key_value
                             .get(id)
                             .expect("Should exist");
-                        if !dsl.db().book().id().delete(id) {
+                        if !dsl.db().folder().id().delete(id) {
                             for (
                                 primary_key_value_of_a_row_of_another_table_to_delete,
                                 primary_key_values_of_rows_to_delete,
@@ -1145,10 +1139,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             ),
                                         )
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -1159,7 +1153,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             });
                         }
                     }
-                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_deleted(
+                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_deleted(
                         dsl,
                         crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                         &primary_key_values_of_rows_to_delete[..],
@@ -1201,10 +1195,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             ),
                                         )
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -1230,7 +1224,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             }
                         }
                     };
-                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_deleted(
+                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_deleted(
                         dsl,
                         crate::spacetimedsl::delete::OnDeleteStrategy::SetZero,
                         &primary_key_values_of_rows_to_delete[..],
@@ -1272,10 +1266,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             ),
                                         )
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -1301,7 +1295,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             }
                         }
                     };
-                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_deleted(
+                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_deleted(
                         dsl,
                         crate::spacetimedsl::delete::OnDeleteStrategy::Ignore,
                         &primary_key_values_of_rows_to_delete[..],
@@ -1343,10 +1337,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             ),
                                         )
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -1392,10 +1386,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     ),
                                 )
                                 .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                    table_name: "book".into(),
-                                    column_name: "author_id".into(),
+                                    table_name: "folder".into(),
+                                    column_name: "parent_folder_id".into(),
                                     strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
-                                    row_value: format!("{}", BookId::new(id.clone())).into(),
+                                    row_value: format!("{}", FolderId::new(id.clone())).into(),
                                     child_entries,
                                 });
                         }
@@ -1418,10 +1412,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
     }
 }
 
-// execute_on_delete_strategies_of_the_book_table_after_multiple_rows_of_the_author_table_were_soft_deleted
+// execute_on_delete_strategies_of_the_folder_table_after_multiple_rows_of_the_folder_table_were_soft_deleted
 impl crate::spacetimedsl::internal::DSLInternals {
-    ///Execute On Delete Strategies of the referencing table `book` after multiple rows of the referenced table `author` were soft-deleted.
-    pub fn execute_on_delete_strategies_of_the_book_table_after_multiple_rows_of_the_author_table_were_soft_deleted<
+    ///Execute On Delete Strategies of the referencing table `folder` after multiple rows of the referenced table `folder` were soft-deleted.
+    pub fn execute_on_delete_strategies_of_the_folder_table_after_multiple_rows_of_the_folder_table_were_soft_deleted<
         'a,
         T: crate::spacetimedsl::WriteContext,
     >(
@@ -1442,7 +1436,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
     > {
         use ::spacetimedsl::Wrapper;
         use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use self::this_compilation_error_occurs_because_the_author_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
+        use self::this_compilation_error_occurs_because_the_folder_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_folder_table;
         use ::spacetimedsl::itertools::Itertools;
         let mut entries = std::collections::HashMap::new();
         for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
@@ -1471,13 +1465,13 @@ impl crate::spacetimedsl::internal::DSLInternals {
                     for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
                         for row in dsl
                             .db()
-                            .book()
-                            .author_id()
+                            .folder()
+                            .parent_folder_id()
                             .filter(
                                 primary_key_value_of_a_row_of_another_table_to_delete,
                             )
                         {
-                            if !(row.deleted_at.is_some())
+                            if !(row.deleted)
                                 && !child_entries_by_primary_key_value_of_row_to_delete
                                     .contains_key(&row.id)
                             {
@@ -1501,7 +1495,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                         .keys()
                         .cloned()
                         .collect_vec();
-                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_soft_deleted(
+                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_soft_deleted(
                         dsl,
                         crate::spacetimedsl::delete::OnDeleteStrategy::Error,
                         &primary_key_values_of_rows_to_delete[..],
@@ -1543,10 +1537,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             ),
                                         )
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -1577,16 +1571,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             .get(id)
                             .expect("Should exist");
                         let mut row = old_row.clone();
-                        row
-                            .deleted_at = Some(
-                            dsl
-                                .ctx()
-                                .timestamp()
-                                .expect("a `WriteContext` always has a timestamp"),
-                        );
-                        dsl.db().book().id().update(row);
+                        row.deleted = true;
+                        dsl.db().folder().id().update(row);
                     }
-                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_soft_deleted(
+                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_soft_deleted(
                         dsl,
                         crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
                         &primary_key_values_of_rows_to_delete[..],
@@ -1628,10 +1616,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             ),
                                         )
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -1657,7 +1645,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                             }
                         }
                     };
-                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_soft_deleted(
+                    match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_folder_table_were_soft_deleted(
                         dsl,
                         crate::spacetimedsl::delete::OnDeleteStrategy::Ignore,
                         &primary_key_values_of_rows_to_delete[..],
@@ -1699,10 +1687,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             ),
                                         )
                                         .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                            table_name: "book".into(),
-                                            column_name: "author_id".into(),
+                                            table_name: "folder".into(),
+                                            column_name: "parent_folder_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
-                                            row_value: format!("{}", BookId::new(id.clone())).into(),
+                                            row_value: format!("{}", FolderId::new(id.clone())).into(),
                                             child_entries,
                                         });
                                 }
@@ -1748,10 +1736,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     ),
                                 )
                                 .push(crate::spacetimedsl::delete::DeletionResultEntry {
-                                    table_name: "book".into(),
-                                    column_name: "author_id".into(),
+                                    table_name: "folder".into(),
+                                    column_name: "parent_folder_id".into(),
                                     strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
-                                    row_value: format!("{}", BookId::new(id.clone())).into(),
+                                    row_value: format!("{}", FolderId::new(id.clone())).into(),
                                     child_entries,
                                 });
                         }

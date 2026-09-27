@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl FolderId {
+    /**Get all `Folder` rows whose `parent_folder_id` column references this `FolderId`.
+
+Use it like `folder_id.get_folders_by_parent_folder_id(&dsl)`.*/
+    pub fn get_folders_by_parent_folder_id<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Folder> {
+        dsl.into().get_folders_by_parent_folder_id(self).collect()
+    }
+}
