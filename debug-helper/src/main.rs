@@ -43,10 +43,7 @@ enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::IncorrectUsage => write!(
-                f,
-                "Usage: dump-syntax path/to/source/directory path/to/output/directory"
-            ),
+            Error::IncorrectUsage => write!(f, "Usage: x debug"),
             Error::ReadDirectory(error) => write!(f, "Unable to read directory: {}", error),
             Error::ReadFile(error) => write!(f, "Unable to read file: {}", error),
             Error::WriteFile(error) => write!(f, "Unable to write file: {}", error),
@@ -127,16 +124,20 @@ fn parse(filepath: &Path) -> Result<syn::File, Error> {
 //
 fn render_location(
     formatter: &mut fmt::Formatter,
-    err: &syn::Error,
+    error: &syn::Error,
     filepath: &Path,
     code: &str,
 ) -> fmt::Result {
-    let start = err.span().start();
-    let mut end = err.span().end();
+    let start = error.span().start();
+    let mut end = error.span().end();
 
-    let code_line = match start.line.checked_sub(1).and_then(|n| code.lines().nth(n)) {
+    let code_line = match start
+        .line
+        .checked_sub(1)
+        .and_then(|line_index| code.lines().nth(line_index))
+    {
         Some(line) => line,
-        None => return render_fallback(formatter, err),
+        None => return render_fallback(formatter, error),
     };
 
     if end.line > start.line {
@@ -173,10 +174,10 @@ fn render_location(
             .repeat(end.column.saturating_sub(start.column).max(1))
             .red()
             .bold(),
-        message = err.to_string().red(),
+        message = error.to_string().red(),
     )
 }
 
-fn render_fallback(formatter: &mut fmt::Formatter, err: &syn::Error) -> fmt::Result {
-    write!(formatter, "Unable to parse file: {}", err)
+fn render_fallback(formatter: &mut fmt::Formatter, error: &syn::Error) -> fmt::Result {
+    write!(formatter, "Unable to parse file: {}", error)
 }
