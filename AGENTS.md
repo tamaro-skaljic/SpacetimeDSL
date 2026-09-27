@@ -71,7 +71,7 @@ Every input the DSL rejects. The pair pins the message *and* the span it underli
 
 **Snapshot — `derive/tests/fixtures/<fixture>.rs` → `derive/tests/snapshots/<fixture>/<Struct>/*.snap`**
 
-What the macro emits for input it accepts. Register the fixture with a test in `derive/src/characterization_tests.rs`:
+What the macro emits for input it accepts. Register the fixture with a test named after it in `derive/src/characterization_tests.rs`:
 
 ```rust
 #[test]
@@ -79,6 +79,8 @@ fn soft_delete_flag() {
     snapshot_fixture("soft_delete_flag");
 }
 ```
+
+`every_fixture_is_registered_under_its_own_name` fails for a fixture without a test, a test without a fixture, and a snapshot directory without a fixture.
 
 - Blind spot: the harness diffs token streams and never feeds them to a compiler. Generated code can be snapshot-green and not build.
 - Blind spot: an accepted snapshot is only as correct as the reading that accepted it. Green afterwards means *unchanged*, not *right* — which is why the `git diff` is the real test and rubber-stamping it defeats the whole corpus.

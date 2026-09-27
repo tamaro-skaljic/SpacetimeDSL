@@ -1,6 +1,6 @@
-//! Covers all six hooks - before and after each of insert, update and delete - so the
-//! six hook traits and the six call sites woven into the generated methods are pinned
-//! together.
+//! Covers the six hooks of insert, update and delete - before and after each - so their
+//! hook traits and the call sites woven into the generated methods are pinned together.
+//! The soft-delete hooks are pinned by `soft_delete_hooks`.
 
 #[spacetimedsl::dsl(
     plural_name = potions,
