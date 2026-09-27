@@ -4,94 +4,144 @@ param(
     [Parameter(Position=0)]
     [ArgumentCompleter({
         param($commandName, $parameterName, $wordToComplete)
-        "test", "unit-test", "format", "debug", "loc" | Where-Object { $_ -like "$wordToComplete*" }
+        "test", "unit-test", "format", "lint", "debug", "loc" | Where-Object { $_ -like "$wordToComplete*" }
     })]
     [string]$Command
 )
+$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'
 
+function Wait-ForServer {
+    for ($attempt = 1; $attempt -le 30; $attempt++) {
+        $previousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        spacetime server ping local *> $null
+        $pingExitCode = $LASTEXITCODE
+        $ErrorActionPreference = $previousErrorActionPreference
+        if ($pingExitCode -eq 0) {
+            return
+        }
+        Start-Sleep -Seconds 1
+    }
+    throw "Local SpacetimeDB server is unavailable; run 'spacetime start'."
+}
 switch ($Command) {
     "test" {
+        Wait-ForServer
+        $originalLocation = (Get-Location).Path
+        try {
         Write-Output "Building module..."
         Write-Output ""
-        Set-Location examples\test
+        Push-Location examples\test
         spacetime publish --yes --server local spacetimedsl
+        if ($LASTEXITCODE -ne 0) { throw "spacetime publish --yes --server local spacetimedsl failed" }
         Write-Output ""
 
         Write-Output "Testing module..."
         Write-Output ""
         spacetime call --yes --server local spacetimedsl tester
+        if ($LASTEXITCODE -ne 0) { throw "spacetime call --yes --server local spacetimedsl tester failed" }
 
         Write-Output "Showing logs..."
         Write-Output ""
-        spacetime logs --yes --server local spacetimedsl
+        $test_logs = spacetime logs --yes --server local spacetimedsl
+        if ($LASTEXITCODE -ne 0) { throw "spacetime logs for spacetimedsl failed" }
+        $test_logs
+        if ($test_logs -notmatch 'Test executed successfully') { throw "Test marker missing from spacetimedsl logs" }
         Write-Output ""
 
         Write-Output "Cleaning up module..."
         Write-Output ""
         spacetime delete --yes --server local spacetimedsl
-        Set-Location ..\..
+        if ($LASTEXITCODE -ne 0) { throw "spacetime delete --yes --server local spacetimedsl failed" }
+        Pop-Location
         Write-Output "Building module..."
         Write-Output ""
-        Set-Location examples\blackholio
+        Push-Location examples\blackholio
         spacetime publish --yes --server local blackholio
+        if ($LASTEXITCODE -ne 0) { throw "spacetime publish --yes --server local blackholio failed" }
         Write-Output ""
 
         Write-Output "Showing logs..."
         Write-Output ""
-        spacetime logs --yes --server local blackholio
+        $test_logs = spacetime logs --yes --server local blackholio
+        if ($LASTEXITCODE -ne 0) { throw "spacetime logs for blackholio failed" }
+        $test_logs
+        if ($test_logs -notmatch 'Test executed successfully') { throw "Test marker missing from blackholio logs" }
         Write-Output ""
 
         Write-Output "Cleaning up module..."
         Write-Output ""
         spacetime delete --yes --server local blackholio
-        Set-Location ..\..
+        if ($LASTEXITCODE -ne 0) { throw "spacetime delete --yes --server local blackholio failed" }
+        Pop-Location
+        } finally {
+            $previousErrorActionPreference = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
+            spacetime delete --yes --server local spacetimedsl *> $null
+            spacetime delete --yes --server local blackholio *> $null
+            while ((Get-Location).Path -ne $originalLocation) {
+                Pop-Location
+            }
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
     }
 
     "unit-test" {
         Write-Output "Snapshotting the generated code..."
         Write-Output ""
         cargo test -p spacetimedsl_derive
+        if ($LASTEXITCODE -ne 0) { throw "cargo test -p spacetimedsl_derive failed" }
         Write-Output ""
 
         Write-Output "Checking the diagnostics for rejected tables..."
         Write-Output ""
         cargo test -p spacetimedsl-compile-tests
+        if ($LASTEXITCODE -ne 0) { throw "cargo test -p spacetimedsl-compile-tests failed" }
     }
 
     "format" {
         cargo fmt --all
+        if ($LASTEXITCODE -ne 0) { throw "cargo fmt --all failed" }
 
         cargo clippy --workspace --all-targets --all-features --fix --allow-dirty
+        if ($LASTEXITCODE -ne 0) { throw "cargo clippy --workspace --all-targets --all-features --fix --allow-dirty failed" }
+    }
+
+    "lint" {
+        cargo fmt --all -- --check
+        if ($LASTEXITCODE -ne 0) { throw "cargo fmt --all -- --check failed" }
+        cargo clippy --workspace --all-targets --all-features -- -D warnings
+        if ($LASTEXITCODE -ne 0) { throw "cargo clippy --workspace --all-targets --all-features -- -D warnings failed" }
     }
 
     "debug" {
-        Set-Location examples\test
+        Push-Location examples\test
+        $previousRustflags = $env:RUSTFLAGS
+        try {
         $env:RUSTFLAGS = "-Zmacro-backtrace"
         cargo +nightly expand > ..\..\debug-helper\output\lib.expanded.rs
-        Set-Location ..\..\debug-helper
+        if ($LASTEXITCODE -ne 0) { throw 'cargo expand failed' }
+        } finally { $env:RUSTFLAGS = $previousRustflags }
+        Push-Location ..\..\debug-helper
         cargo run -- ..\examples\test\src output
-        Set-Location ..
+        Pop-Location
     }
 
     "loc" {
-        # Get all .rs files recursively from the current directory
         $files = Get-ChildItem -Path . -Filter "*.rs" -Recurse -File | Where-Object {
             $_.FullName -like "*\src\*"
         } | ForEach-Object {
-            # Count lines in each file
             $lineCount = (Get-Content $_.FullName | Measure-Object -Line).Lines
 
-            # Create a custom object with line count and relative path
             $relativePath = $_.FullName.Replace("$PWD\", "")
             $firstDir = $relativePath.Split('\')[0]
             $pathWithoutFirstDir = $relativePath.Substring($firstDir.Length + 1)
 
-            # Remove 'src\' prefix if present
             if ($pathWithoutFirstDir.StartsWith("src\")) {
                 $pathWithoutFirstDir = $pathWithoutFirstDir.Substring(4)
             }
 
-            # Extract second directory (first segment after removing first dir and src)
             $secondDir = if ($pathWithoutFirstDir.Contains('\')) {
                 $pathWithoutFirstDir.Split('\')[0]
             } else {
@@ -107,13 +157,10 @@ switch ($Command) {
             }
         } | Sort-Object -Property FirstDir, SecondDir, @{Expression = {$_.Lines}; Descending = $true}
 
-        # Find the maximum line count length for padding
         $maxLineLength = ($files | ForEach-Object { $_.Lines.ToString().Length } | Measure-Object -Maximum).Maximum
 
-        # Print with aligned paths, grouped by first directory
         $currentGroup = $null
         $files | ForEach-Object {
-            # Print group header when directory changes
             if ($currentGroup -ne $_.FirstDir) {
                 if ($currentGroup -ne $null) {
                     Write-Output ""
@@ -122,26 +169,24 @@ switch ($Command) {
                 $currentGroup = $_.FirstDir
             }
 
-            # Print in the format: {lines_of_code} {path_without_first_dir} with padding
             $paddedLines = $_.Lines.ToString().PadLeft($maxLineLength)
             Write-Output "$paddedLines $($_.PathWithoutFirstDir)"
         }
 
-        # Sum lines for src, derive-input, derive
         $total = ($files | Where-Object { $_.FirstDir -in @("src", "derive-input", "derive") } | Measure-Object -Property Lines -Sum).Sum
         Write-Output "Total: $total"
 
-        # Add final newline
         Write-Output ""
     }
 
     default {
-        Write-Output "Usage: .\x.ps1 {test|unit-test|format|debug|loc}"
+        Write-Output "Usage: .\x.ps1 {test|unit-test|format|lint|debug|loc}"
         Write-Output ""
         Write-Output "Commands:"
-        Write-Output "  test      - Build, test, show logs, and clean up the module"
+        Write-Output "  test      - Publish and test the test module, then publish blackholio"
         Write-Output "  unit-test - Run the snapshot and compile tests of the generator"
-        Write-Output "  format    - Run cargo fmt check and clippy fixes"
+        Write-Output "  format    - Format the code and apply clippy fixes"
+        Write-Output "  lint      - Check formatting and lint the whole workspace"
         Write-Output "  debug     - Expand macros and generate AST output"
         Write-Output "  loc       - Count lines of Rust code grouped by directory"
         exit 1

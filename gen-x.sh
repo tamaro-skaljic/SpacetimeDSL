@@ -65,8 +65,20 @@ cmd_cd() {
     local shell="$1"
     local path="$2"
     case "$shell" in
-        bash) echo "        cd $path" ;;
-        powershell) echo "        Set-Location ${path//\//\\}" ;;  # Convert / to \
+        bash)
+            if [[ "$path" == ".." || "$path" == "../.." ]]; then
+                echo "        popd > /dev/null"
+            else
+                echo "        pushd $path > /dev/null"
+            fi
+            ;;
+        powershell)
+            if [[ "$path" == ".." || "$path" == "../.." ]]; then
+                echo "        Pop-Location"
+            else
+                echo "        Push-Location ${path//\//\\}"
+            fi
+            ;;
     esac
 }
 
@@ -87,13 +99,36 @@ indent() {
 
 # Generate common commands that are the same across shells
 cmd_spacetime() {
-    local command="$1"
+    local shell="$1"
+    local command="$2"
     echo "        spacetime $command"
+    if [ "$shell" = "powershell" ]; then
+        echo "        if (\$LASTEXITCODE -ne 0) { throw \"spacetime $command failed\" }"
+    fi
 }
 
 cmd_cargo() {
-    local command="$1"
+    local shell="$1"
+    local command="$2"
     echo "        cargo $command"
+    if [ "$shell" = "powershell" ]; then
+        echo "        if (\$LASTEXITCODE -ne 0) { throw \"cargo $command failed\" }"
+    fi
+}
+
+cmd_logs_with_marker() {
+    local shell="$1"
+    local module="$2"
+    if [ "$shell" = "bash" ]; then
+        echo "        test_logs=\$(spacetime logs --yes --server local $module)"
+        echo "        printf '%s\\n' \"\$test_logs\""
+        echo "        grep -Fq 'Test executed successfully' <<< \"\$test_logs\" || { echo \"Test marker missing from $module logs\" >&2; exit 1; }"
+    else
+        echo "        \$test_logs = spacetime logs --yes --server local $module"
+        echo "        if (\$LASTEXITCODE -ne 0) { throw \"spacetime logs for $module failed\" }"
+        echo "        \$test_logs"
+        echo "        if (\$test_logs -notmatch 'Test executed successfully') { throw \"Test marker missing from $module logs\" }"
+    fi
 }
 
 # Header and case generation functions
@@ -107,6 +142,7 @@ generate_header() {
         echo "#!/bin/bash"
         echo
         echo "$do_not_change"
+        echo "set -euo pipefail"
     else
         # PowerShell param block
         echo "$do_not_change"
@@ -116,14 +152,48 @@ param(
     [Parameter(Position=0)]
     [ArgumentCompleter({
         param($commandName, $parameterName, $wordToComplete)
-        "test", "unit-test", "format", "debug", "loc" | Where-Object { $_ -like "$wordToComplete*" }
+        "test", "unit-test", "format", "lint", "debug", "loc" | Where-Object { $_ -like "$wordToComplete*" }
     })]
     [string]$Command
 )
 EOF
+        echo "\$ErrorActionPreference = 'Stop'"
+        echo "\$ErrorActionPreference = 'Continue'"
     fi
 
     echo
+
+    if [ "$shell" = "bash" ]; then
+        cat << 'EOF'
+wait_for_server() {
+    for attempt in {1..30}; do
+        if spacetime server ping local >/dev/null 2>&1; then
+            return
+        fi
+        sleep 1
+    done
+    echo "Local SpacetimeDB server is unavailable; run 'spacetime start'." >&2
+    return 1
+}
+EOF
+    else
+        cat << 'EOF'
+function Wait-ForServer {
+    for ($attempt = 1; $attempt -le 30; $attempt++) {
+        $previousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        spacetime server ping local *> $null
+        $pingExitCode = $LASTEXITCODE
+        $ErrorActionPreference = $previousErrorActionPreference
+        if ($pingExitCode -eq 0) {
+            return
+        }
+        Start-Sleep -Seconds 1
+    }
+    throw "Local SpacetimeDB server is unavailable; run 'spacetime start'."
+}
+EOF
+    fi
 }
 
 # Every `spacetime` command passes `--yes`, because CI runs this case on a runner
@@ -132,41 +202,70 @@ generate_test() {
     local shell="$1"
 
     switch_case "$shell" "test"
+    if [ "$shell" = "bash" ]; then
+        echo "        wait_for_server"
+        cat << 'EOF'
+        cleanup_modules() {
+            spacetime delete --yes --server local spacetimedsl >/dev/null 2>&1 || true
+            spacetime delete --yes --server local blackholio >/dev/null 2>&1 || true
+        }
+        trap cleanup_modules EXIT
+EOF
+    else
+        echo "        Wait-ForServer"
+        echo "        \$originalLocation = (Get-Location).Path"
+        echo "        try {"
+    fi
     cmd_echo "$shell" "Building module..."
     cmd_echo "$shell"
     cmd_cd "$shell" "examples/test"
-    cmd_spacetime "publish --yes --server local spacetimedsl"
+    cmd_spacetime "$shell" "publish --yes --server local spacetimedsl"
     cmd_echo "$shell"
     echo
     cmd_echo "$shell" "Testing module..."
     cmd_echo "$shell"
-    cmd_spacetime "call --yes --server local spacetimedsl tester"
+    cmd_spacetime "$shell" "call --yes --server local spacetimedsl tester"
     echo
     cmd_echo "$shell" "Showing logs..."
     cmd_echo "$shell"
-    cmd_spacetime "logs --yes --server local spacetimedsl"
+    cmd_logs_with_marker "$shell" "spacetimedsl"
     cmd_echo "$shell"
     echo
     cmd_echo "$shell" "Cleaning up module..."
     cmd_echo "$shell"
-    cmd_spacetime "delete --yes --server local spacetimedsl"
+    cmd_spacetime "$shell" "delete --yes --server local spacetimedsl"
     cmd_cd "$shell" "../.."
 
     cmd_echo "$shell" "Building module..."
     cmd_echo "$shell"
     cmd_cd "$shell" "examples/blackholio"
-    cmd_spacetime "publish --yes --server local blackholio"
+    cmd_spacetime "$shell" "publish --yes --server local blackholio"
     cmd_echo "$shell"
     echo
     cmd_echo "$shell" "Showing logs..."
     cmd_echo "$shell"
-    cmd_spacetime "logs --yes --server local blackholio"
+    cmd_logs_with_marker "$shell" "blackholio"
     cmd_echo "$shell"
     echo
     cmd_echo "$shell" "Cleaning up module..."
     cmd_echo "$shell"
-    cmd_spacetime "delete --yes --server local blackholio"
+    cmd_spacetime "$shell" "delete --yes --server local blackholio"
     cmd_cd "$shell" "../.."
+
+    if [ "$shell" = "powershell" ]; then
+        cat << 'EOF'
+        } finally {
+            $previousErrorActionPreference = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
+            spacetime delete --yes --server local spacetimedsl *> $null
+            spacetime delete --yes --server local blackholio *> $null
+            while ((Get-Location).Path -ne $originalLocation) {
+                Pop-Location
+            }
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+EOF
+    fi
 
     switch_case_end "$shell"
     echo
@@ -178,12 +277,12 @@ generate_unit_test() {
     switch_case "$shell" "unit-test"
     cmd_echo "$shell" "Snapshotting the generated code..."
     cmd_echo "$shell"
-    cmd_cargo "test -p spacetimedsl_derive"
+    cmd_cargo "$shell" "test -p spacetimedsl_derive"
     cmd_echo "$shell"
     echo
     cmd_echo "$shell" "Checking the diagnostics for rejected tables..."
     cmd_echo "$shell"
-    cmd_cargo "test -p spacetimedsl-compile-tests"
+    cmd_cargo "$shell" "test -p spacetimedsl-compile-tests"
     switch_case_end "$shell"
     echo
 }
@@ -195,9 +294,19 @@ generate_format() {
     local shell="$1"
 
     switch_case "$shell" "format"
-    cmd_cargo "fmt --all"
+    cmd_cargo "$shell" "fmt --all"
     echo
-    cmd_cargo "clippy --workspace --all-targets --all-features --fix --allow-dirty"
+    cmd_cargo "$shell" "clippy --workspace --all-targets --all-features --fix --allow-dirty"
+    switch_case_end "$shell"
+    echo
+}
+
+generate_lint() {
+    local shell="$1"
+
+    switch_case "$shell" "lint"
+    cmd_cargo "$shell" "fmt --all -- --check"
+    cmd_cargo "$shell" "clippy --workspace --all-targets --all-features -- -D warnings"
     switch_case_end "$shell"
     echo
 }
@@ -210,8 +319,12 @@ generate_debug() {
     if [ "$shell" = "bash" ]; then
         echo "        RUSTFLAGS=\"-Zmacro-backtrace\" cargo +nightly expand > ../../debug-helper/output/lib.expanded.rs"
     else
+        echo "        \$previousRustflags = \$env:RUSTFLAGS"
+        echo "        try {"
         echo "        \$env:RUSTFLAGS = \"-Zmacro-backtrace\""
         echo "        cargo +nightly expand > ..\\..\\debug-helper\\output\\lib.expanded.rs"
+        echo "        if (\$LASTEXITCODE -ne 0) { throw 'cargo expand failed' }"
+        echo "        } finally { \$env:RUSTFLAGS = \$previousRustflags }"
     fi
     cmd_cd "$shell" "../../debug-helper"
     if [ "$shell" = "bash" ]; then
@@ -230,26 +343,19 @@ generate_loc() {
     switch_case "$shell" "loc"
     if [ "$shell" = "bash" ]; then
         cat << 'BASH_LOC'
-        # Get all .rs files recursively from src directories and count lines
         while IFS= read -r file; do
-            # Get line count
             lines=$(wc -l < "$file")
 
-            # Get relative path
             rel_path="${file#./}"
 
-            # Extract first directory
             first_dir="${rel_path%%/*}"
 
-            # Get path without first directory
             path_without_first="${rel_path#*/}"
 
-            # Remove src/ prefix if present
             if [[ "$path_without_first" == src/* ]]; then
                 path_without_first="${path_without_first#src/}"
             fi
 
-            # Store for grouping
             echo "$first_dir|$lines|$path_without_first"
         done < <(find . -path "*/src/*.rs" -type f) | sort -t'|' -k1,1 -k2,2nr | {
             current_group=""
@@ -281,24 +387,19 @@ generate_loc() {
 BASH_LOC
     else
         cat << 'POWERSHELL_LOC'
-        # Get all .rs files recursively from the current directory
         $files = Get-ChildItem -Path . -Filter "*.rs" -Recurse -File | Where-Object {
             $_.FullName -like "*\src\*"
         } | ForEach-Object {
-            # Count lines in each file
             $lineCount = (Get-Content $_.FullName | Measure-Object -Line).Lines
 
-            # Create a custom object with line count and relative path
             $relativePath = $_.FullName.Replace("$PWD\", "")
             $firstDir = $relativePath.Split('\')[0]
             $pathWithoutFirstDir = $relativePath.Substring($firstDir.Length + 1)
 
-            # Remove 'src\' prefix if present
             if ($pathWithoutFirstDir.StartsWith("src\")) {
                 $pathWithoutFirstDir = $pathWithoutFirstDir.Substring(4)
             }
 
-            # Extract second directory (first segment after removing first dir and src)
             $secondDir = if ($pathWithoutFirstDir.Contains('\')) {
                 $pathWithoutFirstDir.Split('\')[0]
             } else {
@@ -314,13 +415,10 @@ BASH_LOC
             }
         } | Sort-Object -Property FirstDir, SecondDir, @{Expression = {$_.Lines}; Descending = $true}
 
-        # Find the maximum line count length for padding
         $maxLineLength = ($files | ForEach-Object { $_.Lines.ToString().Length } | Measure-Object -Maximum).Maximum
 
-        # Print with aligned paths, grouped by first directory
         $currentGroup = $null
         $files | ForEach-Object {
-            # Print group header when directory changes
             if ($currentGroup -ne $_.FirstDir) {
                 if ($currentGroup -ne $null) {
                     Write-Output ""
@@ -329,16 +427,13 @@ BASH_LOC
                 $currentGroup = $_.FirstDir
             }
 
-            # Print in the format: {lines_of_code} {path_without_first_dir} with padding
             $paddedLines = $_.Lines.ToString().PadLeft($maxLineLength)
             Write-Output "$paddedLines $($_.PathWithoutFirstDir)"
         }
 
-        # Sum lines for src, derive-input, derive
         $total = ($files | Where-Object { $_.FirstDir -in @("src", "derive-input", "derive") } | Measure-Object -Property Lines -Sum).Sum
         Write-Output "Total: $total"
 
-        # Add final newline
         Write-Output ""
 POWERSHELL_LOC
     fi
@@ -350,12 +445,13 @@ generate_usage() {
     local shell="$1"
 
     switch_default "$shell"
-    cmd_echo "$shell" "Usage: $(script_usage "$shell") {test|unit-test|format|debug|loc}"
+    cmd_echo "$shell" "Usage: $(script_usage "$shell") {test|unit-test|format|lint|debug|loc}"
     cmd_echo "$shell"
     cmd_echo "$shell" "Commands:"
-    cmd_echo "$shell" "  test      - Build, test, show logs, and clean up the module"
+    cmd_echo "$shell" "  test      - Publish and test the test module, then publish blackholio"
     cmd_echo "$shell" "  unit-test - Run the snapshot and compile tests of the generator"
-    cmd_echo "$shell" "  format    - Run cargo fmt check and clippy fixes"
+    cmd_echo "$shell" "  format    - Format the code and apply clippy fixes"
+    cmd_echo "$shell" "  lint      - Check formatting and lint the whole workspace"
     cmd_echo "$shell" "  debug     - Expand macros and generate AST output"
     cmd_echo "$shell" "  loc       - Count lines of Rust code grouped by directory"
     echo "        exit 1"
@@ -371,6 +467,7 @@ generate() {
     generate_test "$shell"
     generate_unit_test "$shell"
     generate_format "$shell"
+    generate_lint "$shell"
     generate_debug "$shell"
     generate_loc "$shell"
     generate_usage "$shell"
@@ -385,4 +482,4 @@ chmod +x x.sh
 echo "Generating x.ps1 (PowerShell)..."
 generate powershell > x.ps1
 
-echo "Done! Generated x and x.ps1"
+echo "Done! Generated x.sh and x.ps1"

@@ -30,15 +30,12 @@ Building a workspace member on its own fails to link against **SpacetimeDB**. `x
 .\x.ps1 unit-test 2>&1 | Select-String -Pattern "test result:|FAILED|^error|^warning: " | Select-Object -First 20
 ```
 
-`.\x.ps1 test` publishes the example modules to the local server and runs the `tester` reducer. **Its exit code is meaningless** — the script runs each `spacetime` command without checking the result and always exits 0. The reducer's success marker is the only signal:
+`.\x.ps1 test` waits for the local server, publishes the example modules, runs the `tester` reducer and checks the success marker. It exits non-zero when any command fails:
 
 ```powershell
-$output = .\x.ps1 test 2>&1 | Out-String
-if ($output | Select-String -Pattern "Test executed successfully" -Quiet) {
-    "MARKER FOUND"
-} else {
-    "MARKER ABSENT - relevant output:"
-    $output -split "`n" | Select-String -Pattern "^error|-->|panic|should" | Select-Object -First 30
+.\x.ps1 test
+if ($LASTEXITCODE -ne 0) {
+    throw "Runtime test gate failed"
 }
 ```
 
@@ -129,7 +126,7 @@ Accepting `*.snap.new` files one batch at a time costs a whole harness run per m
 
 #### Green includes the formatter
 
-`.\x.ps1 format` runs `cargo fmt` and `clippy --fix`. Anything it rewrites is a finding to review and commit, not a pass. A task is done when a second run changes nothing.
+`.\x.ps1 lint` runs `cargo fmt --all -- --check` and workspace clippy with warnings denied. `.\x.ps1 format` applies formatting and clippy fixes. Anything it rewrites is a finding to review and commit, not a pass. A task is done when lint passes and a second format run changes nothing.
 
 ## Programming Principles
 

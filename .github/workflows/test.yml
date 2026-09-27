@@ -45,7 +45,7 @@ jobs:
             fi
           }
 
-          # Retry logic: attempt installation up to 3 times
+          # Retry logic: attempt installation up to 4 times
           MAX_ATTEMPTS=4
           ATTEMPT=1
 
@@ -81,17 +81,6 @@ jobs:
 
           ./x.sh test
 
-      - name: Check code formatting
+      - name: Lint workspace
         run: |
-          cargo fmt --all -- --check
-
-      - name: Run clippy on derive libraries
-        run: |
-          cd derive-input
-          cargo clippy --all-targets --all-features || echo "Clippy warnings in derive-input"
-
-          cd ../derive
-          cargo clippy --all-targets --all-features || echo "Clippy warnings in derive"
-
-          cd ..
-          cargo clippy --all-targets --all-features || echo "Clippy warnings in main lib"
+          ./x.sh lint
