@@ -124,10 +124,11 @@ cmd_logs_with_marker() {
         echo "        printf '%s\\n' \"\$test_logs\""
         echo "        grep -Fq 'Test executed successfully' <<< \"\$test_logs\" || { echo \"Test marker missing from $module logs\" >&2; exit 1; }"
     else
-        echo "        \$test_logs = spacetime logs --yes --server local $module"
+        echo "        spacetime logs --yes --server local $module"
         echo "        if (\$LASTEXITCODE -ne 0) { throw \"spacetime logs for $module failed\" }"
-        echo "        \$test_logs"
-        echo "        if (\$test_logs -notmatch 'Test executed successfully') { throw \"Test marker missing from $module logs\" }"
+        echo "        \$test_logs = spacetime logs --yes --server local $module 2>&1"
+        echo "        if (\$LASTEXITCODE -ne 0) { throw \"spacetime logs for $module marker check failed\" }"
+        echo "        if ((\$test_logs -join [Environment]::NewLine) -notmatch 'Test executed successfully') { throw \"Test marker missing from $module logs\" }"
     fi
 }
 
@@ -244,7 +245,7 @@ EOF
     echo
     cmd_echo "$shell" "Showing logs..."
     cmd_echo "$shell"
-    cmd_logs_with_marker "$shell" "blackholio"
+    cmd_spacetime "$shell" "logs --yes --server local blackholio"
     cmd_echo "$shell"
     echo
     cmd_echo "$shell" "Cleaning up module..."

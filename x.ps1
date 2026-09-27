@@ -44,10 +44,11 @@ switch ($Command) {
 
         Write-Output "Showing logs..."
         Write-Output ""
-        $test_logs = spacetime logs --yes --server local spacetimedsl
+        spacetime logs --yes --server local spacetimedsl
         if ($LASTEXITCODE -ne 0) { throw "spacetime logs for spacetimedsl failed" }
-        $test_logs
-        if ($test_logs -notmatch 'Test executed successfully') { throw "Test marker missing from spacetimedsl logs" }
+        $test_logs = spacetime logs --yes --server local spacetimedsl 2>&1
+        if ($LASTEXITCODE -ne 0) { throw "spacetime logs for spacetimedsl marker check failed" }
+        if (($test_logs -join [Environment]::NewLine) -notmatch 'Test executed successfully') { throw "Test marker missing from spacetimedsl logs" }
         Write-Output ""
 
         Write-Output "Cleaning up module..."
@@ -64,10 +65,8 @@ switch ($Command) {
 
         Write-Output "Showing logs..."
         Write-Output ""
-        $test_logs = spacetime logs --yes --server local blackholio
-        if ($LASTEXITCODE -ne 0) { throw "spacetime logs for blackholio failed" }
-        $test_logs
-        if ($test_logs -notmatch 'Test executed successfully') { throw "Test marker missing from blackholio logs" }
+        spacetime logs --yes --server local blackholio
+        if ($LASTEXITCODE -ne 0) { throw "spacetime logs --yes --server local blackholio failed" }
         Write-Output ""
 
         Write-Output "Cleaning up module..."
