@@ -37,7 +37,7 @@ use get_sender::GetSender;
 use get_timestamp::GetTimestamp;
 use new_uuid::NewUUID;
 
-pub enum ContextType {
+pub(crate) enum ContextType {
     AnonymousView,
     Reducer,
     Transaction,
