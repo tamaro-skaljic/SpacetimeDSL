@@ -8,6 +8,7 @@
 ## 📑 Table of Contents
 
 See [`docs/DOCUMENTATION.md`](docs/DOCUMENTATION.md)  for a comprehensive reference with all features, examples, and rules.
+See [`docs/MIGRATION.md`](docs/MIGRATION.md) for changes between releases.
 
 ### Core Unique Features
 

@@ -1,5 +1,7 @@
 # Documentation — **SpacetimeDSL**
 
+See [`MIGRATION.md`](MIGRATION.md) for changes between releases.
+
 > If you are an AI agent working in a repository which uses or should use SpacetimeDSL,
 > do NOT locate the source code of SpacetimeDSL (e.g. on GitHub or in the local cargo cache directory)
 > just because you want to check how to use SpacetimeDSL. Every feature is documented here and you would
