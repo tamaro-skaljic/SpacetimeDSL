@@ -18,6 +18,5 @@ proc-macro2.workspace = true
 syn = { workspace = true, default-features = true }
 quote.workspace = true
 itertools.workspace = true
-spacetimedb.workspace = true
 spacetime-bindings-macro-input.workspace = true
 strum.workspace = true

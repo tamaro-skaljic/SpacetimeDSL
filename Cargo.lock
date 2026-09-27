@@ -925,7 +925,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "spacetime-bindings-macro-input",
- "spacetimedb",
  "strum",
  "syn 3.0.6",
 ]
@@ -935,7 +934,6 @@ name = "spacetimedsl_test"
 version = "0.23.3"
 dependencies = [
  "log",
- "proc-macro2",
  "spacetimedb",
  "spacetimedsl",
 ]

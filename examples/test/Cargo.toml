@@ -8,7 +8,6 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-proc-macro2 = { workspace = true, features = ["span-locations"] }
 spacetimedb.workspace = true
 spacetimedsl.workspace = true
 log.workspace = true
