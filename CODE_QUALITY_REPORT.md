@@ -28,14 +28,6 @@ The generator has to compensate for it: `derive-input/src/api/runtime.rs::curren
 
 Recommendation: Let each context type implement only the capabilities it has, and let `ReadContext` / `WriteContext` require exactly the capabilities they guarantee, so misuse becomes a compile error and the generated `expect` can go. This breaks the public API, so the developers have to decide whether the uniform, always-available `Context` is a deliberate ergonomic choice. Options: (a) split the capabilities as described; (b) keep the uniform interface and document on `Context` which capability each context type provides; (c) keep `Context` for compatibility, offer capability-specific bounds for new code and deprecate the always-failing implementations. Independent of the choice, drop the redundant `ReadContext` bound on `DSL`.
 
-### `lib.rs`: `pub enum ContextType` and `pub(crate) fn get_err(msg: &str, ctx: ContextType) -> SpacetimeDSLError`
-
-**Violates:** Hide Implementation Details — "Minimize class and member accessibility"; YAGNI; Self-Documenting Code — no abbreviations
-
-`ContextType` is `pub`, but it only feeds the crate-private `get_err`; it is public API without appearing in any public signature. Its `Transaction` variant is never constructed: `src/get_immutable_database.rs` reports a `TxContext` as `ContextType::Reducer`, so inside a transaction the message says that the access came from a Reducer Context. `get_err`, `msg` and `ctx` are abbreviations.
-
-Recommendation: Reduce `ContextType` to `pub(crate)` after checking that no user code names it. `ContextType::Transaction` is dead code: the developers must decide whether it is no longer needed (then delete it) or whether its disuse is a bug (then pass it for `TxContext` in `get_immutable_database.rs` and pin the message with a runtime assertion). Rename `get_err` after what it builds, for example `capability_not_available_error(message, context_type)`.
-
 ### `lib.rs`: the capability implementations in `src/get_*.rs`, `src/as_*.rs` and `src/new_uuid.rs`
 
 **Violates:** DRY; Encapsulate What Changes; Open/Closed; Maximize Cohesion; Self-Documenting Code — no abbreviations, document "why"
@@ -52,13 +44,17 @@ No method uses the second type parameter, and every generated implementation pas
 
 Recommendation: Reduce the trait to `Wrapper<WrappedType>` and adapt `derive-input/src/api/runtime.rs::wrapper_trait`. This breaks code that spells out the second parameter, so it belongs to the next breaking release; the snapshots change accordingly.
 
+Developer's decision: The recommendation should be applied.
+
 ### `lib.rs`: `macro_rules! spacetimedsl` — re-export lists, `DSL` and `ReadOnlyDSL`
 
 **Violates:** DRY; YAGNI; KISS
 
-The public surface of the runtime is listed repeatedly — in the `pub use` at the crate root, in the module-level re-exports of the generated `crate::spacetimedsl`, in its "flat re-exports" and in its `prelude` — and the lists have already drifted: `OnDeleteStrategyFailure` is re-exported by the macro but not by the crate root. `DSL::dsl()` and `ReadOnlyDSL::dsl()` return `self` and are called nowhere in the repository or in its documentation. `From<&ReadOnlyDSL> for ReadOnlyDSL` hand-writes a copy of a struct that only holds references.
+The public surface of the runtime is listed repeatedly — in the `pub use` at the crate root, in the module-level re-exports of the generated `crate::spacetimedsl`, in its "flat re-exports" and in its `prelude` — and the lists have already drifted: `OnDeleteStrategyFailure` is re-exported by the macro but not by the crate root.
 
-Recommendation: Define the prelude once in the runtime crate and let the macro re-export it, so a new runtime item is one edit. `dsl()` is dead code inside this repository: the developers must decide whether it is no longer needed (then deprecate and remove it) or whether it is meant for user code (then document its purpose and use it in a runtime test). Derive `Clone` and `Copy` for `ReadOnlyDSL` instead of the self-conversion, unless a caller depends on the `From` form.
+Recommendation: Define the prelude once in the runtime crate and let the macro re-export it, so a new runtime item is one edit.
+
+Developer's decision: The recommendation should be applied.
 
 ## `src/as_view_context.rs`
 
@@ -116,6 +112,8 @@ Formatting an error can panic: `ReferenceIntegrityViolationError::OnCreateOrUpda
 
 Recommendation: Make the illegal states unrepresentable with a dedicated type for `create_or_update` that has only the create and update cases; that removes the panic. Write to the formatter directly and name the local after its content. Changing the field type breaks the public API, so it belongs to the next breaking release.
 
+Developer's decision: The recommendation should be applied.
+
 ### `error.rs`: `pub enum Action`, `pub enum OneOrMultiple` and `impl Display for OnDeleteStrategy`
 
 **Violates:** DRY; Connascence — of Name; Maximize Cohesion
@@ -162,13 +160,17 @@ Recommendation: Move the injection, its constants and its diagnostics into `deri
 
 Recommendation: Expose one function from `derive-input` that maps a hook function name to its trait name, use it on both sides, and cover a table name with digits and underscores in a runtime hook.
 
+Developer's decision: The recommendation should be applied.
+
 ### `lib.rs`: `pub fn table_helper(_input) -> TokenStream` and `fn derive_table_helper_attr() -> syn::Attribute`
 
 **Violates:** DRY; Scope & Goal Discipline — "Future ideas captured outside codebase"; KISS
 
-The helper-attribute list of the `SpacetimeDSL` derive is one more spelling of the field-attribute vocabulary, which `derive-input` recognises through `symbol!` declarations in `internal/dsl.rs` for some attributes and through string literals (`is_ident("set_on_create")`, `"set_on_update"`, `"set_on_soft_delete"`) for others. A new attribute has to be added in several places, and a forgotten entry surfaces as an unknown-attribute error in user code. `derive_table_helper_attr` parses a constant with `unwrap()` calls where `syn::parse_quote!` says the same. The TODOs about `PartialOrd` for `ScheduleAt` and about rust-lang/rust#65823 keep future work in the code.
+The helper-attribute list of the `SpacetimeDSL` derive is one more spelling of the field-attribute vocabulary, which `derive-input` recognises through `symbol!` declarations in `internal/dsl.rs` for some attributes and through string literals (`is_ident("set_on_create")`, `"set_on_update"`, `"set_on_soft_delete"`) for others. A new attribute has to be added in several places, and a forgotten entry surfaces as an unknown-attribute error in user code. `derive_table_helper_attr` parses a constant with `unwrap()` calls where `syn::parse_quote!` says the same.
 
-Recommendation: Give the attribute names one list in `derive-input` that all of its parsers use. `proc_macro_derive(attributes(...))` needs literal identifiers, so the helper list cannot be generated from that list; pin their agreement instead, for example with a snapshot fixture that uses every field attribute on an accepted table. Use `syn::parse_quote!`. Keep the reason for the helper derive as a comment and move the TODOs to the issue tracker.
+Recommendation: Give the attribute names one list in `derive-input` that all of its parsers use. `proc_macro_derive(attributes(...))` needs literal identifiers, so the helper list cannot be generated from that list; pin their agreement instead, for example with a snapshot fixture that uses every field attribute on an accepted table. Use `syn::parse_quote!`. Keep the reason for the helper derive as a comment.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive/src/output.rs`
 
@@ -186,9 +188,11 @@ Recommendation: Correct the comment. Give the cascade entry-point types a method
 
 **Violates:** Law of Demeter — "Push delegation into owning object interfaces"; KISS; Scope & Goal Discipline — "Future ideas captured outside codebase"
 
-`map_args` takes `&Vec` instead of a slice and destructures `SpacetimeDSLArgType` through fully qualified paths only to take `actual_type` from either variant; `derive-input/src/internal/dsl/method/create.rs` does the same. A FIXME above `malformed_code_generation_result` records an idea.
+`map_args` destructures `SpacetimeDSLArgType` through fully qualified paths only to take `actual_type` from either variant; `derive-input/src/internal/dsl/method/create.rs` does the same. A FIXME above `malformed_code_generation_result` records an idea.
 
-Recommendation: Add an `actual_type()` method to `SpacetimeDSLArgType` in `derive-input` and use it in both places, take `&[SpacetimeDSLArg]`, and move the FIXME to the issue tracker.
+Recommendation: Add an `actual_type()` method to `SpacetimeDSLArgType` in `derive-input` and use it in both places, and move the FIXME to the issue tracker.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive/src/output/function.rs`
 
@@ -198,7 +202,7 @@ Renders a `SpacetimeDSLMethod` as inherent methods on `DSL` and `ReadOnlyDSL`, o
 
 **Violates:** KISS; YAGNI; Code For The Maintainer — Principle of Least Astonishment; Scope & Goal Discipline — "Future ideas captured outside codebase"
 
-`MethodGenerationConfig` separates a "doc variant" from the "output variants", but `build_public` passes its first output variant as the doc variant as well, and `build_internal` passes its only variant as both. The `InternalDslInternals` target ignores the context bound it is constructed with (`let _context_bound = …`) and reads `runtime::write_context()` again, so the argument of `MethodImplVariant::internal` has no effect. These builders — like `create_method_arg::build` and `hook::build` — return `syn::Result` without any failure path. The FIXME about importing only one of `CtxDbRead` and `CtxDbWrite` records an idea, and `InternalDslInternals` repeats "internal".
+`MethodGenerationConfig` separates a "doc variant" from the "output variants", but `build_public` passes its first output variant as the doc variant as well, and `build_internal` passes its only variant as both. The `InternalDslInternals` target ignores the context bound it is constructed with (`let _context_bound = …`) and reads `runtime::write_context()` again, so the argument of `MethodImplVariant::internal` has no effect. These builders — like `create_method_arg::build` and `hook::build` — return `syn::Result` without any failure path. `InternalDslInternals` repeats "internal".
 
 Recommendation: Render the doc comment from the first output variant and drop `MethodGenerationConfig`. The ignored bound is dead data: the developers must decide whether internal methods should honour it (then use it; the snapshots show whether anything changes) or not (then remove the parameter). Return `TokenStream` from the infallible builders and move the FIXME to the issue tracker.
 
@@ -212,19 +216,9 @@ Emits the getters, mutable getters and setters on the table struct.
 
 The visibility of mutable getters and setters travels between the crates as text: `derive-input` renders `RustVisibility` with `Display` (`pub (crate)`), and this function parses it back with `parse_str`. Every accessor body imports `spacetimedsl::Wrapper` through a path written here by hand, although `derive-input/src/api/runtime.rs` declares itself the single place for runtime paths.
 
-Recommendation: Let `RustVisibility` implement `ToTokens` (or keep a `syn::Visibility`) and drop the parse. Emit the import through `runtime`, after the spelling decision described in `derive-input/src/api/runtime.rs`.
+Recommendation: Let `RustVisibility` implement `ToTokens` and drop the parse. Emit the import through `runtime`, after the spelling decision described in `derive-input/src/api/runtime.rs`.
 
-## `derive/src/output/doc_comment.rs`
-
-Builds the doc comments of generated items, including the pretty-printed implementation.
-
-### `doc_comment.rs`: `fn implementation_section(implementation: TokenStream) -> String`
-
-**Violates:** Separation of Concerns; Orthogonality; Testing & Verification — "Reference user-impacting behaviors with guardrails or tests"
-
-Under `cfg!(test)` the function returns an empty string. Production code thereby branches on the test harness, and the characterization tests never see the "Implementation" section that rustdoc shows to users — the snapshots contain empty `///` doc comments instead.
-
-Recommendation: Remove the `cfg!(test)` branch. The trade-off between snapshot size and coverage is the developers' decision: (a) let the snapshot harness strip or normalise the section before snapshotting; (b) pin the section in one dedicated fixture and strip it everywhere else; (c) accept the section in every snapshot.
+Developer's decision: The recommendation should be applied.
 
 ## `derive/src/output/hook.rs`
 
@@ -238,6 +232,8 @@ An `is_none()` check followed by `as_ref().unwrap()` spells out what `let Some(h
 
 Recommendation: `fn build(hook: Option<&SpacetimeDSLMethodHook>) -> TokenStream` with a `let … else`.
 
+Developer's decision: The recommendation should be applied.
+
 ## `derive/src/characterization_tests.rs`
 
 The snapshot harness for input the macro accepts.
@@ -250,19 +246,9 @@ Each fixture needs a hand-written test whose name repeats the fixture's file nam
 
 Recommendation: Delete the orphaned snapshot directory after confirming that `update_hook_with_set_on_update` covers its content. To keep fixtures and registrations in step, the options are: (a) enumerate `tests/fixtures` in one test, the way `trybuild` globs its directory; (b) keep the explicit registration AGENTS.md prescribes and add a test that fails for an unregistered fixture or for a snapshot directory without a fixture; (c) make `x.ps1 unit-test` reject unreferenced snapshots. Options (a) and (b) change the rule written in AGENTS.md, which then has to change with them. Rename `hooks_all_six` after the shape it pins.
 
+Developer's decision: The recommendation (b) should be applied.
+
 ---
-
-## `derive-input/Cargo.toml`
-
-The manifest of the published generator crate.
-
-### `Cargo.toml`: dependency `spacetimedb`
-
-**Violates:** YAGNI; Minimize Coupling
-
-The crate's code never uses `spacetimedb`: every occurrence is inside `quote!` output, which needs no dependency. The published proc-macro helper still pulls in the whole SpacetimeDB runtime with its `unstable` feature, which every crate that uses the macros has to build.
-
-Recommendation: The dependency looks unused: the developers must decide whether it is no longer needed (then remove it) or serves a purpose the code does not show, such as holding users to a compatible version (then say so in a comment in the manifest).
 
 ## `derive-input/src/lib.rs`
 
@@ -272,9 +258,11 @@ The public API of the generator crate: `Table`, `Column` and the modules below `
 
 **Violates:** Hide Implementation Details — "Keep member data private and encapsulated"; Minimize Coupling; YAGNI; DRY; Documentation & Communication Clarity — "Document concern boundaries and integration contracts"
 
-The crate advertises itself as a base for other procedural macro crates and exposes its whole analysis through public fields, including generated token streams (`method_impl`, `wrapper_impl`, `struct_impl`) and bookkeeping (`compile_error_checks`). Every internal restructuring is therefore a breaking change for such crates, and the `derive` crate reads deep into the graph. Several fields are written but read by no consumer in this repository — for example `SpacetimeDSLArg::is_option`, `SpacetimeDSLArgType::Wrapped::wrapped_type`, `CreateDSLMethodArg::struct_name` and `struct_members`, and `SpacetimeDBTable::scheduled_reducer`. `Table::primary_key_column` is a clone of one element of `columns`, so the same data is held in duplicate. The doc of `Table::try_parse` uses `/** */` and speaks of a derive macro, although it is called from an attribute macro.
+The crate advertises itself as a base for other procedural macro crates and exposes its whole analysis through public fields, including generated token streams (`method_impl`, `wrapper_impl`, `struct_impl`) and bookkeeping (`compile_error_checks`). Every internal restructuring is therefore a breaking change for such crates, and the `derive` crate reads deep into the graph. The doc of `Table::try_parse` uses `/** */` and speaks of a derive macro, although it is called from an attribute macro.
 
-Recommendation: The developers decide what external crates may rely on. Options: (a) keep public fields, document every one of them as a data-transfer contract and pin that contract with a consumer-side test; (b) make the fields private and expose accessors for the parts meant to be stable; (c) withdraw the promise to external crates and reduce the model to crate visibility. For each field no consumer reads, decide whether external crates need it (then document and test it) or it is a leftover (then remove it). Replace the duplicated `primary_key_column` with an accessor that looks the column up.
+Recommendation: The developers decide what external crates may rely on. Options: (a) keep public fields, document every one of them as a data-transfer contract and pin that contract with a consumer-side test; (b) make the fields private and expose accessors for the parts meant to be stable; (c) withdraw the promise to external crates and reduce the model to crate visibility.
+
+Developer's decision: The recommendation (a) should be applied.
 
 ### `lib.rs`: `mod internal` and the `pub` inherent functions its modules add to `api` types
 
@@ -283,6 +271,8 @@ Recommendation: The developers decide what external crates may rely on. Options:
 The modules below the private `internal` module add `pub` inherent functions to public `api` types — for example `SpacetimeDBColumn::map`, `SpacetimeDBTable::map`, `RustField::map`, `RustVisibility::map`, `SpacetimeDSLColumn::try_parse`, `WrapperType::try_parse`, `Getter::map`, `Setter::map` — and `impl Display for RustVisibility`. An inherent method's visibility follows its own `pub`, not the module of its `impl` block, so these internal constructors are callable from every dependent crate. `#[doc(hidden)]` on a private module has no effect, which suggests the intent was to hide them.
 
 Recommendation: Reduce these functions to `pub(crate)`, keeping `Table::try_parse` as the only entry point; replace the `Display` implementation as described in `internal/rust.rs`; remove the ineffective `#[doc(hidden)]`.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/api/runtime.rs`
 
@@ -295,6 +285,8 @@ The token constructors for every path into the `spacetimedsl` runtime that gener
 The module states that every `crate::spacetimedsl::…` path any generator emits is written here exactly once. The `Wrapper` trait nevertheless appears as `crate::spacetimedsl::Wrapper` (`wrapper_trait`), as `::spacetimedsl::Wrapper` (`wrapper_trait_path`) and as `spacetimedsl::Wrapper` (typed by hand in `derive/src/output/accessor.rs` and `internal/dsl/wrapper.rs`); `itertools_import` and `derive/src/lib.rs` use `::spacetimedsl::…`. Paths into `spacetimedb` (`spacetimedb::TryInsertError`, `spacetimedb::SpacetimeType`, `spacetimedb::{CtxDbRead, CtxDbWrite, Table}`) have no such home at all, so a SpacetimeDB rename is exactly the text hunt through `quote!` bodies the module was written to prevent. `deletion_result_entry` takes its last field with the trailing comma included, to accommodate one call site's shorthand, which bends the API to a stylistic difference.
 
 Recommendation: Route every emitted path through this module and add a counterpart for `spacetimedb` paths. The `Wrapper` spellings resolve differently in a user's crate (crate-local re-export, extern crate, relative path): understand why each one was chosen before unifying them, and pin the result with snapshots. Let `deletion_result_entry` take the child-entries expression and write the field itself.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/api/dsl/foreign_key.rs`
 
@@ -316,9 +308,11 @@ The public description of one generated DSL method and its arguments.
 
 **Violates:** YAGNI; Law of Demeter — "Push delegation into owning object interfaces"
 
-`is_option` and `Wrapped::wrapped_type` are filled by the generators and read by nobody; the only consumers (`derive/src/output.rs::map_args`, `internal/dsl/method/create.rs`) match on the enum just to take `actual_type` from either variant.
+`is_option` and `Wrapped::wrapped_type` only consumers (`derive/src/output.rs::map_args`, `internal/dsl/method/create.rs`) match on the enum just to take `actual_type` from either variant.
 
-Recommendation: Add `SpacetimeDSLArgType::actual_type()`. The unread fields are dead data: the developers must decide whether external crates need them (then document what they mean) or they are leftovers (then remove them from the API and the generators).
+Recommendation: Add `SpacetimeDSLArgType::actual_type()`.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/api/dsl/column.rs`
 
@@ -331,6 +325,8 @@ The public description of a column's DSL features and of the methods an index ea
 The conditions under which the public fields are `Some` are written as `//` comments, so the rustdoc of this published crate shows none of them, and "Only `Some(T)` if mutable" does not say what makes a column mutable (a non-private field). The types in `method.rs`, `hook.rs`, `getter.rs` and `setter.rs` document no fields at all, and `table.rs` documents only some; `SpacetimeDSLMethod::read_context_compatible`, for instance, does not say why `get_all_<tables>` is unavailable in a read-only context while `count_of_all_<tables>` is available.
 
 Recommendation: Turn the comments into `///` documentation stated in DSL terms, and document the SpacetimeDB rule behind each `read_context_compatible` value, which the developers need to confirm.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/api/dsl/table.rs`
 
@@ -352,6 +348,8 @@ These types have the same shape — an optional pair of entry points per kind of
 
 Recommendation: Options: (a) one shared type with an iterator over the entry points it holds; (b) keep both names for their different roles and give each such an iterator. Either one removes the repeated iteration in `derive/src/output.rs`.
 
+Developer's decision: The recommendation (b) should be applied.
+
 ---
 
 ## `derive-input/src/internal.rs`
@@ -364,7 +362,9 @@ Entry point of the parser: reads the `#[dsl(...)]` arguments and hands them to t
 
 One function parses every `#[dsl(...)]` argument and validates how they combine. The `before(...)` and `after(...)` branches are copies that differ only in the variables they write, and each hook travels as its own `Option<Span>` local and then as its own `bool` in `DSLData` (see the hook matrix in `internal/dsl/hook.rs`). The comment above the function says it parses `plural_name`, which is a small part of what it does, and the comment in `try_parse` about passing the parsed `plural_name` refers to an argument that is not passed.
 
-Recommendation: Separate parsing from validation, and parse hooks with one helper that serves `before` and `after` and fills a structure keyed by timing and operation. Correct or delete the comments. The diagnostics are pinned by compile-tests, so the `.stderr` files must stay unchanged.
+Recommendation: Separate parsing from validation, and parse hooks with one helper that serves `before` and `after` and fills a structure keyed by timing and operation. Correct the comments. The diagnostics are pinned by compile-tests, so the `.stderr` files must stay unchanged.
+
+Developer's decision: The recommendation should be applied.
 
 ### `internal.rs`: the placeholder plural name `__singleton_placeholder`
 
@@ -372,7 +372,9 @@ Recommendation: Separate parsing from validation, and parse hooks with one helpe
 
 For a singleton, `try_parse_dsl` returns a fabricated plural name, and `try_parse` overwrites it with the table accessor afterwards. In between, `DSLData::plural_name` holds a magic value, and that value is handed to the table selection in `integration.rs`.
 
-Recommendation: Model the difference in the type — an `Option<Ident>`, or an enum that distinguishes a singleton from a table with a plural name — so no code can read a placeholder.
+Recommendation: Model the difference in the type — an enum that distinguishes a singleton from a table with a plural name — so no code can read a placeholder.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/integration.rs`
 
@@ -386,6 +388,8 @@ When a struct carries several `#[table]` attributes, `plural_name` doubles as a 
 
 Recommendation: Replace guessing with a documented rule. This changes which inputs are accepted, so the developers decide. Options: (a) the `#[table]` directly below a `#[dsl]` belongs to it; (b) an explicit selector such as `#[dsl(table = accessor)]` whenever a struct has several `#[table]` attributes; (c) keep the plural-name matching but reject an ambiguous or unmatched name with a diagnostic instead of the fallback. Pin the ambiguous case with a compile-test and the chosen resolution with a snapshot, and document the rule in `docs/DOCUMENTATION.md`. Give the entry function a name that says it selects the table.
 
+Developer's decision: The recommendation (b) should be applied.
+
 ### `integration.rs`: `fn get_all_table_attributes(input: &DeriveInput) -> syn::Result<Vec<(TableArgs, ColumnArgs)>>`
 
 **Violates:** Robustness Principle; DRY; Self-Documenting Code — no redundant comments
@@ -393,6 +397,8 @@ Recommendation: Replace guessing with a documented rule. This changes which inpu
 Attributes are recognised by comparing their stringified path with `"table"` and `"spacetimedb :: table"`, which misses `::spacetimedb::table`; `derive/src/lib.rs` and `derive/src/characterization_tests.rs` recognise `#[dsl]` the same way. Comments such as "Find all table attributes" repeat the code.
 
 Recommendation: One helper that recognises an attribute by the last segment of its path (with an optional crate prefix), shared by all these places; delete the comments that repeat the code.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/table.rs`
 
@@ -406,6 +412,8 @@ Orchestrates the analysis of one table.
 
 Recommendation: Compute the index assignment — which index belongs to which column, which multi-column indices the DSL treats as unique — with queries that return new values, then assemble `SpacetimeDBTable` once. Pure refactoring.
 
+Developer's decision: The recommendation should be applied.
+
 ### `table.rs`: `pub fn rm_rsharp(ident: syn::Ident) -> syn::Ident`
 
 **Violates:** Self-Documenting Code — no abbreviations; KISS; Maximize Cohesion
@@ -413,6 +421,8 @@ Recommendation: Compute the index assignment — which index belongs to which co
 The name abbreviates "remove the `r#` prefix", the function re-implements `syn::ext::IdentExt::unraw`, and it lives in the table module although `internal.rs`, `rust/table.rs` and `db/table.rs` use it for arbitrary identifiers.
 
 Recommendation: Use `IdentExt::unraw()`.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/column.rs`
 
@@ -425,6 +435,8 @@ Analyses the columns of a table and classifies their types.
 The result is a positional tuple kept behind `#[allow(clippy::type_complexity)]`. The primary key column is searched for in the column list and again in the list of internal columns, by comparing the `to_string()` of identifiers, which can be compared directly; `res.0`, `res.1` and the message "PK column should be present" use abbreviations.
 
 Recommendation: A named result struct; compare identifiers directly; find the primary key once.
+
+Developer's decision: The recommendation should be applied.
 
 ### `column.rs`: `pub struct InternalColumn`
 
@@ -442,6 +454,8 @@ Recommendation: Options for the developers: (a) assemble `Column` first and gene
 
 Recommendation: Extend the classification (for example with timestamp, optional timestamp and flag kinds) and use it for every type check. Extend the `qualified_type_spellings` fixture and add compile-tests for qualified spellings before switching.
 
+Developer's decision: The recommendation should be applied.
+
 ## `derive-input/src/internal/rust.rs`
 
 Maps Rust visibilities into the API model.
@@ -452,7 +466,9 @@ Maps Rust visibilities into the API model.
 
 A visibility is rendered to text so that the `derive` crate can parse it back (`derive/src/output/accessor.rs`), and it is compared as text in `internal/dsl/method/reference_integrity.rs` and `internal/dsl/method/upsert.rs` (`rust_field_visibility.to_string()` against `RustVisibility::Private.to_string()`) where `matches!` would do. As an implementation on a public type, the rendering is public API.
 
-Recommendation: Implement `ToTokens` (or keep a `syn::Visibility`), compare with `matches!`, and remove `Display` once nothing needs it.
+Recommendation: Implement `ToTokens`, compare with `matches!`, and remove `Display` once nothing needs it.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/rust/column.rs`
 
@@ -466,6 +482,8 @@ The field type is re-parsed as a `Path` with an `expect`, so a field whose type 
 
 Recommendation: The developers decide which column types SpacetimeDSL supports. For unsupported ones, return a spanned error built in `internal/error.rs` (compile-test first: red is the panic, green the diagnostic); for supported ones, keep a `syn::Type` instead of a `Path`.
 
+Developer's decision: Arrays, tuples and references are unsupported. The recommendation should be applied.
+
 ## `derive-input/src/internal/db/table.rs`
 
 Maps the `#[table]` arguments into the SpacetimeDB part of the model.
@@ -478,13 +496,17 @@ The comment on the field admits that `multi_column_indices` contains all indices
 
 Recommendation: Keep all indices in an accurately named collection while processing (or split them up front, see `internal/table.rs`), and move the singleton rule to the DSL layer.
 
+Developer's decision: The recommendation should be applied.
+
 ### `table.rs`: `ScheduledReducer::map(scheduled: &ScheduledArg) -> ScheduledReducer`
 
 **Violates:** Robustness Principle; YAGNI
 
 The reducer name becomes an `Ident` by formatting its tokens into a string. If the bindings parser accepts a qualified path there, such as `scheduled(crate::timers::tick)`, `format_ident!` panics. The value this produces, `SpacetimeDBTable::scheduled_reducer`, is read nowhere in the repository.
 
-Recommendation: The developers decide whether external crates need `scheduled_reducer` (then keep the `Path` and pin a qualified path in a snapshot fixture) or whether it is a leftover (then remove it together with this function).
+Recommendation: Keep the `Path` and pin a qualified path in a snapshot fixture.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/db/column.rs`
 
@@ -494,9 +516,11 @@ Maps a field into the SpacetimeDB part of the model and assigns its index.
 
 **Violates:** Separation of Concerns; Command Query Separation (CQS); DRY; Robustness Principle
 
-The mapping of the SpacetimeDB column also enforces DSL rules (no primary key prefixed with the table name, no index on a singleton's column) and removes the column's index from the table it receives — a command inside a query. It walks the indices with the same `match` for the validation and again for the lookup. The lookup stops at the first single-column index, so a column with more than one single-column index leaves the others in `multi_column_indices`, where `SpacetimeDSLTableMethods::generate` has to skip them — silently, without a diagnostic and without methods.
+The mapping of the SpacetimeDB column also enforces DSL rules (no primary key prefixed with the table name, no index on a singleton's column). It walks the indices with the same `match` for the validation and again for the lookup. The lookup stops at the first single-column index, so a column with more than one single-column index leaves the others in `multi_column_indices`, where `SpacetimeDSLTableMethods::generate` has to skip them — silently, without a diagnostic and without methods.
 
-Recommendation: Move the DSL validation to the DSL layer and return the index assignment as data (see `internal/table.rs`). The developers decide what an additional single-column index on one column means — reject it with a diagnostic, or generate methods for each index — and pin the decision with a compile-test or a snapshot.
+Recommendation: Move the DSL validation to the DSL layer and return the index assignment as data (see `internal/table.rs`). An additional single-column index on one column must be rejected with a diagnostic. Pin that with a compile-test.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/dsl/table.rs`
 
@@ -518,15 +542,27 @@ Recommendation: Split into focused validators and keep DSL uniqueness out of the
 
 Column names claim framework roles implicitly — `created_at`, `inserted_at`, `modified_at` and `updated_at` here, `deleted`, `removed`, `deleted_at` and `removed_at` in `internal/dsl/soft_delete.rs`. The behaviour is documented, but the timestamp roles and the soft-delete roles use different mechanisms (inline string comparisons here, constant arrays there), so renaming a role or adding one follows no single pattern. `(true, true) => unreachable!()` restates a case the early return already excluded.
 
-Recommendation: Keep the conventional names of all roles as constants in one module and look them up the same way. Whether roles should keep being claimed by name, rather than only by attribute, is a product decision for the developers.
+Recommendation: Keep the conventional names of all roles as constants in one module and look them up the same way.
+
+Developer's decision: The recommendation should be applied.
 
 ### `table.rs`: the names in `DSLData::unique_indices`
 
 **Violates:** Robustness Principle — "Accept unknown inputs only when semantics remain clear"
 
-`#[dsl(unique_index(name = x))]` only has an effect when `x` names a BTree multi-column index. A misspelled name, a single-column index or a hash multi-column index is accepted without effect and without a diagnostic, and a repeated name is not detected.
+`#[dsl(unique_index(name = x))]` A misspelled name is accepted without effect and without a diagnostic, and a repeated name is not detected.
 
-Recommendation: Reject names that do not match an eligible index, with one compile-test per shape (unknown name, single-column index, hash index). If hash indices are meant to be supported, the developers add that instead, with a snapshot and a runtime test.
+Recommendation: Reject names that do not match an eligible index with a compile-test.
+
+Developer's decision: The recommendation should be applied.
+
+### `table.rs`: the types in `DSLData::unique_indices`
+
+**Violates:** Robustness Principle — "Accept unknown inputs only when semantics remain clear"
+
+`#[dsl(unique_index(name = x))]` only has an effect when `x` names a BTree multi-column index. A single-column index or a hash multi-column index is accepted without effect and without a diagnostic.
+
+Recommendation: When single-column and hash indices are meant to be supported, they should be added, with a snapshot and a runtime test. Otherwise reject them with a compile-test.
 
 ## `derive-input/src/internal/dsl/soft_delete.rs`
 
@@ -540,6 +576,8 @@ The marker's type is checked by comparing stringified tokens, restating `is_opti
 
 Recommendation: Resolve together with the type classification in `internal/column.rs` and the role names in `internal/dsl/table.rs`.
 
+Developer's decision: The recommendation should be applied.
+
 ## `derive-input/src/internal/dsl/hook.rs`
 
 Builds the hook traits and signatures a table declares.
@@ -552,13 +590,17 @@ The combinations of timing and operation are written out by hand: one `build_any
 
 Recommendation: Represent the declared hooks as a collection keyed by `(Timing, Operation)` with an iterator over all kinds, so that parsing, building and emitting loop over the kinds; keep named accessors where a generator asks for one specific hook. Pure refactoring.
 
+Developer's decision: The recommendation should be applied.
+
 ### `hook.rs`: `fn get_function_args(...)` and `fn get_return_type(...)` — the `Create<Table>` name
 
 **Violates:** DRY — the code's own FIXME calls it a "Single Source of Truth Violation"
 
 The name of the create-request struct is formatted here, in the arguments and again in the return type, and in `internal/dsl/method/create.rs`, which defines the struct. The hook signature and the struct agree only by convention.
 
-Recommendation: One naming function, for example in `internal/dsl/method/naming.rs` or on `MethodGenerationContext`, used everywhere; the FIXME goes with the fix.
+Recommendation: One naming function in `internal/dsl/method/naming.rs`; the FIXME goes with the fix.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/dsl/singleton.rs`
 
@@ -592,9 +634,11 @@ Parses `#[create_wrapper]` and `#[use_wrapper]` and generates wrapper structs.
 
 **Violates:** KISS; Connascence — of Meaning; Robustness Principle; Single Responsibility Principle (SRP); Scope & Goal Discipline — "Future ideas captured outside codebase"
 
-Names and types are turned into `String` and parsed back with `expect`; a local declared without a value is assigned `Some` in some branches and unwrapped with `expect` right after; the comparison with `create_wrapper` is repeated. Parsing the attribute and generating the wrapper struct (`get_wrapper_impl`) happen in one flow. The TODO about doc comments on wrapper types records future work.
+Names and types are turned into `String` and parsed back with `expect`; a local declared without a value is assigned `Some` in some branches and unwrapped with `expect` right after; the comparison with `create_wrapper` is repeated. Parsing the attribute and generating the wrapper struct (`get_wrapper_impl`) happen in one flow.
 
-Recommendation: Keep `syn` values (`Ident`, `Path`, `Type`) from parsing to generation, separate parsing from generating the wrapper, and move the TODO to the issue tracker.
+Recommendation: Keep `syn` values (`Ident`, `Path`, `Type`) from parsing to generation, and separate parsing from generating the wrapper.
+
+Developer's decision: The recommendation should be applied.
 
 ### `wrapper.rs`: `fn get_wrapper_impl(struct_name, wrapper_struct_name, wrapped_type_name_or_path, field_name, wraps_uuid) -> TokenStream`
 
@@ -610,7 +654,9 @@ Recommendation: Render the wrapped column's name or a neutral form. The text app
 
 `map` and `struct_name_or_path_tokens` both produce the wrapper's name or path, one of them by formatting and re-parsing it. The panic messages name `WrapperType::map_to_wrapper_type`, `WrapperType::Wrap` and `WrapperType::Wrapped`, none of which exist (the current names are `map`, `Created` and `Used`), and `map_to_wrapped_type` claims to parse an `Ident` while it parses a `Type`. `map` and `map_to_wrapped_type` take the wrapper as an argument while their siblings take `&self`.
 
-Recommendation: One `&self` method that returns the wrapper type without a string round trip and one for the wrapped type; delete or correct the messages.
+Recommendation: One `&self` method that returns the wrapper type without a string round trip and one for the wrapped type; correct the messages.
+
+Developer's decision: The recommendation should be applied.
 
 ### `wrapper.rs`: `pub fn map_wrapper_type_option_to_wrapped_type_option(column_name: &Ident, wrapper_type_name_or_path: &Type) -> TokenStream`
 
@@ -619,6 +665,8 @@ Recommendation: One `&self` method that returns the wrapper type without a strin
 The generated code declares a mutable `None`, tests `is_some()` and reassigns through `expect`, which is `Option::map` written out by hand.
 
 Recommendation: Emit `Option::map`. The snapshots change.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/dsl/foreign_key.rs`
 
@@ -631,6 +679,8 @@ Parses and validates `#[foreign_key]`.
 `OnDeleteStrategy::SetZero` is documented as available only for numeric columns, but nothing checks the column type — the TODO on `try_parse_for_on_delete` lists the missing checks. A `Uuid` foreign key with `on_delete = SetZero` generates an assignment of `0`, which fails to compile inside the expanded code instead of at the attribute. Whether the column has an index is re-derived by scanning its raw attributes, although `SpacetimeDBColumn` already knows it (`reference.rs` does the same for `#[primary_key]`). A private visibility is detected by comparing token strings, while `internal/dsl/table.rs` uses `matches!`. `has_delete_method` is passed as `&bool`.
 
 Recommendation: Add the type check with a diagnostic (compile-test first), pass the facts `SpacetimeDBColumn` already holds instead of re-scanning attributes, use `matches!(field.vis, syn::Visibility::Inherited)`, and pass `bool` by value.
+
+Developer's decision: The recommendation should be applied. Allow `SetZero` also on the `Uuid` type, which should set `Uuid::NIL` rather than `0`. Treat `Uuid::NIL` like `0` in create/update/delete/soft_delete DSL methods ("no row of another table referenced").
 
 ### `foreign_key.rs`: `OnDeleteStrategy::try_parse_for_on_soft_delete(meta: &ParseNestedMeta<'_>, tokens: &Meta) -> syn::Result<OnDeleteStrategy>`
 
@@ -662,7 +712,9 @@ Generates the getter of a column.
 
 The getter naming rule has a helper, but `internal/dsl/method/reference_integrity.rs` and `internal/dsl/method/upsert.rs` format `get_{column}` again. The helpers are `pub` without callers outside their own files.
 
-Recommendation: Call the helper everywhere, or move all naming of generated methods into `internal/dsl/method/naming.rs`, and reduce the visibility.
+Recommendation: Move all naming of generated methods into `internal/dsl/method/naming.rs`, and reduce the visibility.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/dsl/setter.rs`
 
@@ -676,6 +728,8 @@ The locals `method_arg`, `return_type` and `return_expr` are declared first and 
 
 Recommendation: Let each branch produce its argument, return type and body as one expression, emit `Option::map`, and spell names out. The snapshots show any change in the generated accessors.
 
+Developer's decision: The recommendation should be applied.
+
 ## `derive-input/src/internal/dsl/method.rs`
 
 Decides which DSL methods a table and each of its indices earn.
@@ -688,6 +742,8 @@ One function produces the create, get-all and count methods, the referenced side
 
 Recommendation: One function per concern, a shared helper for the entry points per kind of removal, and `entry().or_default()`. Pure refactoring.
 
+Developer's decision: The recommendation should be applied.
+
 ## `derive-input/src/internal/dsl/method/create.rs`
 
 Generates `create_<table>` and the `Create<Table>` argument struct.
@@ -698,7 +754,9 @@ Generates `create_<table>` and the `Create<Table>` argument struct.
 
 A chain of `if … else if` over column roles — injected singleton key, generated UUID, auto-increment, created-at, updated-at, soft-delete marker, then the wrapper kinds — assigns locals declared without a value and returns early. The conditions are written as block expressions (`&& { … }`), and inside them the local `column_name` is shadowed by the table's timestamp column name. A special case for `String` columns yields `String` as the argument type where the general branch would yield the column's own type, which for such a column is `String` as well — it looks vestigial. Each new column role adds another link to the chain.
 
-Recommendation: Classify each column into a role once — an enum that `upsert.rs`, which re-implements the created-at and updated-at assignments, can use too — and map the role to its parts with a `match`. For the `String` special case, the developers decide whether some spelling depends on it (the snapshot diff after removing it will show) or it is a leftover.
+Recommendation: Classify each column into a role once — an enum that `upsert.rs`, which re-implements the created-at and updated-at assignments, can use too — and map the role to its parts with a `match`. For the `String` special case, some spelling may depend on it; the snapshot diff after removing it will show.
+
+Developer's decision: The recommendation should be applied.
 
 ### `create.rs`: `pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, TableContributions)`
 
@@ -706,7 +764,9 @@ Recommendation: Classify each column into a role once — an enum that `upsert.r
 
 The `try_insert` statement with its mapping of `UniqueConstraintViolation` and `AutoIncOverflow`, the message format that renders the whole row, and the FIXMEs "Only show unique columns here" and "No clone?" are copied into the insert path of `upsert.rs`.
 
-Recommendation: One helper that emits the insert-and-map-errors statement for `for_create` and `for_singleton_upsert`; move the FIXMEs to the issue tracker.
+Recommendation: One helper that emits the insert-and-map-errors statement for `for_create` and `for_singleton_upsert`.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/dsl/method/get.rs`
 
@@ -716,9 +776,9 @@ Generates the lookup methods.
 
 **Violates:** DRY; Scope & Goal Discipline — "Future ideas captured outside codebase"
 
-Both branches build the same `not_found_error`, and the FIXME about the row value getters of wrapper types records a planned change.
+Both branches build the same `not_found_error`.
 
-Recommendation: Build the error once before the branch and move the FIXME to the issue tracker.
+Recommendation: Build the error once before the branch.
 
 ## `derive-input/src/internal/dsl/method/index.rs`
 
@@ -732,6 +792,8 @@ The shape of "column : value" messages is stated here, restated in `internal/dsl
 
 Recommendation: One module that owns every message shape and returns the finished `format!` tokens.
 
+Developer's decision: The recommendation should be applied.
+
 ## `derive-input/src/internal/dsl/method/reference_integrity.rs`
 
 The referential-integrity and unique multi-column index checks generated methods run before they write.
@@ -744,6 +806,8 @@ The referential-integrity and unique multi-column index checks generated methods
 
 Recommendation: Pass `context.field_name_for_found_value` in, move the `get_<table>_by_<index>` rule into `naming.rs` and use it in `get.rs` and here, and use the getter helper.
 
+Developer's decision: The recommendation should be applied.
+
 ### `reference_integrity.rs`: `pub enum Action`
 
 **Violates:** DRY; Connascence — of Name
@@ -752,13 +816,23 @@ A mirror of `src/error.rs::Action` whose variants reach generated code through `
 
 Recommendation: Resolve together with the `src/error.rs` entry.
 
-### `reference_integrity.rs`: `pub fn multi_column_index_checks(...)` and `pub fn unique_multi_column_index_check(...)`
+### `reference_integrity.rs`: DRY in `pub fn multi_column_index_checks(...)` and `pub fn unique_multi_column_index_check(...)`
 
-**Violates:** DRY; Robustness Principle
+**Violates:** DRY
 
-Both functions build the same unique-constraint-violation error. Only BTree multi-column indices are considered, which matches the silent acceptance of other `unique_index` targets (see `internal/dsl/table.rs`).
+Both functions build the same unique-constraint-violation error.
 
-Recommendation: Build the error once and pass it on; resolve the supported index kinds together with the `internal/dsl/table.rs` entry.
+Recommendation: Build the error once and pass it on.
+
+Developer's decision: The recommendation should be applied.
+
+### `reference_integrity.rs`: Robustness in `pub fn multi_column_index_checks(...)` and `pub fn unique_multi_column_index_check(...)`
+
+**Violates:** Robustness Principle
+
+Only BTree multi-column indices are considered, which matches the silent acceptance of other `unique_index` targets (see `internal/dsl/table.rs`).
+
+Recommendation: Resolve the supported index kinds together with the `internal/dsl/table.rs` entry.
 
 ## `derive-input/src/internal/dsl/method/on_delete_strategy.rs`
 
@@ -774,6 +848,8 @@ That appears to be a defect: when several foreign-key columns share a `Delete` o
 
 Recommendation: First add a snapshot fixture for that combination and a runtime assertion on `DeletionResultEntry::column_name` for a row reached only through the first column, read the output, and let the developers confirm whether it is a defect. Then give each strategy its own function that returns its fragments as a value instead of overwriting shared accumulators.
 
+Developer's decision: The recommendation should be applied, but independently of any other fix decided by the developer.
+
 ### `on_delete_strategy.rs`: the `Delete` and the `SoftDelete` arm for `ReferencingTables::Present`
 
 **Violates:** DRY
@@ -781,6 +857,8 @@ Recommendation: First add a snapshot fixture for that combination and a runtime 
 These arms build the same scaffolding — the entry maps, `create_entries_and_add_them_to_entries`, the failure handler, the per-row collection and the dispatcher calls — and differ in the write, the hooks, the dispatcher's kind of removal, the strategies called afterwards and the filter for already retired rows. `removal.rs` states such a sequence only once "because two copies of that order would drift", yet here the sequence exists as a copy.
 
 Recommendation: Understand the differences (hook placement, the retired-row filter, the strategy lists) to make an informed decision which parts become one skeleton parameterised by `Removal`, as in `removal.rs`, and which stay separate. The fixtures `on_delete_delete`, `on_soft_delete_cascade`, `on_soft_delete_cascade_with_soft_delete_hooks` and `self_referencing_cascade` guard the change.
+
+Developer's decision: The recommendation should be applied, but independently of any other fix decided by the developer.
 
 ### `on_delete_strategy.rs`: the commented-out `set_none_strategy`, `strategy_before_all` and the notes inside `quote!`
 
@@ -796,7 +874,9 @@ Recommendation: Delete the commented-out code; the issue tracker holds `SetNone`
 
 The fragments generated here depend on bindings that `for_foreign_key` declares in another module — `dsl`, `entries`, `error`, `error_from_hook`, the label `'outer` and `primary_key_value_of_a_row_of_another_table_to_delete` — and on bindings their sibling fragments introduce. A rename on one side still compiles in `derive-input` and fails only when a user's crate expands the macro, because the snapshot harness never compiles tokens.
 
-Recommendation: Name the shared bindings once (constants, or a struct of `Ident`s handed to both sides), so a rename is one change. The runtime tests remain the only gate that compiles these fragments; keep every strategy covered there.
+Recommendation: Name the shared bindings once in `naming.rs`, so a rename is one change. The runtime tests remain the only gate that compiles these fragments; keep every strategy covered there.
+
+Developer's decision: The recommendation should be applied.
 
 ### `on_delete_strategy.rs`: `fn hooks_around_the_write(before_hook, after_hook, old_row) -> ((TokenStream, TokenStream), (TokenStream, TokenStream))` and `fn store_the_row(spacetimedb_call_prefix, primary_key_column_name, after_hook) -> TokenStream`
 
@@ -806,6 +886,8 @@ The nested tuple can only be read by position. `store_the_row` emits SpacetimeDB
 
 Recommendation: A named struct for the hook fragments; resolve the panics together with the `update.rs` entry and give the remaining `expect` calls messages that state the broken invariant.
 
+Developer's decision: The recommendation should be applied.
+
 ## `derive-input/src/internal/dsl/method/removal.rs`
 
 The shared body of the `delete_*` and `soft_delete_*` methods.
@@ -814,9 +896,11 @@ The shared body of the `delete_*` and `soft_delete_*` methods.
 
 **Violates:** DRY; Single Responsibility Principle (SRP); Code For The Maintainer — Principle of Least Astonishment; Connascence — of Name
 
-`for_removal_many` and `for_removal_one` repeat one structure — the hook blocks of a hard deletion, the reported strategy, the deletion-result entry, the handler for an error after the state changed, the call of the `Error` strategy, the strategies after the write, the final assembly and the naming — and differ mainly in how rows are found and how results are collected. The errors raised after a state change call themselves "Delete Many Error" or "Delete One Error" for soft deletions as well. `retire_row_named_old_row` expects the surrounding code to have bound a variable called `old_row`, a contract carried by the function's name instead of a parameter. A TODO about `SetNone` records future work.
+`for_removal_many` and `for_removal_one` repeat one structure — the hook blocks of a hard deletion, the reported strategy, the deletion-result entry, the handler for an error after the state changed, the call of the `Error` strategy, the strategies after the write, the final assembly and the naming — and differ mainly in how rows are found and how results are collected. The errors raised after a state change call themselves "Delete Many Error" or "Delete One Error" for soft deletions as well. `retire_row_named_old_row` expects the surrounding code to have bound a variable called `old_row`, a contract carried by the function's name instead of a parameter.
 
-Recommendation: Extract the shared skeleton, parameterised by one or many rows, as the module already does for hard and soft removal; let the messages name the actual removal; pass the row binding as an `Ident` parameter; move the TODO to the issue tracker. The snapshots guard the refactoring.
+Recommendation: Extract the shared skeleton, parameterised by one or many rows, as the module already does for hard and soft removal; let the messages name the actual removal; pass the row binding as an `Ident` parameter. The snapshots guard the refactoring.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/dsl/method/referenced_by.rs`
 
@@ -830,6 +914,8 @@ Both emit "call the dispatcher, merge the child entries on success and on failur
 
 Recommendation: Understand the differences to make an informed decision whether they are intended — a DSL method starts without a hook error, while a cascade has to keep the first one — before extracting a shared helper, or keep them separate and document why.
 
+Developer's decision: The recommendation should be applied, but independently of any other fix decided by the developer.
+
 ### `referenced_by.rs`: `pub fn for_referenced_by(removal, one_or_multiple, spacetimedb_table, spacetimedsl_table, primary_key_column) -> (SpacetimeDSLMethod, TableContributions)`
 
 **Violates:** DRY
@@ -837,6 +923,8 @@ Recommendation: Understand the differences to make an informed decision whether 
 The dispatcher signature (DSL, strategy, one key or a slice of keys, entries in a `Vec` or a `HashMap`, the failure type) is built here and again in `method/foreign_key.rs::for_foreign_key`. Both contain the same `past_tense` wording, which `naming.rs::removal_suffix` repeats in snake case.
 
 Recommendation: One helper for the dispatcher signature, and one table for the removal wording from which both the prose and the snake-case suffix are derived.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/dsl/method/foreign_key.rs`
 
@@ -846,9 +934,11 @@ The referencing side of a foreign key: the function a table generates for each t
 
 **Violates:** KISS; DRY; Robustness Principle; Self-Documenting Code
 
-Within one loop iteration, the same `foreign_key` option is unwrapped in different ways (`expect` and `unwrap_or_else` with `panic!`). Type and path equality between the grouped columns are decided by comparing token strings, so `u64` and `core::primitive::u64`, or a relative and an absolute path to the same module, are reported as mismatches. The TODO asks readers to search the code for `Option <`.
+Within one loop iteration, the same `foreign_key` option is unwrapped in different ways (`expect` and `unwrap_or_else` with `panic!`). Type and path equality between the grouped columns are decided by comparing token strings, so `u64` and `core::primitive::u64`, or a relative and an absolute path to the same module, are reported as mismatches.
 
-Recommendation: Bind the foreign key once per column, compare types through the classification in `internal/column.rs`, and move the TODO to the issue tracker.
+Recommendation: Bind the foreign key once per column, and compare types through the classification in `internal/column.rs`.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/dsl/method/update.rs`
 
@@ -862,6 +952,8 @@ The generated method calls SpacetimeDB's `update`, which panics on a constraint 
 
 Recommendation: Use `try_update`, map its errors to `SpacetimeDSLError`, and return a `NotFoundError` whenever the row is missing. Pin both with runtime tests (a missing row with and without a hook; a constraint violation on update). Turning panics into errors changes observable behaviour, so the developers decide how to announce it.
 
+Developer's decision: The recommendation should be applied, including turnings panics into errors, but independently of any other fix decided by the developer. The current problem is that no `try_update` exists in SpacetimeDB, so this isn't possible to fix currently!
+
 ## `derive-input/src/internal/dsl/method/upsert.rs`
 
 Generates `upsert_<table>` and hosts write-path helpers used by other generators.
@@ -874,6 +966,8 @@ The module holds the upsert generator and the helpers that `update.rs`, `removal
 
 Recommendation: Move the shared write-path helpers into their own module, give the `row_value_getter` functions of `upsert.rs` and `reference_integrity.rs` names that say how they differ, and add one lookup helper for columns — the doc of `MethodGenerationContext` forbids generation methods, not lookups, but where it lives is the developers' decision. Correct the doc reference.
 
+Developer's decision: The recommendation should be applied, but independently of any other fix decided by the developer.
+
 ### `upsert.rs`: `pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMethod`
 
 **Violates:** DRY
@@ -881,6 +975,8 @@ Recommendation: Move the shared write-path helpers into their own module, give t
 The insert path copies the `try_insert` statement of `for_create`, its error mapping, its message format and its FIXMEs (see `create.rs`).
 
 Recommendation: Use the shared insert helper proposed in the `create.rs` entry.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/dsl/method/singleton_table.rs`
 
@@ -893,6 +989,8 @@ Generates `get_<table>` and `delete_<table>` for singleton tables.
 The hook blocks and the text of the count-mismatch error are copied from `removal.rs::for_removal_one`, and the generated body imports `Itertools` without calling any of its methods.
 
 Recommendation: Share the hook and message helpers with `removal.rs` and drop the import; the snapshot shows the change.
+
+Developer's decision: The recommendation should be applied.
 
 ## `derive-input/src/internal/error.rs`
 
@@ -914,6 +1012,8 @@ User-facing messages print names of `syn` types — a column should have `Visibi
 
 Recommendation: Render the visibility as written (`pub`, `pub(crate)`, no modifier) and regenerate the affected `.stderr` files.
 
+Developer's decision: The recommendation should be applied.
+
 ### `error.rs`: `pub fn missing_update_method_with_only_private_columns(struct_name: &Ident) -> Error`
 
 **Violates:** Code For The Maintainer; DRY — "Sync related artifacts—code, docs, tests—whenever knowledge changes"
@@ -921,6 +1021,8 @@ Recommendation: Render the visibility as written (`pub`, `pub(crate)`, no modifi
 The message tells users that a mutable table needs a non-private column or one named `modified_at` / `updated_at`, without mentioning `#[set_on_update]`, which has the same effect.
 
 Recommendation: Name the attribute next to the conventional names and regenerate the `.stderr` files.
+
+Developer's decision: The recommendation should be applied.
 
 ---
 
@@ -936,17 +1038,7 @@ The usage message calls the program `dump-syntax`, the name of the `syn` example
 
 Recommendation: Name the actual program in the usage text and spell the identifiers out.
 
-## `examples/test/Cargo.toml`
-
-The manifest of the runtime test module.
-
-### `Cargo.toml`: dependency `proc-macro2` with the feature `span-locations`
-
-**Violates:** YAGNI
-
-The runtime test module never uses `proc_macro2`.
-
-Recommendation: The dependency looks unused: the developers decide whether it is no longer needed (then remove it) or serves a purpose that should be written down in the manifest.
+Developer's decision: The recommendation should be applied.
 
 ## `examples/test/src/lib.rs`
 
@@ -960,6 +1052,8 @@ Every group runs in one reducer on one database. Later groups see the rows earli
 
 Recommendation: Options: (a) one reducer per group, each called and checked by `x.ps1 test`; (b) run every group and report all failures together before failing. In both cases make count assertions relative to a count taken before the act, as `update_and_soft_delete_hook_test.rs` already does with `logged_before`. Rename the module after the behaviour it covers. AGENTS.md describes this harness and has to follow any change to it.
 
+Developer's decision: The recommendation (b) should be applied.
+
 ## `examples/test/src/spacetimedsl_cascade_delete_hook_repro.rs`
 
 Tables whose cascade reaches a hooked table through a primary-key foreign key.
@@ -970,7 +1064,9 @@ Tables whose cascade reaches a hooked table through a primary-key foreign key.
 
 The module declares tables and hooks but has no `run_tests`, and `tester` does not call it. It only proves that the expansion compiles, which the runtime gate checks as a side effect rather than by an assertion.
 
-Recommendation: The developers decide what the module should pin: the generated tokens (then turn it into a snapshot fixture) or run-time behaviour (then add a `run_tests` that deletes a `ParentRecord` and asserts the cascade and the hook calls).
+Recommendation: Add a `run_tests` that deletes a `ParentRecord` and asserts the cascade and the hook calls.
+
+Developer's decision: The recommendation should be applied.
 
 ## `examples/test/src/entity.rs`
 
@@ -984,17 +1080,19 @@ One function arranges, acts and asserts many unrelated behaviours in sequence. T
 
 Recommendation: One function per behaviour with its own rows, a corrected message, relative counts, spelled-out names and one error-handling style.
 
+Developer's decision: The recommendation should be applied.
+
 ## `examples/test/src/component/test.rs`
 
 A table that exercises many column, accessor and index shapes, plus related tables.
 
 ### `test.rs`: `pub struct Test`
 
-**Violates:** Code For The Maintainer; Refactoring & Change Containment — "Unused scaffolding removed immediately"; Scope & Goal Discipline — "Future ideas captured outside codebase"
+**Violates:** Code For The Maintainer
 
-The doc comments were copied from another table: `Test` is documented as "A Position in the World", its `id` as "The unique ID of the World". Commented-out columns and calls wait for upstream features behind TODO and FIXME issue links.
+The doc comments were copied from another table: `Test` is documented as "A Position in the World", its `id` as "The unique ID of the World".
 
-Recommendation: Write documentation that describes this table, delete the commented-out code, and keep the plans in the issue tracker.
+Recommendation: Delete the comments.
 
 ### `test.rs`: `pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String>`
 
@@ -1002,7 +1100,9 @@ Recommendation: Write documentation that describes this table, delete the commen
 
 Many calls discard their results (`let _ = dsl.get_tests_by_wrapped_index(…)`, `let _ = dsl.delete_tests_by_wrapped_index(…)`): they only prove that the argument types are accepted, which is a compile-time property, and they ignore run-time failures. `let _ = dsl.create_ship_object(…)` is the arrange step of the following assertion, so if it fails, the assertion checks something else.
 
-Recommendation: Assert what each call should return, or move pure "these argument types are accepted" checks to where AGENTS.md's table puts the shape of generated code (snapshots). Treat a failing arrange step as a failure (`?`).
+Recommendation: Assert what each call should return. Treat a failing arrange step as a failure (`?`).
+
+Developer's decision: The recommendation should be applied.
 
 ## `examples/test/src/component/position.rs`
 
@@ -1040,29 +1140,21 @@ The last check reads `modified_at` from `member`, the value `create_guild_member
 
 Recommendation: Re-read the row with `get_guild_member_by_id` after the soft deletion and correct the message. Observe the check fail before trusting it, for example by temporarily asserting the opposite.
 
+Developer's decision: The recommendation should be applied.
+
 ## `examples/blackholio/src/lib.rs`
 
 The Blackholio tutorial module, ported to SpacetimeDSL.
 
 ### `lib.rs`: the FIXME and TODO comments
 
-**Violates:** Self-Documenting Code — don't document the past; Scope & Goal Discipline — "Future ideas captured outside codebase"
+**Violates:** Self-Documenting Code — don't document the past
 
-The FIXMEs on `Entity::position` and `Entity::login_status` report that `DbVector2` and `LoginStatus` lack `PartialEq`, but both derive it now. The FIXME above `Player` says `update = true` should not have been valid because all fields were private, but the struct has public fields now. A TODO checklist of game features opens the file, and further FIXMEs ask open design questions, such as the login status of food.
+The FIXMEs on `Entity::position` and `Entity::login_status` report that `DbVector2` and `LoginStatus` lack `PartialEq`, but both derive it now. The FIXME above `Player` says `update = true` should not have been valid because all fields were private, but the struct has public fields now.
 
-Recommendation: Delete the outdated FIXMEs, and move the feature list and the open design questions to the issue tracker.
+Recommendation: Delete the outdated FIXMEs.
 
-## `examples/complete/README.md`
-
-The entry point of the `examples/complete` directory.
-
-### `README.md`: planning material in the examples directory
-
-**Violates:** Scope & Goal Discipline — "Future ideas captured outside codebase"; YAGNI; Lifecycle & Deletion Strategy
-
-`examples/complete` contains no example: a plan for a future example written as instructions for an agent, feature checklists, copies of third-party SpacetimeDB documentation together with the scripts that fetched and converted them, and files named `SpacetimeDB-to-delete.md` and `SpacetimeDSL-to-delete.md`. The plan is already outdated — it lists the hooks and on-delete strategies without soft deletion.
-
-Recommendation: The developers decide whether the material is still needed. If so, move the plan to the issue tracker or a planning branch and keep only the inputs the future example will use; otherwise delete the directory, including the `-to-delete` files.
+Developer's decision: The recommendation should be applied.
 
 ## `gen-x.sh`
 
@@ -1076,6 +1168,8 @@ The generated `test` command runs each `spacetime` command without checking its 
 
 Recommendation: Generate fail-fast scripts (`set -euo pipefail`; `$ErrorActionPreference = 'Stop'` with `$LASTEXITCODE` checks), let `test` fail when the success marker is missing, and restore location and environment (`Push-Location` / `Pop-Location`, `try` / `finally`). Regenerate `x.sh` and `x.ps1`, and update AGENTS.md's description of the gate in the same change.
 
+Developer's decision: The recommendation should be applied.
+
 ### `gen-x.sh`: `generate_usage`, the final message and the embedded `loc` programs
 
 **Violates:** Code For The Maintainer; Self-Documenting Code — no redundant comments
@@ -1083,6 +1177,8 @@ Recommendation: Generate fail-fast scripts (`set -euo pipefail`; `$ErrorActionPr
 The usage text describes `format` as running a formatter check, although it rewrites files and checks nothing, and its description of `test` does not mention that `test` also publishes `blackholio`. The final message claims to have generated `x` instead of `x.sh`. The embedded `loc` programs carry comments that repeat the statement below them.
 
 Recommendation: Correct the texts and delete the comments that repeat the code.
+
+Developer's decision: The recommendation should be applied.
 
 ## `.github/workflows/test.yml`
 
@@ -1092,9 +1188,11 @@ The CI workflow that builds and tests every push and pull request.
 
 **Violates:** Robustness Principle; F.I.R.S.T Principles of Testing — self-validating; DRY; Code For The Maintainer
 
-The step "Build & test SpacetimeDSL" relies on the exit status of `./x.sh test`, which is always success (see `gen-x.sh`), so this workflow — and the release workflow, which waits for it — can pass while the runtime tests fail. The clippy step appends `|| echo …` to every invocation, so it can never fail, and it lints directory by directory, which the comment in `gen-x.sh` explains leaves crates unlinted: the examples, `compile-tests` and `debug-helper` are never linted in CI. The comment above the installation retry loop states a different number of attempts than `MAX_ATTEMPTS`. `spacetime start &` is not awaited; the runtime tests only find a running server because the unit tests happen to take long enough.
+The step "Build & test SpacetimeDSL" relies on the exit status of `./x.sh test`, which is always success (see `gen-x.sh`), so this workflow — and the release workflow, which waits for it — can pass while the runtime tests fail. The clippy step appends `|| echo …` to every invocation, so it can never fail, and it lints directory by directory, which the comment in `gen-x.sh` explains leaves crates unlinted: the examples, `compile-tests` and `debug-helper` are never linted in CI. The comment above the installation retry loop states a different number of attempts than `MAX_ATTEMPTS`.
 
-Recommendation: Gate on the fixed script, or on the success marker until the script is fixed. Add a lint command to `gen-x.sh` that runs clippy over the workspace in check mode with warnings denied, and let CI and developers use the same command. Correct the comment. Wait until the server answers (`spacetime server ping local`, as `compare-performance.ps1` does) before running the runtime tests.
+Recommendation: Gate on the fixed script. Add a lint command to `gen-x.sh` that runs clippy over the workspace in check mode with warnings denied, and let CI and developers use the same command.
+
+Developer's decision: The recommendation should be applied.
 
 ## `.github/workflows/release.yml`
 
@@ -1108,18 +1206,4 @@ The test workflow states that the toolchain comes from `rust-toolchain.toml`, wh
 
 Recommendation: Drop the explicit `toolchain` input, so both workflows take the toolchain from `rust-toolchain.toml`.
 
----
-
-## Recommended Resolution Order
-
-1. **Make the gates report failures.** Fix `generate_test` and `generate_debug` in `gen-x.sh` and the job in `.github/workflows/test.yml` (runtime gate, lint step, server readiness), and update AGENTS.md's description of the gates in the same change. AGENTS.md treats red and green as observations; as long as the runtime gate and the lint step cannot fail, no later change can be observed as green, and releases can ship broken code.
-2. **Repair the tests that cannot fail or that mislead.** The vacuous check in `update_and_soft_delete_hook_test.rs`, the unasserted calls in `component/test.rs`, the unused collections in `component/position.rs`, the wrong messages in `entity.rs` and `hook_test.rs`, the assertion-free `spacetimedsl_cascade_delete_hook_repro.rs`, the orphaned snapshot directory and the fixture registration in `characterization_tests.rs`, and the `cfg!(test)` branch in `doc_comment.rs`. The refactorings further down rely on these guards ("Add tests before refactoring or when missing").
-3. **Confirm the probable defects with failing tests, then fix them.** The overwritten accumulators in `on_delete_strategy.rs`; the table selection in `integration.rs`; the silently accepted `unique_index` names (`internal/dsl/table.rs`) and additional single-column indices (`internal/db/column.rs`); the unchecked `SetZero` column type (`internal/dsl/foreign_key.rs`); the macro panics on user input (`internal/rust/column.rs`, `internal/dsl/wrapper.rs`, `internal/db/table.rs`); the panics in generated code (`update.rs`, `upsert.rs`, `on_delete_strategy.rs`); the panicking `Display` in `src/error.rs`; the contradictory context messages and the misreported transaction context (`src/as_view_context.rs`, `src/as_anonymous_view_context.rs`, `ContextType` in `src/lib.rs`); the documentation of `try_parse_for_on_soft_delete`. These affect users directly, and each one is decided on its own test.
-4. **Decide on every piece of dead code.** `is_last_dsl_attribute` and `make_struct_fields_private`, `ContextType::Transaction`, the unreachable diagnostics in `internal/error.rs` and their branches, `strategy_before_all` and the commented-out `SetNone` code, `DSL::dsl()`, the unread fields of the `derive-input` API including `scheduled_reducer`, the ignored context bound in `function.rs`, the dependencies in `derive-input/Cargo.toml` and `examples/test/Cargo.toml`, and `examples/complete`. Whatever is deleted here no longer has to be restructured in the following steps (*Optimize for Deletion*).
-5. **Give each piece of generator knowledge one home.** Runtime and SpacetimeDB paths (`api/runtime.rs`, `accessor.rs`, `wrapper.rs`); generated names — `Create<Table>`, `get_<table>_by_<key>`, getters, `the_same_or_another_<table>`, the removal wording — in `naming.rs`; message formats (`index.rs`); type classification (`internal/column.rs`); conventional role names (`internal/dsl/table.rs`, `soft_delete.rs`); the hook matrix (`hook.rs`) and the hook trait name (`derive/src/lib.rs`); the field-attribute vocabulary and attribute recognition; the singleton decision and its primary key (move the injection into `derive-input`); the bindings shared between cascade fragments; the enum mirrors of `OnDeleteStrategy`, `Action` and `OneOrMultiple`. Most of these are pure refactorings guarded by the snapshots, and they shrink the decompositions that follow.
-6. **Straighten the parsing pipeline.** `try_parse_dsl` and the placeholder plural name (`internal.rs`); the ownership round trip of `SpacetimeDBTable` (`internal/table.rs`, `internal/db/table.rs`, `internal/db/column.rs`, `internal/dsl/table.rs`) including DSL uniqueness in the SpacetimeDB model; the positional tuple and `InternalColumn` (`internal/column.rs`); the string round trips of visibilities and wrapper names (`internal/rust.rs`, `wrapper.rs`); `rm_rsharp`.
-7. **Decompose the large generators.** `on_delete_strategy_implementation` and its duplicated arms; `for_removal_many` and `for_removal_one`; `SpacetimeDSLTableMethods::generate`; `create_method_column_parts` and the shared insert helper; the write-path helpers now hosted in `upsert.rs`; `for_singleton_delete`; the dispatcher helpers in `referenced_by.rs` and `method/foreign_key.rs`, after understanding their differences; the deferred initialisation in `setter.rs`, `getter.rs` and `mut_getter.rs`.
-8. **Simplify the `derive` crate.** The configuration indirection and the infallible results in `function.rs`, `hook.rs` and `create_method_arg.rs`, and the misleading comment, the repeated iteration and the reach into the model in `output.rs`.
-9. **Settle the public contract of `derive-input`.** Decide what external crates may rely on (`derive-input/src/lib.rs`), reduce the internal constructors to crate visibility, document the remaining API (`api/dsl/column.rs`, `api/dsl/method.rs`), and move generation results out of `SpacetimeDSLTable` (`api/dsl/table.rs`). These changes break external crates, so they belong in one release with step 10.
-10. **Bundle the breaking runtime changes into one release.** The capability split of `Context` (`src/lib.rs`), the single-parameter `Wrapper`, the narrowed `create_or_update` field in `src/error.rs`, the `DeletionResult` format (`src/delete.rs`) together with the wrapper `Display` (`wrapper.rs`), the single re-export list, and the renaming of abbreviated public methods. The non-breaking part of the capability entry — one description per context type — can be done earlier.
-11. **Clean comments and names in every file a step touches (Boy Scout Rule).** Abbreviations, comments that repeat the code, outdated comments and FIXMEs (`examples/blackholio`, the panic messages in `wrapper.rs`, the doc reference in `upsert.rs`, the texts in `gen-x.sh`, the usage text in `debug-helper`), and TODO and FIXME notes moved to the issue tracker. AGENTS.md favours the Boy Scout Rule over YAGNI, so these belong in the change that touches the file rather than in a separate pass; this step only collects what no earlier step touches.
+Developer's decision: The recommendation should be applied.
