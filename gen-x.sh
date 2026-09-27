@@ -100,7 +100,7 @@ param(
     [Parameter(Position=0)]
     [ArgumentCompleter({
         param($commandName, $parameterName, $wordToComplete)
-        "test", "unit-test", "format", "debug", "loc" | Where-Object { $_ -like "$wordToComplete*" }
+        "test", "unit-test", "format", "lint", "debug", "loc" | Where-Object { $_ -like "$wordToComplete*" }
     })]
     [string]$Command
 )
@@ -298,6 +298,19 @@ generate_format() {
     echo
 }
 
+# The check-only counterpart of `format`, which CI runs: it changes no file and fails on
+# unformatted code or on any clippy warning, over the same whole workspace.
+generate_lint() {
+    local shell="$1"
+
+    switch_case "$shell" "lint"
+    cmd_native "$shell" "cargo fmt --all -- --check"
+    echo
+    cmd_native "$shell" "cargo clippy --workspace --all-targets --all-features -- -D warnings"
+    switch_case_end "$shell"
+    echo
+}
+
 # `-Zmacro-backtrace` applies to the expansion only, so the PowerShell variant restores RUSTFLAGS
 # afterwards instead of leaving it set for every later build in the same session.
 generate_debug() {
@@ -443,12 +456,13 @@ generate_usage() {
     local shell="$1"
 
     switch_default "$shell"
-    cmd_echo "$shell" "Usage: $(script_usage "$shell") {test|unit-test|format|debug|loc}"
+    cmd_echo "$shell" "Usage: $(script_usage "$shell") {test|unit-test|format|lint|debug|loc}"
     cmd_echo "$shell"
     cmd_echo "$shell" "Commands:"
     cmd_echo "$shell" "  test      - Publish and test the 'test' module (fails unless its logs show success), then publish 'blackholio'"
     cmd_echo "$shell" "  unit-test - Run the snapshot and compile tests of the generator"
     cmd_echo "$shell" "  format    - Format the code and apply clippy fixes"
+    cmd_echo "$shell" "  lint      - Check formatting and fail on any clippy warning, as CI does"
     cmd_echo "$shell" "  debug     - Expand macros and generate AST output"
     cmd_echo "$shell" "  loc       - Count lines of Rust code grouped by directory"
     echo "        exit 1"
@@ -464,6 +478,7 @@ generate() {
     generate_test "$shell"
     generate_unit_test "$shell"
     generate_format "$shell"
+    generate_lint "$shell"
     generate_debug "$shell"
     generate_loc "$shell"
     generate_usage "$shell"

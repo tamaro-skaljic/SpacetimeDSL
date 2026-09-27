@@ -85,6 +85,12 @@ case "${1:-}" in
         cargo clippy --workspace --all-targets --all-features --fix --allow-dirty
         ;;
 
+    lint)
+        cargo fmt --all -- --check
+
+        cargo clippy --workspace --all-targets --all-features -- -D warnings
+        ;;
+
     debug)
         pushd examples/test > /dev/null
         RUSTFLAGS="-Zmacro-backtrace" cargo +nightly expand > ../../debug-helper/output/lib.expanded.rs
@@ -136,12 +142,13 @@ case "${1:-}" in
         ;;
 
     *)
-        echo "Usage: ./x.sh {test|unit-test|format|debug|loc}"
+        echo "Usage: ./x.sh {test|unit-test|format|lint|debug|loc}"
         echo
         echo "Commands:"
         echo "  test      - Publish and test the 'test' module (fails unless its logs show success), then publish 'blackholio'"
         echo "  unit-test - Run the snapshot and compile tests of the generator"
         echo "  format    - Format the code and apply clippy fixes"
+        echo "  lint      - Check formatting and fail on any clippy warning, as CI does"
         echo "  debug     - Expand macros and generate AST output"
         echo "  loc       - Count lines of Rust code grouped by directory"
         exit 1

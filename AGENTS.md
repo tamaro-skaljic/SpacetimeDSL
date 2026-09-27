@@ -131,6 +131,8 @@ Accepting `*.snap.new` files one batch at a time costs a whole harness run per m
 
 `.\x.ps1 format` runs `cargo fmt` and `clippy --fix`. Anything it rewrites is a finding to review and commit, not a pass. A task is done when a second run changes nothing.
 
+`.\x.ps1 lint` checks the formatting and runs clippy over the whole workspace with warnings denied, changing no file. It is the command CI runs, so it must exit 0 before a task counts as done.
+
 ## Programming Principles
 
 ### Principle Checklists

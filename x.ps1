@@ -4,7 +4,7 @@ param(
     [Parameter(Position=0)]
     [ArgumentCompleter({
         param($commandName, $parameterName, $wordToComplete)
-        "test", "unit-test", "format", "debug", "loc" | Where-Object { $_ -like "$wordToComplete*" }
+        "test", "unit-test", "format", "lint", "debug", "loc" | Where-Object { $_ -like "$wordToComplete*" }
     })]
     [string]$Command
 )
@@ -115,6 +115,14 @@ switch ($Command) {
         if ($LASTEXITCODE -ne 0) { throw "'cargo clippy --workspace --all-targets --all-features --fix --allow-dirty' failed with exit code $LASTEXITCODE." }
     }
 
+    "lint" {
+        cargo fmt --all -- --check
+        if ($LASTEXITCODE -ne 0) { throw "'cargo fmt --all -- --check' failed with exit code $LASTEXITCODE." }
+
+        cargo clippy --workspace --all-targets --all-features -- -D warnings
+        if ($LASTEXITCODE -ne 0) { throw "'cargo clippy --workspace --all-targets --all-features -- -D warnings' failed with exit code $LASTEXITCODE." }
+    }
+
     "debug" {
         $previousRustFlags = $env:RUSTFLAGS
         Push-Location examples\test
@@ -187,12 +195,13 @@ switch ($Command) {
     }
 
     default {
-        Write-Output "Usage: .\x.ps1 {test|unit-test|format|debug|loc}"
+        Write-Output "Usage: .\x.ps1 {test|unit-test|format|lint|debug|loc}"
         Write-Output ""
         Write-Output "Commands:"
         Write-Output "  test      - Publish and test the 'test' module (fails unless its logs show success), then publish 'blackholio'"
         Write-Output "  unit-test - Run the snapshot and compile tests of the generator"
         Write-Output "  format    - Format the code and apply clippy fixes"
+        Write-Output "  lint      - Check formatting and fail on any clippy warning, as CI does"
         Write-Output "  debug     - Expand macros and generate AST output"
         Write-Output "  loc       - Count lines of Rust code grouped by directory"
         exit 1
