@@ -16,7 +16,7 @@ enum TimestampRole {
 }
 
 impl SpacetimeDSLTable {
-    pub(in crate::internal) fn try_parse(
+    pub fn try_parse(
         dsl_data: DSLData,
         column_args: &ColumnArgs<'_>,
         mut spacetimedb_table: SpacetimeDBTable,

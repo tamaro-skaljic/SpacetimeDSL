@@ -11,7 +11,7 @@ use crate::{
 use quote::{format_ident, quote};
 
 /// `get_all_<tables>`: iterate every row of the table.
-pub(in crate::internal) fn for_get_all(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
+pub fn for_get_all(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
     let MethodGenerationContext {
         struct_name,
         singular_table_name,
@@ -37,7 +37,7 @@ pub(in crate::internal) fn for_get_all(context: &MethodGenerationContext) -> Spa
 }
 
 /// `count_of_all_<tables>`: how many rows the table holds.
-pub(in crate::internal) fn for_get_count(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
+pub fn for_get_count(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
     let MethodGenerationContext {
         singular_table_name,
         plural_table_name,
@@ -62,10 +62,7 @@ pub(in crate::internal) fn for_get_count(context: &MethodGenerationContext) -> S
 }
 
 /// `get_<tables>_by_<index>`: iterate the rows an index matches.
-pub(in crate::internal) fn for_get_many(
-    shape: &IndexShape,
-    context: &MethodGenerationContext,
-) -> SpacetimeDSLMethod {
+pub fn for_get_many(shape: &IndexShape, context: &MethodGenerationContext) -> SpacetimeDSLMethod {
     let MethodGenerationContext {
         struct_name,
         singular_table_name,
@@ -115,10 +112,7 @@ pub(in crate::internal) fn for_get_many(
 }
 
 /// `get_<table>_by_<index>`: look one row up by a unique index.
-pub(in crate::internal) fn for_get_one(
-    shape: &IndexShape,
-    context: &MethodGenerationContext,
-) -> SpacetimeDSLMethod {
+pub fn for_get_one(shape: &IndexShape, context: &MethodGenerationContext) -> SpacetimeDSLMethod {
     let MethodGenerationContext {
         struct_name,
         singular_table_name,

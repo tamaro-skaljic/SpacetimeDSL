@@ -168,7 +168,7 @@ pub struct Module {
     pub test: u128,
 }
 
-pub(crate) fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
+pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
     let ctx = dsl.ctx();
 
     let player = dsl.create_entity()?;

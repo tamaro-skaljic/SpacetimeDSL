@@ -12,7 +12,7 @@ use syn::Ident;
 /// The `use self::<trait>;` import and the call `build_call` produces, kept apart so a
 /// caller can place the import itself - before a prelude that has to run first, or outside
 /// the loop the call sits in. Both are empty when the table declares no such hook.
-pub(in crate::internal) fn hook_use_and_call(
+pub fn hook_use_and_call(
     hook: &Option<SpacetimeDSLMethodHook>,
     build_call: impl FnOnce(&Ident) -> TokenStream,
 ) -> (TokenStream, TokenStream) {
@@ -31,7 +31,7 @@ pub(in crate::internal) fn hook_use_and_call(
 
 /// `use self::<trait>;` followed by the call `build_call` produces, or nothing when the
 /// table declares no such hook.
-pub(in crate::internal) fn hook_tokens(
+pub fn hook_tokens(
     hook: &Option<SpacetimeDSLMethodHook>,
     build_call: impl FnOnce(&Ident) -> TokenStream,
 ) -> TokenStream {

@@ -31,7 +31,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Ident;
 
-pub(in crate::internal) fn referenced_table_function_call_for_dsl_method(
+pub fn referenced_table_function_call_for_dsl_method(
     removal: Removal,
     singular_table_name: &Ident,
     primary_key_column_name: &Ident,
@@ -101,7 +101,7 @@ pub(in crate::internal) fn referenced_table_function_call_for_dsl_method(
     }
 }
 
-pub(in crate::internal) fn for_referenced_by(
+pub fn for_referenced_by(
     removal: Removal,
     one_or_multiple: &OneOrMultiple,
     spacetimedb_table: &SpacetimeDBTable,

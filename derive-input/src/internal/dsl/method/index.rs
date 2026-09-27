@@ -24,10 +24,7 @@ use std::collections::VecDeque;
 use syn::{Ident, parse_str};
 
 /// `self.db().<table>().<index>()`, where every index-based body starts.
-pub(in crate::internal) fn index_accessor(
-    singular_table_name: &Ident,
-    index_name: &Ident,
-) -> TokenStream {
+pub fn index_accessor(singular_table_name: &Ident, index_name: &Ident) -> TokenStream {
     quote! {
         self
             .db()
@@ -40,7 +37,7 @@ pub(in crate::internal) fn index_accessor(
 ///
 /// The four prose fragments the doc comments are built from are assembled here into the one
 /// phrase all five of them end with, so a wording change is one edit.
-pub(in crate::internal) struct IndexShape {
+pub struct IndexShape {
     pub index_name: Ident,
     pub index_columns: Vec<Ident>,
     pub is_multi_column: bool,
@@ -66,7 +63,7 @@ pub(in crate::internal) struct IndexShape {
 }
 
 impl IndexShape {
-    pub(in crate::internal) fn of(index: &Index, context: &MethodGenerationContext) -> IndexShape {
+    pub fn of(index: &Index, context: &MethodGenerationContext) -> IndexShape {
         let index_name = index.name.clone();
 
         let (index_columns, is_multi_column, value_matches, single_or_multi, on_the_columns) =
@@ -137,7 +134,7 @@ impl IndexShape {
 /// The three lists are built from one walk over the index's columns, in index order, so
 /// the n-th argument, the n-th row value and the n-th mapper all belong to the same
 /// column.
-pub(in crate::internal) struct IndexColumnArguments {
+pub struct IndexColumnArguments {
     pub method_args: Vec<SpacetimeDSLArg>,
     /// How the body reads each argument back out when it renders a not-found message.
     pub row_value_getters: Vec<TokenStream>,
@@ -153,7 +150,7 @@ pub(in crate::internal) struct IndexColumnArguments {
 /// arguments for the iterator that outlives the call, while a one-row method also renders
 /// its arguments into a not-found message, so a wrapped argument has to be cloned before
 /// it is consumed and a single-column string has to be owned.
-pub(in crate::internal) fn index_column_arguments(
+pub fn index_column_arguments(
     shape: &IndexShape,
     one_or_multiple: &OneOrMultiple,
     context: &MethodGenerationContext,
@@ -336,7 +333,7 @@ fn documentation_on_columns(columns: &[Ident]) -> String {
 ///
 /// One placeholder per column, in the order given, so a caller that builds its row-value
 /// getters from the same list cannot get the two out of step.
-pub(in crate::internal) fn column_names_and_row_values(column_names: &[Ident]) -> String {
+pub fn column_names_and_row_values(column_names: &[Ident]) -> String {
     let placeholders = column_names
         .iter()
         .map(|column_name| format!("{column_name} : {{}}"))

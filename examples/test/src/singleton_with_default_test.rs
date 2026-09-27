@@ -101,7 +101,7 @@ impl DefaultSingleton for WorldSettings {
     }
 }
 
-pub(crate) fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
+pub fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
     let default_settings = dsl
         .get_world_settings()
         .map_err(|e| format!("Getting the WorldSettings should give its default! Got:\n{e}"))?;

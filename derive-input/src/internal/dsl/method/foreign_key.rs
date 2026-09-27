@@ -32,7 +32,7 @@ use quote::{ToTokens, format_ident, quote};
 use std::collections::BTreeMap;
 use strum::IntoEnumIterator;
 
-pub(in crate::internal) fn for_foreign_key(
+pub fn for_foreign_key(
     removal: Removal,
     one_or_multiple: &OneOrMultiple,
     referencing_tables: ReferencingTables,

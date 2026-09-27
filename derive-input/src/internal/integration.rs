@@ -3,7 +3,7 @@ use quote::ToTokens;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::DeriveInput;
 
-pub(in crate::internal) fn spacetime_bindings_macro_input<'a>(
+pub fn spacetime_bindings_macro_input<'a>(
     item: &'a DeriveInput,
     plural_name: &syn::Ident,
     is_singleton: bool,

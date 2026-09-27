@@ -34,7 +34,7 @@ pub struct Session {
 /// Exercises every method shape a hash index produces: `filter` through the
 /// non-unique single-column index, `find` through the unique single-column one, and
 /// `filter` through the multi-column one.
-pub(crate) fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
+pub fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
     dsl.create_session(CreateSession {
         token: "first".to_string(),
         device_id: 11,

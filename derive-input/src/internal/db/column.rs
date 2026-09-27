@@ -6,7 +6,7 @@ use crate::internal::error;
 use syn::Ident;
 
 impl SpacetimeDBColumn {
-    pub(in crate::internal) fn map(
+    pub fn map(
         rust_field: &RustField,
         mut spacetimedb_table: SpacetimeDBTable,
         auto_inc_column_names: &[Ident],

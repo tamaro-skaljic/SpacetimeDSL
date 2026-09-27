@@ -53,7 +53,7 @@ fn before_lock_holder_delete(
     }
 }
 
-pub(crate) fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
+pub fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
     let one_row_group = dsl.create_lock_group(CreateLockGroup { batch: 1 })?;
     dsl.create_lock_holder(CreateLockHolder {
         group_id: one_row_group.get_id(),

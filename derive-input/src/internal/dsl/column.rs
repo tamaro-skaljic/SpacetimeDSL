@@ -12,7 +12,7 @@ use crate::internal::error;
 use spacetime_bindings_macro_input::sats::SatsField;
 
 impl SpacetimeDSLColumn {
-    pub(in crate::internal) fn try_parse(
+    pub fn try_parse(
         spacetimedsl_table: &SpacetimeDSLTable,
         field: &SatsField<'_>,
         rust_struct: &RustStruct,

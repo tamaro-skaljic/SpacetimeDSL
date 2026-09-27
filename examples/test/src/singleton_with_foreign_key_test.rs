@@ -57,7 +57,7 @@ impl DefaultSingleton for ActiveTournament {
     }
 }
 
-pub(crate) fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
+pub fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
     let region = dsl.create_region(CreateRegion {
         name: "Europe".to_string(),
     })?;

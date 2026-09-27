@@ -12,7 +12,7 @@ use spacetime_bindings_macro_input::sats::SatsField;
 use syn::{Ident, Path, Type, parse_str, parse2};
 
 impl WrapperType {
-    pub(in crate::internal) fn try_parse(
+    pub fn try_parse(
         rust_struct: &RustStruct,
         rust_field: &RustField,
         field: &SatsField<'_>,
@@ -204,7 +204,7 @@ fn uuid_wrapper_constructors(wrapper_struct_name: &Ident) -> TokenStream {
 }
 
 impl WrapperType {
-    pub(in crate::internal) fn map_to_wrapped_type(value: &WrapperType) -> Type {
+    pub fn map_to_wrapped_type(value: &WrapperType) -> Type {
         let wrapped_type_name_or_path = match value {
             WrapperType::Created(created_wrapper) => &created_wrapper.wrapped_type_name_or_path,
             WrapperType::Used(used_wrapper) => &used_wrapper.wrapped_type_name_or_path,
@@ -220,7 +220,7 @@ impl WrapperType {
 
     /// The wrapper's own name as tokens - the generated struct's name for a created
     /// wrapper, the user's path for a used one.
-    pub(in crate::internal) fn struct_name_or_path_tokens(&self) -> TokenStream {
+    pub fn struct_name_or_path_tokens(&self) -> TokenStream {
         match self {
             WrapperType::Created(created_wrapper) => {
                 created_wrapper.wrapper_struct_name.to_token_stream()
@@ -232,7 +232,7 @@ impl WrapperType {
     }
 
     /// The wrapper's own name without its module path, as doc comments name it.
-    pub(in crate::internal) fn struct_name(&self) -> Ident {
+    pub fn struct_name(&self) -> Ident {
         match self {
             WrapperType::Created(created_wrapper) => created_wrapper.wrapper_struct_name.clone(),
             WrapperType::Used(used_wrapper) => used_wrapper
@@ -245,7 +245,7 @@ impl WrapperType {
         }
     }
 
-    pub(in crate::internal) fn map(value: &WrapperType) -> Type {
+    pub fn map(value: &WrapperType) -> Type {
         match value {
             WrapperType::Created(w) => parse_str(&w.wrapper_struct_name.to_token_stream().to_string()).unwrap_or_else(|_| panic!("Failed to parse {} as Ident in WrapperType::map_to_wrapper_type for WrapperType::Wrap.",
                 &w.wrapper_struct_name)),
@@ -255,7 +255,7 @@ impl WrapperType {
     }
 }
 
-pub(in crate::internal) fn map_wrapper_type_option_to_wrapped_type_option(
+pub fn map_wrapper_type_option_to_wrapped_type_option(
     column_name: &Ident,
     wrapper_type_name_or_path: &Type,
 ) -> TokenStream {

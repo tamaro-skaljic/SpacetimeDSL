@@ -13,7 +13,7 @@ use syn::{
     spanned::Spanned,
 };
 
-pub(crate) mod integration;
+mod integration;
 
 mod table;
 
@@ -25,9 +25,9 @@ mod db;
 
 mod dsl;
 
-pub mod error;
+mod error;
 
-pub(crate) fn try_parse(
+pub fn try_parse(
     args: proc_macro2::TokenStream,
     input: &syn::DeriveInput,
 ) -> syn::Result<crate::api::Table> {
@@ -313,7 +313,7 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     })
 }
 
-struct DSLData {
+pub struct DSLData {
     singleton: Option<SingletonKind>,
     plural_name: Ident,
     unique_indices: Vec<Ident>,

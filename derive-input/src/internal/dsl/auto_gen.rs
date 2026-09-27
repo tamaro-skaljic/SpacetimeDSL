@@ -12,7 +12,7 @@ use syn::{Attribute, Ident};
 impl UUIDVersion {
     /// Reads `#[auto_gen(v4)]` or `#[auto_gen(v7)]` from a column, and rejects the column
     /// when the create method could not generate its value.
-    pub(in crate::internal) fn try_parse(
+    pub fn try_parse(
         field: &SatsField<'_>,
         rust_field: &RustField,
         wrapper_type: &Option<WrapperType>,
@@ -63,7 +63,7 @@ impl UUIDVersion {
     }
 
     /// `v4` or `v7`, the constructor of a `Uuid` wrapper which generates this version.
-    pub(in crate::internal) fn wrapper_constructor_name(&self) -> Ident {
+    pub fn wrapper_constructor_name(&self) -> Ident {
         match self {
             UUIDVersion::V4 => format_ident!("v4"),
             UUIDVersion::V7 => format_ident!("v7"),

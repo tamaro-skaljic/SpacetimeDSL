@@ -73,7 +73,7 @@ pub struct UniquePosition {
     modified_at: Timestamp,
 }
 
-pub(crate) fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
+pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
     let ctx = dsl.ctx();
 
     let time = ctx.timestamp.to_system_time();

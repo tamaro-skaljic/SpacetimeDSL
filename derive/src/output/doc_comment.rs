@@ -3,16 +3,13 @@ use rust_format::{Formatter, PrettyPlease};
 
 use crate::output::malformed_code_generation_result;
 
-pub(crate) fn implementation_doc_comment(implementation: TokenStream) -> String {
+pub fn implementation_doc_comment(implementation: TokenStream) -> String {
     implementation_section(implementation)
         .trim_start_matches('\n')
         .to_owned()
 }
 
-pub(crate) fn doc_comment_with_implementation(
-    doc_comment: &str,
-    implementation: TokenStream,
-) -> String {
+pub fn doc_comment_with_implementation(doc_comment: &str, implementation: TokenStream) -> String {
     if doc_comment.is_empty() {
         implementation_doc_comment(implementation)
     } else {

@@ -17,7 +17,7 @@ use spacetime_bindings_macro_input::table::ColumnArgs;
 use syn::{Ident, Path};
 
 #[allow(clippy::type_complexity)]
-pub(in crate::internal) fn try_parse(
+pub fn try_parse(
     column_args: &ColumnArgs,
     rust_struct: &RustStruct,
     mut spacetimedb_table: SpacetimeDBTable,
@@ -141,7 +141,7 @@ pub(in crate::internal) fn try_parse(
 /// The kinds are mutually exclusive because every question the generators ask is asked of
 /// the *whole* type: `Option<String>` is `Optional`, not `String`.
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub(in crate::internal) enum ColumnTypeKind {
+pub enum ColumnTypeKind {
     String,
     UnsignedInteger,
     Optional,
@@ -160,7 +160,7 @@ impl ColumnTypeKind {
     ///
     /// Unsigned integers are matched bare only: they are primitives, so a qualified
     /// spelling would not be the same type. `Uuid` is matched bare or as `spacetimedb::Uuid`.
-    pub(in crate::internal) fn of(type_name_or_path: &Path) -> ColumnTypeKind {
+    pub fn of(type_name_or_path: &Path) -> ColumnTypeKind {
         let Some(last_segment) = type_name_or_path.segments.last() else {
             return ColumnTypeKind::Other;
         };
@@ -182,7 +182,7 @@ impl ColumnTypeKind {
 }
 
 #[derive(Clone)]
-pub(in crate::internal) struct InternalColumn {
+pub struct InternalColumn {
     pub spacetimedb_table_singular_name: Ident,
     pub rust_field_visibility: RustVisibility,
     pub rust_field_name: Ident,
@@ -203,9 +203,7 @@ fn get_auto_inc_column_names(column_args: &ColumnArgs<'_>) -> Vec<Ident> {
         .collect()
 }
 
-pub(in crate::internal) fn get_primary_key_column_name(
-    column_args: &ColumnArgs<'_>,
-) -> Option<Ident> {
+pub fn get_primary_key_column_name(column_args: &ColumnArgs<'_>) -> Option<Ident> {
     column_args
         .primary_key_column
         .as_ref()

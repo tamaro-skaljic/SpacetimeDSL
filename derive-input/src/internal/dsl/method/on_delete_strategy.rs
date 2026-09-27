@@ -27,14 +27,14 @@ use syn::Ident;
 
 /// How the generated code binds the row it iterates over or matches on.
 #[derive(Clone, Copy)]
-pub(in crate::internal) enum RowBinding {
+pub enum RowBinding {
     Immutable,
     Mutable,
 }
 
 /// Whether the index a strategy looks rows up through yields at most one row or many.
 #[derive(Clone, Copy)]
-pub(in crate::internal) enum IndexUniqueness {
+pub enum IndexUniqueness {
     Unique,
     NonUnique,
 }
@@ -42,12 +42,12 @@ pub(in crate::internal) enum IndexUniqueness {
 /// Whether the table generating a cascade is itself referenced by another table, which
 /// decides whether its strategies have to cascade further.
 #[derive(Clone, Copy)]
-pub(in crate::internal) enum ReferencingTables {
+pub enum ReferencingTables {
     Present,
     Absent,
 }
 
-pub(in crate::internal) fn on_delete_strategy_implementation(
+pub fn on_delete_strategy_implementation(
     context: &MethodGenerationContext,
     referencing_tables: ReferencingTables,
     on_delete_strategy: &OnDeleteStrategy,

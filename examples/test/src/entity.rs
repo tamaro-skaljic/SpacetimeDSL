@@ -193,7 +193,7 @@ pub fn my_anonymous_view(ctx: &AnonymousViewContext) -> Vec<Entity> {
         .collect()
 }
 
-pub(crate) fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
+pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
     let ctx = dsl.ctx();
 
     let mut player;

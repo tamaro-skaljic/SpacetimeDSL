@@ -24,10 +24,7 @@ use quote::{format_ident, quote};
 ///
 /// Only the primary key gets here. SpacetimeDB puts `update` on the primary key index
 /// alone, so the index this takes is always single-column.
-pub(in crate::internal) fn for_update(
-    shape: &IndexShape,
-    context: &MethodGenerationContext,
-) -> SpacetimeDSLMethod {
+pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> SpacetimeDSLMethod {
     let MethodGenerationContext {
         spacetimedb_table,
         spacetimedsl_table,

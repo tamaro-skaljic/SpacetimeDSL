@@ -7,7 +7,7 @@ use spacetime_bindings_macro_input::{
 use syn::{Ident, Path};
 
 impl ReferencingTable {
-    pub(in crate::internal) fn try_parse(
+    pub fn try_parse(
         has_delete_method: &bool,
         is_soft_deletable: bool,
         field: &SatsField<'_>,

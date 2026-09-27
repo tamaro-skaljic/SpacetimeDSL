@@ -17,7 +17,7 @@ use quote::{format_ident, quote};
 
 /// One method per column of `columns_with_foreign_key`, which all reference
 /// `referenced_table_name`.
-pub(in crate::internal) fn for_wrapper_methods(
+pub fn for_wrapper_methods(
     referenced_table_name: &syn::Ident,
     columns_with_foreign_key: &[&Column],
     context: &MethodGenerationContext,

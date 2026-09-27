@@ -20,13 +20,13 @@ const TIMESTAMP_COLUMN_NAMES: [&str; 2] = ["deleted_at", "removed_at"];
 
 /// `soft_delete = <bool>` exactly as written in `#[dsl(method(..))]`, kept whole so a
 /// diagnostic can underline all of it rather than the struct it sits on.
-pub(in crate::internal) struct SoftDeleteMethodArgument {
-    pub(in crate::internal) path: Path,
-    pub(in crate::internal) value: LitBool,
+pub struct SoftDeleteMethodArgument {
+    pub path: Path,
+    pub value: LitBool,
 }
 
 impl SoftDeleteMethodArgument {
-    pub(in crate::internal) fn is_enabled(&self) -> bool {
+    pub fn is_enabled(&self) -> bool {
         self.value.value
     }
 }
@@ -39,7 +39,7 @@ impl ToTokens for SoftDeleteMethodArgument {
     }
 }
 
-pub(in crate::internal) fn try_parse(
+pub fn try_parse(
     soft_delete_method: Option<&SoftDeleteMethodArgument>,
     singleton: Option<SingletonKind>,
     column_args: &ColumnArgs<'_>,

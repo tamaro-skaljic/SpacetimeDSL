@@ -28,7 +28,7 @@ use syn::Ident;
 ///
 /// This is a plain data carrier. It must not grow generation methods: a generator produces
 /// one method whole, and a context that generates would take that back.
-pub(in crate::internal) struct MethodGenerationContext<'a> {
+pub struct MethodGenerationContext<'a> {
     pub spacetimedb_table: &'a SpacetimeDBTable,
     pub spacetimedsl_table: &'a SpacetimeDSLTable,
     pub internal_columns: &'a [InternalColumn],
@@ -46,7 +46,7 @@ pub(in crate::internal) struct MethodGenerationContext<'a> {
 }
 
 impl<'a> MethodGenerationContext<'a> {
-    pub(in crate::internal) fn new(
+    pub fn new(
         rust_struct: &'a RustStruct,
         spacetimedb_table: &'a SpacetimeDBTable,
         spacetimedsl_table: &'a SpacetimeDSLTable,
@@ -80,13 +80,13 @@ impl<'a> MethodGenerationContext<'a> {
 /// two generator calls cannot change the table. `SpacetimeDSLTableMethods::generate`
 /// collects these and hands them to the one caller that owns the table.
 #[derive(Default)]
-pub(in crate::internal) struct TableContributions {
+pub struct TableContributions {
     pub create_dsl_method_arg: Option<CreateDSLMethodArg>,
     pub compile_error_checks: BTreeSet<Ident>,
 }
 
 impl TableContributions {
-    pub(in crate::internal) fn merge(&mut self, other: TableContributions) {
+    pub fn merge(&mut self, other: TableContributions) {
         if let Some(create_dsl_method_arg) = other.create_dsl_method_arg {
             self.create_dsl_method_arg = Some(create_dsl_method_arg);
         }
@@ -94,7 +94,7 @@ impl TableContributions {
         self.compile_error_checks.extend(other.compile_error_checks);
     }
 
-    pub(in crate::internal) fn apply_to(self, spacetimedsl_table: &mut SpacetimeDSLTable) {
+    pub fn apply_to(self, spacetimedsl_table: &mut SpacetimeDSLTable) {
         if let Some(create_dsl_method_arg) = self.create_dsl_method_arg {
             spacetimedsl_table.create_dsl_method_arg = Some(create_dsl_method_arg);
         }
@@ -109,9 +109,7 @@ impl TableContributions {
 /// exists: it rejects a `#[primary_key]` column that carries neither `#[create_wrapper]`
 /// nor `#[use_wrapper(...)]`. The one exception, a singleton's injected `id: u8`, never
 /// reaches a caller of this.
-pub(in crate::internal) fn primary_key_wrapper_type(
-    primary_key_column: &InternalColumn,
-) -> TokenStream {
+pub fn primary_key_wrapper_type(primary_key_column: &InternalColumn) -> TokenStream {
     primary_key_column
         .spacetimedsl_column_wrapper_type
         .as_ref()

@@ -133,7 +133,7 @@ fn expect_uuid_version(
 
 /// Each `#[auto_gen]` table gets two rows, which must receive different UUIDs of the
 /// configured version, and must be found again by the stored UUID.
-pub(crate) fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
+pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
     use spacetimedb::sats::uuid::Version;
 
     let first_record = dsl.create_uuid_primary_key_record(CreateUuidPrimaryKeyRecord {

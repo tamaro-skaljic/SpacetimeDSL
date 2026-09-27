@@ -223,9 +223,7 @@ fn create_method_column_parts(
 ///
 /// This is the only generator that contributes something on the table: the argument struct it
 /// invents when the table has more than zero columns to ask for.
-pub(in crate::internal) fn for_create(
-    context: &MethodGenerationContext,
-) -> (SpacetimeDSLMethod, TableContributions) {
+pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, TableContributions) {
     let MethodGenerationContext {
         spacetimedb_table,
         spacetimedsl_table,

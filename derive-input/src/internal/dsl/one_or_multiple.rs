@@ -1,7 +1,7 @@
 use quote::quote;
 
 #[derive(Debug)]
-pub(in crate::internal) enum OneOrMultiple {
+pub enum OneOrMultiple {
     One,
     Multiple,
 }
