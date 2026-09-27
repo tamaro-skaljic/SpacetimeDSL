@@ -121,6 +121,8 @@ $env:TRYBUILD = $null
 git diff compile-tests/tests/ui
 ```
 
+Insta and Trybuild will rewrite all files and you will see that many files only change by line ending: Use `git add .` rather than writing a command to `git checkout` every one of these to their previous state one by one in a loop; the line endings are automatically handled by git.
+
 Accepting `*.snap.new` files one batch at a time costs a whole harness run per moved snapshot, because `insta` reports only the first failing assertion per test function. `INSTA_FORCE_UPDATE` writes every snapshot in place in one run and drops `insta`'s scratch `assertion_line:` metadata by itself.
 
 **Read the `git diff` before committing it.** A recorded output is the only record of what the generator emits, and the diff shows exactly what moved against the last commit. Revert anything unexpected with `git checkout -- <path>` rather than committing it.
