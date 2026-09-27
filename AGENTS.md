@@ -30,19 +30,19 @@ Building a workspace member on its own fails to link against **SpacetimeDB**. `x
 .\x.ps1 unit-test 2>&1 | Select-String -Pattern "test result:|FAILED|^error|^warning: " | Select-Object -First 20
 ```
 
-`.\x.ps1 test` publishes the example modules to the local server and runs the `tester` reducer. **Its exit code is meaningless** — the script runs each `spacetime` command without checking the result and always exits 0. The reducer's success marker is the only signal:
+`.\x.ps1 test` waits for the local server, publishes the example modules to it and runs the `tester` reducer. It fails on its own: every `spacetime` command is checked, and the run fails unless the logs contain the reducer's success marker `Test executed successfully`. A failed run deletes the modules it published. Its exit code is the signal:
 
 ```powershell
 $output = .\x.ps1 test 2>&1 | Out-String
-if ($output | Select-String -Pattern "Test executed successfully" -Quiet) {
-    "MARKER FOUND"
+if ($LASTEXITCODE -eq 0) {
+    "PASSED"
 } else {
-    "MARKER ABSENT - relevant output:"
-    $output -split "`n" | Select-String -Pattern "^error|-->|panic|should" | Select-Object -First 30
+    "FAILED - relevant output:"
+    $output -split "`n" | Select-String -Pattern "^error|-->|panic|should|failed" | Select-Object -First 30
 }
 ```
 
-Finding the marker is enough. Only when it is absent does the output need reading, and then only the lines that carry a diagnostic.
+Exit code 0 is enough. Only when it is not does the output need reading, and then only the lines that carry a diagnostic.
 
 #### Which of the three test kinds to write
 

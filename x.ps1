@@ -9,68 +9,130 @@ param(
     [string]$Command
 )
 
+$ErrorActionPreference = 'Stop'
+
+# A thrown error ends the script with exit code 1, so callers can rely on `$LASTEXITCODE`.
+trap {
+    [Console]::Error.WriteLine("x.ps1 $Command failed: $_")
+    exit 1
+}
+
 switch ($Command) {
     "test" {
-        Write-Output "Building module..."
-        Write-Output ""
-        Set-Location examples\test
-        spacetime publish --yes --server local spacetimedsl
-        Write-Output ""
-
-        Write-Output "Testing module..."
-        Write-Output ""
-        spacetime call --yes --server local spacetimedsl tester
-
-        Write-Output "Showing logs..."
-        Write-Output ""
-        spacetime logs --yes --server local spacetimedsl
+        Write-Output "Waiting for the local server..."
+        $deadline = (Get-Date).AddSeconds(30)
+        while ($true) {
+            spacetime server ping local *> $null
+            if ($LASTEXITCODE -eq 0) { break }
+            if ((Get-Date) -gt $deadline) {
+                throw "The local server is still unreachable after 30 seconds. Start it with 'spacetime start'."
+            }
+            Start-Sleep -Seconds 1
+        }
         Write-Output ""
 
-        Write-Output "Cleaning up module..."
-        Write-Output ""
-        spacetime delete --yes --server local spacetimedsl
-        Set-Location ..\..
-        Write-Output "Building module..."
-        Write-Output ""
-        Set-Location examples\blackholio
-        spacetime publish --yes --server local blackholio
-        Write-Output ""
+        Push-Location examples\test
+        try {
+            Write-Output "Building module..."
+            Write-Output ""
+            spacetime publish --yes --server local spacetimedsl
+            if ($LASTEXITCODE -ne 0) { throw "'spacetime publish --yes --server local spacetimedsl' failed with exit code $LASTEXITCODE." }
+            Write-Output ""
 
-        Write-Output "Showing logs..."
-        Write-Output ""
-        spacetime logs --yes --server local blackholio
-        Write-Output ""
+            Write-Output "Testing module..."
+            Write-Output ""
+            spacetime call --yes --server local spacetimedsl tester
+            $testerExitCode = $LASTEXITCODE
 
-        Write-Output "Cleaning up module..."
-        Write-Output ""
-        spacetime delete --yes --server local blackholio
-        Set-Location ..\..
+            Write-Output "Showing logs..."
+            Write-Output ""
+            $logs = spacetime logs --yes --server local spacetimedsl
+            if ($LASTEXITCODE -ne 0) { throw "'spacetime logs --yes --server local spacetimedsl' failed with exit code $LASTEXITCODE." }
+            $logs
+            Write-Output ""
+            if ($testerExitCode -ne 0) {
+                throw "'spacetime call --yes --server local spacetimedsl tester' failed with exit code $testerExitCode."
+            }
+            if (-not ($logs | Select-String -SimpleMatch "Test executed successfully" -Quiet)) {
+                throw "The logs of spacetimedsl do not contain 'Test executed successfully'."
+            }
+
+            Write-Output "Cleaning up module..."
+            Write-Output ""
+            spacetime delete --yes --server local spacetimedsl
+            if ($LASTEXITCODE -ne 0) { throw "'spacetime delete --yes --server local spacetimedsl' failed with exit code $LASTEXITCODE." }
+        } catch {
+            spacetime delete --yes --server local spacetimedsl *> $null
+            throw
+        } finally {
+            Pop-Location
+        }
+
+        Push-Location examples\blackholio
+        try {
+            Write-Output "Building module..."
+            Write-Output ""
+            spacetime publish --yes --server local blackholio
+            if ($LASTEXITCODE -ne 0) { throw "'spacetime publish --yes --server local blackholio' failed with exit code $LASTEXITCODE." }
+            Write-Output ""
+
+            Write-Output "Showing logs..."
+            Write-Output ""
+            spacetime logs --yes --server local blackholio
+            if ($LASTEXITCODE -ne 0) { throw "'spacetime logs --yes --server local blackholio' failed with exit code $LASTEXITCODE." }
+            Write-Output ""
+
+            Write-Output "Cleaning up module..."
+            Write-Output ""
+            spacetime delete --yes --server local blackholio
+            if ($LASTEXITCODE -ne 0) { throw "'spacetime delete --yes --server local blackholio' failed with exit code $LASTEXITCODE." }
+        } catch {
+            spacetime delete --yes --server local blackholio *> $null
+            throw
+        } finally {
+            Pop-Location
+        }
     }
 
     "unit-test" {
         Write-Output "Snapshotting the generated code..."
         Write-Output ""
         cargo test -p spacetimedsl_derive
+        if ($LASTEXITCODE -ne 0) { throw "'cargo test -p spacetimedsl_derive' failed with exit code $LASTEXITCODE." }
         Write-Output ""
 
         Write-Output "Checking the diagnostics for rejected tables..."
         Write-Output ""
         cargo test -p spacetimedsl-compile-tests
+        if ($LASTEXITCODE -ne 0) { throw "'cargo test -p spacetimedsl-compile-tests' failed with exit code $LASTEXITCODE." }
     }
 
     "format" {
         cargo fmt --all
+        if ($LASTEXITCODE -ne 0) { throw "'cargo fmt --all' failed with exit code $LASTEXITCODE." }
 
         cargo clippy --workspace --all-targets --all-features --fix --allow-dirty
+        if ($LASTEXITCODE -ne 0) { throw "'cargo clippy --workspace --all-targets --all-features --fix --allow-dirty' failed with exit code $LASTEXITCODE." }
     }
 
     "debug" {
-        Set-Location examples\test
-        $env:RUSTFLAGS = "-Zmacro-backtrace"
-        cargo +nightly expand > ..\..\debug-helper\output\lib.expanded.rs
-        Set-Location ..\..\debug-helper
-        cargo run -- ..\examples\test\src output
-        Set-Location ..
+        $previousRustFlags = $env:RUSTFLAGS
+        Push-Location examples\test
+        try {
+            $env:RUSTFLAGS = "-Zmacro-backtrace"
+            cargo +nightly expand > ..\..\debug-helper\output\lib.expanded.rs
+            if ($LASTEXITCODE -ne 0) { throw "'cargo +nightly expand' failed with exit code $LASTEXITCODE." }
+        } finally {
+            $env:RUSTFLAGS = $previousRustFlags
+            Pop-Location
+        }
+        Push-Location debug-helper
+        try {
+            cargo run -- ..\examples\test\src output
+            if ($LASTEXITCODE -ne 0) { throw "'cargo run -- ..\examples\test\src output' failed with exit code $LASTEXITCODE." }
+        } finally {
+            Pop-Location
+        }
     }
 
     "loc" {

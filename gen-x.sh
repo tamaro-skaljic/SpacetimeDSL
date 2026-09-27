@@ -5,7 +5,7 @@
 
 switch_start() {
     case "$1" in
-        bash) echo 'case "$1" in' ;;
+        bash) echo 'case "${1:-}" in' ;;
         powershell) echo 'switch ($Command) {' ;;
     esac
 }
@@ -61,15 +61,6 @@ cmd_echo() {
     esac
 }
 
-cmd_cd() {
-    local shell="$1"
-    local path="$2"
-    case "$shell" in
-        bash) echo "        cd $path" ;;
-        powershell) echo "        Set-Location ${path//\//\\}" ;;  # Convert / to \
-    esac
-}
-
 script_usage() {
     local shell="$1"
     case "$shell" in
@@ -78,22 +69,15 @@ script_usage() {
     esac
 }
 
-indent() {
+# A native command whose failure ends the script. Bash stops through `set -e`;
+# PowerShell does not stop on a native exit code, so it checks `$LASTEXITCODE`.
+cmd_native() {
     local shell="$1"
-    local level="${2:-1}"
-    local spaces=$((level * 4))
-    printf "%${spaces}s" ""
-}
-
-# Generate common commands that are the same across shells
-cmd_spacetime() {
-    local command="$1"
-    echo "        spacetime $command"
-}
-
-cmd_cargo() {
-    local command="$1"
-    echo "        cargo $command"
+    local command="$2"
+    echo "        $command"
+    if [ "$shell" = "powershell" ]; then
+        echo "        if (\$LASTEXITCODE -ne 0) { throw \"'$command' failed with exit code \$LASTEXITCODE.\" }"
+    fi
 }
 
 # Header and case generation functions
@@ -107,6 +91,8 @@ generate_header() {
         echo "#!/bin/bash"
         echo
         echo "$do_not_change"
+        echo
+        echo "set -euo pipefail"
     else
         # PowerShell param block
         echo "$do_not_change"
@@ -120,6 +106,14 @@ param(
     })]
     [string]$Command
 )
+
+$ErrorActionPreference = 'Stop'
+
+# A thrown error ends the script with exit code 1, so callers can rely on `$LASTEXITCODE`.
+trap {
+    [Console]::Error.WriteLine("x.ps1 $Command failed: $_")
+    exit 1
+}
 EOF
     fi
 
@@ -132,42 +126,146 @@ generate_test() {
     local shell="$1"
 
     switch_case "$shell" "test"
-    cmd_echo "$shell" "Building module..."
-    cmd_echo "$shell"
-    cmd_cd "$shell" "examples/test"
-    cmd_spacetime "publish --yes --server local spacetimedsl"
-    cmd_echo "$shell"
-    echo
-    cmd_echo "$shell" "Testing module..."
-    cmd_echo "$shell"
-    cmd_spacetime "call --yes --server local spacetimedsl tester"
-    echo
-    cmd_echo "$shell" "Showing logs..."
-    cmd_echo "$shell"
-    cmd_spacetime "logs --yes --server local spacetimedsl"
-    cmd_echo "$shell"
-    echo
-    cmd_echo "$shell" "Cleaning up module..."
-    cmd_echo "$shell"
-    cmd_spacetime "delete --yes --server local spacetimedsl"
-    cmd_cd "$shell" "../.."
+    if [ "$shell" = "bash" ]; then
+        cat << 'BASH_TEST'
+        echo "Waiting for the local server..."
+        deadline=$((SECONDS + 30))
+        until spacetime server ping local > /dev/null 2>&1; do
+            if [ "$SECONDS" -ge "$deadline" ]; then
+                echo "The local server is still unreachable after 30 seconds. Start it with 'spacetime start'." >&2
+                exit 1
+            fi
+            sleep 1
+        done
+        echo
 
-    cmd_echo "$shell" "Building module..."
-    cmd_echo "$shell"
-    cmd_cd "$shell" "examples/blackholio"
-    cmd_spacetime "publish --yes --server local blackholio"
-    cmd_echo "$shell"
-    echo
-    cmd_echo "$shell" "Showing logs..."
-    cmd_echo "$shell"
-    cmd_spacetime "logs --yes --server local blackholio"
-    cmd_echo "$shell"
-    echo
-    cmd_echo "$shell" "Cleaning up module..."
-    cmd_echo "$shell"
-    cmd_spacetime "delete --yes --server local blackholio"
-    cmd_cd "$shell" "../.."
+        echo "Building module..."
+        echo
+        pushd examples/test > /dev/null
+        trap 'spacetime delete --yes --server local spacetimedsl > /dev/null 2>&1 || true' EXIT
+        spacetime publish --yes --server local spacetimedsl
+        echo
 
+        echo "Testing module..."
+        echo
+        tester_exit_code=0
+        spacetime call --yes --server local spacetimedsl tester || tester_exit_code=$?
+
+        echo "Showing logs..."
+        echo
+        logs=$(spacetime logs --yes --server local spacetimedsl)
+        echo "$logs"
+        echo
+        if [ "$tester_exit_code" -ne 0 ]; then
+            echo "'spacetime call --yes --server local spacetimedsl tester' failed with exit code $tester_exit_code." >&2
+            exit 1
+        fi
+        if ! grep -qF "Test executed successfully" <<< "$logs"; then
+            echo "The logs of spacetimedsl do not contain 'Test executed successfully'." >&2
+            exit 1
+        fi
+
+        echo "Cleaning up module..."
+        echo
+        spacetime delete --yes --server local spacetimedsl
+        trap - EXIT
+        popd > /dev/null
+
+        echo "Building module..."
+        echo
+        pushd examples/blackholio > /dev/null
+        trap 'spacetime delete --yes --server local blackholio > /dev/null 2>&1 || true' EXIT
+        spacetime publish --yes --server local blackholio
+        echo
+
+        echo "Showing logs..."
+        echo
+        spacetime logs --yes --server local blackholio
+        echo
+
+        echo "Cleaning up module..."
+        echo
+        spacetime delete --yes --server local blackholio
+        trap - EXIT
+        popd > /dev/null
+BASH_TEST
+    else
+        cat << 'POWERSHELL_TEST'
+        Write-Output "Waiting for the local server..."
+        $deadline = (Get-Date).AddSeconds(30)
+        while ($true) {
+            spacetime server ping local *> $null
+            if ($LASTEXITCODE -eq 0) { break }
+            if ((Get-Date) -gt $deadline) {
+                throw "The local server is still unreachable after 30 seconds. Start it with 'spacetime start'."
+            }
+            Start-Sleep -Seconds 1
+        }
+        Write-Output ""
+
+        Push-Location examples\test
+        try {
+            Write-Output "Building module..."
+            Write-Output ""
+            spacetime publish --yes --server local spacetimedsl
+            if ($LASTEXITCODE -ne 0) { throw "'spacetime publish --yes --server local spacetimedsl' failed with exit code $LASTEXITCODE." }
+            Write-Output ""
+
+            Write-Output "Testing module..."
+            Write-Output ""
+            spacetime call --yes --server local spacetimedsl tester
+            $testerExitCode = $LASTEXITCODE
+
+            Write-Output "Showing logs..."
+            Write-Output ""
+            $logs = spacetime logs --yes --server local spacetimedsl
+            if ($LASTEXITCODE -ne 0) { throw "'spacetime logs --yes --server local spacetimedsl' failed with exit code $LASTEXITCODE." }
+            $logs
+            Write-Output ""
+            if ($testerExitCode -ne 0) {
+                throw "'spacetime call --yes --server local spacetimedsl tester' failed with exit code $testerExitCode."
+            }
+            if (-not ($logs | Select-String -SimpleMatch "Test executed successfully" -Quiet)) {
+                throw "The logs of spacetimedsl do not contain 'Test executed successfully'."
+            }
+
+            Write-Output "Cleaning up module..."
+            Write-Output ""
+            spacetime delete --yes --server local spacetimedsl
+            if ($LASTEXITCODE -ne 0) { throw "'spacetime delete --yes --server local spacetimedsl' failed with exit code $LASTEXITCODE." }
+        } catch {
+            spacetime delete --yes --server local spacetimedsl *> $null
+            throw
+        } finally {
+            Pop-Location
+        }
+
+        Push-Location examples\blackholio
+        try {
+            Write-Output "Building module..."
+            Write-Output ""
+            spacetime publish --yes --server local blackholio
+            if ($LASTEXITCODE -ne 0) { throw "'spacetime publish --yes --server local blackholio' failed with exit code $LASTEXITCODE." }
+            Write-Output ""
+
+            Write-Output "Showing logs..."
+            Write-Output ""
+            spacetime logs --yes --server local blackholio
+            if ($LASTEXITCODE -ne 0) { throw "'spacetime logs --yes --server local blackholio' failed with exit code $LASTEXITCODE." }
+            Write-Output ""
+
+            Write-Output "Cleaning up module..."
+            Write-Output ""
+            spacetime delete --yes --server local blackholio
+            if ($LASTEXITCODE -ne 0) { throw "'spacetime delete --yes --server local blackholio' failed with exit code $LASTEXITCODE." }
+        } catch {
+            spacetime delete --yes --server local blackholio *> $null
+            throw
+        } finally {
+            Pop-Location
+        }
+POWERSHELL_TEST
+    fi
     switch_case_end "$shell"
     echo
 }
@@ -178,12 +276,12 @@ generate_unit_test() {
     switch_case "$shell" "unit-test"
     cmd_echo "$shell" "Snapshotting the generated code..."
     cmd_echo "$shell"
-    cmd_cargo "test -p spacetimedsl_derive"
+    cmd_native "$shell" "cargo test -p spacetimedsl_derive"
     cmd_echo "$shell"
     echo
     cmd_echo "$shell" "Checking the diagnostics for rejected tables..."
     cmd_echo "$shell"
-    cmd_cargo "test -p spacetimedsl-compile-tests"
+    cmd_native "$shell" "cargo test -p spacetimedsl-compile-tests"
     switch_case_end "$shell"
     echo
 }
@@ -195,31 +293,49 @@ generate_format() {
     local shell="$1"
 
     switch_case "$shell" "format"
-    cmd_cargo "fmt --all"
+    cmd_native "$shell" "cargo fmt --all"
     echo
-    cmd_cargo "clippy --workspace --all-targets --all-features --fix --allow-dirty"
+    cmd_native "$shell" "cargo clippy --workspace --all-targets --all-features --fix --allow-dirty"
     switch_case_end "$shell"
     echo
 }
 
+# `-Zmacro-backtrace` applies to the expansion only, so the PowerShell variant restores RUSTFLAGS
+# afterwards instead of leaving it set for every later build in the same session.
 generate_debug() {
     local shell="$1"
 
     switch_case "$shell" "debug"
-    cmd_cd "$shell" "examples/test"
     if [ "$shell" = "bash" ]; then
-        echo "        RUSTFLAGS=\"-Zmacro-backtrace\" cargo +nightly expand > ../../debug-helper/output/lib.expanded.rs"
+        cat << 'BASH_DEBUG'
+        pushd examples/test > /dev/null
+        RUSTFLAGS="-Zmacro-backtrace" cargo +nightly expand > ../../debug-helper/output/lib.expanded.rs
+        popd > /dev/null
+        pushd debug-helper > /dev/null
+        cargo run -- ../examples/test/src output
+        popd > /dev/null
+BASH_DEBUG
     else
-        echo "        \$env:RUSTFLAGS = \"-Zmacro-backtrace\""
-        echo "        cargo +nightly expand > ..\\..\\debug-helper\\output\\lib.expanded.rs"
+        cat << 'POWERSHELL_DEBUG'
+        $previousRustFlags = $env:RUSTFLAGS
+        Push-Location examples\test
+        try {
+            $env:RUSTFLAGS = "-Zmacro-backtrace"
+            cargo +nightly expand > ..\..\debug-helper\output\lib.expanded.rs
+            if ($LASTEXITCODE -ne 0) { throw "'cargo +nightly expand' failed with exit code $LASTEXITCODE." }
+        } finally {
+            $env:RUSTFLAGS = $previousRustFlags
+            Pop-Location
+        }
+        Push-Location debug-helper
+        try {
+            cargo run -- ..\examples\test\src output
+            if ($LASTEXITCODE -ne 0) { throw "'cargo run -- ..\examples\test\src output' failed with exit code $LASTEXITCODE." }
+        } finally {
+            Pop-Location
+        }
+POWERSHELL_DEBUG
     fi
-    cmd_cd "$shell" "../../debug-helper"
-    if [ "$shell" = "bash" ]; then
-        echo "        cargo run -- ../examples/test/src output"
-    else
-        echo "        cargo run -- ..\\examples\\test\\src output"
-    fi
-    cmd_cd "$shell" ".."
     switch_case_end "$shell"
     echo
 }
