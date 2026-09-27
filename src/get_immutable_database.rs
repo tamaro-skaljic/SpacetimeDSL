@@ -33,6 +33,6 @@ impl_get_db_ok!(AnonymousViewContext);
 impl_get_db_err!(ReducerContext, Reducer);
 
 // FIXME: https://github.com/clockworklabs/SpacetimeDB/issues/4439
-impl_get_db_err!(TxContext, Reducer);
+impl_get_db_err!(TxContext, Transaction);
 
 impl_get_db_ok!(ViewContext);
