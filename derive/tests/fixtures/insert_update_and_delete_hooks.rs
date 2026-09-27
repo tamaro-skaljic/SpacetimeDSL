@@ -1,6 +1,4 @@
-//! Covers all six hooks - before and after each of insert, update and delete - so the
-//! six hook traits and the six call sites woven into the generated methods are pinned
-//! together.
+//! Covers before and after hooks for insert, update and delete.
 
 #[spacetimedsl::dsl(
     plural_name = potions,

@@ -18,7 +18,7 @@ use std::{collections::BTreeSet, fs, path::PathBuf};
 use proc_macro2::TokenStream;
 use quote::ToTokens;
 use rust_format::{Formatter, PrettyPlease};
-use syn::{Attribute, DeriveInput, Item};
+use syn::{Attribute, DeriveInput, Expr, Item, Lit, Stmt};
 
 use crate::{ExpandedDSLAttribute, expand_dsl_attribute_parts, output::GeneratedOutput};
 
@@ -138,8 +138,8 @@ fn on_delete_ignore() {
 }
 
 #[test]
-fn hooks_all_six() {
-    snapshot_fixture("hooks_all_six");
+fn insert_update_and_delete_hooks() {
+    snapshot_fixture("insert_update_and_delete_hooks");
 }
 
 #[test]
@@ -220,6 +220,86 @@ fn on_soft_delete_cascade_with_soft_delete_hooks() {
 #[test]
 fn self_referencing_cascade() {
     snapshot_fixture("self_referencing_cascade");
+}
+
+#[test]
+fn every_fixture_is_registered_under_its_own_name() {
+    let source = include_str!("characterization_tests.rs");
+    let syntax = syn::parse_file(source).expect("characterization tests should parse");
+    let mut registrations = BTreeSet::new();
+    let mut registration_function_names = BTreeSet::new();
+
+    for item in syntax.items {
+        let Item::Fn(function) = item else {
+            continue;
+        };
+        if !function.attrs.iter().any(is_test_attribute) || function.block.stmts.len() != 1 {
+            continue;
+        }
+
+        let Stmt::Expr(Expr::Call(call), _) = &function.block.stmts[0] else {
+            continue;
+        };
+        let Expr::Path(function_path) = call.func.as_ref() else {
+            continue;
+        };
+        if !function_path
+            .path
+            .segments
+            .last()
+            .is_some_and(|segment| segment.ident == "snapshot_fixture")
+        {
+            continue;
+        }
+        if call.args.len() != 1 {
+            continue;
+        }
+        let argument = call.args.first().expect("the call has one argument");
+        let Expr::Lit(expression) = argument else {
+            continue;
+        };
+        let Lit::Str(fixture_name) = &expression.lit else {
+            continue;
+        };
+
+        let fixture_name = fixture_name.value();
+        registration_function_names.insert(function.sig.ident.to_string());
+        registrations.insert(fixture_name);
+    }
+
+    let fixtures_directory = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let fixture_files: BTreeSet<String> = fs::read_dir(&fixtures_directory)
+        .expect("fixture directory should be readable")
+        .map(|entry| {
+            entry
+                .expect("fixture entry should be readable")
+                .path()
+        })
+        .filter(|path| path.extension().is_some_and(|extension| extension == "rs"))
+        .filter_map(|path| path.file_stem().map(|name| name.to_string_lossy().into_owned()))
+        .collect();
+    let snapshots_directory = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/snapshots");
+    let snapshot_directories: BTreeSet<String> = fs::read_dir(&snapshots_directory)
+        .expect("snapshot directory should be readable")
+        .map(|entry| entry.expect("snapshot entry should be readable").path())
+        .filter(|path| path.is_dir())
+        .filter_map(|path| path.file_name().map(|name| name.to_string_lossy().into_owned()))
+        .collect();
+
+    assert_eq!(registrations, fixture_files, "fixture registration mismatch");
+    assert_eq!(snapshot_directories, fixture_files, "orphaned snapshot directory");
+    assert!(
+        registrations.iter().all(|fixture_name| registration_function_names.contains(fixture_name)),
+        "every registration function must have the fixture's name"
+    );
+    assert!(
+        registration_function_names.is_subset(&fixture_files),
+        "every registered fixture must exist"
+    );
+}
+
+fn is_test_attribute(attribute: &Attribute) -> bool {
+    attribute.path().is_ident("test")
 }
 
 /// Expanding the same fixture twice must produce byte-identical output, otherwise the
