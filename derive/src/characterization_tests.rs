@@ -243,11 +243,11 @@ fn every_fixture_is_registered_under_its_own_name() {
         let Expr::Path(function_path) = call.func.as_ref() else {
             continue;
         };
-        if !function_path
+        if function_path
             .path
             .segments
             .last()
-            .is_some_and(|segment| segment.ident == "snapshot_fixture")
+            .is_none_or(|segment| segment.ident != "snapshot_fixture")
         {
             continue;
         }
@@ -270,26 +270,36 @@ fn every_fixture_is_registered_under_its_own_name() {
     let fixtures_directory = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
     let fixture_files: BTreeSet<String> = fs::read_dir(&fixtures_directory)
         .expect("fixture directory should be readable")
-        .map(|entry| {
-            entry
-                .expect("fixture entry should be readable")
-                .path()
-        })
+        .map(|entry| entry.expect("fixture entry should be readable").path())
         .filter(|path| path.extension().is_some_and(|extension| extension == "rs"))
-        .filter_map(|path| path.file_stem().map(|name| name.to_string_lossy().into_owned()))
+        .filter_map(|path| {
+            path.file_stem()
+                .map(|name| name.to_string_lossy().into_owned())
+        })
         .collect();
     let snapshots_directory = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/snapshots");
     let snapshot_directories: BTreeSet<String> = fs::read_dir(&snapshots_directory)
         .expect("snapshot directory should be readable")
         .map(|entry| entry.expect("snapshot entry should be readable").path())
         .filter(|path| path.is_dir())
-        .filter_map(|path| path.file_name().map(|name| name.to_string_lossy().into_owned()))
+        .filter_map(|path| {
+            path.file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+        })
         .collect();
 
-    assert_eq!(registrations, fixture_files, "fixture registration mismatch");
-    assert_eq!(snapshot_directories, fixture_files, "orphaned snapshot directory");
+    assert_eq!(
+        registrations, fixture_files,
+        "fixture registration mismatch"
+    );
+    assert_eq!(
+        snapshot_directories, fixture_files,
+        "orphaned snapshot directory"
+    );
     assert!(
-        registrations.iter().all(|fixture_name| registration_function_names.contains(fixture_name)),
+        registrations
+            .iter()
+            .all(|fixture_name| registration_function_names.contains(fixture_name)),
         "every registration function must have the fixture's name"
     );
     assert!(

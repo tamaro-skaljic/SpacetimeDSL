@@ -212,6 +212,8 @@ fn set_zero_update_hook_test<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), St
         ));
     }
 
+    let member = dsl.get_guild_member_by_id(&member)?;
+
     if member.get_modified_at().is_none() {
         return Err(
             "Setting guild_id to 0 through on_delete = SetZero should set modified_at, as update_guild_member_by_id does!"
@@ -271,7 +273,7 @@ fn soft_delete_skips_update_hooks_test<T: WriteContext>(dsl: &DSL<'_, T>) -> Res
 
     if member.get_modified_at().is_some() {
         return Err(
-            "Setting deleted_at to Some(...) through on_soft_delete = SoftDelete should NOT set modified_at, as update_guild_member_by_id does!"
+            "Setting deleted to true through on_soft_delete = SoftDelete should NOT set modified_at, as update_guild_member_by_id does!"
                 .to_string(),
         );
     }
