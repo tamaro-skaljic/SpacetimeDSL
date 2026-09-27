@@ -9,6 +9,8 @@
 
 See [`docs/DOCUMENTATION.md`](docs/DOCUMENTATION.md)  for a comprehensive reference with all features, examples, and rules.
 
+See [`docs/MIGRATION.md`](docs/MIGRATION.md) for what changes when you upgrade to a new release.
+
 ### Core Unique Features
 
 - [🔗 Foreign Keys / Referential Integrity](docs/DOCUMENTATION.md#foreign-keys--referential-integrity) — Enforce relationships between tables with different strategies on deletion.

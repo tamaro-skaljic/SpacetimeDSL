@@ -15,6 +15,8 @@ Authoritative reference to transform **SpacetimeDB** Rust Server Modules to use 
 - **SpacetimeDSL** version **0.23.3**
 - **SpacetimeDB** version **2.10.1**
 
+Upgrading from an earlier release? See [`MIGRATION.md`](MIGRATION.md).
+
 ## Quick Transformation Checklist
 
 When transforming a **SpacetimeDB** module to use **SpacetimeDSL**, follow these steps:
