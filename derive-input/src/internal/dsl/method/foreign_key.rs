@@ -24,7 +24,7 @@ use crate::{
         },
         runtime,
     },
-    internal::dsl::{error, one_or_multiple::OneOrMultiple},
+    internal::{dsl::one_or_multiple::OneOrMultiple, error},
 };
 use itertools::Itertools;
 use proc_macro2::TokenStream;

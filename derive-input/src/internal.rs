@@ -1,5 +1,4 @@
 use crate::api::dsl::table::SingletonKind;
-use crate::internal::dsl::error;
 use crate::internal::dsl::soft_delete::SoftDeleteMethodArgument;
 use crate::internal::dsl::{
     after, before, delete, hook, insert, method, plural_name, singleton, soft_delete, unique_index,
@@ -25,6 +24,8 @@ mod rust;
 mod db;
 
 mod dsl;
+
+pub mod error;
 
 pub(crate) fn try_parse(
     args: proc_macro2::TokenStream,

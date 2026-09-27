@@ -9,7 +9,7 @@ use crate::api::dsl::{
     soft_delete::{SoftDeleteMarker, SoftDeleteMarkerKind},
     table::SingletonKind,
 };
-use crate::internal::dsl::error;
+use crate::internal::error;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use spacetime_bindings_macro_input::{sats::SatsField, table::ColumnArgs};

@@ -1,4 +1,4 @@
-use crate::internal::dsl::error;
+use crate::internal::error;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::DeriveInput;

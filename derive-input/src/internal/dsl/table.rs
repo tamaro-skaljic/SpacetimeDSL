@@ -4,8 +4,8 @@ use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::{SingletonKind, SpacetimeDSLTable};
 use crate::internal::DSLData;
-use crate::internal::dsl::error;
 use crate::internal::dsl::hook::DeclaredHooks;
+use crate::internal::error;
 use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::table::ColumnArgs;
 

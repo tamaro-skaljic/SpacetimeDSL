@@ -1,6 +1,7 @@
 use super::foreign_key;
 use crate::api::dsl::foreign_key::{ForeignKey, OnDeleteStrategy};
-use crate::internal::dsl::{error, on_delete, on_soft_delete, path, table};
+use crate::internal::dsl::{on_delete, on_soft_delete, path, table};
+use crate::internal::error;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::match_meta;
 use spacetime_bindings_macro_input::sats::SatsField;

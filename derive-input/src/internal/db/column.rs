@@ -2,7 +2,7 @@ use crate::api::{
     db::{column::SpacetimeDBColumn, index::IndexType, table::SpacetimeDBTable},
     rust::column::RustField,
 };
-use crate::internal::dsl::error;
+use crate::internal::error;
 use syn::Ident;
 
 impl SpacetimeDBColumn {

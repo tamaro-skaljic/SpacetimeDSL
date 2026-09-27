@@ -4,7 +4,7 @@ use crate::api::{
     rust::{column::RustField, visibility::RustVisibility},
 };
 use crate::internal::column::ColumnTypeKind;
-use crate::internal::dsl::error;
+use crate::internal::error;
 use quote::format_ident;
 use spacetime_bindings_macro_input::sats::SatsField;
 use syn::{Attribute, Ident};

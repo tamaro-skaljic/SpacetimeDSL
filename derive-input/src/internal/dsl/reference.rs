@@ -1,6 +1,6 @@
 use super::{path, referenced_by, table};
 use crate::api::dsl::reference::ReferencingTable;
-use crate::internal::dsl::error;
+use crate::internal::error;
 use spacetime_bindings_macro_input::{
     match_meta, sats::SatsField, sym::primary_key, util::check_duplicate,
 };

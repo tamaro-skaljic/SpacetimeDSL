@@ -4,7 +4,7 @@ use crate::{
         reducer::ScheduledReducer,
         table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
     },
-    internal::{dsl::error, table::rm_rsharp},
+    internal::{error, table::rm_rsharp},
 };
 use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::table::{

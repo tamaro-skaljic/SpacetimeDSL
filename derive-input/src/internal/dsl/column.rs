@@ -8,7 +8,7 @@ use crate::api::{
     rust::{column::RustField, table::RustStruct},
 };
 use crate::internal::column::ColumnTypeKind;
-use crate::internal::dsl::error;
+use crate::internal::error;
 use spacetime_bindings_macro_input::sats::SatsField;
 
 impl SpacetimeDSLColumn {

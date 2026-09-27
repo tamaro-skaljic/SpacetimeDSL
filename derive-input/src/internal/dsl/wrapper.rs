@@ -3,7 +3,7 @@ use crate::api::dsl::wrapper::{CreatedWrapper, UsedWrapper, WrapperType};
 use crate::api::runtime;
 use crate::api::rust::{column::RustField, table::RustStruct};
 use crate::internal::column::ColumnTypeKind;
-use crate::internal::dsl::error;
+use crate::internal::error;
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::quote;

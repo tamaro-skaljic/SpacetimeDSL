@@ -10,8 +10,8 @@ use crate::api::{
     },
     rust::{column::RustField, table::RustStruct, visibility::RustVisibility},
 };
-use crate::internal::dsl::error;
 use crate::internal::dsl::method::MethodGenerationContext;
+use crate::internal::error;
 use itertools::izip;
 use spacetime_bindings_macro_input::table::ColumnArgs;
 use syn::{Ident, Path};
