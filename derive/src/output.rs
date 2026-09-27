@@ -284,7 +284,7 @@ Please include your table definition as well as the following, malformed, code g
 ")
 }
 
-fn map_args(args: &Vec<SpacetimeDSLArg>) -> Vec<TokenStream> {
+fn map_args(args: &[SpacetimeDSLArg]) -> Vec<TokenStream> {
     let mut function_args = vec![];
 
     for arg in args {
