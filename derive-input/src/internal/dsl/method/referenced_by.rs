@@ -31,7 +31,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Ident;
 
-pub(in crate::internal) fn referenced_table_function_call_for_dsl_method(
+pub fn referenced_table_function_call_for_dsl_method(
     removal: Removal,
     singular_table_name: &Ident,
     primary_key_column_name: &Ident,
@@ -101,7 +101,7 @@ pub(in crate::internal) fn referenced_table_function_call_for_dsl_method(
     }
 }
 
-pub(in crate::internal) fn for_referenced_by(
+pub fn for_referenced_by(
     removal: Removal,
     one_or_multiple: &OneOrMultiple,
     spacetimedb_table: &SpacetimeDBTable,
@@ -188,9 +188,18 @@ pub(in crate::internal) fn for_referenced_by(
                 let mut entries = vec![];
             }
         }
+        // A cascade calls this dispatcher for the rows it removed, even when it removed
+        // none. Without the early return, a table which references itself, or two tables
+        // which reference each other, would call it again and again until the stack
+        // overflows.
         OneOrMultiple::Multiple => {
             quote! {
                 let mut entries = std::collections::HashMap::new();
+
+                if primary_key_values_of_rows_to_delete.is_empty() {
+                    return Ok(entries);
+                }
+
                 for primary_key_value_of_a_row_to_delete in primary_key_values_of_rows_to_delete {
                     entries.insert(primary_key_value_of_a_row_to_delete, vec![]);
                 }

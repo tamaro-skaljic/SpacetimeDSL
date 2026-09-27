@@ -3,15 +3,16 @@ use crate::api::dsl::wrapper::{CreatedWrapper, UsedWrapper, WrapperType};
 use crate::api::runtime;
 use crate::api::rust::{column::RustField, table::RustStruct};
 use crate::internal::column::ColumnTypeKind;
+use crate::internal::error;
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::quote;
 use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::sats::SatsField;
-use syn::{Error, Ident, Path, Type, parse_str, parse2};
+use syn::{Ident, Path, Type, parse_str, parse2};
 
 impl WrapperType {
-    pub(in crate::internal) fn try_parse(
+    pub fn try_parse(
         rust_struct: &RustStruct,
         rust_field: &RustField,
         field: &SatsField<'_>,
@@ -24,10 +25,7 @@ impl WrapperType {
             }
 
             if wrapper_type.is_some() {
-                return Err(Error::new_spanned(
-                    attr,
-                    "Only one of `#[create_wrapper]` or `#[use_wrapper]` is allowed per column!",
-                ));
+                return Err(error::multiple_wrappers(attr));
             }
 
             let wrapper_struct_name_or_path;
@@ -42,26 +40,23 @@ impl WrapperType {
                                 .apply_to_field(field.name.as_ref().expect("should have a name")),
                         ));
                     } else {
-                        return Err(syn::Error::new_spanned(
-                            &attr.meta,
-                            "PathToWrapperType must be set in `#[use_wrapper(PathToWrapperType)]`, e.g. `EntityId` or `crate::entity::EntityId`.",
-                        ));
+                        return Err(error::missing_use_wrapper_path(&attr.meta));
                     }
                 }
                 Err(_) => {
                     if attr.meta.path().eq(&create_wrapper) {
-                        let ident: Ident = attr.meta.require_list()?.parse_args()
-                            .map_err(|_| syn::Error::new_spanned(
-                                    &attr.meta,
-                                    "Failed to parse NameForWrapperType in `#[create_wrapper(NameForWrapperType)]`. Expected a valid Rust ident like `EntityId`.",
-                                ))?;
+                        let ident: Ident = attr
+                            .meta
+                            .require_list()?
+                            .parse_args()
+                            .map_err(|_| error::invalid_create_wrapper_name(&attr.meta))?;
                         wrapper_struct_name_or_path = Some(ident.to_string());
                     } else {
-                        let wrapper_struct_path: Path = attr.meta.require_list()?.parse_args()
-                            .map_err(|_| syn::Error::new_spanned(
-                                &attr.meta,
-                                "Failed to parse PathToWrapperType in `#[use_wrapper(PathToWrapperType)]`. Expected a valid Rust path like `EntityId` or `crate::entity::EntityId`.",
-                            ))?;
+                        let wrapper_struct_path: Path = attr
+                            .meta
+                            .require_list()?
+                            .parse_args()
+                            .map_err(|_| error::invalid_use_wrapper_path(&attr.meta))?;
                         wrapper_struct_name_or_path =
                             Some(wrapper_struct_path.to_token_stream().to_string());
                     }
@@ -209,7 +204,7 @@ fn uuid_wrapper_constructors(wrapper_struct_name: &Ident) -> TokenStream {
 }
 
 impl WrapperType {
-    pub(in crate::internal) fn map_to_wrapped_type(value: &WrapperType) -> Type {
+    pub fn map_to_wrapped_type(value: &WrapperType) -> Type {
         let wrapped_type_name_or_path = match value {
             WrapperType::Created(created_wrapper) => &created_wrapper.wrapped_type_name_or_path,
             WrapperType::Used(used_wrapper) => &used_wrapper.wrapped_type_name_or_path,
@@ -225,7 +220,7 @@ impl WrapperType {
 
     /// The wrapper's own name as tokens - the generated struct's name for a created
     /// wrapper, the user's path for a used one.
-    pub(in crate::internal) fn struct_name_or_path_tokens(&self) -> TokenStream {
+    pub fn struct_name_or_path_tokens(&self) -> TokenStream {
         match self {
             WrapperType::Created(created_wrapper) => {
                 created_wrapper.wrapper_struct_name.to_token_stream()
@@ -237,7 +232,7 @@ impl WrapperType {
     }
 
     /// The wrapper's own name without its module path, as doc comments name it.
-    pub(in crate::internal) fn struct_name(&self) -> Ident {
+    pub fn struct_name(&self) -> Ident {
         match self {
             WrapperType::Created(created_wrapper) => created_wrapper.wrapper_struct_name.clone(),
             WrapperType::Used(used_wrapper) => used_wrapper
@@ -250,7 +245,7 @@ impl WrapperType {
         }
     }
 
-    pub(in crate::internal) fn map(value: &WrapperType) -> Type {
+    pub fn map(value: &WrapperType) -> Type {
         match value {
             WrapperType::Created(w) => parse_str(&w.wrapper_struct_name.to_token_stream().to_string()).unwrap_or_else(|_| panic!("Failed to parse {} as Ident in WrapperType::map_to_wrapper_type for WrapperType::Wrap.",
                 &w.wrapper_struct_name)),
@@ -260,7 +255,7 @@ impl WrapperType {
     }
 }
 
-pub(in crate::internal) fn map_wrapper_type_option_to_wrapped_type_option(
+pub fn map_wrapper_type_option_to_wrapped_type_option(
     column_name: &Ident,
     wrapper_type_name_or_path: &Type,
 ) -> TokenStream {

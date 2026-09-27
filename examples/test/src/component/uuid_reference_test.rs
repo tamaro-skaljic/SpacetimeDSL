@@ -25,7 +25,7 @@ pub struct UUIDReference {
     record_id: Uuid,
 }
 
-pub(crate) fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
+pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
     let referenced_record = dsl.create_uuid_primary_key_record(CreateUuidPrimaryKeyRecord {
         name: "referenced".to_string(),
     })?;

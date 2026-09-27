@@ -31,7 +31,7 @@ use quote::{format_ident, quote};
 
 /// Whether a generated method removes the rows it matched or retires them.
 #[derive(Clone, Copy, PartialEq)]
-pub(in crate::internal) enum Removal {
+pub enum Removal {
     Hard,
     Soft,
 }
@@ -150,7 +150,7 @@ fn retire_row_named_old_row(
 
 /// `delete_<tables>_by_<index>` and `soft_delete_<tables>_by_<index>`: retire or remove
 /// every row an index matches.
-pub(in crate::internal) fn for_removal_many(
+pub fn for_removal_many(
     removal: Removal,
     shape: &IndexShape,
     context: &MethodGenerationContext,
@@ -453,7 +453,7 @@ pub(in crate::internal) fn for_removal_many(
 
 /// `delete_<table>_by_<index>` and `soft_delete_<table>_by_<index>`: retire or remove the
 /// one row a unique index finds.
-pub(in crate::internal) fn for_removal_one(
+pub fn for_removal_one(
     removal: Removal,
     shape: &IndexShape,
     context: &MethodGenerationContext,

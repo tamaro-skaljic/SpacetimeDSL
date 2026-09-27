@@ -7,7 +7,7 @@ pub mod table;
 pub mod column;
 
 impl RustVisibility {
-    pub(in crate::internal) fn map(value: &syn::Visibility) -> RustVisibility {
+    pub fn map(value: &syn::Visibility) -> RustVisibility {
         match value {
             syn::Visibility::Public(_) => RustVisibility::Public,
             syn::Visibility::Restricted(vis) => RustVisibility::Restricted(*vis.path.clone()),

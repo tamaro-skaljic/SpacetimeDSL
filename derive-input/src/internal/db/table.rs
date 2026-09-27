@@ -4,19 +4,16 @@ use crate::{
         reducer::ScheduledReducer,
         table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
     },
-    internal::table::rm_rsharp,
+    internal::{error, table::rm_rsharp},
 };
 use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::table::{
     IndexArg, IndexType as SpacetimeIndexType, ScheduledArg, TableAccess, TableArgs,
 };
-use syn::{Error, Ident};
+use syn::Ident;
 
 impl SpacetimeDBTable {
-    pub(in crate::internal) fn map(
-        table: &TableArgs,
-        is_singleton: bool,
-    ) -> syn::Result<SpacetimeDBTable> {
+    pub fn map(table: &TableArgs, is_singleton: bool) -> syn::Result<SpacetimeDBTable> {
         let singular_name = rm_rsharp(table.accessor.clone());
         let visibility = SpacetimeDBTableVisibility::map(&table.access);
         let indices: Vec<Index> = table.indices.iter().map(Index::map).collect();
@@ -28,18 +25,7 @@ impl SpacetimeDBTable {
                 match &index.index_type {
                     IndexType::BTreeMultiColumn { columns }
                     | IndexType::HashMultiColumn { columns } => {
-                        return Err(Error::new_spanned(
-                            &index.name,
-                            format!(
-                                "Multi-column indices are not allowed on singleton tables! Found index `{}` on columns `{}`.",
-                                index.name,
-                                columns
-                                    .iter()
-                                    .map(|c| c.to_string())
-                                    .collect::<Vec<_>>()
-                                    .join(", "),
-                            ),
-                        ));
+                        return Err(error::multi_column_index_on_singleton(&index.name, columns));
                     }
                     _ => {}
                 }

@@ -13,9 +13,7 @@ use quote::{format_ident, quote};
 /// What happens while the row is absent is the whole difference between the two singleton
 /// kinds: a table without a default fails, a table with one answers with the default its
 /// struct supplies and leaves the table empty.
-pub(in crate::internal) fn for_singleton_get(
-    context: &MethodGenerationContext,
-) -> SpacetimeDSLMethod {
+pub fn for_singleton_get(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
     let MethodGenerationContext {
         spacetimedsl_table,
         struct_name,
@@ -77,9 +75,7 @@ pub(in crate::internal) fn for_singleton_get(
 }
 
 /// `delete_<table>`: delete the one row of a singleton table.
-pub(in crate::internal) fn for_singleton_delete(
-    context: &MethodGenerationContext,
-) -> SpacetimeDSLMethod {
+pub fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
     let MethodGenerationContext {
         spacetimedsl_table,
         struct_name,

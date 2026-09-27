@@ -141,7 +141,7 @@ fn after_guild_member_soft_delete(
     Ok(())
 }
 
-pub(crate) fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
+pub fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
     set_zero_update_hook_test(dsl)?;
 
     soft_delete_skips_update_hooks_test(dsl)?;

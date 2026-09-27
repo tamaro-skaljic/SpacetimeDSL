@@ -6,7 +6,7 @@ use quote::{format_ident, quote};
 use syn::Ident;
 
 impl Getter {
-    pub(in crate::internal) fn map(
+    pub fn map(
         rust_field: &RustField,
         is_option: bool,
         wrapper_type: &Option<WrapperType>,
@@ -74,6 +74,6 @@ impl Getter {
     }
 }
 
-pub(in crate::internal) fn get_getter_method_name(column_name: &Ident) -> Ident {
+pub fn get_getter_method_name(column_name: &Ident) -> Ident {
     format_ident!("get_{column_name}")
 }

@@ -8,6 +8,7 @@ pub mod cascade_hook_error_test;
 pub mod component;
 pub mod entity;
 pub mod hash_index_test;
+pub mod self_referencing_cascade_test;
 pub mod singleton_test;
 pub mod singleton_with_default_test;
 pub mod singleton_with_foreign_key_test;
@@ -35,6 +36,7 @@ fn tester(ctx: &ReducerContext) -> Result<(), String> {
     cascade_hook_error_test::run_tests(&dsl)?;
     soft_deletion::run_tests(&dsl)?;
     update_and_soft_delete_hook_test::run_tests(&dsl)?;
+    self_referencing_cascade_test::run_tests(&dsl)?;
 
     info!("Test executed successfully!");
     Ok(())

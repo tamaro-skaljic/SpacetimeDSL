@@ -39,7 +39,7 @@ mod update;
 mod upsert;
 mod wrapper_method;
 
-pub(in crate::internal) use context::{MethodGenerationContext, TableContributions};
+pub use context::{MethodGenerationContext, TableContributions};
 
 use create::for_create;
 use delete::{for_delete_many, for_delete_one};
@@ -117,7 +117,7 @@ fn column_methods_for(
 }
 
 impl SpacetimeDSLColumnMethods {
-    pub(in crate::internal) fn map(
+    pub fn map(
         context: &MethodGenerationContext,
         spacetimedb_column: &SpacetimeDBColumn,
     ) -> Option<SpacetimeDSLColumnMethods> {
@@ -170,7 +170,7 @@ impl SpacetimeDSLColumnMethods {
 }
 
 impl SpacetimeDSLTableMethods {
-    pub(in crate::internal) fn generate(
+    pub fn generate(
         context: &MethodGenerationContext,
         columns: &[Column],
     ) -> syn::Result<(SpacetimeDSLTableMethods, TableContributions)> {

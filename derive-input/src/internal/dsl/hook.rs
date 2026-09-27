@@ -37,7 +37,7 @@ impl InsertedValue {
 /// Eight flags of the same type, so they travel under their names rather than in a row of
 /// positional arguments no compiler can tell apart.
 #[derive(Clone, Copy)]
-pub(crate) struct DeclaredHooks {
+pub struct DeclaredHooks {
     pub before_insert: bool,
     pub before_update: bool,
     pub before_delete: bool,
@@ -48,7 +48,7 @@ pub(crate) struct DeclaredHooks {
     pub after_soft_delete: bool,
 }
 
-pub(crate) fn build(
+pub fn build(
     singular_table_name: &syn::Ident,
     singleton: Option<SingletonKind>,
     declared: DeclaredHooks,

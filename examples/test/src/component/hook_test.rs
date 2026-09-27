@@ -493,7 +493,7 @@ pub fn my_procedure(ctx: &mut ProcedureContext) {
     }
 }
 
-pub(crate) fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
+pub fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
     let mut strength = dsl.create_attribute(CreateAttribute {
         value: "STRENGTH".to_string(),
     })?;

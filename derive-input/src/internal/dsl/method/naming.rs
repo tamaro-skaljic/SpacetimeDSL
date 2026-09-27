@@ -19,7 +19,7 @@ use crate::internal::dsl::one_or_multiple::OneOrMultiple;
 use quote::format_ident;
 use syn::Ident;
 
-pub(in crate::internal) fn referenced_table_compile_error_check_for_deletions(
+pub fn referenced_table_compile_error_check_for_deletions(
     referenced_table_name: &Ident,
     referencing_table_name: &Ident,
 ) -> Ident {
@@ -28,7 +28,7 @@ pub(in crate::internal) fn referenced_table_compile_error_check_for_deletions(
     )
 }
 
-pub(in crate::internal) fn referenced_table_compile_error_check_for_soft_deletions(
+pub fn referenced_table_compile_error_check_for_soft_deletions(
     referenced_table_name: &Ident,
     referencing_table_name: &Ident,
 ) -> Ident {
@@ -37,7 +37,7 @@ pub(in crate::internal) fn referenced_table_compile_error_check_for_soft_deletio
     )
 }
 
-pub(in crate::internal) fn referencing_table_compile_error_check_for_deletions(
+pub fn referencing_table_compile_error_check_for_deletions(
     referencing_table_name: &Ident,
     referenced_table_name: &Ident,
 ) -> Ident {
@@ -46,7 +46,7 @@ pub(in crate::internal) fn referencing_table_compile_error_check_for_deletions(
     )
 }
 
-pub(in crate::internal) fn referencing_table_compile_error_check_for_soft_deletions(
+pub fn referencing_table_compile_error_check_for_soft_deletions(
     referencing_table_name: &Ident,
     referenced_table_name: &Ident,
 ) -> Ident {
@@ -73,7 +73,7 @@ fn one_row_or_multiple_rows(one_or_multiple: &OneOrMultiple) -> &'static str {
     }
 }
 
-pub(in crate::internal) fn referenced_table_function_name(
+pub fn referenced_table_function_name(
     removal: Removal,
     one_or_multiple: &OneOrMultiple,
     referenced_table_name: &Ident,
@@ -86,7 +86,7 @@ pub(in crate::internal) fn referenced_table_function_name(
     )
 }
 
-pub(in crate::internal) fn referencing_table_function_name(
+pub fn referencing_table_function_name(
     removal: Removal,
     one_or_multiple: &OneOrMultiple,
     referencing_table_name: &Ident,

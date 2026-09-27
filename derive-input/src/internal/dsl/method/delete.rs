@@ -12,7 +12,7 @@ use super::{
 use crate::api::dsl::method::SpacetimeDSLMethod;
 
 /// `delete_<tables>_by_<index>`: delete every row an index matches.
-pub(in crate::internal) fn for_delete_many(
+pub fn for_delete_many(
     shape: &IndexShape,
     context: &MethodGenerationContext,
 ) -> SpacetimeDSLMethod {
@@ -20,9 +20,6 @@ pub(in crate::internal) fn for_delete_many(
 }
 
 /// `delete_<table>_by_<index>`: delete the one row a unique index finds.
-pub(in crate::internal) fn for_delete_one(
-    shape: &IndexShape,
-    context: &MethodGenerationContext,
-) -> SpacetimeDSLMethod {
+pub fn for_delete_one(shape: &IndexShape, context: &MethodGenerationContext) -> SpacetimeDSLMethod {
     for_removal_one(Removal::Hard, shape, context)
 }

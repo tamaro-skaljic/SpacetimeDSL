@@ -47,7 +47,7 @@ use syn::Ident;
 /// reaching through the row again. Which columns need one differs between the two check
 /// sets, so each set names its own scope rather than both settling for the wider one and
 /// leaving the generated code with a binding nothing reads.
-pub(in crate::internal) enum ForeignKeyColumnScope {
+pub enum ForeignKeyColumnScope {
     /// An update check skips a private column, because a column without a setter cannot
     /// change, and it renders the value of every other one into its violation message.
     CheckedOnUpdate,
@@ -98,7 +98,7 @@ fn row_value_getter(internal_column: &InternalColumn) -> TokenStream {
     }
 }
 
-pub(in crate::internal) fn row_value_getters_for_foreign_key_columns(
+pub fn row_value_getters_for_foreign_key_columns(
     internal_columns: &[InternalColumn],
     scope: ForeignKeyColumnScope,
 ) -> Vec<TokenStream> {
@@ -135,7 +135,7 @@ fn updated_at_column<'a>(
 ///
 /// `dsl` is what the timestamp is read through: `self` in a DSL method, the `dsl` argument
 /// in a cascade function.
-pub(in crate::internal) fn set_updated_at_on_update(
+pub fn set_updated_at_on_update(
     spacetimedsl_table: &SpacetimeDSLTable,
     internal_columns: &[InternalColumn],
     dsl: &TokenStream,
@@ -183,7 +183,7 @@ fn set_updated_at_on_insert(
 
 /// The `use` and the call of the `before_update` hook, kept apart because `update.rs` has to
 /// place a prelude between them.
-pub(in crate::internal) fn before_update_hook_use_and_call(
+pub fn before_update_hook_use_and_call(
     spacetimedsl_table: &SpacetimeDSLTable,
     row: &Ident,
     found_row: &Ident,
@@ -216,7 +216,7 @@ pub(in crate::internal) fn before_update_hook_use_and_call(
 /// actually following, keeps both shapes free of warnings, and doing it at the call site
 /// (rather than inside `keep_created_at`, `set_updated_at_on_update`, and their kin) means the
 /// two writes that can follow a hook cannot each emit their own rebinding.
-pub(in crate::internal) fn rebind_row_as_mutable_after_hook(
+pub fn rebind_row_as_mutable_after_hook(
     row: &Ident,
     hook_call: &TokenStream,
     framework_owned_writes: &[&TokenStream],
@@ -230,7 +230,7 @@ pub(in crate::internal) fn rebind_row_as_mutable_after_hook(
     }
 }
 
-pub(in crate::internal) fn after_update_hook(
+pub fn after_update_hook(
     spacetimedsl_table: &SpacetimeDSLTable,
     row: &Ident,
     found_row: &Ident,
@@ -256,7 +256,7 @@ pub(in crate::internal) fn after_update_hook(
 
 /// `<row>.id = 0;` - a singleton's row is written under its one legal key, whatever the
 /// caller left in that field.
-pub(in crate::internal) fn set_singleton_primary_key(row: &Ident) -> TokenStream {
+pub fn set_singleton_primary_key(row: &Ident) -> TokenStream {
     let primary_key = singleton::primary_key_ident();
     let primary_key_value = singleton::primary_key_value();
 
@@ -322,9 +322,7 @@ fn set_created_at_on_insert(
 ///
 /// It emits no multi-column index check and no `itertools` import, because
 /// `internal/db/table.rs` rejects a multi-column index on a singleton.
-pub(in crate::internal) fn for_singleton_upsert(
-    context: &MethodGenerationContext,
-) -> SpacetimeDSLMethod {
+pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
     let MethodGenerationContext {
         spacetimedb_table,
         spacetimedsl_table,

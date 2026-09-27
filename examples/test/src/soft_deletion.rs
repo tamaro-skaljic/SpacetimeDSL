@@ -90,7 +90,7 @@ pub struct ArchiveEntryNote {
 /// `modified_at` is left alone, the cascade retires the referencing row through
 /// `on_soft_delete = SoftDelete` and on to the row referencing that one, and retiring an
 /// already retired row does nothing.
-pub(crate) fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
+pub fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
     let archive = dsl.create_archive(CreateArchive {
         label: "first".to_string(),
     })?;

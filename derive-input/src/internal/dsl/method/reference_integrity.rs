@@ -23,7 +23,7 @@ use quote::{TokenStreamExt, format_ident, quote};
 use syn::Ident;
 
 #[derive(PartialEq, strum::Display)]
-pub(in crate::internal) enum Action {
+pub enum Action {
     Create,
     Get,
     Update,
@@ -79,7 +79,7 @@ fn reference_integrity_checks(
     reference_integrity_checks
 }
 
-pub(in crate::internal) fn reference_integrity_checks_on_create(
+pub fn reference_integrity_checks_on_create(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &[InternalColumn],
 ) -> Vec<TokenStream> {
@@ -121,7 +121,7 @@ pub(in crate::internal) fn reference_integrity_checks_on_create(
 /// reads its primary key off the row through the key's wrapper, but a singleton's injected
 /// `id: u8` has neither a getter nor a wrapper, so the check names its only legal value
 /// instead.
-pub(in crate::internal) fn reference_integrity_checks_on_update(
+pub fn reference_integrity_checks_on_update(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &[InternalColumn],
     column_names_and_row_values: &str,
@@ -212,7 +212,7 @@ pub(in crate::internal) fn reference_integrity_checks_on_update(
     })
 }
 
-pub(in crate::internal) fn multi_column_index_checks(
+pub fn multi_column_index_checks(
     action: Action,
     singular_table_name: &Ident,
     spacetimedb_table: &SpacetimeDBTable,
@@ -317,7 +317,7 @@ fn row_value_getter(internal_column: &InternalColumn, singular_table_name: &Iden
     }
 }
 
-pub(in crate::internal) fn unique_multi_column_index_check(
+pub fn unique_multi_column_index_check(
     action: &Action,
     singular_table_name: &Ident,
     index_name: &Ident,

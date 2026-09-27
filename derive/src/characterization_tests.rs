@@ -217,6 +217,11 @@ fn on_soft_delete_cascade_with_soft_delete_hooks() {
     snapshot_fixture("on_soft_delete_cascade_with_soft_delete_hooks");
 }
 
+#[test]
+fn self_referencing_cascade() {
+    snapshot_fixture("self_referencing_cascade");
+}
+
 /// Expanding the same fixture twice must produce byte-identical output, otherwise the
 /// snapshots above would fail at random and a regenerated module would differ from the
 /// previous one for no reason.

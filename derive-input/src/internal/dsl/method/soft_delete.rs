@@ -21,7 +21,7 @@ use quote::quote;
 use syn::Ident;
 
 /// `soft_delete_<tables>_by_<index>`: retire every row an index matches.
-pub(in crate::internal) fn for_soft_delete_many(
+pub fn for_soft_delete_many(
     shape: &IndexShape,
     context: &MethodGenerationContext,
 ) -> SpacetimeDSLMethod {
@@ -29,7 +29,7 @@ pub(in crate::internal) fn for_soft_delete_many(
 }
 
 /// `soft_delete_<table>_by_<index>`: retire the one row a unique index finds.
-pub(in crate::internal) fn for_soft_delete_one(
+pub fn for_soft_delete_one(
     shape: &IndexShape,
     context: &MethodGenerationContext,
 ) -> SpacetimeDSLMethod {
@@ -41,11 +41,7 @@ pub(in crate::internal) fn for_soft_delete_one(
 /// `dsl` is what the surrounding body calls `ctx()` on for the `Timestamp` shape: `self`
 /// inside a DSL method, `dsl` inside a cascade function, which is a free function taking
 /// the DSL as an argument.
-pub(in crate::internal) fn set_marker(
-    marker: &SoftDeleteMarker,
-    dsl: &TokenStream,
-    row: &Ident,
-) -> TokenStream {
+pub fn set_marker(marker: &SoftDeleteMarker, dsl: &TokenStream, row: &Ident) -> TokenStream {
     let column_name = &marker.column_name;
 
     match marker.kind {
@@ -63,7 +59,7 @@ pub(in crate::internal) fn set_marker(
 }
 
 /// The expression that asks whether a row is already retired.
-pub(in crate::internal) fn is_marked(marker: &SoftDeleteMarker, row: &TokenStream) -> TokenStream {
+pub fn is_marked(marker: &SoftDeleteMarker, row: &TokenStream) -> TokenStream {
     let column_name = &marker.column_name;
 
     match marker.kind {

@@ -19,7 +19,7 @@ mod wrapper_method;
 
 /// The generated output, split so callers can inspect every DSL method on its own
 /// instead of walking the [`Table`] a second time themselves.
-pub(crate) struct GeneratedOutput {
+pub struct GeneratedOutput {
     /// Compile-error checks, wrapper types, the accessor `impl`, the create-argument struct and
     /// the hook traits - everything the macro emits that is neither a DSL method nor a wrapper method.
     pub items_outside_dsl_methods: TokenStream,
@@ -30,7 +30,7 @@ pub(crate) struct GeneratedOutput {
 
 impl GeneratedOutput {
     /// Concatenates the halves in the order the macro emits them.
-    pub(crate) fn into_token_stream(self) -> TokenStream {
+    pub fn into_token_stream(self) -> TokenStream {
         let items_outside_dsl_methods = self.items_outside_dsl_methods;
         let dsl_methods = self
             .dsl_methods
@@ -48,7 +48,7 @@ impl GeneratedOutput {
     }
 }
 
-pub(crate) struct GeneratedDSLMethod {
+pub struct GeneratedDSLMethod {
     /// Only read by the characterization tests, which snapshot each method under its own name.
     #[cfg_attr(not(test), allow(dead_code))]
     pub method_name: Ident,
@@ -60,7 +60,7 @@ pub(crate) struct GeneratedDSLMethod {
     pub tokens: TokenStream,
 }
 
-pub(crate) fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedOutput> {
+pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedOutput> {
     let struct_name = format_ident!("{}", &input.rust_struct.name.to_string());
     let mut wrapper_types = vec![];
 

@@ -10,7 +10,7 @@ use quote::format_ident;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::DeriveInput;
 
-pub(in crate::internal) fn try_parse(
+pub fn try_parse(
     input: &DeriveInput,
     dsl_data: DSLData,
     table_args: &TableArgs,

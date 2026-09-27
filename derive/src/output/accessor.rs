@@ -5,13 +5,13 @@ use syn::{Ident, Visibility, parse_str, token};
 
 use crate::output::doc_comment;
 
-pub(super) enum Accessor<'a> {
+pub enum Accessor<'a> {
     Getter(&'a Getter),
     MutGetter(&'a MutGetter),
     Setter(&'a Setter),
 }
 
-pub(super) fn build(accessor: Accessor<'_>) -> syn::Result<TokenStream> {
+pub fn build(accessor: Accessor<'_>) -> syn::Result<TokenStream> {
     let accessor = accessor.definition()?;
     let method = accessor.method_tokens();
     let doc_comment = doc_comment::implementation_doc_comment(method.clone());

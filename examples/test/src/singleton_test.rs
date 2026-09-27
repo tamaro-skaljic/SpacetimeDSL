@@ -12,7 +12,7 @@ pub struct GameConfig {
     pub game_name: String,
 }
 
-pub(crate) fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
+pub fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
     let game_config = dsl
         .create_game_config(CreateGameConfig {
             max_players: 10,
