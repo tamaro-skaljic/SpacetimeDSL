@@ -4,7 +4,7 @@ use spacetime_bindings_macro_input::sats::SatsField;
 use syn::parse2;
 
 impl RustField {
-    pub fn map(field: &SatsField<'_>) -> RustField {
+    pub(crate) fn map(field: &SatsField<'_>) -> RustField {
         let visibility = RustVisibility::map(field.vis);
         let name = field.ident.expect("should have a name").clone();
         let type_name_or_path =

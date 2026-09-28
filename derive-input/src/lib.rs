@@ -70,5 +70,4 @@ pub mod api {
     }
 }
 
-#[doc(hidden)]
 mod internal;

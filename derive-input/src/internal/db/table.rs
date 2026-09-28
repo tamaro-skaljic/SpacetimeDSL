@@ -13,7 +13,7 @@ use spacetime_bindings_macro_input::table::{
 use syn::Ident;
 
 impl SpacetimeDBTable {
-    pub fn map(table: &TableArgs, is_singleton: bool) -> syn::Result<SpacetimeDBTable> {
+    pub(crate) fn map(table: &TableArgs, is_singleton: bool) -> syn::Result<SpacetimeDBTable> {
         let singular_name = rm_rsharp(table.accessor.clone());
         let visibility = SpacetimeDBTableVisibility::map(&table.access);
         let indices: Vec<Index> = table.indices.iter().map(Index::map).collect();

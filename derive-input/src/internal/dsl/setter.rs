@@ -8,7 +8,7 @@ use crate::{
 use quote::{format_ident, quote};
 
 impl Setter {
-    pub fn map(
+    pub(crate) fn map(
         rust_field: &RustField,
         is_option: bool,
         wrapper_type: &Option<WrapperType>,

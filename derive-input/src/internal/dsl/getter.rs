@@ -6,7 +6,7 @@ use quote::{format_ident, quote};
 use syn::Ident;
 
 impl Getter {
-    pub fn map(
+    pub(crate) fn map(
         rust_field: &RustField,
         is_option: bool,
         wrapper_type: &Option<WrapperType>,

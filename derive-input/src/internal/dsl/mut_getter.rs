@@ -6,7 +6,10 @@ use quote::{format_ident, quote};
 use syn::Ident;
 
 impl MutGetter {
-    pub fn map(rust_field: &RustField, wrapper_type: &Option<WrapperType>) -> Option<MutGetter> {
+    pub(crate) fn map(
+        rust_field: &RustField,
+        wrapper_type: &Option<WrapperType>,
+    ) -> Option<MutGetter> {
         if let RustVisibility::Private = rust_field.visibility {
             return None;
         };

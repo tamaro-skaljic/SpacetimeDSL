@@ -11,7 +11,7 @@ use syn::meta::ParseNestedMeta;
 use syn::{Ident, Meta, Path};
 
 impl ForeignKey {
-    pub fn try_parse(
+    pub(crate) fn try_parse(
         has_delete_method: &bool,
         is_soft_deletable: bool,
         is_singleton: bool,

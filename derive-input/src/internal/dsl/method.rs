@@ -117,7 +117,7 @@ fn column_methods_for(
 }
 
 impl SpacetimeDSLColumnMethods {
-    pub fn map(
+    pub(crate) fn map(
         context: &MethodGenerationContext,
         spacetimedb_column: &SpacetimeDBColumn,
     ) -> Option<SpacetimeDSLColumnMethods> {
@@ -170,7 +170,7 @@ impl SpacetimeDSLColumnMethods {
 }
 
 impl SpacetimeDSLTableMethods {
-    pub fn generate(
+    pub(crate) fn generate(
         context: &MethodGenerationContext,
         columns: &[Column],
     ) -> syn::Result<(SpacetimeDSLTableMethods, TableContributions)> {
