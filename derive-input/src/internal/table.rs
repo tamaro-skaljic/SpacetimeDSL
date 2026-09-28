@@ -43,12 +43,12 @@ pub fn try_parse(
 
     let dsl_unique_index_names = dsl_unique_index_names(&dsl_data, &multi_column_indices);
 
-    let spacetimedb_table = SpacetimeDBTable::map(
-        table_args,
-        multi_column_indices,
-        &dsl_unique_index_names,
-        dsl_data.kind.singleton().is_some(),
-    )?;
+    if dsl_data.kind.singleton().is_some() {
+        crate::internal::dsl::singleton::reject_multi_column_indices(&multi_column_indices)?;
+    }
+
+    let spacetimedb_table =
+        SpacetimeDBTable::map(table_args, multi_column_indices, &dsl_unique_index_names)?;
 
     let mut spacetimedsl_table =
         SpacetimeDSLTable::try_parse(dsl_data, column_args, &table_args.accessor.unraw())?;

@@ -1,12 +1,9 @@
 use std::collections::BTreeSet;
 
-use crate::{
-    api::db::{
-        index::{Index, IndexType},
-        reducer::ScheduledReducer,
-        table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
-    },
-    internal::error,
+use crate::api::db::{
+    index::{Index, IndexType},
+    reducer::ScheduledReducer,
+    table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
 };
 use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::table::{
@@ -23,24 +20,10 @@ impl SpacetimeDBTable {
         table: &TableArgs,
         multi_column_indices: Vec<Index>,
         dsl_unique_index_names: &BTreeSet<Ident>,
-        is_singleton: bool,
     ) -> syn::Result<SpacetimeDBTable> {
         let singular_name = table.accessor.unraw();
         let visibility = SpacetimeDBTableVisibility::map(&table.access);
         let scheduled_reducer = table.scheduled.as_ref().map(ScheduledReducer::map);
-
-        // Singleton validation: no multi-column indices allowed
-        if is_singleton {
-            for index in &multi_column_indices {
-                match &index.index_type {
-                    IndexType::BTreeMultiColumn { columns }
-                    | IndexType::HashMultiColumn { columns } => {
-                        return Err(error::multi_column_index_on_singleton(&index.name, columns));
-                    }
-                    _ => {}
-                }
-            }
-        }
 
         let multi_column_indices = multi_column_indices
             .into_iter()

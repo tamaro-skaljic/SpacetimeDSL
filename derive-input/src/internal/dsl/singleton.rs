@@ -10,7 +10,9 @@
 use proc_macro2::{Literal, Span};
 use syn::{Ident, Path};
 
+use crate::api::db::index::{Index, IndexType};
 use crate::internal::column::canonical_type;
+use crate::internal::error;
 
 /// The name of the injected column.
 pub const PRIMARY_KEY_NAME: &str = "id";
@@ -51,4 +53,18 @@ pub fn rendered_primary_key() -> String {
 /// of its columns the injection added.
 pub fn is_primary_key_column(name: &Ident, type_name_or_path: &Path) -> bool {
     name == PRIMARY_KEY_NAME && canonical_type(type_name_or_path) == PRIMARY_KEY_TYPE
+}
+
+/// A singleton holds one row, which its injected primary key already finds, so an index over
+/// several of its columns has nothing to look up.
+pub fn reject_multi_column_indices(multi_column_indices: &[Index]) -> syn::Result<()> {
+    for index in multi_column_indices {
+        if let IndexType::BTreeMultiColumn { columns } | IndexType::HashMultiColumn { columns } =
+            &index.index_type
+        {
+            return Err(error::multi_column_index_on_singleton(&index.name, columns));
+        }
+    }
+
+    Ok(())
 }
