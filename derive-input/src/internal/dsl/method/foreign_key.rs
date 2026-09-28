@@ -8,7 +8,7 @@ use {
     super::{
         context::{MethodGenerationContext, TableContributions},
         naming::{
-            referenced_table_compile_error_check_for_deletions,
+            cascade_binding, referenced_table_compile_error_check_for_deletions,
             referenced_table_compile_error_check_for_soft_deletions,
             referencing_table_compile_error_check_for_deletions,
             referencing_table_compile_error_check_for_soft_deletions,
@@ -132,15 +132,24 @@ pub fn for_foreign_key(
             format!(
                 "Execute On Delete Strategies of the referencing table `{singular_table_name}` after one row of the referenced table `{referenced_table_name}` {past_tense}."
             ),
-            format_ident!("primary_key_value_of_a_row_of_another_table_to_delete"),
+            cascade_binding::primary_key_value_of_a_row_of_another_table_to_delete(),
         ),
         OneOrMultiple::Multiple => (
             format!(
                 "Execute On Delete Strategies of the referencing table `{singular_table_name}` after multiple rows of the referenced table `{referenced_table_name}` {past_tense}."
             ),
-            format_ident!("primary_key_values_of_rows_of_another_table_to_delete"),
+            cascade_binding::primary_key_values_of_rows_of_another_table_to_delete(),
         ),
     };
+
+    let entries = cascade_binding::entries();
+    let error = cascade_binding::error();
+    let error_from_hook = cascade_binding::error_from_hook();
+    let outer = cascade_binding::outer();
+    let primary_key_value_of_a_row_of_another_table_to_delete =
+        cascade_binding::primary_key_value_of_a_row_of_another_table_to_delete();
+    let primary_key_values_of_rows_of_another_table_to_delete =
+        cascade_binding::primary_key_values_of_rows_of_another_table_to_delete();
 
     let on_delete_strategy_type = runtime::on_delete_strategy_type();
 
@@ -154,14 +163,14 @@ pub fn for_foreign_key(
     let create_data_structure_for_child_entries = match one_or_multiple {
         OneOrMultiple::One => {
             quote! {
-                let mut entries = vec![];
+                let mut #entries = vec![];
             }
         }
         OneOrMultiple::Multiple => {
             quote! {
-                let mut entries = std::collections::HashMap::new();
-                for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
-                    entries.insert(primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
+                let mut #entries = std::collections::HashMap::new();
+                for #primary_key_value_of_a_row_of_another_table_to_delete in #primary_key_values_of_rows_of_another_table_to_delete {
+                    #entries.insert(#primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
                 }
             }
         }
@@ -222,9 +231,8 @@ pub fn for_foreign_key(
         use #referenced_table_path::#compile_error_check;
     };
 
-    let error_from_hook_declaration = runtime::error_from_hook_declaration();
-    let failure =
-        runtime::on_delete_strategy_failure(&quote! { entries }, &quote! { error_from_hook });
+    let error_from_hook_declaration = runtime::error_from_hook_declaration(&error_from_hook);
+    let failure = runtime::on_delete_strategy_failure(&entries, &error_from_hook);
 
     let itertools_import = runtime::itertools_import();
 
@@ -235,16 +243,16 @@ pub fn for_foreign_key(
         #create_data_structure_for_child_entries
 
         #error_from_hook_declaration
-        let mut error = false;
+        let mut #error = false;
 
-        'outer: {
+        #outer: {
             match &strategy {
                 #(#strategy_implementations)*
             };
         }
 
-        match error {
-            false => Ok(entries),
+        match #error {
+            false => Ok(#entries),
             true => Err(#failure),
         }
     };

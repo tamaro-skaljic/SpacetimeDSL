@@ -11,7 +11,7 @@ use {
         context::{self, MethodGenerationContext},
         hook_call::hook_tokens,
         index::{IndexColumnArguments, IndexShape, index_accessor, index_column_arguments},
-        message,
+        message, naming,
         reference_integrity::{Action, unique_multi_column_index_check},
         referenced_by::referenced_table_function_call_for_dsl_method,
         soft_delete,
@@ -85,7 +85,7 @@ pub fn dispatcher_signature(
     let arguments = vec![
         SpacetimeDSLArg {
             is_option: false,
-            arg_name: format_ident!("dsl"),
+            arg_name: naming::cascade_binding::dsl(),
             arg_type: SpacetimeDSLArgType::Normal(runtime::dsl_reference_type()),
         },
         SpacetimeDSLArg {

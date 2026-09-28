@@ -126,3 +126,62 @@ pub fn referencing_table_function_name(
         "execute_on_delete_strategies_of_the_{referencing_table_name}_table_after_{count}_of_the_{referenced_table_name}_table_{suffix}"
     )
 }
+
+/// The bindings the fragments of a cascade dispatcher share.
+///
+/// `for_foreign_key` declares the dispatcher's arguments and state, and the strategy
+/// fragments `on_delete_strategy.rs` generates read and write them, as do the fragments of
+/// one strategy among each other. Nothing checks that the names meet until a user's crate
+/// expands the macro, so each is spelled only here.
+pub(crate) mod cascade_binding {
+    use {
+        proc_macro2::Span,
+        quote::format_ident,
+        syn::{Ident, Lifetime},
+    };
+
+    /// The DSL the dispatcher receives.
+    pub(crate) fn dsl() -> Ident {
+        format_ident!("dsl")
+    }
+
+    /// The entries the dispatcher returns, a `Vec` for one row or a `HashMap` for many.
+    pub(crate) fn entries() -> Ident {
+        format_ident!("entries")
+    }
+
+    /// Whether a strategy failed, which ends the labelled block early.
+    pub(crate) fn error() -> Ident {
+        format_ident!("error")
+    }
+
+    /// The error a hook raised, if one did.
+    pub(crate) fn error_from_hook() -> Ident {
+        format_ident!("error_from_hook")
+    }
+
+    /// The label of the block a failing strategy breaks out of.
+    pub(crate) fn outer() -> Lifetime {
+        Lifetime::new("'outer", Span::call_site())
+    }
+
+    /// The primary key value of the one referenced row that was removed.
+    pub(crate) fn primary_key_value_of_a_row_of_another_table_to_delete() -> Ident {
+        format_ident!("primary_key_value_of_a_row_of_another_table_to_delete")
+    }
+
+    /// The primary key values of the referenced rows that were removed.
+    pub(crate) fn primary_key_values_of_rows_of_another_table_to_delete() -> Ident {
+        format_ident!("primary_key_values_of_rows_of_another_table_to_delete")
+    }
+
+    /// The primary key values of this table's rows a strategy removes in turn.
+    pub(crate) fn primary_key_values_of_rows_to_delete() -> Ident {
+        format_ident!("primary_key_values_of_rows_to_delete")
+    }
+
+    /// The entries of the tables this table's removed rows cascaded into, by row.
+    pub(crate) fn child_entries_by_primary_key_value_of_row_to_delete() -> Ident {
+        format_ident!("child_entries_by_primary_key_value_of_row_to_delete")
+    }
+}

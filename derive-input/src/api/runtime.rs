@@ -178,15 +178,16 @@ pub fn on_delete_strategy_failure_type(entries_type: &impl ToTokens) -> TokenStr
     }
 }
 
-/// `let mut error_from_hook: Option<Box<SpacetimeDSLError>> = None;`
+/// `let mut #error_from_hook: Option<Box<SpacetimeDSLError>> = None;`, under the binding the
+/// caller names.
 ///
 /// Annotated rather than inferred: a table whose strategies never assign to it would
 /// otherwise leave the type ambiguous.
-pub fn error_from_hook_declaration() -> TokenStream {
+pub fn error_from_hook_declaration(error_from_hook: &impl ToTokens) -> TokenStream {
     let error_type = spacetimedsl_error_type();
 
     quote! {
-        let mut error_from_hook: Option<Box<#error_type>> = None;
+        let mut #error_from_hook: Option<Box<#error_type>> = None;
     }
 }
 

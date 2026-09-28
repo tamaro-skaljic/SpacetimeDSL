@@ -265,7 +265,8 @@ pub fn for_referenced_by(
         );
     }
 
-    let error_from_hook_declaration = runtime::error_from_hook_declaration();
+    let error_from_hook_declaration =
+        runtime::error_from_hook_declaration(&quote! { error_from_hook });
     let failure =
         runtime::on_delete_strategy_failure(&quote! { entries }, &quote! { error_from_hook });
 
