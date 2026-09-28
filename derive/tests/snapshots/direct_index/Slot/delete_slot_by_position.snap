@@ -13,9 +13,9 @@ Try to delete a `Slot` row in the `slot` table whose value matches the unique si
         crate::spacetimedsl::delete::DeletionResult,
         crate::spacetimedsl::error::SpacetimeDSLError,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::itertools::Itertools;
         let position = position;
         let row_to_delete = self.db().slot().position().find(position);
         let row_to_delete = match row_to_delete {

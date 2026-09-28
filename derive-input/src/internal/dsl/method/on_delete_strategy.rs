@@ -5,25 +5,34 @@
 //! row, `Ignore` does nothing. Each is generated into one arm of the match in
 //! [`super::foreign_key`].
 
-use super::{
-    context::{self, MethodGenerationContext},
-    hook_call::hook_use_and_call,
-    naming::referenced_table_function_name,
-    removal::Removal,
-    soft_delete,
-    upsert::{rebind_row_as_mutable_after_hook, set_updated_at_on_update},
-};
-use crate::{
-    api::{
-        Column,
-        dsl::{foreign_key::OnDeleteStrategy, hook::SpacetimeDSLMethodHook},
-        runtime,
+use {
+    super::{
+        context::{self, MethodGenerationContext},
+        hook_call::hook_use_and_call,
+        naming::{cascade_binding, referenced_table_function_name},
+        removal::Removal,
+        soft_delete,
+        upsert::{rebind_row_as_mutable_after_hook, set_updated_at_on_update},
     },
-    internal::dsl::{one_or_multiple::OneOrMultiple, singleton},
+    crate::{
+        api::{
+            Column,
+            dsl::{
+                foreign_key::OnDeleteStrategy,
+                hook::{HookKind, SpacetimeDSLMethodHook},
+            },
+            runtime,
+        },
+        internal::{
+            column::ColumnTypeKind,
+            dsl::{one_or_multiple::OneOrMultiple, singleton},
+            spacetimedb,
+        },
+    },
+    proc_macro2::TokenStream,
+    quote::{TokenStreamExt, format_ident, quote},
+    syn::Ident,
 };
-use proc_macro2::TokenStream;
-use quote::{TokenStreamExt, format_ident, quote};
-use syn::Ident;
 
 /// How the generated code binds the row it iterates over or matches on.
 #[derive(Clone, Copy)]
@@ -64,8 +73,21 @@ pub fn on_delete_strategy_implementation(
         ..
     } = context;
 
+    let dsl = cascade_binding::dsl();
+    let entries = cascade_binding::entries();
+    let error = cascade_binding::error();
+    let error_from_hook = cascade_binding::error_from_hook();
+    let outer = cascade_binding::outer();
+    let primary_key_value_of_a_row_of_another_table_to_delete =
+        cascade_binding::primary_key_value_of_a_row_of_another_table_to_delete();
+    let primary_key_values_of_rows_of_another_table_to_delete =
+        cascade_binding::primary_key_values_of_rows_of_another_table_to_delete();
+    let primary_key_values_of_rows_to_delete =
+        cascade_binding::primary_key_values_of_rows_to_delete();
+    let child_entries_by_primary_key_value_of_row_to_delete =
+        cascade_binding::child_entries_by_primary_key_value_of_row_to_delete();
     let spacetimedb_call_prefix = quote! {
-        dsl
+        #dsl
             .db()
             .#singular_table_name()
     };
@@ -110,23 +132,31 @@ pub fn on_delete_strategy_implementation(
             let primary_key_value = singleton::primary_key_value();
 
             quote! {
-                #spacetimedb_call_prefix.#primary_key().find(&#primary_key_value).filter(|row| row.#column_name == *primary_key_value_of_a_row_of_another_table_to_delete)
+                #spacetimedb_call_prefix.#primary_key().find(&#primary_key_value).filter(|row| row.#column_name == *#primary_key_value_of_a_row_of_another_table_to_delete)
             }
         } else {
+            // The index is reached through its own accessor, which is the column's name only
+            // when the index was declared on the field rather than in `#[table]`.
+            let index_name = &column
+                .spacetimedb_column
+                .single_column_index
+                .as_ref()
+                .expect("A foreign key column always has a single-column index, except in singleton-tables")
+                .name;
+
             match index_uniqueness {
                 IndexUniqueness::Unique => {
                     quote! {
-                        #spacetimedb_call_prefix.#column_name().find(primary_key_value_of_a_row_of_another_table_to_delete)
+                        #spacetimedb_call_prefix.#index_name().find(#primary_key_value_of_a_row_of_another_table_to_delete)
                     }
                 }
                 IndexUniqueness::NonUnique => {
                     quote! {
-                        #spacetimedb_call_prefix.#column_name().filter(primary_key_value_of_a_row_of_another_table_to_delete)
+                        #spacetimedb_call_prefix.#index_name().filter(#primary_key_value_of_a_row_of_another_table_to_delete)
                     }
                 }
             }
         };
-
         let row_value_format = if is_singleton {
             // The injected primary key has no wrapper type to render it.
             let rendered_primary_key_value = singleton::rendered_primary_key_value();
@@ -143,20 +173,20 @@ pub fn on_delete_strategy_implementation(
             &column_name_as_string,
             on_delete_strategy,
             &row_value_format,
-            &quote! { child_entries, },
+            &quote! { child_entries },
         );
 
         let create_entry_and_add_it_to_entries = match one_or_multiple {
             OneOrMultiple::One => {
                 quote! {
-                    entries.push(
+                    #entries.push(
                         #create_entry
                     );
                 }
             }
             OneOrMultiple::Multiple => {
                 quote! {
-                    entries.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).expect(&format!("{primary_key_value_of_a_row_of_another_table_to_delete} should exist in entries.")).push(#create_entry);
+                    #entries.get_mut(#primary_key_value_of_a_row_of_another_table_to_delete).expect(#ENTRY_LIST_PREPARED).push(#create_entry);
                 }
             }
         };
@@ -168,7 +198,7 @@ pub fn on_delete_strategy_implementation(
                     index_uniqueness,
                     &row_finder,
                     quote! {
-                        error = true;
+                        #error = true;
 
                         let child_entries = vec![];
                         let #primary_key_column_name = &row.#primary_key_column_name;
@@ -181,18 +211,18 @@ pub fn on_delete_strategy_implementation(
                 // so they are hoisted into strategy_for_before_hook / _after_hook instead
                 // of being emitted next to the call.
                 let (use_before_delete_hook_trait, before_delete_hook) = hook_use_and_call(
-                    &spacetimedsl_table.hooks.before_delete,
+                    spacetimedsl_table.hooks.get(HookKind::BEFORE_DELETE),
                     |hook_function_name| {
                         let hook_call = runtime::dsl_method_hooks_call(
                             hook_function_name,
-                            &quote! { &dsl, &row },
+                            &quote! { &#dsl, &row },
                         );
 
                         quote! {
                             if let Err(error_raised_by_the_hook) = #hook_call {
-                                error = true;
-                                error_from_hook = Some(Box::new(error_raised_by_the_hook));
-                                break 'outer;
+                                #error = true;
+                                #error_from_hook = Some(Box::new(error_raised_by_the_hook));
+                                break #outer;
                             }
                         }
                     },
@@ -200,18 +230,18 @@ pub fn on_delete_strategy_implementation(
                 strategy_for_before_hook = use_before_delete_hook_trait;
 
                 let (use_after_delete_hook_trait, after_delete_hook) = hook_use_and_call(
-                    &spacetimedsl_table.hooks.after_delete,
+                    spacetimedsl_table.hooks.get(HookKind::AFTER_DELETE),
                     |hook_function_name| {
                         let hook_call = runtime::dsl_method_hooks_call(
                             hook_function_name,
-                            &quote! { &dsl, &row },
+                            &quote! { &#dsl, &row },
                         );
 
                         quote! {
                             if let Err(error_raised_by_the_hook) = #hook_call {
-                                error = true;
-                                error_from_hook = Some(Box::new(error_raised_by_the_hook));
-                                break 'outer;
+                                #error = true;
+                                #error_from_hook = Some(Box::new(error_raised_by_the_hook));
+                                break #outer;
                             }
                         }
                     },
@@ -238,21 +268,18 @@ pub fn on_delete_strategy_implementation(
                         },
                     )),
                     ReferencingTables::Present => {
-                        let format_str = format!(
-                            "{primary_key_column_name} should exist in child_entries_by_primary_key_value_of_row_to_delete."
-                        );
                         let create_entries_and_add_them_to_entries = quote! {
-                            for (primary_key_value_of_a_row_of_another_table_to_delete, primary_key_values_of_rows_to_delete) in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete {
-                                for #primary_key_column_name in &primary_key_values_of_rows_to_delete {
-                                    let child_entries = child_entries_by_primary_key_value_of_row_to_delete.remove(&#primary_key_column_name).expect(&#format_str);
+                            for (#primary_key_value_of_a_row_of_another_table_to_delete, #primary_key_values_of_rows_to_delete) in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete {
+                                for #primary_key_column_name in &#primary_key_values_of_rows_to_delete {
+                                    let child_entries = #child_entries_by_primary_key_value_of_row_to_delete.remove(&#primary_key_column_name).expect(#CHILD_ENTRY_LIST_PREPARED);
                                     #create_entry_and_add_it_to_entries
                                 }
                             }
                         };
 
                         let failure = runtime::on_delete_strategy_failure(
-                            &quote! { entries },
-                            &quote! { error_from_hook },
+                            &quote! { #entries },
+                            &quote! { #error_from_hook },
                         );
 
                         let on_error_handler = quote! {
@@ -304,35 +331,35 @@ pub fn on_delete_strategy_implementation(
                             );
 
                         strategy_for_referenced_by = quote! {
-                            let mut child_entries_by_primary_key_value_of_row_to_delete = std::collections::HashMap::new();
+                            let mut #child_entries_by_primary_key_value_of_row_to_delete = std::collections::HashMap::new();
                             let mut row_to_delete_by_primary_key_value = std::collections::HashMap::new();
                             let mut primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete = std::collections::HashMap::new();
                         };
 
                         match one_or_multiple {
                             OneOrMultiple::One => strategy_for_referenced_by.append_all(quote! {
-                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.insert(primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
+                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.insert(#primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
                             }),
                             OneOrMultiple::Multiple => strategy_for_referenced_by.append_all(quote! {
-                                for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
-                                    primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.insert(primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
+                                for #primary_key_value_of_a_row_of_another_table_to_delete in #primary_key_values_of_rows_of_another_table_to_delete {
+                                    primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.insert(#primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
                                 }
                             }),
                         };
 
                         let strategy_for_each_row = quote! {
-                            if !child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.#primary_key_column_name) {
-                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).expect(&format!("{primary_key_value_of_a_row_of_another_table_to_delete} should exist in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.")).push(row.#primary_key_column_name);
-                                child_entries_by_primary_key_value_of_row_to_delete.insert(row.#primary_key_column_name, vec![]);
+                            if !#child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.#primary_key_column_name) {
+                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(#primary_key_value_of_a_row_of_another_table_to_delete).expect(#ROW_LIST_PREPARED).push(row.#primary_key_column_name);
+                                #child_entries_by_primary_key_value_of_row_to_delete.insert(row.#primary_key_column_name, vec![]);
                             row_to_delete_by_primary_key_value.insert(row.#primary_key_column_name, row);
                             }
                         };
 
                         let delete_many_impl = quote! {
-                            for #primary_key_column_name in &primary_key_values_of_rows_to_delete {
+                            for #primary_key_column_name in &#primary_key_values_of_rows_to_delete {
                                 let row = row_to_delete_by_primary_key_value
                                     .get(#primary_key_column_name)
-                                    .expect("Should exist");
+                                    .expect(#ROW_RECORDED);
 
                                 #before_delete_hook
 
@@ -347,7 +374,7 @@ pub fn on_delete_strategy_implementation(
                         };
 
                         strategy_after_all = quote! {
-                            let primary_key_values_of_rows_to_delete = child_entries_by_primary_key_value_of_row_to_delete.keys().cloned().collect_vec();
+                            let #primary_key_values_of_rows_to_delete = #child_entries_by_primary_key_value_of_row_to_delete.keys().cloned().collect_vec();
 
                             #error_strategy
 
@@ -381,14 +408,14 @@ pub fn on_delete_strategy_implementation(
                 let row = format_ident!("row");
                 let is_row_marked = soft_delete::is_marked(marker, &quote! { row });
 
-                let set_marker = soft_delete::set_marker(marker, &quote! { dsl }, &row);
+                let set_marker = soft_delete::set_marker(marker, &quote! { #dsl }, &row);
 
                 // The two imports have to escape the per-row loop their guard sits in, so
                 // they are hoisted the way the `Delete` arm hoists its own.
                 let build_hooks = |old_row: TokenStream| {
                     hooks_around_the_write(
-                        &spacetimedsl_table.hooks.before_soft_delete,
-                        &spacetimedsl_table.hooks.after_soft_delete,
+                        spacetimedsl_table.hooks.get(HookKind::BEFORE_SOFT_DELETE),
+                        spacetimedsl_table.hooks.get(HookKind::AFTER_SOFT_DELETE),
                         &old_row,
                     )
                 };
@@ -413,11 +440,18 @@ pub fn on_delete_strategy_implementation(
 
                 match referencing_tables {
                     ReferencingTables::Absent => {
-                        let (before_soft_delete_hook, after_soft_delete_hook) =
-                            build_hooks(quote! { &old_row });
-                        let (use_before_hook_trait, before_soft_delete_hook) =
-                            before_soft_delete_hook;
-                        let (use_after_hook_trait, after_soft_delete_hook) = after_soft_delete_hook;
+                        let HooksAroundTheWrite {
+                            before:
+                                HookFragments {
+                                    use_trait: use_before_hook_trait,
+                                    call: before_soft_delete_hook,
+                                },
+                            after:
+                                HookFragments {
+                                    use_trait: use_after_hook_trait,
+                                    call: after_soft_delete_hook,
+                                },
+                        } = build_hooks(quote! { &old_row });
                         strategy_for_before_hook = use_before_hook_trait;
                         strategy_for_after_hook = use_after_hook_trait;
 
@@ -465,32 +499,36 @@ pub fn on_delete_strategy_implementation(
                         ));
                     }
                     ReferencingTables::Present => {
-                        let (before_soft_delete_hook, after_soft_delete_hook) =
-                            build_hooks(quote! { old_row });
-                        let (use_before_hook_trait, before_soft_delete_hook) =
-                            before_soft_delete_hook;
-                        let (use_after_hook_trait, after_soft_delete_hook) = after_soft_delete_hook;
+                        let HooksAroundTheWrite {
+                            before:
+                                HookFragments {
+                                    use_trait: use_before_hook_trait,
+                                    call: before_soft_delete_hook,
+                                },
+                            after:
+                                HookFragments {
+                                    use_trait: use_after_hook_trait,
+                                    call: after_soft_delete_hook,
+                                },
+                        } = build_hooks(quote! { old_row });
                         strategy_for_before_hook = use_before_hook_trait;
                         strategy_for_after_hook = use_after_hook_trait;
 
                         let (rebind_row, store_row) =
                             write_and_store(&before_soft_delete_hook, &after_soft_delete_hook);
 
-                        let format_str = format!(
-                            "{primary_key_column_name} should exist in child_entries_by_primary_key_value_of_row_to_delete."
-                        );
                         let create_entries_and_add_them_to_entries = quote! {
-                            for (primary_key_value_of_a_row_of_another_table_to_delete, primary_key_values_of_rows_to_delete) in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete {
-                                for #primary_key_column_name in &primary_key_values_of_rows_to_delete {
-                                    let child_entries = child_entries_by_primary_key_value_of_row_to_delete.remove(&#primary_key_column_name).expect(&#format_str);
+                            for (#primary_key_value_of_a_row_of_another_table_to_delete, #primary_key_values_of_rows_to_delete) in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete {
+                                for #primary_key_column_name in &#primary_key_values_of_rows_to_delete {
+                                    let child_entries = #child_entries_by_primary_key_value_of_row_to_delete.remove(&#primary_key_column_name).expect(#CHILD_ENTRY_LIST_PREPARED);
                                     #create_entry_and_add_it_to_entries
                                 }
                             }
                         };
 
                         let failure = runtime::on_delete_strategy_failure(
-                            &quote! { entries },
-                            &quote! { error_from_hook },
+                            &quote! { #entries },
+                            &quote! { #error_from_hook },
                         );
 
                         let on_error_handler = quote! {
@@ -526,26 +564,26 @@ pub fn on_delete_strategy_implementation(
                             );
 
                         strategy_for_referenced_by = quote! {
-                            let mut child_entries_by_primary_key_value_of_row_to_delete = std::collections::HashMap::new();
+                            let mut #child_entries_by_primary_key_value_of_row_to_delete = std::collections::HashMap::new();
                             let mut row_to_delete_by_primary_key_value = std::collections::HashMap::new();
                             let mut primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete = std::collections::HashMap::new();
                         };
 
                         match one_or_multiple {
                             OneOrMultiple::One => strategy_for_referenced_by.append_all(quote! {
-                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.insert(primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
+                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.insert(#primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
                             }),
                             OneOrMultiple::Multiple => strategy_for_referenced_by.append_all(quote! {
-                                for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
-                                    primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.insert(primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
+                                for #primary_key_value_of_a_row_of_another_table_to_delete in #primary_key_values_of_rows_of_another_table_to_delete {
+                                    primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.insert(#primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
                                 }
                             }),
                         };
 
                         let strategy_for_each_row = quote! {
-                            if !(#is_row_marked) && !child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.#primary_key_column_name) {
-                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(primary_key_value_of_a_row_of_another_table_to_delete).expect(&format!("{primary_key_value_of_a_row_of_another_table_to_delete} should exist in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.")).push(row.#primary_key_column_name);
-                                child_entries_by_primary_key_value_of_row_to_delete.insert(row.#primary_key_column_name, vec![]);
+                            if !(#is_row_marked) && !#child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.#primary_key_column_name) {
+                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(#primary_key_value_of_a_row_of_another_table_to_delete).expect(#ROW_LIST_PREPARED).push(row.#primary_key_column_name);
+                                #child_entries_by_primary_key_value_of_row_to_delete.insert(row.#primary_key_column_name, vec![]);
                                 row_to_delete_by_primary_key_value.insert(row.#primary_key_column_name, row);
                             }
                         };
@@ -558,10 +596,10 @@ pub fn on_delete_strategy_implementation(
                         };
 
                         let soft_delete_many_impl = quote! {
-                            for #primary_key_column_name in &primary_key_values_of_rows_to_delete {
+                            for #primary_key_column_name in &#primary_key_values_of_rows_to_delete {
                                 let old_row = row_to_delete_by_primary_key_value
                                     .get(#primary_key_column_name)
-                                    .expect("Should exist");
+                                    .expect(#ROW_RECORDED);
 
                                 #clone_old_row
 
@@ -578,7 +616,7 @@ pub fn on_delete_strategy_implementation(
                         };
 
                         strategy_after_all = quote! {
-                            let primary_key_values_of_rows_to_delete = child_entries_by_primary_key_value_of_row_to_delete.keys().cloned().collect_vec();
+                            let #primary_key_values_of_rows_to_delete = #child_entries_by_primary_key_value_of_row_to_delete.keys().cloned().collect_vec();
 
                             #error_strategy
 
@@ -601,17 +639,27 @@ pub fn on_delete_strategy_implementation(
                 };
             }
             OnDeleteStrategy::SetZero => {
+                let value_referencing_no_row =
+                    value_referencing_no_row(&column.rust_field.type_name_or_path);
                 let row = format_ident!("row");
 
                 // Clearing the column is an update of the row, so the update hooks run around
                 // the write as they do around the one `update_<table>_by_<key>` makes. Their
                 // imports are hoisted the way the `Delete` arm hoists its own.
-                let (
-                    (use_before_update_hook_trait, before_update_hook),
-                    (use_after_update_hook_trait, after_update_hook),
-                ) = hooks_around_the_write(
-                    &spacetimedsl_table.hooks.before_update,
-                    &spacetimedsl_table.hooks.after_update,
+                let HooksAroundTheWrite {
+                    before:
+                        HookFragments {
+                            use_trait: use_before_update_hook_trait,
+                            call: before_update_hook,
+                        },
+                    after:
+                        HookFragments {
+                            use_trait: use_after_update_hook_trait,
+                            call: after_update_hook,
+                        },
+                } = hooks_around_the_write(
+                    spacetimedsl_table.hooks.get(HookKind::BEFORE_UPDATE),
+                    spacetimedsl_table.hooks.get(HookKind::AFTER_UPDATE),
                     &quote! { &old_row },
                 );
                 strategy_for_before_hook = use_before_update_hook_trait;
@@ -629,7 +677,7 @@ pub fn on_delete_strategy_implementation(
                 let set_updated_at = set_updated_at_on_update(
                     spacetimedsl_table,
                     internal_columns,
-                    &quote! { dsl },
+                    &quote! { #dsl },
                     &row,
                 );
                 let rebind_row =
@@ -648,7 +696,7 @@ pub fn on_delete_strategy_implementation(
                     quote! {
                         #clone_old_row
 
-                        row.#column_name = 0;
+                        row.#column_name = #value_referencing_no_row;
 
                         let child_entries = vec![];
                         let #primary_key_column_name = &row.#primary_key_column_name;
@@ -697,7 +745,7 @@ pub fn on_delete_strategy_implementation(
             #strategy_for_after_hook
             #strategy_for_referenced_by
 
-            for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
+            for #primary_key_value_of_a_row_of_another_table_to_delete in #primary_key_values_of_rows_of_another_table_to_delete {
                 #(#strategy_by_column)*
             }
 
@@ -747,20 +795,25 @@ fn strategy_by_row(
 /// latter back, the after hook reads what was stored. An error from either stops the
 /// cascade and is carried on the `DeletionResult`.
 fn hooks_around_the_write(
-    before_hook: &Option<SpacetimeDSLMethodHook>,
-    after_hook: &Option<SpacetimeDSLMethodHook>,
+    before_hook: Option<&SpacetimeDSLMethodHook>,
+    after_hook: Option<&SpacetimeDSLMethodHook>,
     old_row: &TokenStream,
-) -> ((TokenStream, TokenStream), (TokenStream, TokenStream)) {
+) -> HooksAroundTheWrite {
+    let dsl = cascade_binding::dsl();
+    let error = cascade_binding::error();
+    let error_from_hook = cascade_binding::error_from_hook();
+    let outer = cascade_binding::outer();
+
     let before = hook_use_and_call(before_hook, |hook_function_name| {
         let hook_call =
-            runtime::dsl_method_hooks_call(hook_function_name, &quote! { &dsl, #old_row, row });
+            runtime::dsl_method_hooks_call(hook_function_name, &quote! { &#dsl, #old_row, row });
 
         quote! {
             let row = match #hook_call {
                 Err(error_raised_by_the_hook) => {
-                    error = true;
-                    error_from_hook = Some(Box::new(error_raised_by_the_hook));
-                    break 'outer;
+                    #error = true;
+                    #error_from_hook = Some(Box::new(error_raised_by_the_hook));
+                    break #outer;
                 }
                 Ok(row) => row,
             };
@@ -769,18 +822,36 @@ fn hooks_around_the_write(
 
     let after = hook_use_and_call(after_hook, |hook_function_name| {
         let hook_call =
-            runtime::dsl_method_hooks_call(hook_function_name, &quote! { &dsl, #old_row, &row });
+            runtime::dsl_method_hooks_call(hook_function_name, &quote! { &#dsl, #old_row, &row });
 
         quote! {
             if let Err(error_raised_by_the_hook) = #hook_call {
-                error = true;
-                error_from_hook = Some(Box::new(error_raised_by_the_hook));
-                break 'outer;
+                #error = true;
+                #error_from_hook = Some(Box::new(error_raised_by_the_hook));
+                break #outer;
             }
         }
     });
 
-    (before, after)
+    let fragments = |(use_trait, call)| HookFragments { use_trait, call };
+
+    HooksAroundTheWrite {
+        before: fragments(before),
+        after: fragments(after),
+    }
+}
+
+/// The `use` of a hook's trait and the call of the hook, kept apart so the `use` can be
+/// hoisted out of the per-row loop the call sits in.
+struct HookFragments {
+    use_trait: TokenStream,
+    call: TokenStream,
+}
+
+/// The hooks that run around the write of one row.
+struct HooksAroundTheWrite {
+    before: HookFragments,
+    after: HookFragments,
 }
 
 /// Writes the row back through its primary key, binding what was stored only when the after
@@ -807,31 +878,60 @@ fn referenced_table_function_call_for_strategy_implementation(
     on_delete_strategy: OnDeleteStrategy,
     on_error_handler: &TokenStream,
 ) -> TokenStream {
+    let dsl = cascade_binding::dsl();
+    let error_from_hook = cascade_binding::error_from_hook();
+    let primary_key_values_of_rows_to_delete =
+        cascade_binding::primary_key_values_of_rows_to_delete();
+    let child_entries_by_primary_key_value_of_row_to_delete =
+        cascade_binding::child_entries_by_primary_key_value_of_row_to_delete();
     let referenced_table_function_name =
         referenced_table_function_name(removal, &OneOrMultiple::Multiple, singular_table_name);
     let referenced_table_call = runtime::dsl_internals_call(
         &referenced_table_function_name,
-        &quote! { dsl, #on_delete_strategy, &primary_key_values_of_rows_to_delete[..] },
+        &quote! { #dsl, #on_delete_strategy, &#primary_key_values_of_rows_to_delete[..] },
     );
 
     quote! {
         match #referenced_table_call {
             Err(failure) => {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure.entries {
-                    child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in child_entries_by_primary_key_value_of_row_to_delete.")).append(&mut child_entries);
+                    #child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).expect(#CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE).append(&mut child_entries);
                 }
 
-                if error_from_hook.is_none() {
-                    error_from_hook = failure.error_from_hook;
+                if #error_from_hook.is_none() {
+                    #error_from_hook = failure.error_from_hook;
                 }
 
                 #on_error_handler
             },
             Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                    child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in child_entries_by_primary_key_value_of_row_to_delete.")).append(&mut child_entries);
+                    #child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).expect(#CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE).append(&mut child_entries);
                 }
             }
         };
     }
 }
+
+/// What `SetZero` writes into a foreign key column: `Uuid::NIL` for a `Uuid`, `0` for an
+/// unsigned integer - the value create and update treat as referencing no row.
+fn value_referencing_no_row(column_type: &syn::Path) -> TokenStream {
+    match ColumnTypeKind::of(column_type) {
+        ColumnTypeKind::UUID => spacetimedb::uuid_nil(),
+        _ => quote! { 0 },
+    }
+}
+
+// Why the lookups in the generated cascades cannot fail. Each is the message of the
+// `expect` that relies on it, so a panic names the invariant that broke.
+
+const ENTRY_LIST_PREPARED: &str = "every primary key value of a removed row of the referenced table was given an entry list before its strategies ran";
+
+const ROW_LIST_PREPARED: &str = "every primary key value of a removed row of the referenced table was given a list of rows to delete before its rows were found";
+
+const ROW_RECORDED: &str =
+    "every primary key value of a row to delete was recorded with its row when the row was found";
+
+const CHILD_ENTRY_LIST_PREPARED: &str = "every primary key value of a row to delete was given a child entry list before its strategies ran";
+
+pub(super) const CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE: &str = "the referencing tables return child entries only for the primary key values of the rows this table deletes";

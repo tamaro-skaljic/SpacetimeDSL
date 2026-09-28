@@ -10,8 +10,8 @@ Try to get a `Profile` from the `profile` table whose value matches the value fr
         &'a self,
         account_id: impl Into<AccountId> + Clone,
     ) -> Result<Profile, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().profile().account_id().find(account_id.clone().into().value()) {
             Some(profile) => Ok(profile),
             None => {
@@ -35,8 +35,8 @@ Try to get a `Profile` from the `profile` table whose value matches the value fr
         &'a self,
         account_id: impl Into<AccountId> + Clone,
     ) -> Result<Profile, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().profile().account_id().find(account_id.clone().into().value()) {
             Some(profile) => Ok(profile),
             None => {

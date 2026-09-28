@@ -494,6 +494,8 @@ pub fn my_procedure(ctx: &mut ProcedureContext) {
 }
 
 pub fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
+    let potions_before = dsl.count_of_all_potions();
+
     let mut strength = dsl.create_attribute(CreateAttribute {
         value: "STRENGTH".to_string(),
     })?;
@@ -530,8 +532,8 @@ pub fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
 
     dsl.delete_attribute_by_id(&power)?;
 
-    if dsl.count_of_all_potions().ne(&0) {
-        return Err("There should be 0 potions because the attribute was deleted and the potion should be deleted in the after delete hook of the attribute table.".to_string());
+    if dsl.count_of_all_potions().ne(&potions_before) {
+        return Err("The count of potions should be back to where it was before, because the attribute was deleted and the potion should be deleted in the after delete hook of the attribute table.".to_string());
     }
 
     let mut multi_column_index_with_hook_test =

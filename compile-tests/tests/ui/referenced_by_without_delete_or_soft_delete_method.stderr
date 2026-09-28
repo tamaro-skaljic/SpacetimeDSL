@@ -14,20 +14,16 @@ error[E0432]: unresolved import `crate::warehouse::this_compilation_error_occurs
    = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0433]: failed to resolve: could not find `WarehouseId` in `warehouse`
-  --> tests/ui/referenced_by_without_delete_or_soft_delete_method.rs:40:5
+  --> tests/ui/referenced_by_without_delete_or_soft_delete_method.rs:49:41
    |
-40 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `WarehouseId` in `warehouse`
-   |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+49 |         #[use_wrapper(crate::warehouse::WarehouseId)]
+   |                                         ^^^^^^^^^^^ could not find `WarehouseId` in `warehouse`
 
 error[E0425]: cannot find type `WarehouseId` in module `crate::warehouse`
-  --> tests/ui/referenced_by_without_delete_or_soft_delete_method.rs:40:5
+  --> tests/ui/referenced_by_without_delete_or_soft_delete_method.rs:49:41
    |
-40 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `crate::warehouse`
-   |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+49 |         #[use_wrapper(crate::warehouse::WarehouseId)]
+   |                                         ^^^^^^^^^^^ not found in `crate::warehouse`
 
 error[E0599]: no method named `get_warehouse_by_id` found for reference `&'a DSL<'_, T>` in the current scope
   --> tests/ui/referenced_by_without_delete_or_soft_delete_method.rs:40:5

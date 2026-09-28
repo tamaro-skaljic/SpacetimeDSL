@@ -3,7 +3,16 @@ source: derive/src/characterization_tests.rs
 ---
 pub trait this_compilation_error_occurs_because_the_author_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table {}
 pub trait this_compilation_error_occurs_because_the_author_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table {}
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct AuthorId {
     value: u64,
 }
@@ -19,7 +28,7 @@ impl std::fmt::Display for AuthorId {
         write!(f, "{} {{ id: {:?} }}", "AuthorId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, AuthorId> for AuthorId {
+impl crate::spacetimedsl::Wrapper<u64> for AuthorId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -43,41 +52,41 @@ impl From<&Author> for Option<AuthorId> {
 }
 impl From<&AuthorId> for Option<AuthorId> {
     fn from(value: &AuthorId) -> Option<AuthorId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(AuthorId::new(value.value()))
     }
 }
 impl From<&AuthorId> for AuthorId {
     fn from(value: &AuthorId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AuthorId::new(value.value())
     }
 }
 impl Author {
     ///
     pub fn get_id(&self) -> AuthorId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AuthorId::new(self.id.clone())
     }
     ///
     pub fn get_name(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.name
     }
     ///
     pub fn get_name_mut(&mut self) -> &mut String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.name
     }
     ///
     pub fn set_name(&mut self, name: String) -> String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.name, name);
         old_value
     }
     ///
     pub fn get_deleted(&self) -> &bool {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.deleted
     }
 }

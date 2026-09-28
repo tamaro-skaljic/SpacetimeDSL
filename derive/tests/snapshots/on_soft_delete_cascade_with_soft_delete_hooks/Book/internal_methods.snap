@@ -17,10 +17,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_author_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::itertools::Itertools;
         let mut entries = vec![];
         let mut error_from_hook: Option<
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
@@ -44,7 +44,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                 column_name: "author_id".into(),
                                 strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                 row_value: format!("{}", BookId::new(id.clone())).into(),
-                                child_entries,
+                                child_entries: child_entries,
                             });
                         dsl.db().book().id().delete(row.id);
                     }
@@ -82,10 +82,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_author_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::itertools::Itertools;
         let mut entries = vec![];
         let mut error_from_hook: Option<
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
@@ -128,7 +128,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     column_name: "author_id".into(),
                                     strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
                                     row_value: format!("{}", BookId::new(id.clone())).into(),
-                                    child_entries,
+                                    child_entries: child_entries,
                                 });
                             let row = dsl.db().book().id().update(row);
                             if let Err(error_raised_by_the_hook)
@@ -182,10 +182,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
             >,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_author_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::itertools::Itertools;
         let mut entries = std::collections::HashMap::new();
         for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
             entries
@@ -215,16 +215,14 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     primary_key_value_of_a_row_of_another_table_to_delete,
                                 )
                                 .expect(
-                                    &format!(
-                                        "{primary_key_value_of_a_row_of_another_table_to_delete} should exist in entries."
-                                    ),
+                                    "every primary key value of a removed row of the referenced table was given an entry list before its strategies ran",
                                 )
                                 .push(crate::spacetimedsl::delete::DeletionResultEntry {
                                     table_name: "book".into(),
                                     column_name: "author_id".into(),
                                     strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                     row_value: format!("{}", BookId::new(id.clone())).into(),
-                                    child_entries,
+                                    child_entries: child_entries,
                                 });
                             dsl.db().book().id().delete(row.id);
                         }
@@ -269,10 +267,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
             >,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_author_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::itertools::Itertools;
         let mut entries = std::collections::HashMap::new();
         for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
             entries
@@ -321,16 +319,14 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                         primary_key_value_of_a_row_of_another_table_to_delete,
                                     )
                                     .expect(
-                                        &format!(
-                                            "{primary_key_value_of_a_row_of_another_table_to_delete} should exist in entries."
-                                        ),
+                                        "every primary key value of a removed row of the referenced table was given an entry list before its strategies ran",
                                     )
                                     .push(crate::spacetimedsl::delete::DeletionResultEntry {
                                         table_name: "book".into(),
                                         column_name: "author_id".into(),
                                         strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
                                         row_value: format!("{}", BookId::new(id.clone())).into(),
-                                        child_entries,
+                                        child_entries: child_entries,
                                     });
                                 let row = dsl.db().book().id().update(row);
                                 if let Err(error_raised_by_the_hook)

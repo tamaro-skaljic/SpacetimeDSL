@@ -1,8 +1,7 @@
 //! Covers `#[auto_gen(v4)]` and `#[auto_gen(v7)]` on every index shape a `Uuid` column
 //! can take part in, and on a `#[dsl(singleton)]` table.
 
-use crate::spacetimedsl::prelude::*;
-use spacetimedb::Uuid;
+use {crate::spacetimedsl::prelude::*, spacetimedb::Uuid};
 
 #[spacetimedsl::dsl(
     plural_name = uuid_primary_key_records,
@@ -17,6 +16,7 @@ pub struct UUIDPrimaryKeyRecord {
     #[create_wrapper]
     #[auto_gen(v7)]
     #[referenced_by(path = crate::component::uuid_reference_test, table = uuid_reference)]
+    #[referenced_by(path = crate::component::uuid_reference_test, table = uuid_set_zero_reference)]
     id: Uuid,
 
     pub name: String,

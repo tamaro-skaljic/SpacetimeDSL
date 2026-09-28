@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct ReminderId {
     value: u64,
 }
@@ -17,7 +26,7 @@ impl std::fmt::Display for ReminderId {
         write!(f, "{} {{ id: {:?} }}", "ReminderId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, ReminderId> for ReminderId {
+impl crate::spacetimedsl::Wrapper<u64> for ReminderId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -41,17 +50,26 @@ impl From<&Reminder> for Option<ReminderId> {
 }
 impl From<&ReminderId> for Option<ReminderId> {
     fn from(value: &ReminderId) -> Option<ReminderId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(ReminderId::new(value.value()))
     }
 }
 impl From<&ReminderId> for ReminderId {
     fn from(value: &ReminderId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ReminderId::new(value.value())
     }
 }
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct ReminderAcknowledgedAt {
     value: Option<Timestamp>,
 }
@@ -67,8 +85,7 @@ impl std::fmt::Display for ReminderAcknowledgedAt {
         write!(f, "{} {{ id: {:?} }}", "ReminderAcknowledgedAt", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<Option<Timestamp>, ReminderAcknowledgedAt>
-for ReminderAcknowledgedAt {
+impl crate::spacetimedsl::Wrapper<Option<Timestamp>> for ReminderAcknowledgedAt {
     fn new(value: Option<Timestamp>) -> Self {
         Self { value }
     }
@@ -92,25 +109,25 @@ impl From<&Reminder> for Option<ReminderAcknowledgedAt> {
 }
 impl From<&ReminderAcknowledgedAt> for Option<ReminderAcknowledgedAt> {
     fn from(value: &ReminderAcknowledgedAt) -> Option<ReminderAcknowledgedAt> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(ReminderAcknowledgedAt::new(value.value()))
     }
 }
 impl From<&ReminderAcknowledgedAt> for ReminderAcknowledgedAt {
     fn from(value: &ReminderAcknowledgedAt) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ReminderAcknowledgedAt::new(value.value())
     }
 }
 impl Reminder {
     ///
     pub fn get_id(&self) -> ReminderId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ReminderId::new(self.id.clone())
     }
     ///
     pub fn get_acknowledged_at(&self) -> Option<ReminderAcknowledgedAt> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         match &self.acknowledged_at {
             None => None,
             Some(value) => Some(ReminderAcknowledgedAt::new(Some(value.clone()))),
@@ -121,13 +138,13 @@ impl Reminder {
         &mut self,
         acknowledged_at: Option<Timestamp>,
     ) -> ReminderAcknowledgedAt {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.acknowledged_at, acknowledged_at);
         ReminderAcknowledgedAt::new(old_value)
     }
     ///
     pub fn get_due_at(&self) -> Option<ReminderDueAt> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         match &self.due_at {
             None => None,
             Some(value) => Some(ReminderDueAt::new(value.clone())),
@@ -138,20 +155,11 @@ impl Reminder {
         &mut self,
         due_at: impl Into<Option<ReminderDueAt>>,
     ) -> Option<ReminderDueAt> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let due_at = due_at.into();
-        let mut due_at_option = None;
-        if due_at.is_some() {
-            due_at_option = Some(
-                Into::<ReminderDueAt>::into(due_at.expect("value should exist")).value(),
-            );
-        }
-        let due_at = due_at_option;
+        let due_at = due_at.map(|value| Into::<ReminderDueAt>::into(value).value());
         let old_value = std::mem::replace(&mut self.due_at, due_at);
-        match old_value {
-            Some(old_value) => Some(ReminderDueAt::new(old_value)),
-            None => None,
-        }
+        old_value.map(ReminderDueAt::new)
     }
 }
 ///

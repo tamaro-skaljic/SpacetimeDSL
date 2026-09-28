@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl OwnerId {
+    /**Get all `Gadget` rows whose `owner_id` column references this `OwnerId`.
+
+Use it like `owner_id.get_gadgets(&dsl)`.*/
+    pub fn get_gadgets<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Gadget> {
+        dsl.into().get_gadgets_by_owner_id(self).collect()
+    }
+}

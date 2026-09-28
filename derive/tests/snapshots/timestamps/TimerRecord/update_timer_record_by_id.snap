@@ -10,8 +10,8 @@ Try to update a `TimerRecord` row of the `timer_record` table whose value matche
         &'a self,
         timer_record: TimerRecord,
     ) -> Result<TimerRecord, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut timer_record = timer_record;
         timer_record
             .finished_at = Some(

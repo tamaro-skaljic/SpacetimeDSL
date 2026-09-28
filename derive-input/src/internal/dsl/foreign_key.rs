@@ -1,34 +1,35 @@
-use super::foreign_key;
-use crate::api::dsl::foreign_key::{ForeignKey, OnDeleteStrategy};
-use crate::internal::dsl::{on_delete, on_soft_delete, path, table};
-use crate::internal::error;
-use quote::ToTokens;
-use spacetime_bindings_macro_input::match_meta;
-use spacetime_bindings_macro_input::sats::SatsField;
-use spacetime_bindings_macro_input::sym::{column, index, primary_key, unique};
-use spacetime_bindings_macro_input::util::check_duplicate;
-use syn::meta::ParseNestedMeta;
-use syn::{Ident, Meta, Path};
+use {
+    super::foreign_key,
+    crate::{
+        api::{
+            db::column::SpacetimeDBColumn,
+            dsl::foreign_key::{ForeignKey, OnDeleteStrategy},
+        },
+        internal::{
+            column::ColumnTypeKind,
+            dsl::{on_delete, on_soft_delete, path, table},
+            error,
+        },
+    },
+    spacetime_bindings_macro_input::{
+        match_meta, sats::SatsField, sym::column, util::check_duplicate,
+    },
+    syn::{Ident, Meta, Path, meta::ParseNestedMeta},
+};
 
 impl ForeignKey {
-    pub fn try_parse(
-        has_delete_method: &bool,
+    pub(crate) fn try_parse(
+        has_delete_method: bool,
         is_soft_deletable: bool,
         is_singleton: bool,
         field: &SatsField<'_>,
+        spacetimedb_column: &SpacetimeDBColumn,
+        column_type_kind: ColumnTypeKind,
     ) -> syn::Result<Option<ForeignKey>> {
         let mut foreign_key_value = None;
 
-        let mut has_index = false;
-        for attr in field.original_attrs {
-            if attr.meta.path().eq(&primary_key)
-                || attr.meta.path().eq(&unique)
-                || attr.meta.path().eq(&index)
-            {
-                has_index = true;
-                break;
-            }
-        }
+        let has_index =
+            spacetimedb_column.is_primary_key || spacetimedb_column.single_column_index.is_some();
 
         for attr in field.original_attrs {
             if attr.meta.path().ne(&foreign_key) {
@@ -93,14 +94,18 @@ impl ForeignKey {
                 return Err(error::foreign_key_without_on_delete_strategy(&attr.meta));
             }
 
-            if on_delete_strategy.as_ref() == Some(&OnDeleteStrategy::SetZero)
-                && field
-                    .vis
-                    .to_token_stream()
-                    .to_string()
-                    .eq(&syn::Visibility::Inherited.to_token_stream().to_string())
-            {
-                return Err(error::set_zero_strategy_on_private_column(&attr.meta));
+            if on_delete_strategy.as_ref() == Some(&OnDeleteStrategy::SetZero) {
+                // `SetZero` writes the value that references no row: `0` or `Uuid::NIL`.
+                if !matches!(
+                    column_type_kind,
+                    ColumnTypeKind::UnsignedInteger | ColumnTypeKind::UUID
+                ) {
+                    return Err(error::set_zero_strategy_on_unsupported_type(field.ty));
+                }
+
+                if matches!(field.vis, syn::Visibility::Inherited) {
+                    return Err(error::set_zero_strategy_on_private_column(&attr.meta));
+                }
             }
 
             if !has_delete_method && on_delete_strategy.as_ref() == Some(&OnDeleteStrategy::Delete)
@@ -132,7 +137,6 @@ impl ForeignKey {
 }
 
 impl OnDeleteStrategy {
-    // TODO: Add Checks (https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 Option for SetNone, Numeric for SetZero (SpacetimeDB has a is_numeric function), ...)
     fn try_parse_for_on_delete(
         meta: &ParseNestedMeta<'_>,
         tokens: &Meta,

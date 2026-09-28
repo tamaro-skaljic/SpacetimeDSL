@@ -5,8 +5,7 @@
 //! implementation, the `upsert_<table>` which replaces `create_<table>` and
 //! `update_<table>`, and the two timestamp columns whose two write paths differ.
 
-use crate::spacetimedsl::prelude::*;
-use spacetimedb::Timestamp;
+use {crate::spacetimedsl::prelude::*, spacetimedb::Timestamp};
 
 /// The world settings a module always has, whether or not anybody wrote them.
 ///

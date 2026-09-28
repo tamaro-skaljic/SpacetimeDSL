@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct TimerRecordId {
     value: u64,
 }
@@ -17,7 +26,7 @@ impl std::fmt::Display for TimerRecordId {
         write!(f, "{} {{ id: {:?} }}", "TimerRecordId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, TimerRecordId> for TimerRecordId {
+impl crate::spacetimedsl::Wrapper<u64> for TimerRecordId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -41,30 +50,30 @@ impl From<&TimerRecord> for Option<TimerRecordId> {
 }
 impl From<&TimerRecordId> for Option<TimerRecordId> {
     fn from(value: &TimerRecordId) -> Option<TimerRecordId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(TimerRecordId::new(value.value()))
     }
 }
 impl From<&TimerRecordId> for TimerRecordId {
     fn from(value: &TimerRecordId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         TimerRecordId::new(value.value())
     }
 }
 impl TimerRecord {
     ///
     pub fn get_id(&self) -> TimerRecordId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         TimerRecordId::new(self.id.clone())
     }
     ///
     pub fn get_started_at(&self) -> &Timestamp {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.started_at
     }
     ///
     pub fn get_finished_at(&self) -> &Option<Timestamp> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.finished_at
     }
 }

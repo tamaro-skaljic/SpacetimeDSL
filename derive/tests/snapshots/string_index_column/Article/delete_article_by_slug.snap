@@ -13,9 +13,9 @@ Try to delete a `Article` row in the `article` table whose value matches the val
         crate::spacetimedsl::delete::DeletionResult,
         crate::spacetimedsl::error::SpacetimeDSLError,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::itertools::Itertools;
         let slug = slug.to_string();
         let row_to_delete = self.db().article().slug().find(&slug);
         let row_to_delete = match row_to_delete {

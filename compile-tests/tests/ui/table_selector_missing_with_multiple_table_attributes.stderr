@@ -1,0 +1,5 @@
+error: There are 2 `#[table]` attributes below this `#[dsl]` (`gadget1`, `gadget2`), so it has to name the one it belongs to! Add `table = <accessor>`, such as `#[dsl(table = gadget1, ...)]`.
+  --> tests/ui/table_selector_missing_with_multiple_table_attributes.rs:10:16
+   |
+10 |     pub struct Gadget {
+   |                ^^^^^^

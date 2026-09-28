@@ -252,7 +252,7 @@ fn soft_delete_skips_update_hooks_test<T: WriteContext>(dsl: &DSL<'_, T>) -> Res
 
     let retired_guild = dsl.create_guild()?;
 
-    dsl.create_guild_member(CreateGuildMember {
+    let retired_member = dsl.create_guild_member(CreateGuildMember {
         guild_id: retired_guild.get_id(),
         locked: false,
     })?;
@@ -269,9 +269,24 @@ fn soft_delete_skips_update_hooks_test<T: WriteContext>(dsl: &DSL<'_, T>) -> Res
         ));
     }
 
-    if member.get_modified_at().is_some() {
+    if dsl
+        .get_guild_member_by_id(&member)?
+        .get_modified_at()
+        .is_some()
+    {
         return Err(
-            "Setting deleted_at to Some(...) through on_soft_delete = SoftDelete should NOT set modified_at, as update_guild_member_by_id does!"
+            "Setting deleted to true through soft_delete_guild_member_by_id should NOT set modified_at, as update_guild_member_by_id does!"
+                .to_string(),
+        );
+    }
+
+    if dsl
+        .get_guild_member_by_id(&retired_member)?
+        .get_modified_at()
+        .is_some()
+    {
+        return Err(
+            "Setting deleted to true through on_soft_delete = SoftDelete should NOT set modified_at, as update_guild_member_by_id does!"
                 .to_string(),
         );
     }

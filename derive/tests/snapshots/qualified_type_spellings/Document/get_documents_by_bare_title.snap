@@ -8,8 +8,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         &'a self,
         bare_title: &'a str,
     ) -> impl Iterator<Item = Document> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         self.db().document().bare_title().filter(bare_title)
     }
 }
@@ -20,8 +20,8 @@ impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T
         &'a self,
         bare_title: &'a str,
     ) -> impl Iterator<Item = Document> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         self.db().document().bare_title().filter(bare_title)
     }
 }

@@ -10,8 +10,8 @@ Try to update a `Booking` row of the `booking` table whose value matches the val
         &'a self,
         booking: Booking,
     ) -> Result<Booking, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut booking = booking;
         let booking = self.db().booking().id().update(booking);
         Ok(booking)

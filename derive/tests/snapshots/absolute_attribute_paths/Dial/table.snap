@@ -1,0 +1,72 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct DialId {
+    value: u64,
+}
+impl Default for DialId {
+    fn default() -> DialId {
+        DialId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for DialId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "DialId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for DialId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Dial> for DialId {
+    fn from(value: &Dial) -> Self {
+        DialId { value: value.id.clone() }
+    }
+}
+impl From<&Dial> for Option<DialId> {
+    fn from(value: &Dial) -> Option<DialId> {
+        Some(DialId { value: value.id.clone() })
+    }
+}
+impl From<&DialId> for Option<DialId> {
+    fn from(value: &DialId) -> Option<DialId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(DialId::new(value.value()))
+    }
+}
+impl From<&DialId> for DialId {
+    fn from(value: &DialId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        DialId::new(value.value())
+    }
+}
+impl Dial {
+    ///
+    pub fn get_id(&self) -> DialId {
+        use crate::spacetimedsl::Wrapper;
+        DialId::new(self.id.clone())
+    }
+}
+
+// Generated DSL methods:
+// count_of_all_dials
+// create_dial
+// delete_dial_by_id
+// get_all_dials
+// get_dial_by_id

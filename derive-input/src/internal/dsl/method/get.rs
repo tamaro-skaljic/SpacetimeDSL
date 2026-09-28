@@ -1,14 +1,16 @@
-use super::reference_integrity::Action;
-use super::{
-    context::MethodGenerationContext,
-    index::{IndexColumnArguments, IndexShape, index_accessor, index_column_arguments},
-    reference_integrity::unique_multi_column_index_check,
+use {
+    super::{
+        context::MethodGenerationContext,
+        index::{IndexColumnArguments, IndexShape, index_accessor, index_column_arguments},
+        message, naming,
+        reference_integrity::{Action, unique_multi_column_index_check},
+    },
+    crate::{
+        api::{dsl::method::SpacetimeDSLMethod, runtime},
+        internal::dsl::one_or_multiple::OneOrMultiple,
+    },
+    quote::{format_ident, quote},
 };
-use crate::{
-    api::{dsl::method::SpacetimeDSLMethod, runtime},
-    internal::dsl::one_or_multiple::OneOrMultiple,
-};
-use quote::{format_ident, quote};
 
 /// `get_all_<tables>`: iterate every row of the table.
 pub fn for_get_all(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
@@ -32,6 +34,7 @@ pub fn for_get_all(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
                 .#singular_table_name()
                 .iter()
         },
+        // A read-only table handle offers no full-table `iter()`.
         read_context_compatible: false,
     }
 }
@@ -57,6 +60,7 @@ pub fn for_get_count(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
                 .#singular_table_name()
                 .count()
         },
+        // A read-only table handle offers `count()`.
         read_context_compatible: true,
     }
 }
@@ -101,12 +105,13 @@ pub fn for_get_many(shape: &IndexShape, context: &MethodGenerationContext) -> Sp
         doc_comment: format!(
             "Get a `{struct_name}` iterator that contains all rows in the `{singular_table_name}` table {described_as}."
         ),
-        method_name: format_ident!("get_{plural_table_name}_by_{index_name}"),
+        method_name: naming::get_by_index_method_name(plural_table_name, index_name),
         method_args,
         return_type: quote! {
             impl Iterator<Item = #struct_name>
         },
         method_impl,
+        // A read-only table handle offers index lookups.
         read_context_compatible: true,
     }
 }
@@ -123,7 +128,6 @@ pub fn for_get_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spa
 
     let index_name = &shape.index_name;
     let described_as = &shape.described_as;
-    let column_names_and_row_values = &shape.column_names_and_row_values;
     let unique_multi_column_index_hint = shape.unique_multi_column_hint;
 
     let IndexColumnArguments {
@@ -140,16 +144,15 @@ pub fn for_get_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spa
             let multi_column_index_check = unique_multi_column_index_check(
                 &Action::Get,
                 singular_table_name,
+                field_name_for_found_value,
                 index_name,
-                column_names_and_row_values,
+                &shape.index_columns,
                 &row_value_getters,
             );
 
             let not_found_error = runtime::not_found_error(
                 singular_table_name_as_string,
-                &quote! {
-                    format!(#column_names_and_row_values, #(#row_value_getters),*)
-                },
+                &message::column_names_and_row_values(&shape.index_columns, &row_value_getters),
             );
 
             let itertools_import = runtime::itertools_import();
@@ -174,9 +177,7 @@ pub fn for_get_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spa
         false => {
             let not_found_error = runtime::not_found_error(
                 singular_table_name_as_string,
-                &quote! {
-                    format!(#column_names_and_row_values, #(#row_value_getters),*)
-                },
+                &message::column_names_and_row_values(&shape.index_columns, &row_value_getters),
             );
 
             quote! {
@@ -194,10 +195,11 @@ pub fn for_get_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spa
         doc_comment: format!(
             "{unique_multi_column_index_hint}\n\nTry to get a `{struct_name}` from the `{singular_table_name}` table {described_as}."
         ),
-        method_name: format_ident!("get_{singular_table_name}_by_{index_name}"),
+        method_name: naming::get_by_index_method_name(singular_table_name, index_name),
         method_args,
         return_type: runtime::error_result_type(struct_name),
         method_impl,
+        // A read-only table handle offers index lookups.
         read_context_compatible: true,
     }
 }

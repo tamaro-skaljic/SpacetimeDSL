@@ -10,8 +10,8 @@ Try to get a `SessionToken` from the `session_token` table whose value matches t
         &'a self,
         id: impl Into<SessionTokenId> + Clone,
     ) -> Result<SessionToken, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().session_token().id().find(id.clone().into().value()) {
             Some(session_token) => Ok(session_token),
             None => {
@@ -35,8 +35,8 @@ Try to get a `SessionToken` from the `session_token` table whose value matches t
         &'a self,
         id: impl Into<SessionTokenId> + Clone,
     ) -> Result<SessionToken, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().session_token().id().find(id.clone().into().value()) {
             Some(session_token) => Ok(session_token),
             None => {

@@ -1,24 +1,29 @@
-use super::{
-    context::MethodGenerationContext,
-    index::IndexShape,
-    reference_integrity::{
-        Action, multi_column_index_checks, reference_integrity_checks_on_update,
+use {
+    super::{
+        context::MethodGenerationContext,
+        index::IndexShape,
+        reference_integrity::{
+            Action, multi_column_index_checks, reference_integrity_checks_on_update,
+        },
+        upsert::{
+            ForeignKeyColumnScope, after_update_hook, before_update_hook_use_and_call,
+            rebind_row_as_mutable_after_hook, row_value_getters_for_foreign_key_columns,
+            set_singleton_primary_key, set_updated_at_on_update,
+        },
     },
-    upsert::{
-        ForeignKeyColumnScope, after_update_hook, before_update_hook_use_and_call,
-        rebind_row_as_mutable_after_hook, row_value_getters_for_foreign_key_columns,
-        set_singleton_primary_key, set_updated_at_on_update,
+    crate::{
+        api::{
+            dsl::{
+                hook::HookKind,
+                method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
+            },
+            runtime,
+        },
+        internal::dsl::one_or_multiple::OneOrMultiple,
     },
+    proc_macro2::TokenStream,
+    quote::{format_ident, quote},
 };
-use crate::{
-    api::{
-        dsl::method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
-        runtime,
-    },
-    internal::dsl::one_or_multiple::OneOrMultiple,
-};
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
 
 /// `update_<table>_by_<index>`: write a row back over the one the index finds.
 ///
@@ -51,6 +56,7 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
     let multi_column_index_checks = multi_column_index_checks(
         Action::Update,
         singular_table_name,
+        field_name_for_found_value,
         spacetimedb_table,
         internal_columns,
         primary_key_column_name,
@@ -82,7 +88,7 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
     let reference_integrity_checks = reference_integrity_checks_on_update(
         spacetimedb_table,
         internal_columns,
-        &shape.column_names_and_row_values,
+        field_name_for_found_value,
         &shape.index_columns,
         &one_or_multiple,
         primary_key_column,
@@ -91,8 +97,14 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
 
     let let_field_name_for_found_value = if multi_column_index_checks.is_empty()
         && reference_integrity_checks.is_empty()
-        && spacetimedsl_table.hooks.before_update.is_none()
-        && spacetimedsl_table.hooks.after_update.is_none()
+        && spacetimedsl_table
+            .hooks
+            .get(HookKind::BEFORE_UPDATE)
+            .is_none()
+        && spacetimedsl_table
+            .hooks
+            .get(HookKind::AFTER_UPDATE)
+            .is_none()
     {
         TokenStream::default()
     } else {
@@ -187,6 +199,7 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
 
             Ok(#singular_table_name)
         },
+        // Updating writes the row.
         read_context_compatible: false,
     }
 }

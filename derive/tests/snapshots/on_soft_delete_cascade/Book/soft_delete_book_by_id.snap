@@ -13,9 +13,9 @@ Try to soft-delete a `Book` row in the `book` table whose value matches the valu
         crate::spacetimedsl::delete::DeletionResult,
         crate::spacetimedsl::error::SpacetimeDSLError,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::itertools::Itertools;
         let id = id.clone().into().value();
         let row_to_delete = self.db().book().id().find(id);
         let row_to_delete = match row_to_delete {
@@ -94,7 +94,7 @@ Try to soft-delete a `Book` row in the `book` table whose value matches the valu
                 return Err(
                     crate::spacetimedsl::error::SpacetimeDSLError::Error(
                         format!(
-                            "Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
+                            "Soft Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
                         ),
                     ),
                 );
@@ -121,7 +121,7 @@ Try to soft-delete a `Book` row in the `book` table whose value matches the valu
                 return Err(
                     crate::spacetimedsl::error::SpacetimeDSLError::Error(
                         format!(
-                            "Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
+                            "Soft Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
                         ),
                     ),
                 );

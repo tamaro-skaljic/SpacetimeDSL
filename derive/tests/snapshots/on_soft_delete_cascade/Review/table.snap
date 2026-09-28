@@ -3,7 +3,16 @@ source: derive/src/characterization_tests.rs
 ---
 pub trait this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_book_table {}
 pub trait this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_book_table {}
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct ReviewId {
     value: u64,
 }
@@ -19,7 +28,7 @@ impl std::fmt::Display for ReviewId {
         write!(f, "{} {{ id: {:?} }}", "ReviewId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, ReviewId> for ReviewId {
+impl crate::spacetimedsl::Wrapper<u64> for ReviewId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -43,30 +52,30 @@ impl From<&Review> for Option<ReviewId> {
 }
 impl From<&ReviewId> for Option<ReviewId> {
     fn from(value: &ReviewId) -> Option<ReviewId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(ReviewId::new(value.value()))
     }
 }
 impl From<&ReviewId> for ReviewId {
     fn from(value: &ReviewId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ReviewId::new(value.value())
     }
 }
 impl Review {
     ///
     pub fn get_id(&self) -> ReviewId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ReviewId::new(self.id.clone())
     }
     ///
     pub fn get_book_id(&self) -> BookId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         BookId::new(self.book_id.clone())
     }
     ///
     pub fn set_book_id(&mut self, book_id: impl Into<BookId>) -> BookId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.book_id, book_id.into().value());
         BookId::new(old_value)
     }

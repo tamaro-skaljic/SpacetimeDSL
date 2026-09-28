@@ -28,6 +28,8 @@ pub mod auto_gen;
 
 pub mod soft_delete;
 
+pub mod column_role;
+
 symbol!(table);
 symbol!(singleton);
 symbol!(with_default);
@@ -52,3 +54,6 @@ symbol!(on_soft_delete);
 symbol!(create_wrapper);
 symbol!(use_wrapper);
 symbol!(auto_gen);
+symbol!(set_on_create);
+symbol!(set_on_update);
+symbol!(set_on_soft_delete);

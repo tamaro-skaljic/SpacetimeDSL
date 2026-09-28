@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct AccountId {
     value: u64,
 }
@@ -17,7 +26,7 @@ impl std::fmt::Display for AccountId {
         write!(f, "{} {{ id: {:?} }}", "AccountId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, AccountId> for AccountId {
+impl crate::spacetimedsl::Wrapper<u64> for AccountId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -41,35 +50,35 @@ impl From<&Account> for Option<AccountId> {
 }
 impl From<&AccountId> for Option<AccountId> {
     fn from(value: &AccountId) -> Option<AccountId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(AccountId::new(value.value()))
     }
 }
 impl From<&AccountId> for AccountId {
     fn from(value: &AccountId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AccountId::new(value.value())
     }
 }
 impl Account {
     ///
     pub fn get_id(&self) -> AccountId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AccountId::new(self.id.clone())
     }
     ///
     pub fn get_external_id(&self) -> &u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.external_id
     }
     ///
     pub fn get_external_id_mut(&mut self) -> &mut u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.external_id
     }
     ///
     pub fn set_external_id(&mut self, external_id: u64) -> u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.external_id, external_id);
         old_value
     }

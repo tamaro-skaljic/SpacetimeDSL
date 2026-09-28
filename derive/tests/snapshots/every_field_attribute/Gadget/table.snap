@@ -1,0 +1,114 @@
+---
+source: derive/src/characterization_tests.rs
+---
+pub trait this_compilation_error_occurs_because_the_gadget_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_owner_table {}
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct GadgetId {
+    value: u64,
+}
+impl Default for GadgetId {
+    fn default() -> GadgetId {
+        GadgetId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for GadgetId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "GadgetId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for GadgetId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Gadget> for GadgetId {
+    fn from(value: &Gadget) -> Self {
+        GadgetId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Gadget> for Option<GadgetId> {
+    fn from(value: &Gadget) -> Option<GadgetId> {
+        Some(GadgetId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&GadgetId> for Option<GadgetId> {
+    fn from(value: &GadgetId) -> Option<GadgetId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(GadgetId::new(value.value()))
+    }
+}
+impl From<&GadgetId> for GadgetId {
+    fn from(value: &GadgetId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        GadgetId::new(value.value())
+    }
+}
+impl Gadget {
+    ///
+    pub fn get_id(&self) -> GadgetId {
+        use crate::spacetimedsl::Wrapper;
+        GadgetId::new(self.id.clone())
+    }
+    ///
+    pub fn get_owner_id(&self) -> OwnerId {
+        use crate::spacetimedsl::Wrapper;
+        OwnerId::new(self.owner_id.clone())
+    }
+    ///
+    pub fn set_owner_id(&mut self, owner_id: impl Into<OwnerId>) -> OwnerId {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.owner_id, owner_id.into().value());
+        OwnerId::new(old_value)
+    }
+    ///
+    pub fn get_created_at(&self) -> &Timestamp {
+        use crate::spacetimedsl::Wrapper;
+        &self.created_at
+    }
+    ///
+    pub fn get_modified_at(&self) -> &Option<Timestamp> {
+        use crate::spacetimedsl::Wrapper;
+        &self.modified_at
+    }
+    ///
+    pub fn get_retired_at(&self) -> &Option<Timestamp> {
+        use crate::spacetimedsl::Wrapper;
+        &self.retired_at
+    }
+}
+///
+pub struct CreateGadget {
+    pub owner_id: OwnerId,
+}
+
+// Generated DSL methods:
+// count_of_all_gadgets
+// create_gadget
+// delete_gadget_by_id
+// delete_gadgets_by_owner_id
+// execute_on_delete_strategies_of_the_gadget_table_after_multiple_rows_of_the_owner_table_were_deleted
+// execute_on_delete_strategies_of_the_gadget_table_after_one_row_of_the_owner_table_was_deleted
+// get_all_gadgets
+// get_gadget_by_id
+// get_gadgets_by_owner_id
+// soft_delete_gadget_by_id
+// soft_delete_gadgets_by_owner_id
+// update_gadget_by_id

@@ -10,8 +10,8 @@ Try to update a `Label` row of the `label` table whose value matches the value f
         &'a self,
         label: Label,
     ) -> Result<Label, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut label = label;
         let label = self.db().label().id().update(label);
         Ok(label)

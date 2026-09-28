@@ -1,4 +1,4 @@
-error: All foreign key columns which reference the same primary key of another table should have the same path
+error: All foreign key columns which reference the same primary key of another table should have the same path! Spell both paths the same way; a leading `::` makes no difference.
   --> tests/ui/foreign_keys_with_mismatched_paths.rs:46:13
    |
 46 |         pub destination_warehouse_id: u64,

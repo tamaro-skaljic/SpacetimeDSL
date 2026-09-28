@@ -1,18 +1,21 @@
-use super::auto_gen;
-use crate::api::{
-    dsl::{auto_gen::UUIDVersion, wrapper::WrapperType},
-    rust::{column::RustField, visibility::RustVisibility},
+use {
+    super::auto_gen,
+    crate::{
+        api::{
+            dsl::{auto_gen::UUIDVersion, wrapper::WrapperType},
+            rust::{column::RustField, visibility::RustVisibility},
+        },
+        internal::{column::ColumnTypeKind, error},
+    },
+    quote::format_ident,
+    spacetime_bindings_macro_input::sats::SatsField,
+    syn::{Attribute, Ident},
 };
-use crate::internal::column::ColumnTypeKind;
-use crate::internal::error;
-use quote::format_ident;
-use spacetime_bindings_macro_input::sats::SatsField;
-use syn::{Attribute, Ident};
 
 impl UUIDVersion {
     /// Reads `#[auto_gen(v4)]` or `#[auto_gen(v7)]` from a column, and rejects the column
     /// when the create method could not generate its value.
-    pub fn try_parse(
+    pub(crate) fn try_parse(
         field: &SatsField<'_>,
         rust_field: &RustField,
         wrapper_type: &Option<WrapperType>,
@@ -63,7 +66,7 @@ impl UUIDVersion {
     }
 
     /// `v4` or `v7`, the constructor of a `Uuid` wrapper which generates this version.
-    pub fn wrapper_constructor_name(&self) -> Ident {
+    pub(crate) fn wrapper_constructor_name(&self) -> Ident {
         match self {
             UUIDVersion::V4 => format_ident!("v4"),
             UUIDVersion::V7 => format_ident!("v7"),

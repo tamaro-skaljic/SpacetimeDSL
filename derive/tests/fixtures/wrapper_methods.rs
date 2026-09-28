@@ -65,9 +65,17 @@ pub struct AccountNote {
     pub account_id: u64,
 }
 
-#[spacetimedsl::dsl(plural_name = active_memberships, method(update = true))]
+#[spacetimedsl::dsl(
+    plural_name = active_memberships,
+    table = active_membership,
+    method(update = true)
+)]
 #[spacetimedb::table(accessor = active_membership, public)]
-#[spacetimedsl::dsl(plural_name = expired_memberships, method(update = true))]
+#[spacetimedsl::dsl(
+    plural_name = expired_memberships,
+    table = expired_membership,
+    method(update = true)
+)]
 #[spacetimedb::table(accessor = expired_membership, public)]
 pub struct Membership {
     #[primary_key]

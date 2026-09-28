@@ -1,7 +1,8 @@
-use proc_macro2::TokenStream;
-use rust_format::{Formatter, PrettyPlease};
-
-use crate::output::malformed_code_generation_result;
+use {
+    crate::output::malformed_code_generation_result,
+    proc_macro2::TokenStream,
+    rust_format::{Formatter, PrettyPlease},
+};
 
 pub fn implementation_doc_comment(implementation: TokenStream) -> String {
     implementation_section(implementation)

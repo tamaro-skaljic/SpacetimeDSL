@@ -10,9 +10,9 @@ Try to update a `Seat` row of the `seat` table whose value matches the value fro
         &'a self,
         seat: Seat,
     ) -> Result<Seat, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::itertools::Itertools;
         let mut seat = seat;
         let mut the_same_or_another_seat: Option<Seat> = None;
         the_same_or_another_seat = match self

@@ -54,6 +54,8 @@ fn before_lock_holder_delete(
 }
 
 pub fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
+    on_delete_strategy_failure_is_exported_from_the_crate_root()?;
+
     let one_row_group = dsl.create_lock_group(CreateLockGroup { batch: 1 })?;
     dsl.create_lock_holder(CreateLockHolder {
         group_id: one_row_group.get_id(),
@@ -99,6 +101,25 @@ pub fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
             }
         }
     };
+
+    Ok(())
+}
+
+/// The failure a cascade strategy reports is reachable from the root of the runtime crate,
+/// like the other delete types.
+fn on_delete_strategy_failure_is_exported_from_the_crate_root() -> Result<(), String> {
+    let failure: ::spacetimedsl::OnDeleteStrategyFailure<Vec<::spacetimedsl::DeletionResultEntry>> =
+        ::spacetimedsl::OnDeleteStrategyFailure {
+            entries: vec![],
+            error_from_hook: None,
+        };
+
+    if !failure.entries.is_empty() || failure.error_from_hook.is_some() {
+        return Err(
+            "An OnDeleteStrategyFailure should hold the entries and the error it was built with!"
+                .to_string(),
+        );
+    }
 
     Ok(())
 }

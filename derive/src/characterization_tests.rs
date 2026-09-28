@@ -13,14 +13,19 @@
 //!
 //! Run `cargo insta review` to inspect and accept changed snapshots.
 
-use std::{collections::BTreeSet, fs, path::PathBuf};
-
-use proc_macro2::TokenStream;
-use quote::ToTokens;
-use rust_format::{Formatter, PrettyPlease};
-use syn::{Attribute, DeriveInput, Item};
-
-use crate::{ExpandedDSLAttribute, expand_dsl_attribute_parts, output::GeneratedOutput};
+use {
+    crate::{ExpandedDSLAttribute, expand_dsl_attribute_parts, output::GeneratedOutput},
+    proc_macro2::TokenStream,
+    quote::ToTokens,
+    rust_format::{Formatter, PrettyPlease},
+    spacetimedsl_derive_input::api::attribute::{FIELD_ATTRIBUTE_NAMES, is_dsl_attribute},
+    std::{
+        collections::BTreeSet,
+        fs,
+        path::{Path, PathBuf},
+    },
+    syn::{Attribute, DeriveInput, Expr, ExprLit, Item, Lit, Stmt},
+};
 
 #[test]
 fn plain_table() {
@@ -108,8 +113,28 @@ fn singleton_with_foreign_key() {
 }
 
 #[test]
+fn singleton_with_uuid_foreign_key() {
+    snapshot_fixture("singleton_with_uuid_foreign_key");
+}
+
+#[test]
+fn table_named_singleton() {
+    snapshot_fixture("table_named_singleton");
+}
+
+#[test]
 fn foreign_key_and_referenced_by() {
     snapshot_fixture("foreign_key_and_referenced_by");
+}
+
+#[test]
+fn foreign_keys_with_equivalent_spellings() {
+    snapshot_fixture("foreign_keys_with_equivalent_spellings");
+}
+
+#[test]
+fn foreign_key_with_table_level_index() {
+    snapshot_fixture("foreign_key_with_table_level_index");
 }
 
 #[test]
@@ -128,6 +153,11 @@ fn on_delete_set_zero() {
 }
 
 #[test]
+fn on_delete_set_zero_uuid() {
+    snapshot_fixture("on_delete_set_zero_uuid");
+}
+
+#[test]
 fn on_delete_set_zero_with_update_hooks_and_set_on_update() {
     snapshot_fixture("on_delete_set_zero_with_update_hooks_and_set_on_update");
 }
@@ -138,8 +168,8 @@ fn on_delete_ignore() {
 }
 
 #[test]
-fn hooks_all_six() {
-    snapshot_fixture("hooks_all_six");
+fn insert_update_and_delete_hooks() {
+    snapshot_fixture("insert_update_and_delete_hooks");
 }
 
 #[test]
@@ -222,6 +252,75 @@ fn self_referencing_cascade() {
     snapshot_fixture("self_referencing_cascade");
 }
 
+#[test]
+fn restricted_accessor_visibility() {
+    snapshot_fixture("restricted_accessor_visibility");
+}
+
+#[test]
+fn absolute_attribute_paths() {
+    snapshot_fixture("absolute_attribute_paths");
+}
+
+#[test]
+fn every_field_attribute() {
+    snapshot_fixture("every_field_attribute");
+}
+
+/// `proc_macro_derive(attributes(...))` needs literal identifiers, so the helper
+/// attributes of the `SpacetimeDSL` derive cannot be generated from
+/// `FIELD_ATTRIBUTE_NAMES`. A name missing from the helper list surfaces only as an
+/// unknown-attribute error in user code, which no snapshot notices, so the two lists are
+/// compared here.
+#[test]
+fn helper_attributes_match_field_attributes() {
+    let lib_rs: syn::File =
+        syn::parse_str(include_str!("lib.rs")).expect("`lib.rs` should be parsable Rust");
+
+    let proc_macro_derive = lib_rs
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Fn(function) => Some(&function.attrs),
+            _ => None,
+        })
+        .flatten()
+        .find(|attribute| attribute.path().is_ident("proc_macro_derive"))
+        .expect("`lib.rs` should declare the `SpacetimeDSL` derive");
+
+    let mut helper_attributes = vec![];
+
+    proc_macro_derive
+        .parse_nested_meta(|meta| {
+            if meta.path.is_ident("attributes") {
+                meta.parse_nested_meta(|meta| {
+                    helper_attributes.push(
+                        meta.path
+                            .get_ident()
+                            .expect("a helper attribute is a plain identifier")
+                            .to_string(),
+                    );
+                    Ok(())
+                })?;
+            }
+            Ok(())
+        })
+        .expect("the `proc_macro_derive` arguments should be parsable");
+
+    let mut field_attributes: Vec<String> = FIELD_ATTRIBUTE_NAMES
+        .iter()
+        .map(ToString::to_string)
+        .collect();
+
+    helper_attributes.sort();
+    field_attributes.sort();
+
+    assert_eq!(
+        helper_attributes, field_attributes,
+        "the helper attributes of `#[proc_macro_derive(SpacetimeDSL, attributes(...))]` should be exactly `FIELD_ATTRIBUTE_NAMES`"
+    );
+}
+
 /// Expanding the same fixture twice must produce byte-identical output, otherwise the
 /// snapshots above would fail at random and a regenerated module would differ from the
 /// previous one for no reason.
@@ -247,6 +346,132 @@ fn expansion_is_deterministic() {
             "expansion {expansion_number} of `{FIXTURE_NAME}.rs` should be identical to the first one"
         );
     }
+}
+
+/// A fixture is only snapshotted through a `#[test]` above that calls `snapshot_fixture`
+/// with its name. A fixture without such a test would never run, and the snapshots of a
+/// deleted fixture would stay behind, both without anything reporting it.
+#[test]
+fn every_fixture_is_registered_under_its_own_name() {
+    let registrations = fixture_registrations();
+    let registered_fixture_names: BTreeSet<&str> = registrations
+        .iter()
+        .map(|registration| registration.fixture_name.as_str())
+        .collect();
+    let fixture_names = entry_names_in("tests/fixtures", |path| {
+        path.extension().is_some_and(|extension| extension == "rs")
+    });
+    let snapshot_directory_names = entry_names_in("tests/snapshots", Path::is_dir);
+
+    let unregistered_fixtures: Vec<&String> = fixture_names
+        .iter()
+        .filter(|fixture_name| !registered_fixture_names.contains(fixture_name.as_str()))
+        .collect();
+    assert!(
+        unregistered_fixtures.is_empty(),
+        "every fixture should have a `#[test]` calling `snapshot_fixture` with its name, but these have none: {unregistered_fixtures:?}"
+    );
+
+    let snapshot_directories_without_fixture: Vec<&String> = snapshot_directory_names
+        .difference(&fixture_names)
+        .collect();
+    assert!(
+        snapshot_directories_without_fixture.is_empty(),
+        "every snapshot directory should belong to a fixture of the same name, but these have none: {snapshot_directories_without_fixture:?}"
+    );
+
+    let misnamed_registrations: Vec<&FixtureRegistration> = registrations
+        .iter()
+        .filter(|registration| registration.function_name != registration.fixture_name)
+        .collect();
+    assert!(
+        misnamed_registrations.is_empty(),
+        "every `#[test]` calling `snapshot_fixture` should be named after its fixture, but these are not: {misnamed_registrations:?}"
+    );
+
+    let registrations_without_fixture: Vec<&str> = registered_fixture_names
+        .into_iter()
+        .filter(|fixture_name| !fixture_names.contains(*fixture_name))
+        .collect();
+    assert!(
+        registrations_without_fixture.is_empty(),
+        "every `snapshot_fixture` call should name an existing fixture, but these do not: {registrations_without_fixture:?}"
+    );
+}
+
+/// A `#[test]` of this file whose body is a single `snapshot_fixture("<fixture_name>")` call.
+#[derive(Debug)]
+struct FixtureRegistration {
+    function_name: String,
+    fixture_name: String,
+}
+
+fn fixture_registrations() -> Vec<FixtureRegistration> {
+    let this_file = syn::parse_file(include_str!("characterization_tests.rs"))
+        .expect("this file should be parsable Rust");
+
+    this_file
+        .items
+        .iter()
+        .filter_map(|item| {
+            let Item::Fn(function) = item else {
+                return None;
+            };
+            if !function
+                .attrs
+                .iter()
+                .any(|attribute| attribute.path().is_ident("test"))
+            {
+                return None;
+            }
+            let [Stmt::Expr(Expr::Call(call), _)] = function.block.stmts.as_slice() else {
+                return None;
+            };
+            let Expr::Path(callee) = call.func.as_ref() else {
+                return None;
+            };
+            if !callee.path.is_ident("snapshot_fixture") {
+                return None;
+            }
+            let arguments: Vec<&Expr> = call.args.iter().collect();
+            let [
+                Expr::Lit(ExprLit {
+                    lit: Lit::Str(fixture_name),
+                    ..
+                }),
+            ] = arguments.as_slice()
+            else {
+                return None;
+            };
+
+            Some(FixtureRegistration {
+                function_name: function.sig.ident.to_string(),
+                fixture_name: fixture_name.value(),
+            })
+        })
+        .collect()
+}
+
+/// The names, without extension, of the entries of `directory` (relative to this crate)
+/// which `keep` accepts.
+fn entry_names_in(directory: &str, keep: impl Fn(&Path) -> bool) -> BTreeSet<String> {
+    let directory = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(directory);
+
+    fs::read_dir(&directory)
+        .unwrap_or_else(|error| panic!("`{}` should be readable: {error}", directory.display()))
+        .map(|entry| {
+            entry
+                .expect("an entry of a readable directory should be readable")
+                .path()
+        })
+        .filter(|path| keep(path))
+        .map(|path| {
+            path.file_stem()
+                .expect("an entry of a directory should have a name")
+                .to_string_lossy()
+                .into_owned()
+        })
+        .collect()
 }
 
 /// One `#[dsl]` expansion of one struct of a fixture.
@@ -451,16 +676,6 @@ fn take_first_dsl_attribute_args(attributes: &mut Vec<Attribute>) -> Option<Toke
             .tokens
             .clone(),
     )
-}
-
-fn is_dsl_attribute(attribute: &Attribute) -> bool {
-    let Ok(list) = attribute.meta.require_list() else {
-        return false;
-    };
-
-    let path = list.path.to_token_stream().to_string();
-
-    path == "dsl" || path == "spacetimedsl :: dsl"
 }
 
 fn read_fixture(fixture_name: &str) -> String {

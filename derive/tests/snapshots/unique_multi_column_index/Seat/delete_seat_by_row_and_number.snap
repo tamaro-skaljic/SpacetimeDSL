@@ -16,9 +16,9 @@ Try to delete a `Seat` row in the `seat` table whose values match the values fro
         crate::spacetimedsl::delete::DeletionResult,
         crate::spacetimedsl::error::SpacetimeDSLError,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::itertools::Itertools;
         let mut the_same_or_another_seat: Option<Seat> = None;
         the_same_or_another_seat = match self
             .db()

@@ -1,0 +1,103 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct ArchivedNoteId {
+    value: u64,
+}
+impl Default for ArchivedNoteId {
+    fn default() -> ArchivedNoteId {
+        ArchivedNoteId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for ArchivedNoteId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "ArchivedNoteId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for ArchivedNoteId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&ArchivedNote> for ArchivedNoteId {
+    fn from(value: &ArchivedNote) -> Self {
+        ArchivedNoteId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&ArchivedNote> for Option<ArchivedNoteId> {
+    fn from(value: &ArchivedNote) -> Option<ArchivedNoteId> {
+        Some(ArchivedNoteId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&ArchivedNoteId> for Option<ArchivedNoteId> {
+    fn from(value: &ArchivedNoteId) -> Option<ArchivedNoteId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(ArchivedNoteId::new(value.value()))
+    }
+}
+impl From<&ArchivedNoteId> for ArchivedNoteId {
+    fn from(value: &ArchivedNoteId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        ArchivedNoteId::new(value.value())
+    }
+}
+impl ArchivedNote {
+    ///
+    pub fn get_id(&self) -> ArchivedNoteId {
+        use crate::spacetimedsl::Wrapper;
+        ArchivedNoteId::new(self.id.clone())
+    }
+    ///
+    pub fn get_text(&self) -> &String {
+        use crate::spacetimedsl::Wrapper;
+        &self.text
+    }
+    ///
+    pub fn get_text_mut(&mut self) -> &mut String {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.text
+    }
+    ///
+    pub fn set_text(&mut self, text: String) -> String {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.text, text);
+        old_value
+    }
+    ///
+    pub fn get_deleted_at(&self) -> &core::option::Option<::spacetimedb::Timestamp> {
+        use crate::spacetimedsl::Wrapper;
+        &self.deleted_at
+    }
+}
+///
+pub struct CreateArchivedNote {
+    pub text: String,
+}
+
+// Generated DSL methods:
+// count_of_all_archived_notes
+// create_archived_note
+// delete_archived_note_by_id
+// get_all_archived_notes
+// get_archived_note_by_id
+// soft_delete_archived_note_by_id
+// update_archived_note_by_id

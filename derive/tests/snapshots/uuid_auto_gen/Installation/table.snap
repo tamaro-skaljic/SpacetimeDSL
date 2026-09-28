@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct InstallationId {
     value: Uuid,
 }
@@ -28,7 +37,7 @@ impl std::fmt::Display for InstallationId {
         write!(f, "{} {{ id: {:?} }}", "InstallationId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<Uuid, InstallationId> for InstallationId {
+impl crate::spacetimedsl::Wrapper<Uuid> for InstallationId {
     fn new(value: Uuid) -> Self {
         Self { value }
     }
@@ -52,35 +61,35 @@ impl From<&Installation> for Option<InstallationId> {
 }
 impl From<&InstallationId> for Option<InstallationId> {
     fn from(value: &InstallationId) -> Option<InstallationId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(InstallationId::new(value.value()))
     }
 }
 impl From<&InstallationId> for InstallationId {
     fn from(value: &InstallationId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         InstallationId::new(value.value())
     }
 }
 impl Installation {
     ///
     pub fn get_installation_id(&self) -> InstallationId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         InstallationId::new(self.installation_id.clone())
     }
     ///
     pub fn get_name(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.name
     }
     ///
     pub fn get_name_mut(&mut self) -> &mut String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.name
     }
     ///
     pub fn set_name(&mut self, name: String) -> String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.name, name);
         old_value
     }

@@ -7,20 +7,65 @@
 //!
 //! The `compile-tests` pin every message together with the span it underlines.
 
-use crate::api::dsl::{soft_delete::SoftDeleteMarkerKind, table::SingletonKind};
-use proc_macro2::Span;
-use quote::ToTokens;
-use syn::{Error, Ident, Type, Visibility, meta::ParseNestedMeta};
+use {
+    crate::{
+        api::dsl::{soft_delete::SoftDeleteMarkerKind, table::SingletonKind},
+        internal::dsl::column_role,
+    },
+    proc_macro2::Span,
+    quote::ToTokens,
+    syn::{Error, Ident, Type, Visibility, meta::ParseNestedMeta},
+};
 
 /// Why a singleton is never soft-deletable, shared by the three shapes it is rejected in.
 const SINGLETON_IS_NEVER_SOFT_DELETABLE: &str = "A singleton holds one row which the DSL looks up by its injected primary key, so retiring that row would leave the table with a row no method can reach.";
 
-fn visibility_variant_name(visibility: &Visibility) -> &'static str {
+/// A visibility the way the user wrote it: `` `pub` ``, `` `pub(crate)` ``,
+/// `` `pub(in path)` ``, or "no visibility modifier" for a private field.
+fn written_visibility(visibility: &Visibility) -> String {
     match visibility {
-        Visibility::Public(_) => "Visibility::Public",
-        Visibility::Restricted(_) => "Visibility::Restricted",
-        Visibility::Inherited => "Visibility::Inherited",
+        Visibility::Public(_) => "`pub`".to_string(),
+        Visibility::Restricted(restricted) => {
+            let path = restricted
+                .path
+                .to_token_stream()
+                .to_string()
+                .replace(' ', "");
+
+            match restricted.in_token {
+                Some(_) => format!("`pub(in {path})`"),
+                None => format!("`pub({path})`"),
+            }
+        }
+        Visibility::Inherited => "no visibility modifier".to_string(),
     }
+}
+
+// Column types
+
+pub fn unsupported_column_type(column_type: &Type) -> Error {
+    let kind = match column_type {
+        Type::Array(_) => "an array",
+        Type::Tuple(_) => "a tuple",
+        Type::Reference(_) => "a reference",
+        Type::Slice(_) => "a slice",
+        Type::FnPtr(_) => "a function pointer",
+        Type::TraitObject(_) => "a trait object",
+        Type::ImplTrait(_) => "an `impl Trait`",
+        Type::Never(_) => "the never type",
+        Type::Path(_) => "a qualified path such as `<T as Trait>::Type`",
+        Type::Ptr(_) => "a raw pointer",
+        Type::Infer(_) => "the inferred type `_`",
+        Type::Macro(_) => "a macro",
+        _ => "not a path",
+    };
+
+    Error::new_spanned(
+        column_type,
+        format!(
+            "SpacetimeDSL supports only path types as column types, such as `u64`, `String` or `spacetimedb::Timestamp`! This column's type is {kind}."
+        ),
+    )
 }
 
 // `#[table]`
@@ -28,15 +73,38 @@ fn visibility_variant_name(visibility: &Visibility) -> &'static str {
 pub fn missing_table_attribute(struct_name: &Ident) -> Error {
     Error::new_spanned(
         struct_name,
-        "Haven't found `#[table]`/`#[spacetimedb::table]` attribute macro! Make sure `#[dsl]`/`#[spacetimedsl::dsl]` is directly above one.",
+        "Haven't found a `#[table]`/`#[spacetimedb::table]` attribute below this `#[dsl]`! `#[dsl]`/`#[spacetimedsl::dsl]` builds on the table it declares, so write it above that `#[table]`.",
     )
 }
 
-pub fn no_table_attribute_found(struct_name: &Ident) -> Error {
+pub fn table_selector_missing(struct_name: &Ident, accessors: &[&Ident]) -> Error {
     Error::new_spanned(
         struct_name,
-        "No `#[table]`/`#[spacetimedb::table]` attribute macro found",
+        format!(
+            "There are {} `#[table]` attributes below this `#[dsl]` ({}), so it has to name the one it belongs to! Add `table = <accessor>`, such as `#[dsl(table = {}, ...)]`.",
+            accessors.len(),
+            quoted_list(accessors),
+            accessors[0],
+        ),
     )
+}
+
+pub fn table_selector_names_no_table(table_selector: &Ident, accessors: &[&Ident]) -> Error {
+    Error::new_spanned(
+        table_selector,
+        format!(
+            "No `#[table]` attribute below this `#[dsl]` has the accessor `{table_selector}`! Found: {}. A `#[dsl]` sees only the `#[table]` attributes below it.",
+            quoted_list(accessors),
+        ),
+    )
+}
+
+fn quoted_list(idents: &[&Ident]) -> String {
+    idents
+        .iter()
+        .map(|ident| format!("`{ident}`"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 pub fn singleton_without_exactly_one_table_attribute(
@@ -104,6 +172,29 @@ pub fn unique_index_on_singleton(unique_index_name: &Ident, names_a_declared_ind
     )
 }
 
+pub fn unknown_unique_index(unique_index_name: &Ident, declared_indices: &[&Ident]) -> Error {
+    let declared = match declared_indices.is_empty() {
+        true => "none".to_string(),
+        false => quoted_list(declared_indices),
+    };
+
+    Error::new_spanned(
+        unique_index_name,
+        format!(
+            "No index of this table has the accessor `{unique_index_name}`! Its indices: {declared}."
+        ),
+    )
+}
+
+pub fn repeated_unique_index(unique_index_name: &Ident) -> Error {
+    Error::new_spanned(
+        unique_index_name,
+        format!(
+            "`unique_index(name = {unique_index_name})` is given twice! Remove this one, or name another index."
+        ),
+    )
+}
+
 // `#[dsl(method(..))]`
 
 pub fn missing_update_method_with_non_private_column(struct_name: &Ident) -> Error {
@@ -116,7 +207,10 @@ pub fn missing_update_method_with_non_private_column(struct_name: &Ident) -> Err
 pub fn missing_update_method_with_only_private_columns(struct_name: &Ident) -> Error {
     Error::new_spanned(
         struct_name,
-        "HasUpdateMethod must be set in `#[dsl(method(update = HasUpdateMethod))]`, e.g. `update = false`.\nBecause all your columns are private, you should set `#[dsl(method(update = false))]`.\nIf, instead, you want mutable rows in this table which have setters and can be updated, at least one column must be non-private or named `modified_at`/`updated_at` and you must specify `#[dsl(method(update = true))]`.",
+        format!(
+            "HasUpdateMethod must be set in `#[dsl(method(update = HasUpdateMethod))]`, e.g. `update = false`.\nBecause all your columns are private, you should set `#[dsl(method(update = false))]`.\nIf, instead, you want mutable rows in this table which have setters and can be updated, at least one column must be non-private, carry `#[set_on_update]` or be named {}, and you must specify `#[dsl(method(update = true))]`.",
+            column_role::slash_separated(&column_role::SET_ON_UPDATE_COLUMN_NAMES),
+        ),
     )
 }
 
@@ -124,16 +218,21 @@ pub fn non_private_column_without_update_method(visibility: &Visibility) -> Erro
     Error::new_spanned(
         visibility,
         format!(
-            "All columns in a table with disabled `update` DSL method should be private! Found: {:?}",
-            visibility.to_token_stream().to_string()
+            "All columns in a table with disabled `update` DSL method should be private! Found: {}",
+            written_visibility(visibility)
         ),
     )
 }
 
 pub fn update_method_disabled_with_set_on_update_column(struct_name: &Ident) -> Error {
+    let set_on_update_column_names =
+        column_role::slash_separated(&column_role::SET_ON_UPDATE_COLUMN_NAMES);
+
     Error::new_spanned(
         struct_name,
-        "Because you have a column named `modified_at`/`updated_at`, you must specify `#[dsl(method(update = true))]`\nIf, instead, you want immutable rows in this table which don't have setters and can't be updated, all columns must be private, you must remove the `modified_at`/`updated_at` column and you must specify `#[dsl(method(update = false))]`.",
+        format!(
+            "Because you have a column named {set_on_update_column_names}, you must specify `#[dsl(method(update = true))]`\nIf, instead, you want immutable rows in this table which don't have setters and can't be updated, all columns must be private, you must remove the {set_on_update_column_names} column and you must specify `#[dsl(method(update = false))]`."
+        ),
     )
 }
 
@@ -230,6 +329,19 @@ pub fn single_column_index_on_singleton(column_name: &Ident) -> Error {
     )
 }
 
+pub fn multiple_single_column_indices_on_column(
+    column_name: &Ident,
+    first_index_name: &Ident,
+    second_index_name: &Ident,
+) -> Error {
+    Error::new_spanned(
+        second_index_name,
+        format!(
+            "The column `{column_name}` has two single-column indices, `{first_index_name}` and `{second_index_name}`! Its lookup methods come from one of them, so the other would generate nothing. Remove one."
+        ),
+    )
+}
+
 // `#[create_wrapper]` and `#[use_wrapper]`
 
 pub fn primary_key_without_wrapper(column_name: &Ident) -> Error {
@@ -304,8 +416,8 @@ pub fn auto_gen_column_not_private(visibility: &Visibility) -> Error {
     Error::new_spanned(
         visibility,
         format!(
-            "A column with `#[auto_gen]` should be private, because its value is generated and should never change! Found: `{}`",
-            visibility.to_token_stream()
+            "A column with `#[auto_gen]` should be private, because its value is generated and should never change! Found: {}",
+            written_visibility(visibility)
         ),
     )
 }
@@ -371,8 +483,8 @@ pub fn set_on_create_column_not_private(visibility: &Visibility) -> Error {
     Error::new_spanned(
         visibility,
         format!(
-            "A column with the `set_on_create` role should have `Visibility::Inherited`! Found: {}",
-            visibility_variant_name(visibility)
+            "A column with the `set_on_create` role should have no visibility modifier! Found: {}",
+            written_visibility(visibility)
         ),
     )
 }
@@ -405,8 +517,8 @@ pub fn set_on_update_column_not_private(visibility: &Visibility) -> Error {
     Error::new_spanned(
         visibility,
         format!(
-            "A column with the `set_on_update` role should have `Visibility::Inherited`! Found: {}",
-            visibility_variant_name(visibility)
+            "A column with the `set_on_update` role should have no visibility modifier! Found: {}",
+            written_visibility(visibility)
         ),
     )
 }
@@ -418,7 +530,11 @@ pub fn soft_delete_method_without_marker_column(
 ) -> Error {
     Error::new_spanned(
         soft_delete_method_argument,
-        "`#[dsl(method(soft_delete = true))]` requires a column which the soft deletion writes!\nName a column `deleted` or `removed` and give it the type `bool`, name a column `deleted_at` or `removed_at` and give it the type `Option<spacetimedb::Timestamp>`, or put `#[set_on_soft_delete]` on a column of either type.",
+        format!(
+            "`#[dsl(method(soft_delete = true))]` requires a column which the soft deletion writes!\nName a column {} and give it the type `bool`, name a column {} and give it the type `Option<spacetimedb::Timestamp>`, or put `#[set_on_soft_delete]` on a column of either type.",
+            column_role::or_separated(&column_role::SOFT_DELETE_FLAG_COLUMN_NAMES),
+            column_role::or_separated(&column_role::SOFT_DELETE_TIMESTAMP_COLUMN_NAMES),
+        ),
     )
 }
 
@@ -463,7 +579,10 @@ pub fn multiple_marker_columns(column_name: &Ident) -> Error {
 pub fn marker_column_not_private(visibility: &Visibility) -> Error {
     Error::new_spanned(
         visibility,
-        "A column with the soft-delete marker role should have `Visibility::Inherited`!\nOnly DSL methods are allowed to set this column, and they do it internally, so it has a getter but no setter.",
+        format!(
+            "A column with the soft-delete marker role should have no visibility modifier! Found: {}\nOnly DSL methods are allowed to set this column, and they do it internally, so it has a getter but no setter.",
+            written_visibility(visibility)
+        ),
     )
 }
 
@@ -565,6 +684,16 @@ pub fn set_zero_strategy_on_private_column(foreign_key_meta: &impl ToTokens) -> 
     )
 }
 
+pub fn set_zero_strategy_on_unsupported_type(column_type: &Type) -> Error {
+    Error::new_spanned(
+        column_type,
+        format!(
+            "`OnDeleteStrategy::SetZero` is only allowed on unsigned integer and `Uuid` columns, which it sets to `0` or `Uuid::NIL`, the values that reference no row! Found: {}",
+            column_type.to_token_stream()
+        ),
+    )
+}
+
 pub fn delete_strategy_without_delete_method(foreign_key_meta: &impl ToTokens) -> Error {
     Error::new_spanned(
         foreign_key_meta,
@@ -624,7 +753,7 @@ pub fn foreign_key_columns_type_mismatch(column_name: &Ident) -> Error {
 pub fn foreign_key_columns_path_mismatch(column_name: &Ident) -> Error {
     Error::new_spanned(
         column_name,
-        "All foreign key columns which reference the same primary key of another table should have the same path",
+        "All foreign key columns which reference the same primary key of another table should have the same path! Spell both paths the same way; a leading `::` makes no difference.",
     )
 }
 

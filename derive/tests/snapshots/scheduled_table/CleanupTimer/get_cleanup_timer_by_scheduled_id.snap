@@ -10,8 +10,8 @@ Try to get a `CleanupTimer` from the `cleanup_timer` table whose value matches t
         &'a self,
         scheduled_id: impl Into<CleanupTimerScheduledId> + Clone,
     ) -> Result<CleanupTimer, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self
             .db()
             .cleanup_timer()
@@ -40,8 +40,8 @@ Try to get a `CleanupTimer` from the `cleanup_timer` table whose value matches t
         &'a self,
         scheduled_id: impl Into<CleanupTimerScheduledId> + Clone,
     ) -> Result<CleanupTimer, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self
             .db()
             .cleanup_timer()

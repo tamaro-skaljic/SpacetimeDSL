@@ -10,8 +10,8 @@ Try to get a `Signature` from the `signature` table whose value matches the valu
         &'a self,
         id: impl Into<SignatureId> + Clone,
     ) -> Result<Signature, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().signature().id().find(id.clone().into().value()) {
             Some(signature) => Ok(signature),
             None => {
@@ -35,8 +35,8 @@ Try to get a `Signature` from the `signature` table whose value matches the valu
         &'a self,
         id: impl Into<SignatureId> + Clone,
     ) -> Result<Signature, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().signature().id().find(id.clone().into().value()) {
             Some(signature) => Ok(signature),
             None => {

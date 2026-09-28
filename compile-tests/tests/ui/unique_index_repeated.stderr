@@ -1,0 +1,5 @@
+error: `unique_index(name = database_and_name)` is given twice! Remove this one, or name another index.
+  --> tests/ui/unique_index_repeated.rs:11:29
+   |
+11 |         unique_index(name = database_and_name)
+   |                             ^^^^^^^^^^^^^^^^^

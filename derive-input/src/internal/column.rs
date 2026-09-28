@@ -1,40 +1,61 @@
-use crate::api::{
-    Column,
-    db::{column::SpacetimeDBColumn, table::SpacetimeDBTable},
-    dsl::{
-        auto_gen::UUIDVersion,
-        column::{SpacetimeDSLColumn, SpacetimeDSLColumnMethods},
-        foreign_key::ForeignKey,
-        table::SpacetimeDSLTable,
-        wrapper::WrapperType,
+use {
+    crate::{
+        api::{
+            Column,
+            db::{column::SpacetimeDBColumn, index::Index, table::SpacetimeDBTable},
+            dsl::{
+                auto_gen::UUIDVersion,
+                column::{SpacetimeDSLColumn, SpacetimeDSLColumnMethods},
+                foreign_key::ForeignKey,
+                table::SpacetimeDSLTable,
+                wrapper::WrapperType,
+            },
+            rust::{column::RustField, table::RustStruct, visibility::RustVisibility},
+        },
+        internal::{
+            dsl::{
+                column::reject_primary_key_prefixed_with_table_name,
+                method::MethodGenerationContext, singleton,
+            },
+            error,
+            rust::column::column_type_path,
+        },
     },
-    rust::{column::RustField, table::RustStruct, visibility::RustVisibility},
+    itertools::izip,
+    quote::ToTokens,
+    spacetime_bindings_macro_input::table::ColumnArgs,
+    std::collections::BTreeMap,
+    syn::{GenericArgument, Ident, Path, PathArguments, Type},
 };
-use crate::internal::dsl::method::MethodGenerationContext;
-use crate::internal::error;
-use itertools::izip;
-use spacetime_bindings_macro_input::table::ColumnArgs;
-use syn::{Ident, Path};
 
-#[allow(clippy::type_complexity)]
+/// Every column of a table, in the shape the public API exposes and in the shape the
+/// generators work with, each with its primary key picked out.
+pub struct AnalysedColumns {
+    pub columns: Vec<Column>,
+    pub primary_key_column: Column,
+    pub internal_columns: Vec<InternalColumn>,
+    pub internal_primary_key_column: InternalColumn,
+}
+
 pub fn try_parse(
     column_args: &ColumnArgs,
     rust_struct: &RustStruct,
-    mut spacetimedb_table: SpacetimeDBTable,
+    spacetimedb_table: &SpacetimeDBTable,
+    mut single_column_index_by_column: BTreeMap<Ident, Index>,
     spacetimedsl_table: &SpacetimeDSLTable,
-) -> syn::Result<(
-    SpacetimeDBTable,
-    Vec<Column>,
-    Column,
-    Vec<InternalColumn>,
-    InternalColumn,
-)> {
+) -> syn::Result<AnalysedColumns> {
     let primary_key_column_name = match get_primary_key_column_name(column_args) {
-        Some(pk) => pk,
+        Some(primary_key_column_name) => primary_key_column_name,
         None => {
             return Err(error::missing_primary_key(&rust_struct.name));
         }
     };
+
+    let primary_key_position = column_args
+        .fields
+        .iter()
+        .position(|field| field.ident == Some(&primary_key_column_name))
+        .expect("`ColumnArgs` guarantees the primary key is one of the fields");
 
     let auto_inc_column_names = get_auto_inc_column_names(column_args);
 
@@ -45,17 +66,31 @@ pub fn try_parse(
     let mut internal_columns = vec![];
 
     for field in &column_args.fields {
-        let rust_field = RustField::map(field);
+        let rust_field = RustField::map(field)?;
 
-        let res = SpacetimeDBColumn::map(
+        let is_primary_key = rust_field.name == primary_key_column_name;
+        let single_column_index = single_column_index_by_column.remove(&rust_field.name);
+
+        reject_primary_key_prefixed_with_table_name(
+            &rust_field.name,
+            is_primary_key,
+            &spacetimedb_table.singular_name,
+        )?;
+
+        if spacetimedsl_table.is_singleton() {
+            singleton::reject_single_column_index(
+                &rust_field.name,
+                is_primary_key,
+                single_column_index.is_some(),
+            )?;
+        }
+
+        let spacetimedb_column = SpacetimeDBColumn::map(
             &rust_field,
-            spacetimedb_table,
+            single_column_index,
             &auto_inc_column_names,
             &primary_key_column_name,
-            spacetimedsl_table.is_singleton(),
-        )?;
-        spacetimedb_table = res.0;
-        let spacetimedb_column = res.1;
+        );
 
         let spacetimedsl_column = SpacetimeDSLColumn::try_parse(
             spacetimedsl_table,
@@ -85,19 +120,11 @@ pub fn try_parse(
         internal_columns.push(internal_column);
     }
 
-    let internal_primary_key_column = internal_columns
-        .iter()
-        .find(|c| {
-            c.rust_field_name
-                .to_string()
-                .eq(&primary_key_column_name.to_string())
-        })
-        .expect("PK column should be present")
-        .clone();
+    let internal_primary_key_column = internal_columns[primary_key_position].clone();
 
     let context = MethodGenerationContext::new(
         rust_struct,
-        &spacetimedb_table,
+        spacetimedb_table,
         spacetimedsl_table,
         &internal_columns,
         &internal_primary_key_column,
@@ -116,34 +143,27 @@ pub fn try_parse(
         });
     }
 
-    let primary_key_column = columns
-        .iter()
-        .find(|c| {
-            c.rust_field
-                .name
-                .to_string()
-                .eq(&primary_key_column_name.to_string())
-        })
-        .expect("PK column should be present")
-        .clone();
+    let primary_key_column = columns[primary_key_position].clone();
 
-    Ok((
-        spacetimedb_table,
+    Ok(AnalysedColumns {
         columns,
         primary_key_column,
         internal_columns,
         internal_primary_key_column,
-    ))
+    })
 }
 
-/// What the generators need to know about a column's type.
+/// What the generators and the validation need to know about a column's type.
 ///
-/// The kinds are mutually exclusive because every question the generators ask is asked of
-/// the *whole* type: `Option<String>` is `Optional`, not `String`.
-#[derive(Clone, Copy, PartialEq, Eq)]
+/// The kinds are mutually exclusive because every question is asked of the *whole* type:
+/// `Option<String>` is `Optional`, not `String`; [`ColumnTypeKind::of_option_argument`]
+/// asks about the `T` in `Option<T>`.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ColumnTypeKind {
     String,
     UnsignedInteger,
+    Bool,
+    Timestamp,
     Optional,
     // The project spells the acronym `UUID`, as in `NewUUID` and `UUIDVersion`.
     #[allow(clippy::upper_case_acronyms)]
@@ -152,32 +172,128 @@ pub enum ColumnTypeKind {
 }
 
 impl ColumnTypeKind {
-    /// Classifies a column's type by the path's last segment, accepting it only when the
-    /// path is bare or rooted in the standard library. So `String`, `std::string::String`
-    /// and `alloc::string::String` all classify as `String`, and `Option<_>`,
-    /// `std::option::Option<_>` and `core::option::Option<_>` all as `Optional`, while a
-    /// user's own `my_crate::String` stays `Other`.
+    /// Classifies a column's type by the path's last segment and the path in front of it:
     ///
-    /// Unsigned integers are matched bare only: they are primitives, so a qualified
-    /// spelling would not be the same type. `Uuid` is matched bare or as `spacetimedb::Uuid`.
+    /// - `String` and `Option<_>` bare or rooted in the standard library (`std`, `core`,
+    ///   `alloc`), such as `std::string::String` or `core::option::Option<_>`;
+    /// - `u8`–`u128` and `bool` bare or as `core::primitive::X` / `std::primitive::X`, which
+    ///   name the same primitive;
+    /// - `Timestamp` and `Uuid` bare or as `spacetimedb::X`.
+    ///
+    /// Every rooted path may start with `::`. Anything else, such as a user's own
+    /// `my_crate::String`, is `Other`.
     pub fn of(type_name_or_path: &Path) -> ColumnTypeKind {
-        let Some(last_segment) = type_name_or_path.segments.last() else {
+        let segments: Vec<String> = type_name_or_path
+            .segments
+            .iter()
+            .map(|segment| segment.ident.to_string())
+            .collect();
+
+        let Some(last_segment) = segments.last() else {
             return ColumnTypeKind::Other;
         };
 
-        let is_bare = type_name_or_path.segments.len() == 1;
-        let root = type_name_or_path.segments[0].ident.to_string();
-        let is_rooted_in_std = matches!(root.as_str(), "std" | "core" | "alloc");
-        let is_spacetimedb_uuid = type_name_or_path.segments.len() == 2 && root == "spacetimedb";
+        let is_bare = segments.len() == 1 && type_name_or_path.leading_colon.is_none();
+        let root = segments[0].as_str();
+        let is_rooted_in_std = matches!(root, "std" | "core" | "alloc");
+        let is_primitive_path =
+            segments.len() == 3 && matches!(root, "std" | "core") && segments[1] == "primitive";
+        let is_spacetimedb_path = segments.len() == 2 && root == "spacetimedb";
 
-        match last_segment.ident.to_string().as_str() {
-            "Uuid" if is_bare || is_spacetimedb_uuid => ColumnTypeKind::UUID,
+        match last_segment.as_str() {
+            "Uuid" if is_bare || is_spacetimedb_path => ColumnTypeKind::UUID,
+            "Timestamp" if is_bare || is_spacetimedb_path => ColumnTypeKind::Timestamp,
+            "u8" | "u16" | "u32" | "u64" | "u128" if is_bare || is_primitive_path => {
+                ColumnTypeKind::UnsignedInteger
+            }
+            "bool" if is_bare || is_primitive_path => ColumnTypeKind::Bool,
             _ if !is_bare && !is_rooted_in_std => ColumnTypeKind::Other,
-            "String" => ColumnTypeKind::String,
-            "Option" => ColumnTypeKind::Optional,
-            "u8" | "u16" | "u32" | "u64" | "u128" if is_bare => ColumnTypeKind::UnsignedInteger,
+            "String" if !is_primitive_path => ColumnTypeKind::String,
+            "Option" if !is_primitive_path => ColumnTypeKind::Optional,
             _ => ColumnTypeKind::Other,
         }
+    }
+
+    /// The kind of `T` when `type_name_or_path` is `Option<T>`, `None` for any other type.
+    /// A `T` which is no path, such as a tuple, is `Other`.
+    pub fn of_option_argument(type_name_or_path: &Path) -> Option<ColumnTypeKind> {
+        if ColumnTypeKind::of(type_name_or_path) != ColumnTypeKind::Optional {
+            return None;
+        }
+
+        let PathArguments::AngleBracketed(arguments) =
+            &type_name_or_path.segments.last()?.arguments
+        else {
+            return Some(ColumnTypeKind::Other);
+        };
+
+        Some(match arguments.args.first() {
+            Some(GenericArgument::Type(Type::Path(type_path))) if type_path.qself.is_none() => {
+                ColumnTypeKind::of(&type_path.path)
+            }
+            _ => ColumnTypeKind::Other,
+        })
+    }
+
+    /// The kind of a field's type, `Other` for a type which is no path.
+    pub fn of_type(field_type: &Type) -> ColumnTypeKind {
+        column_type_path(field_type).map_or(ColumnTypeKind::Other, ColumnTypeKind::of)
+    }
+
+    /// [`ColumnTypeKind::of_option_argument`] of a field's type.
+    pub fn of_option_argument_of_type(field_type: &Type) -> Option<ColumnTypeKind> {
+        column_type_path(field_type)
+            .ok()
+            .and_then(ColumnTypeKind::of_option_argument)
+    }
+}
+
+/// A type as text in one spelling per type, so two spellings of the same type compare
+/// equal: a type [`ColumnTypeKind::of`] knows is reduced to its bare name, generic
+/// arguments are canonicalised the same way, and every other path is kept as written
+/// without a leading `::`. `core::primitive::u8` is `"u8"`, and
+/// `std::option::Option<::spacetimedb::Timestamp>` is `"Option<Timestamp>"`.
+pub fn canonical_type(type_name_or_path: &Path) -> String {
+    let segment_text = |segment: &syn::PathSegment| {
+        format!(
+            "{}{}",
+            segment.ident,
+            canonical_arguments(&segment.arguments)
+        )
+    };
+
+    match (
+        ColumnTypeKind::of(type_name_or_path),
+        type_name_or_path.segments.last(),
+    ) {
+        (ColumnTypeKind::Other, _) | (_, None) => type_name_or_path
+            .segments
+            .iter()
+            .map(segment_text)
+            .collect::<Vec<_>>()
+            .join("::"),
+        (_, Some(last_segment)) => segment_text(last_segment),
+    }
+}
+
+fn canonical_arguments(arguments: &PathArguments) -> String {
+    match arguments {
+        PathArguments::None => String::new(),
+        PathArguments::AngleBracketed(arguments) => {
+            let arguments: Vec<String> = arguments
+                .args
+                .iter()
+                .map(|argument| match argument {
+                    GenericArgument::Type(Type::Path(type_path)) if type_path.qself.is_none() => {
+                        canonical_type(&type_path.path)
+                    }
+                    other => other.to_token_stream().to_string(),
+                })
+                .collect();
+
+            format!("<{}>", arguments.join(", "))
+        }
+        PathArguments::Parenthesized(arguments) => arguments.to_token_stream().to_string(),
     }
 }
 

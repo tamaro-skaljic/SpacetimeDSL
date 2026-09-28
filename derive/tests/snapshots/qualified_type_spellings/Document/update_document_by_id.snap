@@ -10,8 +10,8 @@ Try to update a `Document` row of the `document` table whose value matches the v
         &'a self,
         document: Document,
     ) -> Result<Document, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut document = document;
         let document = self.db().document().id().update(document);
         Ok(document)

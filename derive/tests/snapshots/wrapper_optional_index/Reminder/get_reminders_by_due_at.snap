@@ -8,8 +8,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         &'a self,
         due_at: &impl Into<Option<ReminderDueAt>>,
     ) -> impl Iterator<Item = Reminder> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let due_at = match due_at.into() {
             None => None,
             Some(due_at) => Some(Into::<ReminderDueAt>::into(due_at).value()),
@@ -24,8 +24,8 @@ impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T
         &'a self,
         due_at: &impl Into<Option<ReminderDueAt>>,
     ) -> impl Iterator<Item = Reminder> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let due_at = match due_at.into() {
             None => None,
             Some(due_at) => Some(Into::<ReminderDueAt>::into(due_at).value()),

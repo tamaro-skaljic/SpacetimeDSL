@@ -1,9 +1,14 @@
-use super::{context::MethodGenerationContext, hook_call::hook_tokens, upsert};
-use crate::{
-    api::{dsl::method::SpacetimeDSLMethod, runtime},
-    internal::dsl::{one_or_multiple::OneOrMultiple, singleton},
+use {
+    super::{context::MethodGenerationContext, message, removal, upsert},
+    crate::{
+        api::{
+            dsl::{hook::HookKind, method::SpacetimeDSLMethod},
+            runtime,
+        },
+        internal::dsl::{one_or_multiple::OneOrMultiple, singleton},
+    },
+    quote::{format_ident, quote},
 };
-use quote::{format_ident, quote};
 
 /// `get_<table>`: the one row of a singleton table.
 ///
@@ -27,7 +32,7 @@ pub fn for_singleton_get(context: &MethodGenerationContext) -> SpacetimeDSLMetho
 
     let not_found_error = runtime::not_found_error(
         singular_table_name_as_string,
-        &singleton::rendered_primary_key(),
+        &message::singleton_primary_key(),
     );
 
     let doc_comment = match spacetimedsl_table.singleton_has_default() {
@@ -70,6 +75,7 @@ pub fn for_singleton_get(context: &MethodGenerationContext) -> SpacetimeDSLMetho
                 None => #absent_row
             }
         },
+        // A read-only table handle offers primary key lookups.
         read_context_compatible: true,
     }
 }
@@ -87,37 +93,21 @@ pub fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMe
     let primary_key = singleton::primary_key_ident();
     let primary_key_value = singleton::primary_key_value();
 
-    let before_delete_hook = hook_tokens(
-        &spacetimedsl_table.hooks.before_delete,
-        |hook_function_name| {
-            let hook_call = runtime::dsl_method_hooks_call(
-                hook_function_name,
-                &quote! { self, &row_to_delete },
-            );
-
-            quote! {
-                #hook_call?;
-            }
-        },
+    let before_delete_hook = removal::hard_deletion_hook(
+        spacetimedsl_table,
+        HookKind::BEFORE_DELETE,
+        &OneOrMultiple::One,
     );
 
-    let after_delete_hook = hook_tokens(
-        &spacetimedsl_table.hooks.after_delete,
-        |hook_function_name| {
-            let hook_call = runtime::dsl_method_hooks_call(
-                hook_function_name,
-                &quote! { self, &row_to_delete },
-            );
-
-            quote! {
-                #hook_call?;
-            }
-        },
+    let after_delete_hook = removal::hard_deletion_hook(
+        spacetimedsl_table,
+        HookKind::AFTER_DELETE,
+        &OneOrMultiple::One,
     );
 
     let not_found_error = runtime::not_found_error(
         singular_table_name_as_string,
-        &singleton::rendered_primary_key(),
+        &message::singleton_primary_key(),
     );
 
     let deletion_result_entry = runtime::deletion_result_entry(
@@ -125,12 +115,10 @@ pub fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMe
         &singleton::PRIMARY_KEY_NAME,
         &runtime::on_delete_strategy(&quote! { Delete }),
         &singleton::rendered_primary_key_value(),
-        &quote! { child_entries: vec![], },
+        &quote! { vec![] },
     );
 
-    let count_mismatch_error = runtime::generic_error(&quote! {
-        "Delete One Error: `count_of_rows_to_delete ( 1 ) != ( 0 ) count_of_deleted_rows`!".to_string()
-    });
+    let count_mismatch_error = removal::delete_one_count_mismatch_error();
 
     let single_entry_deletion_result = runtime::deletion_result(
         singular_table_name_as_string,
@@ -138,8 +126,6 @@ pub fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMe
         &quote! { vec![deletion_result_entry] },
         &quote! { None },
     );
-
-    let itertools_import = runtime::itertools_import();
 
     SpacetimeDSLMethod {
         doc_comment: format!(
@@ -149,8 +135,6 @@ pub fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMe
         method_args: vec![],
         return_type: runtime::error_result_type(&runtime::deletion_result_type()),
         method_impl: quote! {
-            #itertools_import
-
             let row_to_delete = match self.db().#singular_table_name().#primary_key().find(&#primary_key_value) {
                 None => return Err(#not_found_error),
                 Some(row_to_delete) => row_to_delete,
@@ -171,6 +155,7 @@ pub fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMe
 
             return Ok(#single_entry_deletion_result);
         },
+        // Deleting writes.
         read_context_compatible: false,
     }
 }

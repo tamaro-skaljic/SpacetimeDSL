@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct TicketId {
     value: u64,
 }
@@ -17,7 +26,7 @@ impl std::fmt::Display for TicketId {
         write!(f, "{} {{ id: {:?} }}", "TicketId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, TicketId> for TicketId {
+impl crate::spacetimedsl::Wrapper<u64> for TicketId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -41,17 +50,26 @@ impl From<&Ticket> for Option<TicketId> {
 }
 impl From<&TicketId> for Option<TicketId> {
     fn from(value: &TicketId) -> Option<TicketId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(TicketId::new(value.value()))
     }
 }
 impl From<&TicketId> for TicketId {
     fn from(value: &TicketId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         TicketId::new(value.value())
     }
 }
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct TicketReference {
     value: String,
 }
@@ -67,7 +85,7 @@ impl std::fmt::Display for TicketReference {
         write!(f, "{} {{ id: {:?} }}", "TicketReference", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<String, TicketReference> for TicketReference {
+impl crate::spacetimedsl::Wrapper<String> for TicketReference {
     fn new(value: String) -> Self {
         Self { value }
     }
@@ -91,52 +109,52 @@ impl From<&Ticket> for Option<TicketReference> {
 }
 impl From<&TicketReference> for Option<TicketReference> {
     fn from(value: &TicketReference) -> Option<TicketReference> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(TicketReference::new(value.value()))
     }
 }
 impl From<&TicketReference> for TicketReference {
     fn from(value: &TicketReference) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         TicketReference::new(value.value())
     }
 }
 impl Ticket {
     ///
     pub fn get_id(&self) -> TicketId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         TicketId::new(self.id.clone())
     }
     ///
     pub fn get_reference(&self) -> TicketReference {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         TicketReference::new(self.reference.clone())
     }
     ///
     pub fn set_reference(&mut self, reference: String) -> TicketReference {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.reference, reference);
         TicketReference::new(old_value)
     }
     ///
     pub fn get_priority(&self) -> &u8 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.priority
     }
     ///
     pub fn get_priority_mut(&mut self) -> &mut u8 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.priority
     }
     ///
     pub fn set_priority(&mut self, priority: u8) -> u8 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.priority, priority);
         old_value
     }
     ///
     pub fn get_retired_at(&self) -> &Option<spacetimedb::Timestamp> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.retired_at
     }
 }

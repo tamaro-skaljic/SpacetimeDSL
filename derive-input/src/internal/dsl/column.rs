@@ -1,18 +1,22 @@
-use crate::api::dsl::table::SpacetimeDSLTable;
-use crate::api::{
-    db::column::SpacetimeDBColumn,
-    dsl::{
-        auto_gen::UUIDVersion, column::SpacetimeDSLColumn, foreign_key::ForeignKey, getter::Getter,
-        mut_getter::MutGetter, setter::Setter, wrapper::WrapperType,
+use {
+    crate::{
+        api::{
+            db::column::SpacetimeDBColumn,
+            dsl::{
+                auto_gen::UUIDVersion, column::SpacetimeDSLColumn, foreign_key::ForeignKey,
+                getter::Getter, mut_getter::MutGetter, setter::Setter, table::SpacetimeDSLTable,
+                wrapper::WrapperType,
+            },
+            rust::{column::RustField, table::RustStruct},
+        },
+        internal::{column::ColumnTypeKind, error},
     },
-    rust::{column::RustField, table::RustStruct},
+    spacetime_bindings_macro_input::sats::SatsField,
+    syn::Ident,
 };
-use crate::internal::column::ColumnTypeKind;
-use crate::internal::error;
-use spacetime_bindings_macro_input::sats::SatsField;
 
 impl SpacetimeDSLColumn {
-    pub fn try_parse(
+    pub(crate) fn try_parse(
         spacetimedsl_table: &SpacetimeDSLTable,
         field: &SatsField<'_>,
         rust_struct: &RustStruct,
@@ -37,10 +41,12 @@ impl SpacetimeDSLColumn {
         }
 
         let foreign_key = ForeignKey::try_parse(
-            &spacetimedsl_table.has_delete_method,
+            spacetimedsl_table.has_delete_method,
             spacetimedsl_table.is_soft_deletable(),
             is_singleton,
             field,
+            spacetimedb_column,
+            ColumnTypeKind::of(&rust_field.type_name_or_path),
         )?;
 
         if foreign_key.is_some() {
@@ -80,4 +86,25 @@ impl SpacetimeDSLColumn {
             setter,
         })
     }
+}
+
+/// A primary key named `<table>_<name>` repeats the table's name in every method generated
+/// for it, such as `get_entity_by_entity_id`.
+pub fn reject_primary_key_prefixed_with_table_name(
+    column_name: &Ident,
+    is_primary_key: bool,
+    singular_table_name: &Ident,
+) -> syn::Result<()> {
+    if is_primary_key
+        && column_name
+            .to_string()
+            .starts_with(&singular_table_name.to_string())
+    {
+        return Err(error::primary_key_prefixed_with_table_name(
+            column_name,
+            singular_table_name,
+        ));
+    }
+
+    Ok(())
 }

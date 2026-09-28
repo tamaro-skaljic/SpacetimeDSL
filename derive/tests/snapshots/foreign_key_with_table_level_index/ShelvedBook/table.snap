@@ -1,0 +1,90 @@
+---
+source: derive/src/characterization_tests.rs
+---
+pub trait this_compilation_error_occurs_because_the_shelved_book_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_shelf_table {}
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct ShelvedBookId {
+    value: u64,
+}
+impl Default for ShelvedBookId {
+    fn default() -> ShelvedBookId {
+        ShelvedBookId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for ShelvedBookId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "ShelvedBookId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for ShelvedBookId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&ShelvedBook> for ShelvedBookId {
+    fn from(value: &ShelvedBook) -> Self {
+        ShelvedBookId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&ShelvedBook> for Option<ShelvedBookId> {
+    fn from(value: &ShelvedBook) -> Option<ShelvedBookId> {
+        Some(ShelvedBookId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&ShelvedBookId> for Option<ShelvedBookId> {
+    fn from(value: &ShelvedBookId) -> Option<ShelvedBookId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(ShelvedBookId::new(value.value()))
+    }
+}
+impl From<&ShelvedBookId> for ShelvedBookId {
+    fn from(value: &ShelvedBookId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        ShelvedBookId::new(value.value())
+    }
+}
+impl ShelvedBook {
+    ///
+    pub fn get_id(&self) -> ShelvedBookId {
+        use crate::spacetimedsl::Wrapper;
+        ShelvedBookId::new(self.id.clone())
+    }
+    ///
+    pub fn get_shelf_id(&self) -> ShelfId {
+        use crate::spacetimedsl::Wrapper;
+        ShelfId::new(self.shelf_id.clone())
+    }
+}
+///
+pub struct CreateShelvedBook {
+    pub shelf_id: ShelfId,
+}
+
+// Generated DSL methods:
+// count_of_all_shelved_books
+// create_shelved_book
+// delete_shelved_book_by_id
+// delete_shelved_books_by_by_shelf
+// execute_on_delete_strategies_of_the_shelved_book_table_after_multiple_rows_of_the_shelf_table_were_deleted
+// execute_on_delete_strategies_of_the_shelved_book_table_after_one_row_of_the_shelf_table_was_deleted
+// get_all_shelved_books
+// get_shelved_book_by_id
+// get_shelved_books_by_by_shelf

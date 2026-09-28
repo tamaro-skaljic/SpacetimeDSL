@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct SeatId {
     value: u64,
 }
@@ -17,7 +26,7 @@ impl std::fmt::Display for SeatId {
         write!(f, "{} {{ id: {:?} }}", "SeatId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, SeatId> for SeatId {
+impl crate::spacetimedsl::Wrapper<u64> for SeatId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -37,51 +46,51 @@ impl From<&Seat> for Option<SeatId> {
 }
 impl From<&SeatId> for Option<SeatId> {
     fn from(value: &SeatId) -> Option<SeatId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(SeatId::new(value.value()))
     }
 }
 impl From<&SeatId> for SeatId {
     fn from(value: &SeatId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SeatId::new(value.value())
     }
 }
 impl Seat {
     ///
     pub fn get_id(&self) -> SeatId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SeatId::new(self.id.clone())
     }
     ///
     pub fn get_row_id(&self) -> &u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.row_id
     }
     ///
     pub fn get_row_id_mut(&mut self) -> &mut u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.row_id
     }
     ///
     pub fn set_row_id(&mut self, row_id: u64) -> u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.row_id, row_id);
         old_value
     }
     ///
     pub fn get_number(&self) -> &u32 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.number
     }
     ///
     pub fn get_number_mut(&mut self) -> &mut u32 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.number
     }
     ///
     pub fn set_number(&mut self, number: u32) -> u32 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.number, number);
         old_value
     }

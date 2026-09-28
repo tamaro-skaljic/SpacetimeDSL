@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct TicketId {
     value: u64,
 }
@@ -17,7 +26,7 @@ impl std::fmt::Display for TicketId {
         write!(f, "{} {{ id: {:?} }}", "TicketId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, TicketId> for TicketId {
+impl crate::spacetimedsl::Wrapper<u64> for TicketId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -41,41 +50,41 @@ impl From<&Ticket> for Option<TicketId> {
 }
 impl From<&TicketId> for Option<TicketId> {
     fn from(value: &TicketId) -> Option<TicketId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(TicketId::new(value.value()))
     }
 }
 impl From<&TicketId> for TicketId {
     fn from(value: &TicketId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         TicketId::new(value.value())
     }
 }
 impl Ticket {
     ///
     pub fn get_id(&self) -> TicketId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         TicketId::new(self.id.clone())
     }
     ///
     pub fn get_title(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.title
     }
     ///
     pub fn get_title_mut(&mut self) -> &mut String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.title
     }
     ///
     pub fn set_title(&mut self, title: String) -> String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.title, title);
         old_value
     }
     ///
     pub fn get_deleted_at(&self) -> &Option<spacetimedb::Timestamp> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.deleted_at
     }
 }

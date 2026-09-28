@@ -5,18 +5,19 @@
 //! so this module rejects either one without the other and every generator afterwards
 //! reads one `Option`.
 
-use crate::api::dsl::{
-    soft_delete::{SoftDeleteMarker, SoftDeleteMarkerKind},
-    table::SingletonKind,
+use {
+    crate::{
+        api::dsl::{
+            soft_delete::{SoftDeleteMarker, SoftDeleteMarkerKind},
+            table::SingletonKind,
+        },
+        internal::{column::ColumnTypeKind, dsl::column_role, error},
+    },
+    proc_macro2::TokenStream,
+    quote::{ToTokens, format_ident, quote},
+    spacetime_bindings_macro_input::{sats::SatsField, table::ColumnArgs},
+    syn::{LitBool, Path, Type},
 };
-use crate::internal::error;
-use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote};
-use spacetime_bindings_macro_input::{sats::SatsField, table::ColumnArgs};
-use syn::{LitBool, Path};
-
-const FLAG_COLUMN_NAMES: [&str; 2] = ["deleted", "removed"];
-const TIMESTAMP_COLUMN_NAMES: [&str; 2] = ["deleted_at", "removed_at"];
 
 /// `soft_delete = <bool>` exactly as written in `#[dsl(method(..))]`, kept whole so a
 /// diagnostic can underline all of it rather than the struct it sits on.
@@ -72,9 +73,7 @@ pub fn try_parse(
             ));
         }
 
-        let field_type = field.ty.to_token_stream().to_string();
-
-        if !type_fits(kind, &field_type) {
+        if !type_fits(kind, field.ty) {
             return Err(error::marker_column_type_mismatch(field.ty, kind));
         }
 
@@ -148,10 +147,13 @@ fn claimed_kind(field: &SatsField<'_>) -> syn::Result<Option<SoftDeleteMarkerKin
     let has_attribute = field
         .original_attrs
         .iter()
-        .any(|attribute| attribute.path().is_ident("set_on_soft_delete"));
+        .any(|attribute| attribute.path() == super::set_on_soft_delete);
 
-    let claims_flag = FLAG_COLUMN_NAMES.contains(&column_name.as_ref());
-    let claims_timestamp = TIMESTAMP_COLUMN_NAMES.contains(&column_name.as_ref());
+    let claims_flag = column_role::claims(&column_role::SOFT_DELETE_FLAG_COLUMN_NAMES, column_name);
+    let claims_timestamp = column_role::claims(
+        &column_role::SOFT_DELETE_TIMESTAMP_COLUMN_NAMES,
+        column_name,
+    );
 
     if claims_flag {
         return Ok(Some(SoftDeleteMarkerKind::Flag));
@@ -166,25 +168,24 @@ fn claimed_kind(field: &SatsField<'_>) -> syn::Result<Option<SoftDeleteMarkerKin
     }
 
     // The attribute names no shape, so the column's type picks one.
-    let field_type = field.ty.to_token_stream().to_string();
 
-    if type_fits(SoftDeleteMarkerKind::Flag, &field_type) {
+    if type_fits(SoftDeleteMarkerKind::Flag, field.ty) {
         return Ok(Some(SoftDeleteMarkerKind::Flag));
     }
 
-    if type_fits(SoftDeleteMarkerKind::Timestamp, &field_type) {
+    if type_fits(SoftDeleteMarkerKind::Timestamp, field.ty) {
         return Ok(Some(SoftDeleteMarkerKind::Timestamp));
     }
 
     Err(error::set_on_soft_delete_column_type_mismatch(field.ty))
 }
 
-fn type_fits(kind: SoftDeleteMarkerKind, field_type: &str) -> bool {
+fn type_fits(kind: SoftDeleteMarkerKind, field_type: &Type) -> bool {
     match kind {
-        SoftDeleteMarkerKind::Flag => field_type.eq("bool"),
+        SoftDeleteMarkerKind::Flag => ColumnTypeKind::of_type(field_type) == ColumnTypeKind::Bool,
         SoftDeleteMarkerKind::Timestamp => {
-            field_type.eq("Option < Timestamp >")
-                || field_type.eq("Option < spacetimedb :: Timestamp >")
+            ColumnTypeKind::of_option_argument_of_type(field_type)
+                == Some(ColumnTypeKind::Timestamp)
         }
     }
 }

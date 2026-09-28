@@ -1,6 +1,6 @@
 [package]
 name = "spacetimedsl_test"
-version = "0.23.3"
+version = "0.24.0"
 edition = "2024"
 publish = false
 
@@ -8,7 +8,6 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-proc-macro2 = { workspace = true, features = ["span-locations"] }
 spacetimedb.workspace = true
 spacetimedsl.workspace = true
 log.workspace = true

@@ -1,0 +1,59 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `shelved_book` table.
+    pub fn create_shelved_book<'a>(
+        &'a self,
+        shelved_book: CreateShelvedBook,
+    ) -> Result<ShelvedBook, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let shelf_id = shelved_book.shelf_id.value();
+        let shelved_book = ShelvedBook { id, shelf_id };
+        let mut the_same_or_another_shelved_book: Option<ShelvedBook> = None;
+        if shelf_id.ne(&0) {
+            match self.get_shelf_by_id(shelved_book.get_shelf_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "shelved_book".into(),
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                            column_names_and_row_values: format!(
+                                "{{ {} : {} }}", shelf_id, shelved_book.get_shelf_id()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        match self.db().shelved_book().try_insert(shelved_book.clone()) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "shelved_book".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ shelved_book : {:?} }}", shelved_book
+                            )
+                                .into(),
+                        })
+                    }
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "shelved_book".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

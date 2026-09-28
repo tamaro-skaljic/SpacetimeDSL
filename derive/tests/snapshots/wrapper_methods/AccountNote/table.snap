@@ -2,7 +2,16 @@
 source: derive/src/characterization_tests.rs
 ---
 pub trait this_compilation_error_occurs_because_the_account_note_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_account_table {}
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct AccountNoteId {
     value: u64,
 }
@@ -18,7 +27,7 @@ impl std::fmt::Display for AccountNoteId {
         write!(f, "{} {{ id: {:?} }}", "AccountNoteId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, AccountNoteId> for AccountNoteId {
+impl crate::spacetimedsl::Wrapper<u64> for AccountNoteId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -42,25 +51,25 @@ impl From<&AccountNote> for Option<AccountNoteId> {
 }
 impl From<&AccountNoteId> for Option<AccountNoteId> {
     fn from(value: &AccountNoteId) -> Option<AccountNoteId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(AccountNoteId::new(value.value()))
     }
 }
 impl From<&AccountNoteId> for AccountNoteId {
     fn from(value: &AccountNoteId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AccountNoteId::new(value.value())
     }
 }
 impl AccountNote {
     ///
     pub fn get_id(&self) -> AccountNoteId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AccountNoteId::new(self.id.clone())
     }
     ///
     pub fn get_account_id(&self) -> crate::accounts::AccountId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         crate::accounts::AccountId::new(self.account_id.clone())
     }
     ///
@@ -68,7 +77,7 @@ impl AccountNote {
         &mut self,
         account_id: impl Into<crate::accounts::AccountId>,
     ) -> crate::accounts::AccountId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(
             &mut self.account_id,
             account_id.into().value(),

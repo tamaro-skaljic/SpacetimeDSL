@@ -1,0 +1,19 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `HiddenNote` row of the `hidden_note` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_hidden_note_by_id<'a>(
+        &'a self,
+        hidden_note: HiddenNote,
+    ) -> Result<HiddenNote, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut hidden_note = hidden_note;
+        let hidden_note = self.db().hidden_note().id().update(hidden_note);
+        Ok(hidden_note)
+    }
+}

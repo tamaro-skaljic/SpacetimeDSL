@@ -1,9 +1,13 @@
-use proc_macro2::TokenStream;
-use quote::quote;
-use spacetimedsl_derive_input::api::dsl::{getter::Getter, mut_getter::MutGetter, setter::Setter};
-use syn::{Ident, Visibility, parse_str, token};
-
-use crate::output::doc_comment;
+use {
+    crate::output::doc_comment,
+    proc_macro2::TokenStream,
+    quote::{ToTokens, quote},
+    spacetimedsl_derive_input::api::{
+        dsl::{getter::Getter, mut_getter::MutGetter, setter::Setter},
+        runtime,
+    },
+    syn::Ident,
+};
 
 pub enum Accessor<'a> {
     Getter(&'a Getter),
@@ -11,19 +15,19 @@ pub enum Accessor<'a> {
     Setter(&'a Setter),
 }
 
-pub fn build(accessor: Accessor<'_>) -> syn::Result<TokenStream> {
-    let accessor = accessor.definition()?;
+pub fn build(accessor: Accessor<'_>) -> TokenStream {
+    let accessor = accessor.definition();
     let method = accessor.method_tokens();
     let doc_comment = doc_comment::implementation_doc_comment(method.clone());
 
-    Ok(quote! {
+    quote! {
         #[doc = #doc_comment]
         #method
-    })
+    }
 }
 
 struct AccessorDefinition<'a> {
-    method_visibility: Visibility,
+    method_visibility: TokenStream,
     method_name: &'a Ident,
     method_args: Vec<TokenStream>,
     return_type: &'a TokenStream,
@@ -31,29 +35,29 @@ struct AccessorDefinition<'a> {
 }
 
 impl<'a> Accessor<'a> {
-    fn definition(&self) -> syn::Result<AccessorDefinition<'a>> {
+    fn definition(&self) -> AccessorDefinition<'a> {
         match self {
-            Self::Getter(getter) => Ok(AccessorDefinition {
-                method_visibility: Visibility::Public(token::Pub::default()),
+            Self::Getter(getter) => AccessorDefinition {
+                method_visibility: quote! { pub },
                 method_name: &getter.method_name,
                 method_args: vec![quote! { &self }],
                 return_type: &getter.return_type,
                 method_impl: &getter.method_impl,
-            }),
-            Self::MutGetter(mut_getter) => Ok(AccessorDefinition {
-                method_visibility: parse_str(&mut_getter.method_visibility.to_string())?,
+            },
+            Self::MutGetter(mut_getter) => AccessorDefinition {
+                method_visibility: mut_getter.method_visibility.to_token_stream(),
                 method_name: &mut_getter.method_name,
                 method_args: vec![quote! { &mut self }],
                 return_type: &mut_getter.return_type,
                 method_impl: &mut_getter.method_impl,
-            }),
-            Self::Setter(setter) => Ok(AccessorDefinition {
-                method_visibility: parse_str(&setter.method_visibility.to_string())?,
+            },
+            Self::Setter(setter) => AccessorDefinition {
+                method_visibility: setter.method_visibility.to_token_stream(),
                 method_name: &setter.method_name,
                 method_args: vec![quote! { &mut self }, setter.method_arg.clone()],
                 return_type: &setter.return_type,
                 method_impl: &setter.method_impl,
-            }),
+            },
         }
     }
 }
@@ -65,10 +69,11 @@ impl AccessorDefinition<'_> {
         let method_args = &self.method_args;
         let return_type = self.return_type;
         let method_impl = self.method_impl;
+        let wrapper_trait_import = runtime::wrapper_trait_import();
 
         quote! {
             #method_visibility fn #method_name(#(#method_args),*) -> #return_type {
-                use spacetimedsl::Wrapper;
+                #wrapper_trait_import
                 #method_impl
             }
         }

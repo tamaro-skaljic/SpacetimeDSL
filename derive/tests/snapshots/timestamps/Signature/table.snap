@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct SignatureId {
     value: u64,
 }
@@ -17,7 +26,7 @@ impl std::fmt::Display for SignatureId {
         write!(f, "{} {{ id: {:?} }}", "SignatureId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, SignatureId> for SignatureId {
+impl crate::spacetimedsl::Wrapper<u64> for SignatureId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -41,17 +50,26 @@ impl From<&Signature> for Option<SignatureId> {
 }
 impl From<&SignatureId> for Option<SignatureId> {
     fn from(value: &SignatureId) -> Option<SignatureId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(SignatureId::new(value.value()))
     }
 }
 impl From<&SignatureId> for SignatureId {
     fn from(value: &SignatureId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SignatureId::new(value.value())
     }
 }
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct SignatureValue {
     value: String,
 }
@@ -67,7 +85,7 @@ impl std::fmt::Display for SignatureValue {
         write!(f, "{} {{ id: {:?} }}", "SignatureValue", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<String, SignatureValue> for SignatureValue {
+impl crate::spacetimedsl::Wrapper<String> for SignatureValue {
     fn new(value: String) -> Self {
         Self { value }
     }
@@ -91,35 +109,35 @@ impl From<&Signature> for Option<SignatureValue> {
 }
 impl From<&SignatureValue> for Option<SignatureValue> {
     fn from(value: &SignatureValue) -> Option<SignatureValue> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(SignatureValue::new(value.value()))
     }
 }
 impl From<&SignatureValue> for SignatureValue {
     fn from(value: &SignatureValue) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SignatureValue::new(value.value())
     }
 }
 impl Signature {
     ///
     pub fn get_id(&self) -> SignatureId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SignatureId::new(self.id.clone())
     }
     ///
     pub fn get_value(&self) -> SignatureValue {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SignatureValue::new(self.value.clone())
     }
     ///
     pub fn get_created_at(&self) -> &Timestamp {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.created_at
     }
     ///
     pub fn get_modified_at(&self) -> &Timestamp {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.modified_at
     }
 }

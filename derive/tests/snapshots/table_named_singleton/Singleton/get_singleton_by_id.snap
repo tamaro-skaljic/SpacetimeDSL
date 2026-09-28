@@ -1,0 +1,53 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Singleton` from the `singleton` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn get_singleton_by_id<'a>(
+        &'a self,
+        id: impl Into<SingletonId> + Clone,
+    ) -> Result<Singleton, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().singleton().id().find(id.clone().into().value()) {
+            Some(singleton) => Ok(singleton),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "singleton".into(),
+                    column_names_and_row_values: format!(
+                        "{{ id : {} }}", id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Singleton` from the `singleton` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn get_singleton_by_id<'a>(
+        &'a self,
+        id: impl Into<SingletonId> + Clone,
+    ) -> Result<Singleton, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().singleton().id().find(id.clone().into().value()) {
+            Some(singleton) => Ok(singleton),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "singleton".into(),
+                    column_names_and_row_values: format!(
+                        "{{ id : {} }}", id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

@@ -30,19 +30,19 @@ Building a workspace member on its own fails to link against **SpacetimeDB**. `x
 .\x.ps1 unit-test 2>&1 | Select-String -Pattern "test result:|FAILED|^error|^warning: " | Select-Object -First 20
 ```
 
-`.\x.ps1 test` publishes the example modules to the local server and runs the `tester` reducer. **Its exit code is meaningless** — the script runs each `spacetime` command without checking the result and always exits 0. The reducer's success marker is the only signal:
+`.\x.ps1 test` waits for the local server, publishes the example modules to it and runs the `tester` reducer. It fails on its own: every `spacetime` command is checked, and the run fails unless the logs contain the reducer's success marker `Test executed successfully`. A failed run deletes the modules it published. Its exit code is the signal:
 
 ```powershell
 $output = .\x.ps1 test 2>&1 | Out-String
-if ($output | Select-String -Pattern "Test executed successfully" -Quiet) {
-    "MARKER FOUND"
+if ($LASTEXITCODE -eq 0) {
+    "PASSED"
 } else {
-    "MARKER ABSENT - relevant output:"
-    $output -split "`n" | Select-String -Pattern "^error|-->|panic|should" | Select-Object -First 30
+    "FAILED - relevant output:"
+    $output -split "`n" | Select-String -Pattern "^error|-->|panic|should|failed" | Select-Object -First 30
 }
 ```
 
-Finding the marker is enough. Only when it is absent does the output need reading, and then only the lines that carry a diagnostic.
+Exit code 0 is enough. Only when it is not does the output need reading, and then only the lines that carry a diagnostic.
 
 #### Which of the three test kinds to write
 
@@ -71,7 +71,7 @@ Every input the DSL rejects. The pair pins the message *and* the span it underli
 
 **Snapshot — `derive/tests/fixtures/<fixture>.rs` → `derive/tests/snapshots/<fixture>/<Struct>/*.snap`**
 
-What the macro emits for input it accepts. Register the fixture with a test in `derive/src/characterization_tests.rs`:
+What the macro emits for input it accepts. Register the fixture with a test named after it in `derive/src/characterization_tests.rs`:
 
 ```rust
 #[test]
@@ -80,13 +80,17 @@ fn soft_delete_flag() {
 }
 ```
 
+`every_fixture_is_registered_under_its_own_name` fails for a fixture without a test, a test without a fixture, and a snapshot directory without a fixture.
+
 - Blind spot: the harness diffs token streams and never feeds them to a compiler. Generated code can be snapshot-green and not build.
 - Blind spot: an accepted snapshot is only as correct as the reading that accepted it. Green afterwards means *unchanged*, not *right* — which is why the `git diff` is the real test and rubber-stamping it defeats the whole corpus.
 - Name a fixture after the one shape it pins. Let it carry a second shape only when the subject needs both at once — a cascade fixture covering both marker shapes is honest, because the cascade needs a referenced table and a referencing one anyway.
 
 **Runtime — `examples/test/src`**
 
-The only gate that compiles, links and runs generated code against a real **SpacetimeDB**. Put tables which belong together in a file of their own, with their hooks and a `pub(crate) fn run_tests` holding their assertions, and call it from the `tester` reducer in `lib.rs`. Return `Err(String)` naming what should have happened.
+The only gate that compiles, links and runs generated code against a real **SpacetimeDB**. Put tables which belong together in a file of their own, with their hooks and a `pub(crate) fn run_tests` holding their assertions, and add it to `TEST_GROUPS` in `lib.rs`. Return `Err(String)` naming what should have happened. The `tester` reducer runs every group, also after one failed, and reports all failures together.
+
+- The groups share one database, so a count a group asserts is relative to a count it took before its act, never absolute.
 
 - Use it for what no token stream can show: a value actually written, a cascade actually reaching a row, an operation actually being idempotent.
 - Blind spot: it is one **SpacetimeDB** module, so table and accessor names are global across all of its files and collide.
@@ -129,7 +133,9 @@ Accepting `*.snap.new` files one batch at a time costs a whole harness run per m
 
 #### Green includes the formatter
 
-`.\x.ps1 format` runs `cargo fmt` and `clippy --fix`. Anything it rewrites is a finding to review and commit, not a pass. A task is done when a second run changes nothing.
+`.\x.ps1 format` runs `cargo fmt` on the nightly toolchain, whose unstable options merge the imports into one `use` item, and `clippy --fix`. Anything it rewrites is a finding to review and commit, not a pass. A task is done when a second run changes nothing.
+
+`.\x.ps1 lint` checks the formatting and runs clippy over the whole workspace with warnings denied, changing no file. It is the command CI runs, so it must exit 0 before a task counts as done. It checks the formatting with the pinned toolchain, the one CI installs, so it does not check how the imports are grouped.
 
 ## Programming Principles
 

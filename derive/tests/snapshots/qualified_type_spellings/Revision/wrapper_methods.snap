@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl DraftId {
+    /**Get all `Revision` rows whose `draft_id` column references this `DraftId`.
+
+Use it like `draft_id.get_revisions(&dsl)`.*/
+    pub fn get_revisions<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Revision> {
+        dsl.into().get_revisions_by_draft_id(self).collect()
+    }
+}

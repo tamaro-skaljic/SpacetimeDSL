@@ -1,13 +1,16 @@
-use std::collections::BTreeSet;
-
-use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
-use crate::api::dsl::reference::ReferencingTable;
-use crate::api::dsl::table::{SingletonKind, SpacetimeDSLTable};
-use crate::internal::DSLData;
-use crate::internal::dsl::hook::DeclaredHooks;
-use crate::internal::error;
-use quote::{ToTokens, format_ident};
-use spacetime_bindings_macro_input::table::ColumnArgs;
+use {
+    crate::{
+        api::dsl::{
+            reference::ReferencingTable,
+            table::{SingletonKind, SpacetimeDSLTable, SpacetimeDSLTableKind},
+        },
+        internal::{DSLData, column::ColumnTypeKind, dsl::column_role, error},
+    },
+    quote::format_ident,
+    spacetime_bindings_macro_input::table::ColumnArgs,
+    std::collections::BTreeSet,
+    syn::{Ident, Type},
+};
 
 #[derive(Clone, Copy)]
 enum TimestampRole {
@@ -15,38 +18,37 @@ enum TimestampRole {
     UpdatedAt,
 }
 
+impl SpacetimeDSLTableKind {
+    /// The kind of the singleton, or `None` for an ordinary table.
+    pub(crate) fn singleton(&self) -> Option<SingletonKind> {
+        match self {
+            SpacetimeDSLTableKind::Singleton(singleton_kind) => Some(*singleton_kind),
+            SpacetimeDSLTableKind::Normal { .. } => None,
+        }
+    }
+}
+
 impl SpacetimeDSLTable {
-    pub fn try_parse(
+    pub(crate) fn is_singleton(&self) -> bool {
+        self.kind.singleton().is_some()
+    }
+
+    pub(crate) fn is_soft_deletable(&self) -> bool {
+        self.soft_delete_marker.is_some()
+    }
+
+    /// Whether `get_<table>` falls back to `DefaultSingleton::get_default` instead of failing.
+    pub(crate) fn singleton_has_default(&self) -> bool {
+        self.kind.singleton() == Some(SingletonKind::WithDefault)
+    }
+
+    pub(crate) fn try_parse(
         dsl_data: DSLData,
         column_args: &ColumnArgs<'_>,
-        mut spacetimedb_table: SpacetimeDBTable,
-    ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
-        let unique_indices = dsl_data.unique_indices;
-
-        for unique_index_name in unique_indices {
-            for multi_column_index in &mut spacetimedb_table.multi_column_indices {
-                if let IndexType::BTreeMultiColumn { columns: _ } = &multi_column_index.index_type
-                    && multi_column_index.name.eq(&unique_index_name)
-                {
-                    multi_column_index.is_unique = true;
-                }
-            }
-        }
-
-        let hooks = super::hook::build(
-            &spacetimedb_table.singular_name,
-            dsl_data.singleton,
-            DeclaredHooks {
-                before_insert: dsl_data.before_insert_hook,
-                before_update: dsl_data.before_update_hook,
-                before_delete: dsl_data.before_delete_hook,
-                before_soft_delete: dsl_data.before_soft_delete_hook,
-                after_insert: dsl_data.after_insert_hook,
-                after_update: dsl_data.after_update_hook,
-                after_delete: dsl_data.after_delete_hook,
-                after_soft_delete: dsl_data.after_soft_delete_hook,
-            },
-        );
+        singular_table_name: &Ident,
+    ) -> syn::Result<SpacetimeDSLTable> {
+        let singleton = dsl_data.kind.singleton();
+        let hooks = super::hook::build(singular_table_name, singleton, &dsl_data.declared_hooks);
 
         let has_update_method = &dsl_data.update_method;
         let has_delete_method = &dsl_data.delete_method;
@@ -73,7 +75,7 @@ impl SpacetimeDSLTable {
 
         let soft_delete_marker = super::soft_delete::try_parse(
             dsl_data.soft_delete_method.as_ref(),
-            dsl_data.singleton,
+            singleton,
             column_args,
         )?;
 
@@ -104,11 +106,9 @@ impl SpacetimeDSLTable {
 
             let column_name = field.name.as_ref().expect("should have a name");
             let timestamp_role = get_timestamp_role(field)?;
-            let field_type = field.ty.to_token_stream().to_string();
+            let field_type = field.ty;
 
-            if dsl_data.singleton == Some(SingletonKind::WithDefault)
-                && is_bare_timestamp_type(&field_type)
-            {
+            if singleton == Some(SingletonKind::WithDefault) && is_bare_timestamp_type(field_type) {
                 return Err(error::bare_timestamp_on_singleton_with_default(field.ty));
             }
 
@@ -118,14 +118,13 @@ impl SpacetimeDSLTable {
                         field.ident.expect("a named field has an identifier"),
                     ));
                 };
-                let set_on_create_type_is_valid = match dsl_data.singleton {
-                    Some(SingletonKind::WithDefault) => is_optional_timestamp_type(&field_type),
-                    _ => is_bare_timestamp_type(&field_type),
+                let set_on_create_type_is_valid = match singleton {
+                    Some(SingletonKind::WithDefault) => is_optional_timestamp_type(field_type),
+                    _ => is_bare_timestamp_type(field_type),
                 };
                 if !set_on_create_type_is_valid {
                     return Err(error::set_on_create_column_type_mismatch(
-                        field.ty,
-                        dsl_data.singleton,
+                        field.ty, singleton,
                     ));
                 }
 
@@ -147,11 +146,7 @@ impl SpacetimeDSLTable {
                     ));
                 }
 
-                if !field_type.eq("Timestamp")
-                    && !field_type.eq("spacetimedb :: Timestamp")
-                    && !field_type.eq("Option < Timestamp >")
-                    && !field_type.eq("Option < spacetimedb :: Timestamp >")
-                {
+                if !is_bare_timestamp_type(field_type) && !is_optional_timestamp_type(field_type) {
                     return Err(error::set_on_update_column_type_mismatch(field.ty));
                 }
 
@@ -171,24 +166,20 @@ impl SpacetimeDSLTable {
             ));
         }
 
-        Ok((
-            spacetimedb_table,
-            SpacetimeDSLTable {
-                singleton: dsl_data.singleton,
-                plural_name: dsl_data.plural_name,
-                has_update_method,
-                has_delete_method: has_delete_method.unwrap_or(true),
-                soft_delete_marker,
-                on_insert_set_current_timestamp_column_name,
-                on_update_set_current_timestamp_column_name,
-                referencing_tables,
-                compile_error_checks: BTreeSet::new(),
-                // `TableContributions::apply_to` fills this in, after the create method is
-                // generated.
-                create_dsl_method_arg: None,
-                hooks,
-            },
-        ))
+        Ok(SpacetimeDSLTable {
+            kind: dsl_data.kind,
+            has_update_method,
+            has_delete_method: has_delete_method.unwrap_or(true),
+            soft_delete_marker,
+            on_insert_set_current_timestamp_column_name,
+            on_update_set_current_timestamp_column_name,
+            referencing_tables,
+            compile_error_checks: BTreeSet::new(),
+            // `TableContributions::apply_to` fills this in, after the create method is
+            // generated.
+            create_dsl_method_arg: None,
+            hooks,
+        })
     }
 }
 
@@ -199,36 +190,32 @@ fn get_timestamp_role(
     let has_set_on_create_attribute = field
         .original_attrs
         .iter()
-        .any(|attribute| attribute.path().is_ident("set_on_create"));
+        .any(|attribute| attribute.path() == super::set_on_create);
     let has_set_on_update_attribute = field
         .original_attrs
         .iter()
-        .any(|attribute| attribute.path().is_ident("set_on_update"));
-    let is_set_on_create = column_name.eq("created_at")
-        || column_name.eq("inserted_at")
-        || has_set_on_create_attribute;
-    let is_set_on_update = column_name.eq("modified_at")
-        || column_name.eq("updated_at")
-        || has_set_on_update_attribute;
-
-    if is_set_on_create && is_set_on_update {
-        return Err(error::set_on_create_and_set_on_update(
-            field.ident.expect("a named field has an identifier"),
-        ));
-    }
+        .any(|attribute| attribute.path() == super::set_on_update);
+    let is_set_on_create = has_set_on_create_attribute
+        || column_role::claims(&column_role::SET_ON_CREATE_COLUMN_NAMES, column_name);
+    let is_set_on_update = has_set_on_update_attribute
+        || column_role::claims(&column_role::SET_ON_UPDATE_COLUMN_NAMES, column_name);
 
     Ok(match (is_set_on_create, is_set_on_update) {
+        (true, true) => {
+            return Err(error::set_on_create_and_set_on_update(
+                field.ident.expect("a named field has an identifier"),
+            ));
+        }
         (true, false) => Some(TimestampRole::CreatedAt),
         (false, true) => Some(TimestampRole::UpdatedAt),
         (false, false) => None,
-        (true, true) => unreachable!(),
     })
 }
 
-fn is_bare_timestamp_type(field_type: &str) -> bool {
-    field_type.eq("Timestamp") || field_type.eq("spacetimedb :: Timestamp")
+fn is_bare_timestamp_type(field_type: &Type) -> bool {
+    ColumnTypeKind::of_type(field_type) == ColumnTypeKind::Timestamp
 }
 
-fn is_optional_timestamp_type(field_type: &str) -> bool {
-    field_type.eq("Option < Timestamp >") || field_type.eq("Option < spacetimedb :: Timestamp >")
+fn is_optional_timestamp_type(field_type: &Type) -> bool {
+    ColumnTypeKind::of_option_argument_of_type(field_type) == Some(ColumnTypeKind::Timestamp)
 }

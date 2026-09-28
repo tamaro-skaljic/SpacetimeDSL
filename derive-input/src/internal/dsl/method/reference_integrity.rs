@@ -5,22 +5,25 @@
 //! all, so its uniqueness is checked in generated code, and referential integrity is checked
 //! on create and on update because the delete side is handled by the on-delete strategies.
 
-use super::index::column_names_and_row_values;
-use crate::{
-    api::{
-        db::{index::IndexType, table::SpacetimeDBTable},
-        dsl::foreign_key::ForeignKey,
-        runtime,
+use {
+    super::{message, naming},
+    crate::{
+        api::{
+            db::{index::IndexType, table::SpacetimeDBTable},
+            dsl::foreign_key::ForeignKey,
+            runtime,
+        },
+        internal::{
+            column::{ColumnTypeKind, InternalColumn},
+            dsl::{one_or_multiple::OneOrMultiple, singleton},
+            spacetimedb,
+        },
     },
-    internal::{
-        column::{ColumnTypeKind, InternalColumn},
-        dsl::{one_or_multiple::OneOrMultiple, singleton},
-    },
+    itertools::Itertools,
+    proc_macro2::TokenStream,
+    quote::{TokenStreamExt, format_ident, quote},
+    syn::Ident,
 };
-use itertools::Itertools;
-use proc_macro2::TokenStream;
-use quote::{TokenStreamExt, format_ident, quote};
-use syn::Ident;
 
 #[derive(PartialEq, strum::Display)]
 pub enum Action {
@@ -42,10 +45,10 @@ fn reference_integrity_checks(
 
     for column in columns {
         if skip_private_columns
-            && column
-                .rust_field_visibility
-                .to_string()
-                .eq(&crate::api::rust::visibility::RustVisibility::Private.to_string())
+            && matches!(
+                column.rust_field_visibility,
+                crate::api::rust::visibility::RustVisibility::Private
+            )
         {
             continue;
         }
@@ -70,7 +73,19 @@ fn reference_integrity_checks(
                     #check
                 }
             },
-            ColumnTypeKind::String | ColumnTypeKind::UUID | ColumnTypeKind::Other => quote! {
+            ColumnTypeKind::UUID => {
+                let nil = spacetimedb::uuid_nil();
+
+                quote! {
+                    if #referencing_table_column_name.ne(&#nil) {
+                        #check
+                    }
+                }
+            }
+            ColumnTypeKind::String
+            | ColumnTypeKind::Bool
+            | ColumnTypeKind::Timestamp
+            | ColumnTypeKind::Other => quote! {
                 #check
             },
         });
@@ -87,20 +102,25 @@ pub fn reference_integrity_checks_on_create(
         let referenced_table_name = &foreign_key.table_name;
 
         let primary_key_column_name_of_referenced_table = &foreign_key.primary_key_column_name;
-        let get_row_of_referenced_table_by_primary_key_method_name = format_ident!(
-            "get_{referenced_table_name}_by_{primary_key_column_name_of_referenced_table}"
-        );
+        let get_row_of_referenced_table_by_primary_key_method_name =
+            naming::get_by_index_method_name(
+                referenced_table_name,
+                primary_key_column_name_of_referenced_table,
+            );
 
         let referencing_table_name = &spacetimedb_table.singular_name;
         let referencing_table_name_as_string = referencing_table_name.to_string();
         let referencing_table_column_name = &column.rust_field_name;
         let referencing_table_column_getter_name =
-            format_ident!("get_{referencing_table_column_name}");
+            naming::getter_name(referencing_table_column_name);
 
         let reference_integrity_violation_error =
             runtime::reference_integrity_violation_on_create_or_update(
                 &referencing_table_name_as_string,
                 &quote! { Create },
+                // Names the column by its value rather than its name; kept as it is until
+                // https://github.com/tamaro-skaljic/SpacetimeDSL/issues/173 is fixed, which
+                // then uses `message::single_column_and_value` like the update side.
                 &quote! {
                     format!("{{ {} : {} }}", #referencing_table_column_name, #referencing_table_name.#referencing_table_column_getter_name())
                 },
@@ -124,7 +144,7 @@ pub fn reference_integrity_checks_on_create(
 pub fn reference_integrity_checks_on_update(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &[InternalColumn],
-    column_names_and_row_values: &str,
+    field_name_for_found_value: &Ident,
     index_columns: &[Ident],
     one_or_multiple: &OneOrMultiple,
     primary_key_column: &InternalColumn,
@@ -134,20 +154,18 @@ pub fn reference_integrity_checks_on_update(
         let referenced_table_name = &foreign_key.table_name;
 
         let primary_key_column_name_of_referenced_table = &foreign_key.primary_key_column_name;
-        let get_row_of_referenced_table_by_primary_key_method_name = format_ident!(
-            "get_{referenced_table_name}_by_{primary_key_column_name_of_referenced_table}"
-        );
+        let get_row_of_referenced_table_by_primary_key_method_name =
+            naming::get_by_index_method_name(
+                referenced_table_name,
+                primary_key_column_name_of_referenced_table,
+            );
 
         let referencing_table_name = &spacetimedb_table.singular_name;
         let referencing_table_name_as_string = referencing_table_name.to_string();
         let referencing_table_column_name = &column.rust_field_name;
-        let referencing_table_column_name_as_string = referencing_table_column_name.to_string();
         let primary_key_column_name_of_referencing_table = &primary_key_column.rust_field_name;
         let referencing_table_column_getter_name =
-            format_ident!("get_{referencing_table_column_name}");
-
-        let field_name_for_found_value =
-            format_ident!("the_same_or_another_{referencing_table_name}");
+            naming::getter_name(referencing_table_column_name);
 
         let row_value_getters = index_columns
             .iter()
@@ -159,12 +177,13 @@ pub fn reference_integrity_checks_on_update(
             .collect_vec();
 
         let format_for_not_found_error = match one_or_multiple {
-            OneOrMultiple::One => quote! {
-                format!(#column_names_and_row_values, #referencing_table_column_name)
-            },
-            OneOrMultiple::Multiple => quote! {
-                format!(#column_names_and_row_values, #(#row_value_getters),*)
-            },
+            OneOrMultiple::One => message::column_names_and_row_values(
+                index_columns,
+                &[referencing_table_column_name],
+            ),
+            OneOrMultiple::Multiple => {
+                message::column_names_and_row_values(index_columns, &row_value_getters)
+            }
         };
 
         let primary_key_value_of_referencing_table = match is_singleton {
@@ -173,8 +192,7 @@ pub fn reference_integrity_checks_on_update(
                 quote! { &#primary_key_value }
             }
             false => {
-                let getter_name =
-                    format_ident!("get_{primary_key_column_name_of_referencing_table}");
+                let getter_name = naming::getter_name(primary_key_column_name_of_referencing_table);
                 quote! { #referencing_table_name.#getter_name().value() }
             }
         };
@@ -188,9 +206,10 @@ pub fn reference_integrity_checks_on_update(
             runtime::reference_integrity_violation_on_create_or_update(
                 &referencing_table_name_as_string,
                 &quote! { Update },
-                &quote! {
-                    format!("{{ {} : {} }}", #referencing_table_column_name_as_string, #referencing_table_column_name)
-                },
+                &message::single_column_and_value(
+                    referencing_table_column_name,
+                    referencing_table_column_name,
+                ),
             );
 
         quote! {
@@ -215,12 +234,12 @@ pub fn reference_integrity_checks_on_update(
 pub fn multi_column_index_checks(
     action: Action,
     singular_table_name: &Ident,
+    field_name_for_found_value: &Ident,
     spacetimedb_table: &SpacetimeDBTable,
     internal_columns: &[InternalColumn],
     primary_key_column_name: &Ident,
 ) -> Vec<TokenStream> {
     let mut multi_column_index_checks = vec![];
-    let singular_table_name_as_string = singular_table_name.to_string();
 
     for multi_column_index in &spacetimedb_table.multi_column_indices {
         let index_column_names: &[Ident] = match &multi_column_index.index_type {
@@ -243,9 +262,8 @@ pub fn multi_column_index_checks(
 
         let index_name = &multi_column_index.name;
 
-        // Built from the same ordered column list, so the placeholder count and the
-        // getter count cannot drift apart.
-        let column_names_and_row_values = column_names_and_row_values(index_column_names);
+        // Built from the same ordered column list as the message, so the placeholder count
+        // and the getter count cannot drift apart.
         let row_value_getters = index_column_names
             .iter()
             .map(|column_name| {
@@ -256,23 +274,17 @@ pub fn multi_column_index_checks(
         let mut multi_column_index_check = unique_multi_column_index_check(
             &action,
             singular_table_name,
+            field_name_for_found_value,
             index_name,
-            &column_names_and_row_values,
+            index_column_names,
             &row_value_getters,
         );
 
-        let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
-
-        let action_as_ident = format_ident!("{action}");
-
-        let multiple = OneOrMultiple::Multiple;
-
-        let unique_constraint_violation_error = runtime::unique_constraint_violation(
-            &singular_table_name_as_string,
-            &action_as_ident,
-            &quote! { SpacetimeDSL },
-            &multiple,
-            &quote! { format!(#column_names_and_row_values, #(#row_value_getters),*) },
+        let unique_constraint_violation_error = unique_multi_column_index_violation(
+            &action,
+            singular_table_name,
+            index_column_names,
+            &row_value_getters,
         );
 
         let return_unique_constraint_violation_error = quote! {
@@ -320,24 +332,16 @@ fn row_value_getter(internal_column: &InternalColumn, singular_table_name: &Iden
 pub fn unique_multi_column_index_check(
     action: &Action,
     singular_table_name: &Ident,
+    field_name_for_found_value: &Ident,
     index_name: &Ident,
-    column_names_and_row_values: &str,
+    index_column_names: &[Ident],
     row_value_getters: &[TokenStream],
 ) -> TokenStream {
-    let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
-
-    let singular_table_name_as_string = singular_table_name.to_string();
-
-    let action = format_ident!("{action}");
-
-    let multiple = OneOrMultiple::Multiple;
-
-    let unique_constraint_violation_error = runtime::unique_constraint_violation(
-        &singular_table_name_as_string,
-        &action,
-        &quote! { SpacetimeDSL },
-        &multiple,
-        &quote! { format!(#column_names_and_row_values, #(#row_value_getters),*) },
+    let unique_constraint_violation_error = unique_multi_column_index_violation(
+        action,
+        singular_table_name,
+        index_column_names,
+        row_value_getters,
     );
 
     quote! {
@@ -346,4 +350,21 @@ pub fn unique_multi_column_index_check(
             Err(_) => return Err(#unique_constraint_violation_error),
         };
     }
+}
+
+/// The unique-constraint violation of a unique multi-column index that already holds a row
+/// with these values, which SpacetimeDSL rather than SpacetimeDB detects.
+fn unique_multi_column_index_violation(
+    action: &Action,
+    singular_table_name: &Ident,
+    index_column_names: &[Ident],
+    row_value_getters: &[TokenStream],
+) -> TokenStream {
+    runtime::unique_constraint_violation(
+        &singular_table_name.to_string(),
+        &format_ident!("{action}"),
+        &quote! { SpacetimeDSL },
+        &OneOrMultiple::Multiple,
+        &message::column_names_and_row_values(index_column_names, row_value_getters),
+    )
 }

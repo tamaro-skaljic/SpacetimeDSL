@@ -1,5 +1,4 @@
-use crate::spacetimedsl::prelude::*;
-use spacetimedb::Timestamp;
+use {crate::spacetimedsl::prelude::*, spacetimedb::Timestamp};
 
 /// A Position in the World.
 #[spacetimedsl::dsl(

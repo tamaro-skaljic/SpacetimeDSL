@@ -1,0 +1,71 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `gadget` table.
+    pub fn create_gadget<'a>(
+        &'a self,
+        gadget: CreateGadget,
+    ) -> Result<Gadget, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let owner_id = gadget.owner_id.value();
+        let created_at = self
+            .ctx()
+            .timestamp()
+            .expect("a `WriteContext` always has a timestamp");
+        let modified_at = None;
+        let retired_at = None;
+        let gadget = Gadget {
+            id,
+            owner_id,
+            created_at,
+            modified_at,
+            retired_at,
+        };
+        let mut the_same_or_another_gadget: Option<Gadget> = None;
+        if owner_id.ne(&::spacetimedb::Uuid::NIL) {
+            match self.get_owner_by_id(gadget.get_owner_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "gadget".into(),
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                            column_names_and_row_values: format!(
+                                "{{ {} : {} }}", owner_id, gadget.get_owner_id()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        match self.db().gadget().try_insert(gadget.clone()) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "gadget".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ gadget : {:?} }}", gadget
+                            )
+                                .into(),
+                        })
+                    }
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "gadget".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

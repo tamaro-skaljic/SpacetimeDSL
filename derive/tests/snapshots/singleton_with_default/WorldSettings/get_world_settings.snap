@@ -9,8 +9,8 @@ The default is not written to the table.*/
     pub fn get_world_settings<'a>(
         &'a self,
     ) -> Result<WorldSettings, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().world_settings().id().find(&0u8) {
             Some(world_settings) => Ok(world_settings),
             None => {
@@ -31,8 +31,8 @@ The default is not written to the table.*/
     pub fn get_world_settings<'a>(
         &'a self,
     ) -> Result<WorldSettings, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().world_settings().id().find(&0u8) {
             Some(world_settings) => Ok(world_settings),
             None => {

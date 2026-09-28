@@ -8,31 +8,17 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         &'a self,
         document: CreateDocument,
     ) -> Result<Document, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let id = u64::default();
         let bare_title = document.bare_title;
         let qualified_title = document.qualified_title;
         let bare_note = document.bare_note;
         let qualified_note = document.qualified_note;
-        let mut bare_note_option = None;
-        if bare_note.is_some() {
-            bare_note_option = Some(
-                Into::<DocumentBareNote>::into(bare_note.expect("value should exist"))
-                    .value(),
-            );
-        }
-        let bare_note = bare_note_option;
-        let mut qualified_note_option = None;
-        if qualified_note.is_some() {
-            qualified_note_option = Some(
-                Into::<
-                    DocumentQualifiedNote,
-                >::into(qualified_note.expect("value should exist"))
-                    .value(),
-            );
-        }
-        let qualified_note = qualified_note_option;
+        let bare_note = bare_note
+            .map(|value| Into::<DocumentBareNote>::into(value).value());
+        let qualified_note = qualified_note
+            .map(|value| Into::<DocumentQualifiedNote>::into(value).value());
         let document = Document {
             id,
             bare_title,
@@ -44,7 +30,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
-                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
                         Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
                             table_name: "document".into(),
                             action: crate::spacetimedsl::error::Action::Create,
@@ -56,7 +42,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 .into(),
                         })
                     }
-                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
                         Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
                             table_name: "document".into(),
                         })

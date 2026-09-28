@@ -1,14 +1,24 @@
-use crate::{
-    api::{
-        dsl::{setter::Setter, wrapper::WrapperType},
-        rust::{column::RustField, visibility::RustVisibility},
+use {
+    crate::{
+        api::{
+            dsl::{setter::Setter, wrapper::WrapperType},
+            rust::{column::RustField, visibility::RustVisibility},
+        },
+        internal::dsl::{method::naming, wrapper::map_wrapper_type_option_to_wrapped_type_option},
     },
-    internal::dsl::wrapper::map_wrapper_type_option_to_wrapped_type_option,
+    proc_macro2::TokenStream,
+    quote::quote,
 };
-use quote::{format_ident, quote};
+
+/// The parts of a setter that depend on the column's wrapper, built together per shape.
+struct SetterParts {
+    argument: TokenStream,
+    return_type: TokenStream,
+    body: TokenStream,
+}
 
 impl Setter {
-    pub fn map(
+    pub(crate) fn map(
         rust_field: &RustField,
         is_option: bool,
         wrapper_type: &Option<WrapperType>,
@@ -19,104 +29,76 @@ impl Setter {
 
         let column_name = &rust_field.name;
 
-        let method_visibility = rust_field.visibility.clone();
-        let method_name = format_ident!("set_{column_name}");
-        let method_arg;
-        let return_type;
-        let return_expr;
-        let mut method_impl = quote! {
+        let replace_old_value = quote! {
             let old_value = std::mem::replace(&mut self.#column_name, #column_name);
         };
 
-        match wrapper_type {
-            Some(wrapper_type) => match wrapper_type {
-                WrapperType::Created(_) => {
-                    let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
+        let SetterParts {
+            argument,
+            return_type,
+            body,
+        } = match wrapper_type {
+            Some(wrapper_type @ WrapperType::Created(_)) => {
+                let wrapper = wrapper_type.wrapper_path();
+                let wrapped_type = wrapper_type.wrapped_type();
 
-                    let wrapped_type_name_or_path = &WrapperType::map_to_wrapped_type(wrapper_type);
-                    method_arg = quote! {
-                        #column_name: #wrapped_type_name_or_path
-                    };
-
-                    return_expr = quote! {
-                        #wrapper_type_name_or_path::new(old_value)
-                    };
-
-                    return_type = quote! {
-                        #wrapper_type_name_or_path
-                    };
+                SetterParts {
+                    argument: quote! { #column_name: #wrapped_type },
+                    return_type: quote! { #wrapper },
+                    body: quote! {
+                        #replace_old_value
+                        #wrapper::new(old_value)
+                    },
                 }
-                WrapperType::Used(_) => {
-                    let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
+            }
+            Some(wrapper_type @ WrapperType::Used(_)) if is_option => {
+                let wrapper = wrapper_type.wrapper_path();
+                let into_option =
+                    map_wrapper_type_option_to_wrapped_type_option(column_name, &wrapper);
 
-                    if is_option {
-                        method_arg =
-                            quote! { #column_name: impl Into<Option<#wrapper_type_name_or_path>> };
-
-                        return_type = quote! {
-                            Option<#wrapper_type_name_or_path>
-                        };
-                        return_expr = quote! {
-                            match old_value {
-                                Some(old_value) => {
-                                    Some(#wrapper_type_name_or_path::new(old_value))
-                                }
-                                None => {
-                                    None
-                                }
-                            }
-                        };
-
-                        let into_option = map_wrapper_type_option_to_wrapped_type_option(
-                            column_name,
-                            wrapper_type_name_or_path,
-                        );
-                        method_impl = quote! {
-                            let #column_name = #column_name.into();
-                            #into_option
-                            #method_impl
-                        };
-                    } else {
-                        method_arg = quote! { #column_name: impl Into<#wrapper_type_name_or_path> };
-
-                        return_type = quote! {
-                            #wrapper_type_name_or_path
-                        };
-                        return_expr = quote! {
-                            #wrapper_type_name_or_path::new(old_value)
-                        };
-
-                        method_impl = quote! {
-                            let old_value = std::mem::replace(&mut self.#column_name, #column_name.into().value());
-                        };
-                    }
+                SetterParts {
+                    argument: quote! { #column_name: impl Into<Option<#wrapper>> },
+                    return_type: quote! { Option<#wrapper> },
+                    body: quote! {
+                        let #column_name = #column_name.into();
+                        #into_option
+                        #replace_old_value
+                        old_value.map(#wrapper::new)
+                    },
                 }
-            },
+            }
+            Some(wrapper_type @ WrapperType::Used(_)) => {
+                let wrapper = wrapper_type.wrapper_path();
+
+                SetterParts {
+                    argument: quote! { #column_name: impl Into<#wrapper> },
+                    return_type: quote! { #wrapper },
+                    body: quote! {
+                        let old_value = std::mem::replace(&mut self.#column_name, #column_name.into().value());
+                        #wrapper::new(old_value)
+                    },
+                }
+            }
             None => {
-                let rt = &rust_field.type_name_or_path;
+                let column_type = &rust_field.type_name_or_path;
 
-                method_arg = quote! { #column_name: #rt };
-
-                return_type = quote! {
-                    #rt
-                };
-                return_expr = quote! {
-                    old_value
-                };
+                SetterParts {
+                    argument: quote! { #column_name: #column_type },
+                    return_type: quote! { #column_type },
+                    body: quote! {
+                        #replace_old_value
+                        old_value
+                    },
+                }
             }
         };
 
-        let method_impl = quote! {
-            #method_impl
-            #return_expr
-        };
-
         Some(Setter {
-            method_visibility,
-            method_name,
-            method_arg,
+            method_visibility: rust_field.visibility.clone(),
+            method_name: naming::setter_name(column_name),
+            method_arg: argument,
             return_type,
-            method_impl,
+            method_impl: body,
         })
     }
 }

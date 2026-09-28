@@ -6,22 +6,23 @@
 //! getter and the wrapper unwrapping for each column, built from one walk so the n-th of
 //! each belongs to the same column.
 
-use super::context::MethodGenerationContext;
-use crate::{
-    api::{
-        db::index::{Index, IndexType},
-        dsl::{
-            method::{SpacetimeDSLArg, SpacetimeDSLArgType},
-            wrapper::WrapperType,
+use {
+    super::context::MethodGenerationContext,
+    crate::{
+        api::{
+            db::index::{Index, IndexType},
+            dsl::{
+                method::{SpacetimeDSLArg, SpacetimeDSLArgType},
+                wrapper::WrapperType,
+            },
         },
+        internal::{column::ColumnTypeKind, dsl::one_or_multiple::OneOrMultiple},
     },
-    internal::{column::ColumnTypeKind, dsl::one_or_multiple::OneOrMultiple},
+    proc_macro2::TokenStream,
+    quote::{ToTokens, quote},
+    std::collections::VecDeque,
+    syn::{Ident, parse_str},
 };
-use itertools::Itertools;
-use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
-use std::collections::VecDeque;
-use syn::{Ident, parse_str};
 
 /// `self.db().<table>().<index>()`, where every index-based body starts.
 pub fn index_accessor(singular_table_name: &Ident, index_name: &Ident) -> TokenStream {
@@ -53,8 +54,6 @@ pub struct IndexShape {
     /// updating it is the ordinary update with one statement added, so splitting it would
     /// copy the whole body to change three lines.
     pub is_singleton_primary_key: bool,
-    /// `{{ a : {}, b : {} }}`, with one placeholder per index column.
-    pub column_names_and_row_values: String,
     /// "whose value matches the value from the unique single-column btree index on the
     /// `x` column", the tail every generated doc comment ends with.
     pub described_as: String,
@@ -112,7 +111,6 @@ impl IndexShape {
         IndexShape {
             is_primary_key,
             is_singleton_primary_key: context.spacetimedsl_table.is_singleton() && is_primary_key,
-            column_names_and_row_values: column_names_and_row_values(&index_columns),
             described_as: format!(
                 "whose {value_matches} the {unique}{single_or_multi}-column {index_documentation} on the {on_the_columns}"
             ),
@@ -176,7 +174,7 @@ pub fn index_column_arguments(
 
         match &column.spacetimedsl_column_wrapper_type {
             Some(wrapper_type) => {
-                let wrapper_type_ty = &WrapperType::map(wrapper_type);
+                let wrapper_type_ty = &wrapper_type.wrapper_path();
 
                 if column_is_string {
                     wrapper_option_mapper = TokenStream::default();
@@ -220,8 +218,7 @@ pub fn index_column_arguments(
                         is_option: true,
                         arg_name: column_name.clone(),
                         arg_type: SpacetimeDSLArgType::Wrapped {
-                            wrapped_type: WrapperType::map_to_wrapped_type(wrapper_type)
-                                .to_token_stream(),
+                            wrapped_type: wrapper_type.wrapped_type().to_token_stream(),
                             actual_type: quote! { &impl Into<Option<#wrapper_type_ty>> },
                         },
                     };
@@ -230,8 +227,7 @@ pub fn index_column_arguments(
                 } else {
                     wrapper_option_mapper = TokenStream::default();
 
-                    let wrapped_type =
-                        WrapperType::map_to_wrapped_type(wrapper_type).to_token_stream();
+                    let wrapped_type = wrapper_type.wrapped_type().to_token_stream();
 
                     match one_or_multiple {
                         OneOrMultiple::Multiple => {
@@ -326,21 +322,6 @@ fn documentation_on_columns(columns: &[Ident]) -> String {
     documentation.push_str(&format!(" and `{last_column}`"));
 
     documentation
-}
-
-/// The format string behind every "these columns had these values" message:
-/// `{{ id : {} }}` for one column, `{{ a : {}, b : {} }}` for several.
-///
-/// One placeholder per column, in the order given, so a caller that builds its row-value
-/// getters from the same list cannot get the two out of step.
-pub fn column_names_and_row_values(column_names: &[Ident]) -> String {
-    let placeholders = column_names
-        .iter()
-        .map(|column_name| format!("{column_name} : {{}}"))
-        .collect_vec()
-        .join(", ");
-
-    format!("{{{{ {placeholders} }}}}")
 }
 
 /// The kind of index, as the doc comments of the generated methods name it.

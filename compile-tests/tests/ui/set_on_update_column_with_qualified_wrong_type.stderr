@@ -1,0 +1,5 @@
+error: A column with the `set_on_update` role should have the type `spacetimedb::Timestamp` or `Option<spacetimedb::Timestamp>`! Found: std :: option :: Option < u64 >
+  --> tests/ui/set_on_update_column_with_qualified_wrong_type.rs:16:22
+   |
+16 |         modified_at: std::option::Option<u64>,
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^

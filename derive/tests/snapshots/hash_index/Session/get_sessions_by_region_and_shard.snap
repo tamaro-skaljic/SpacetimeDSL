@@ -9,8 +9,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         region_id: &'a u64,
         shard_id: &'a u64,
     ) -> impl Iterator<Item = Session> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         self.db().session().region_and_shard().filter((region_id, shard_id))
     }
 }
@@ -22,8 +22,8 @@ impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T
         region_id: &'a u64,
         shard_id: &'a u64,
     ) -> impl Iterator<Item = Session> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         self.db().session().region_and_shard().filter((region_id, shard_id))
     }
 }

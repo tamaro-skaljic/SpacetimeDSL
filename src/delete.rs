@@ -1,6 +1,7 @@
-use std::fmt::Display;
-
-use crate::error::{OneOrMultiple, SpacetimeDSLError};
+use {
+    crate::error::{OneOrMultiple, SpacetimeDSLError},
+    std::fmt::Display,
+};
 
 // Don't forget to copy + paste this enum into `derive_input::api::dsl::foreign_key` if you change it
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -39,9 +40,10 @@ pub enum OnDeleteStrategy {
     //SetNone,
 
     /**
-     * Available only for columns with a numeric type.
+     * Available only for columns with an unsigned integer type (`u8` to `u128`) or the type `Uuid`.
      * If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
-     * ... the value of the foreign key column is set to `0`.
+     * ... the value of the foreign key column is set to `0`, or to `Uuid::NIL` for a `Uuid`.
+     * Create and update treat both values as referencing no row, so they skip the reference integrity check.
      */
     SetZero,
 
@@ -52,6 +54,18 @@ pub enum OnDeleteStrategy {
      * The referential integrity is only enforced while creating a row or if a row is updated and the foreign key column value is changed.
      */
     Ignore,
+}
+
+impl Display for OnDeleteStrategy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OnDeleteStrategy::Error => write!(f, "Error"),
+            OnDeleteStrategy::Delete => write!(f, "Delete"),
+            OnDeleteStrategy::SoftDelete => write!(f, "SoftDelete"),
+            OnDeleteStrategy::SetZero => write!(f, "SetZero"),
+            OnDeleteStrategy::Ignore => write!(f, "Ignore"),
+        }
+    }
 }
 
 /// What a cascade returns when it refused: the entries it built before it stopped, and the

@@ -10,8 +10,8 @@ Try to update a `Inspection` row of the `inspection` table whose value matches t
         &'a self,
         inspection: Inspection,
     ) -> Result<Inspection, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut inspection = inspection;
         let mut the_same_or_another_inspection: Option<Inspection> = None;
         let warehouse_id = inspection.get_warehouse_id().value();
@@ -47,9 +47,9 @@ Try to update a `Inspection` row of the `inspection` table whose value matches t
                         return Err(
                             crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                 table_name: "inspection".into(),
-                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", "warehouse_id", warehouse_id
+                                    "{{ warehouse_id : {} }}", warehouse_id
                                 )
                                     .into(),
                             }),

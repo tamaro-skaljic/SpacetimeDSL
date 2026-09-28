@@ -8,8 +8,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         &'a self,
         folder: CreateFolder,
     ) -> Result<Folder, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let id = u64::default();
         let parent_folder_id = folder.parent_folder_id.value();
         let deleted = false;
@@ -26,7 +26,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                     return Err(
                         crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                             table_name: "folder".into(),
-                            create_or_update: crate::spacetimedsl::error::Action::Create,
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
                                 "{{ {} : {} }}", parent_folder_id, folder
                                 .get_parent_folder_id()
@@ -41,7 +41,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
-                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
                         Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
                             table_name: "folder".into(),
                             action: crate::spacetimedsl::error::Action::Create,
@@ -53,7 +53,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 .into(),
                         })
                     }
-                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
                         Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
                             table_name: "folder".into(),
                         })

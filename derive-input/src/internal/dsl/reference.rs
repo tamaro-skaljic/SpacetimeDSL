@@ -1,13 +1,14 @@
-use super::{path, referenced_by, table};
-use crate::api::dsl::reference::ReferencingTable;
-use crate::internal::error;
-use spacetime_bindings_macro_input::{
-    match_meta, sats::SatsField, sym::primary_key, util::check_duplicate,
+use {
+    super::{path, referenced_by, table},
+    crate::{api::dsl::reference::ReferencingTable, internal::error},
+    spacetime_bindings_macro_input::{
+        match_meta, sats::SatsField, sym::primary_key, util::check_duplicate,
+    },
+    syn::{Ident, Path},
 };
-use syn::{Ident, Path};
 
 impl ReferencingTable {
-    pub fn try_parse(
+    pub(crate) fn try_parse(
         has_delete_method: &bool,
         is_soft_deletable: bool,
         field: &SatsField<'_>,

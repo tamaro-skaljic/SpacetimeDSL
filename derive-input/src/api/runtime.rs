@@ -7,11 +7,17 @@
 //! [`crate::api::Table`] emits the same paths by calling these, instead of spelling them
 //! out and drifting from them.
 //!
+//! Generated code reaches the runtime only through `crate::spacetimedsl`, the module
+//! `spacetimedsl!()` generates at the crate root: a bare `spacetimedsl::…` is ambiguous at
+//! the crate root, where it names both that module and the runtime crate.
+//!
 //! These are plain token constructors: they splice already-built token streams and take no
 //! decisions. They must not grow branching, or they become a second generator.
 
-use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
+use {
+    proc_macro2::TokenStream,
+    quote::{ToTokens, quote},
+};
 
 /// `Result<#ok_type, SpacetimeDSLError>`, the return type of every fallible DSL method.
 pub fn error_result_type(ok_type: &impl ToTokens) -> TokenStream {
@@ -87,17 +93,17 @@ pub fn reference_integrity_violation_on_delete(deletion_result: &impl ToTokens) 
 }
 
 /// `SpacetimeDSLError::ReferenceIntegrityViolation(ReferenceIntegrityViolationError::OnCreateOrUpdate { .. })`.
-/// `action` names a variant of `error::Action`.
+/// `create_or_update` names a variant of `error::CreateOrUpdate`.
 pub fn reference_integrity_violation_on_create_or_update(
     table_name: &impl ToTokens,
-    action: &impl ToTokens,
+    create_or_update: &impl ToTokens,
     column_names_and_row_values: &impl ToTokens,
 ) -> TokenStream {
     quote! {
         crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(
             crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                 table_name: #table_name.into(),
-                create_or_update: crate::spacetimedsl::error::Action::#action,
+                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::#create_or_update,
                 column_names_and_row_values: #column_names_and_row_values.into()
             }
         )
@@ -172,27 +178,26 @@ pub fn on_delete_strategy_failure_type(entries_type: &impl ToTokens) -> TokenStr
     }
 }
 
-/// `let mut error_from_hook: Option<Box<SpacetimeDSLError>> = None;`
+/// `let mut #error_from_hook: Option<Box<SpacetimeDSLError>> = None;`, under the binding the
+/// caller names.
 ///
 /// Annotated rather than inferred: a table whose strategies never assign to it would
 /// otherwise leave the type ambiguous.
-pub fn error_from_hook_declaration() -> TokenStream {
+pub fn error_from_hook_declaration(error_from_hook: &impl ToTokens) -> TokenStream {
     let error_type = spacetimedsl_error_type();
 
     quote! {
-        let mut error_from_hook: Option<Box<#error_type>> = None;
+        let mut #error_from_hook: Option<Box<#error_type>> = None;
     }
 }
 
-/// `delete::DeletionResultEntry { .. }`. `child_entries_field` is spliced in as the whole
-/// final field, trailing comma included, because one call site emits it in shorthand form
-/// (`child_entries,`) and the others give it a value (`child_entries: vec![],`).
+/// `delete::DeletionResultEntry { .. }`
 pub fn deletion_result_entry(
     table_name: &impl ToTokens,
     column_name: &impl ToTokens,
     strategy: &impl ToTokens,
     row_value: &impl ToTokens,
-    child_entries_field: &impl ToTokens,
+    child_entries: &impl ToTokens,
 ) -> TokenStream {
     quote! {
         crate::spacetimedsl::delete::DeletionResultEntry {
@@ -200,7 +205,7 @@ pub fn deletion_result_entry(
             column_name: #column_name.into(),
             strategy: #strategy,
             row_value: #row_value.into(),
-            #child_entries_field
+            child_entries: #child_entries,
         }
     }
 }
@@ -324,24 +329,33 @@ pub fn dsl_method_hooks_type() -> TokenStream {
     }
 }
 
-/// `Wrapper<#wrapped_type, #wrapper_type>`, the trait a generated wrapper implements.
-pub fn wrapper_trait(wrapped_type: &impl ToTokens, wrapper_type: &impl ToTokens) -> TokenStream {
+/// `Wrapper<#wrapped_type>`, the trait a generated wrapper implements.
+pub fn wrapper_trait(wrapped_type: &impl ToTokens) -> TokenStream {
     quote! {
-        crate::spacetimedsl::Wrapper<#wrapped_type, #wrapper_type>
+        crate::spacetimedsl::Wrapper<#wrapped_type>
     }
 }
 
-/// `::spacetimedsl::Wrapper`, the `use` every method body opens with.
-pub fn wrapper_trait_path() -> TokenStream {
+/// `use crate::spacetimedsl::Wrapper;`, the import every method body and every accessor
+/// opens with.
+pub fn wrapper_trait_import() -> TokenStream {
     quote! {
-        ::spacetimedsl::Wrapper
+        use crate::spacetimedsl::Wrapper;
     }
 }
 
-/// `use ::spacetimedsl::itertools::Itertools;`, the import every body that calls
+/// `use crate::spacetimedsl::itertools::Itertools;`, the import every body that calls
 /// `at_most_one`, `collect_vec` or `into_values().collect_vec()` opens with.
 pub fn itertools_import() -> TokenStream {
     quote! {
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::itertools::Itertools;
+    }
+}
+
+/// `SpacetimeDSL`, the derive every table struct is given so that the compiler accepts the
+/// field attributes of SpacetimeDSL.
+pub fn spacetimedsl_derive() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::SpacetimeDSL
     }
 }

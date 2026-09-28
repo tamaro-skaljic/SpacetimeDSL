@@ -10,8 +10,8 @@ Try to update a `AccountNote` row of the `account_note` table whose value matche
         &'a self,
         account_note: AccountNote,
     ) -> Result<AccountNote, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut account_note = account_note;
         let mut the_same_or_another_account_note: Option<AccountNote> = None;
         let account_id = account_note.get_account_id().value();
@@ -47,9 +47,9 @@ Try to update a `AccountNote` row of the `account_note` table whose value matche
                         return Err(
                             crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                 table_name: "account_note".into(),
-                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", "account_id", account_id
+                                    "{{ account_id : {} }}", account_id
                                 )
                                     .into(),
                             }),

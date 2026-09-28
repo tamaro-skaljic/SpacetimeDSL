@@ -8,6 +8,7 @@
 
 #[spacetimedsl::dsl(
     plural_name = modules1,
+    table = module1,
     method(update = true),
     unique_index(name = database_and_name),
 )]
@@ -18,6 +19,7 @@
 )]
 #[spacetimedsl::dsl(
     plural_name = modules2,
+    table = module2,
     method(update = true),
     unique_index(name = name_and_database),
 )]

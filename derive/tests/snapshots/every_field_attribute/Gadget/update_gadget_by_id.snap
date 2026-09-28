@@ -1,0 +1,68 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Gadget` row of the `gadget` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_gadget_by_id<'a>(
+        &'a self,
+        gadget: Gadget,
+    ) -> Result<Gadget, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut gadget = gadget;
+        let mut the_same_or_another_gadget: Option<Gadget> = None;
+        let owner_id = gadget.get_owner_id().value();
+        if owner_id.ne(&::spacetimedb::Uuid::NIL) {
+            if the_same_or_another_gadget.is_none() {
+                the_same_or_another_gadget = match self
+                    .db()
+                    .gadget()
+                    .id()
+                    .find(gadget.get_id().value())
+                {
+                    Some(gadget) => Some(gadget),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "gadget".into(),
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", owner_id
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_gadget
+                .as_ref()
+                .expect("field_name_for_found_value should be Some(_)")
+                .get_owner_id()
+                .ne(&gadget.get_owner_id())
+            {
+                match self.get_owner_by_id(gadget.get_owner_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "gadget".into(),
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ owner_id : {} }}", owner_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        gadget
+            .modified_at = Some(
+            self.ctx().timestamp().expect("a `WriteContext` always has a timestamp"),
+        );
+        let gadget = self.db().gadget().id().update(gadget);
+        Ok(gadget)
+    }
+}

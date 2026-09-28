@@ -13,9 +13,9 @@ Try to get a `Seat` from the `seat` table whose values match the values from the
         row_id: &u64,
         number: &u32,
     ) -> Result<Seat, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::itertools::Itertools;
         let mut the_same_or_another_seat: Option<Seat> = None;
         the_same_or_another_seat = match self
             .db()
@@ -64,9 +64,9 @@ Try to get a `Seat` from the `seat` table whose values match the values from the
         row_id: &u64,
         number: &u32,
     ) -> Result<Seat, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::itertools::Itertools;
         let mut the_same_or_another_seat: Option<Seat> = None;
         the_same_or_another_seat = match self
             .db()

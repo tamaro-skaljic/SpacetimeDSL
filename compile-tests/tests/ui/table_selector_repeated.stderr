@@ -1,0 +1,5 @@
+error: duplicate attribute
+ --> tests/ui/table_selector_repeated.rs:9:9
+  |
+9 |         table = gadget2,
+  |         ^^^^^

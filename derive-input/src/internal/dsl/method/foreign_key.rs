@@ -4,33 +4,46 @@
 //! One function per referenced table, holding a match arm per on-delete strategy. The
 //! referenced side is [`super::referenced_by`].
 
-use super::{
-    context::{MethodGenerationContext, TableContributions},
-    naming::{
-        referenced_table_compile_error_check_for_deletions,
-        referenced_table_compile_error_check_for_soft_deletions,
-        referencing_table_compile_error_check_for_deletions,
-        referencing_table_compile_error_check_for_soft_deletions, referencing_table_function_name,
-    },
-    on_delete_strategy::{ReferencingTables, on_delete_strategy_implementation},
-    removal::Removal,
-};
-use crate::{
-    api::{
-        Column,
-        dsl::{
-            foreign_key::OnDeleteStrategy,
-            method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
+use {
+    super::{
+        context::{MethodGenerationContext, TableContributions},
+        naming::{
+            cascade_binding, referenced_table_compile_error_check_for_deletions,
+            referenced_table_compile_error_check_for_soft_deletions,
+            referencing_table_compile_error_check_for_deletions,
+            referencing_table_compile_error_check_for_soft_deletions,
+            referencing_table_function_name,
         },
-        runtime,
+        on_delete_strategy::{ReferencingTables, on_delete_strategy_implementation},
+        removal::{Removal, dispatcher_signature},
     },
-    internal::{dsl::one_or_multiple::OneOrMultiple, error},
+    crate::{
+        api::{
+            Column,
+            dsl::{
+                foreign_key::{ForeignKey, OnDeleteStrategy},
+                method::SpacetimeDSLMethod,
+            },
+            runtime,
+        },
+        internal::{column::canonical_type, dsl::one_or_multiple::OneOrMultiple, error},
+    },
+    itertools::Itertools,
+    proc_macro2::TokenStream,
+    quote::{ToTokens, format_ident, quote},
+    std::collections::BTreeMap,
+    strum::IntoEnumIterator,
 };
-use itertools::Itertools;
-use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote};
-use std::collections::BTreeMap;
-use strum::IntoEnumIterator;
+
+/// A module path in one spelling per module, so `::other_crate::tables` and
+/// `other_crate::tables` compare equal: the segments without a leading `::`.
+fn canonical_path(path: &syn::Path) -> String {
+    path.segments
+        .iter()
+        .map(|segment| segment.ident.to_string())
+        .collect::<Vec<_>>()
+        .join("::")
+}
 
 pub fn for_foreign_key(
     removal: Removal,
@@ -46,45 +59,38 @@ pub fn for_foreign_key(
         .first()
         .expect("A table grouped by referenced table must have at least one foreign key column");
 
-    let referenced_table_path = first_foreign_key_column
-        .spacetimedsl_column
-        .foreign_key
-        .as_ref()
-        .expect("The first column of a foreign key group carries the foreign key that grouped it")
-        .path
-        .to_token_stream();
+    fn foreign_key_of(column: &Column) -> &ForeignKey {
+        column
+            .spacetimedsl_column
+            .foreign_key
+            .as_ref()
+            .expect("columns are grouped by their foreign key, so every one carries it")
+    }
 
+    let referenced_table_path = &foreign_key_of(first_foreign_key_column).path;
+    let canonical_referenced_table_path = canonical_path(referenced_table_path);
     let referenced_table_primary_key_column_type =
         &first_foreign_key_column.rust_field.type_name_or_path;
+    let canonical_referenced_primary_key_type =
+        canonical_type(referenced_table_primary_key_column_type);
 
-    let mut columns_by_on_delete_strategies = BTreeMap::new();
+    let referenced_table_path = referenced_table_path.to_token_stream();
+
+    let mut columns_by_on_delete_strategies: BTreeMap<_, Vec<&Column>> = BTreeMap::new();
 
     for column_with_foreign_key in columns_with_foreign_key {
-        if column_with_foreign_key
-            .rust_field
-            .type_name_or_path
-            .to_token_stream()
-            .to_string()
-            .ne(&referenced_table_primary_key_column_type
-                .to_token_stream()
-                .to_string())
+        let foreign_key = foreign_key_of(column_with_foreign_key);
+
+        if canonical_type(&column_with_foreign_key.rust_field.type_name_or_path)
+            != canonical_referenced_primary_key_type
         {
-            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 If Option is supported, the type of the primary key values needs to be without option and it's allowed to have both, option and non-option columns. There is already a function to remove option from the type representation, search for `Option <`` in the code.
+            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 If Option is supported, the type of the primary key values needs to be without option and it's allowed to have both, option and non-option columns.
             return Err(error::foreign_key_columns_type_mismatch(
                 &column_with_foreign_key.rust_field.name,
             ));
         }
 
-        if column_with_foreign_key
-            .spacetimedsl_column
-            .foreign_key
-            .as_ref()
-            .expect("Every column of a foreign key group carries a foreign key")
-            .path
-            .to_token_stream()
-            .to_string()
-            .ne(&referenced_table_path.to_string())
-        {
+        if canonical_path(&foreign_key.path) != canonical_referenced_table_path {
             return Err(error::foreign_key_columns_path_mismatch(
                 &column_with_foreign_key.rust_field.name,
             ));
@@ -93,17 +99,6 @@ pub fn for_foreign_key(
         // A foreign key sets `on_delete`, `on_soft_delete` or both, so a column
         // contributes to the grouping for one kind of removal and not necessarily the
         // other.
-        let foreign_key = column_with_foreign_key
-            .spacetimedsl_column
-            .foreign_key
-            .as_ref()
-            .unwrap_or_else(|| {
-                panic!(
-                    "the column {} is in a foreign key group, so it carries a foreign key",
-                    column_with_foreign_key.rust_field.name
-                )
-            });
-
         let on_delete_strategy = match removal {
             Removal::Hard => &foreign_key.on_delete_strategy,
             Removal::Soft => &foreign_key.on_soft_delete_strategy,
@@ -114,20 +109,14 @@ pub fn for_foreign_key(
             Some(on_delete_strategy) => on_delete_strategy,
         };
 
-        if !columns_by_on_delete_strategies.contains_key(on_delete_strategy) {
-            columns_by_on_delete_strategies.insert(on_delete_strategy, vec![]);
-        }
-
         columns_by_on_delete_strategies
-            .get_mut(on_delete_strategy)
-            .expect("The entry was inserted above when it was missing")
+            .entry(on_delete_strategy)
+            .or_default()
             .push(*column_with_foreign_key);
     }
 
     let singular_table_name = &context.singular_table_name;
     let referenced_table_name = format_ident!("{}", *referenced_table_name);
-
-    let doc_comment;
 
     let function_name = referencing_table_function_name(
         removal,
@@ -136,87 +125,52 @@ pub fn for_foreign_key(
         &referenced_table_name,
     );
 
-    let mut function_args = vec![
-        SpacetimeDSLArg {
-            is_option: false,
-            arg_name: format_ident!("dsl"),
-            arg_type: SpacetimeDSLArgType::Normal(runtime::dsl_reference_type()),
-        },
-        SpacetimeDSLArg {
-            is_option: false,
-            arg_name: format_ident!("strategy"),
-            arg_type: SpacetimeDSLArgType::Normal({
-                let on_delete_strategy_type = runtime::on_delete_strategy_type();
-                quote! { &#on_delete_strategy_type }
-            }),
-        },
-    ];
+    let past_tense = removal.past_tense(one_or_multiple);
 
-    let past_tense = match (removal, one_or_multiple) {
-        (Removal::Hard, OneOrMultiple::One) => "was deleted",
-        (Removal::Hard, OneOrMultiple::Multiple) => "were deleted",
-        (Removal::Soft, OneOrMultiple::One) => "was soft-deleted",
-        (Removal::Soft, OneOrMultiple::Multiple) => "were soft-deleted",
-    };
-
-    let return_type;
-
-    let arg_name;
-
-    match one_or_multiple {
-        OneOrMultiple::One => {
-            doc_comment = format!(
+    let (doc_comment, arg_name) = match one_or_multiple {
+        OneOrMultiple::One => (
+            format!(
                 "Execute On Delete Strategies of the referencing table `{singular_table_name}` after one row of the referenced table `{referenced_table_name}` {past_tense}."
-            );
-            arg_name = format_ident!("primary_key_value_of_a_row_of_another_table_to_delete");
-            function_args.push(SpacetimeDSLArg {
-                is_option: false,
-                arg_name: arg_name.clone(),
-                arg_type: SpacetimeDSLArgType::Normal(
-                    quote! { &#referenced_table_primary_key_column_type },
-                ),
-            });
-            let deletion_result_entry_type = runtime::deletion_result_entry_type();
-            let entries_type = quote! { Vec<#deletion_result_entry_type> };
-            let failure_type = runtime::on_delete_strategy_failure_type(&entries_type);
-            return_type = quote! {
-                Result<#entries_type, #failure_type>
-            };
-        }
-        OneOrMultiple::Multiple => {
-            doc_comment = format!(
+            ),
+            cascade_binding::primary_key_value_of_a_row_of_another_table_to_delete(),
+        ),
+        OneOrMultiple::Multiple => (
+            format!(
                 "Execute On Delete Strategies of the referencing table `{singular_table_name}` after multiple rows of the referenced table `{referenced_table_name}` {past_tense}."
-            );
-            arg_name = format_ident!("primary_key_values_of_rows_of_another_table_to_delete");
-            function_args.push(SpacetimeDSLArg {
-                is_option: false,
-                arg_name: arg_name.clone(),
-                arg_type: SpacetimeDSLArgType::Normal(quote! {
-                    &'a [#referenced_table_primary_key_column_type]
-                }),
-            });
-            let deletion_result_entry_type = runtime::deletion_result_entry_type();
-            let entries_type = quote! {
-                std::collections::HashMap<&'a #referenced_table_primary_key_column_type, Vec<#deletion_result_entry_type>>
-            };
-            let failure_type = runtime::on_delete_strategy_failure_type(&entries_type);
-            return_type = quote! {
-                Result<#entries_type, #failure_type>
-            };
-        }
+            ),
+            cascade_binding::primary_key_values_of_rows_of_another_table_to_delete(),
+        ),
     };
+
+    let entries = cascade_binding::entries();
+    let error = cascade_binding::error();
+    let error_from_hook = cascade_binding::error_from_hook();
+    let outer = cascade_binding::outer();
+    let primary_key_value_of_a_row_of_another_table_to_delete =
+        cascade_binding::primary_key_value_of_a_row_of_another_table_to_delete();
+    let primary_key_values_of_rows_of_another_table_to_delete =
+        cascade_binding::primary_key_values_of_rows_of_another_table_to_delete();
+
+    let on_delete_strategy_type = runtime::on_delete_strategy_type();
+
+    let (function_args, return_type) = dispatcher_signature(
+        one_or_multiple,
+        quote! { &#on_delete_strategy_type },
+        &arg_name,
+        referenced_table_primary_key_column_type,
+    );
 
     let create_data_structure_for_child_entries = match one_or_multiple {
         OneOrMultiple::One => {
             quote! {
-                let mut entries = vec![];
+                let mut #entries = vec![];
             }
         }
         OneOrMultiple::Multiple => {
             quote! {
-                let mut entries = std::collections::HashMap::new();
-                for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
-                    entries.insert(primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
+                let mut #entries = std::collections::HashMap::new();
+                for #primary_key_value_of_a_row_of_another_table_to_delete in #primary_key_values_of_rows_of_another_table_to_delete {
+                    #entries.insert(#primary_key_value_of_a_row_of_another_table_to_delete, vec![]);
                 }
             }
         }
@@ -277,9 +231,8 @@ pub fn for_foreign_key(
         use #referenced_table_path::#compile_error_check;
     };
 
-    let error_from_hook_declaration = runtime::error_from_hook_declaration();
-    let failure =
-        runtime::on_delete_strategy_failure(&quote! { entries }, &quote! { error_from_hook });
+    let error_from_hook_declaration = runtime::error_from_hook_declaration(&error_from_hook);
+    let failure = runtime::on_delete_strategy_failure(&entries, &error_from_hook);
 
     let itertools_import = runtime::itertools_import();
 
@@ -290,16 +243,16 @@ pub fn for_foreign_key(
         #create_data_structure_for_child_entries
 
         #error_from_hook_declaration
-        let mut error = false;
+        let mut #error = false;
 
-        'outer: {
+        #outer: {
             match &strategy {
                 #(#strategy_implementations)*
             };
         }
 
-        match error {
-            false => Ok(entries),
+        match #error {
+            false => Ok(#entries),
             true => Err(#failure),
         }
     };
@@ -310,6 +263,7 @@ pub fn for_foreign_key(
         method_args: function_args,
         return_type,
         method_impl: function_impl,
+        // A strategy writes the referencing rows.
         read_context_compatible: false,
     };
 

@@ -1,7 +1,7 @@
 [package]
 authors = ["Tamaro Skaljic<mail@tamaro-skaljic.de>"]
 name = "spacetimedsl_derive-input"
-version = "0.23.3"
+version = "0.24.0"
 edition = "2024"
 description = "Contains structs which represent the input and output of SpacetimeDSL. Can be used by other proc-macro crates to build Macros which utilize SpacetimeDSL under the hood."
 documentation = "https://docs.rs/spacetimedsl_derive-input"
@@ -18,6 +18,5 @@ proc-macro2.workspace = true
 syn = { workspace = true, default-features = true }
 quote.workspace = true
 itertools.workspace = true
-spacetimedb.workspace = true
 spacetime-bindings-macro-input.workspace = true
 strum.workspace = true

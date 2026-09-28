@@ -1,5 +1,4 @@
-use crate::spacetimedsl::prelude::*;
-use spacetimedb::Timestamp;
+use {crate::spacetimedsl::prelude::*, spacetimedb::Timestamp};
 
 #[spacetimedsl::dsl(
     plural_name = timestamp_records,

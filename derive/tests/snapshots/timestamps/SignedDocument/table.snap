@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct SignedDocumentId {
     value: u64,
 }
@@ -17,7 +26,7 @@ impl std::fmt::Display for SignedDocumentId {
         write!(f, "{} {{ id: {:?} }}", "SignedDocumentId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, SignedDocumentId> for SignedDocumentId {
+impl crate::spacetimedsl::Wrapper<u64> for SignedDocumentId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -41,40 +50,40 @@ impl From<&SignedDocument> for Option<SignedDocumentId> {
 }
 impl From<&SignedDocumentId> for Option<SignedDocumentId> {
     fn from(value: &SignedDocumentId) -> Option<SignedDocumentId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(SignedDocumentId::new(value.value()))
     }
 }
 impl From<&SignedDocumentId> for SignedDocumentId {
     fn from(value: &SignedDocumentId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SignedDocumentId::new(value.value())
     }
 }
 impl SignedDocument {
     ///
     pub fn get_id(&self) -> SignedDocumentId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SignedDocumentId::new(self.id.clone())
     }
     ///
     pub fn get_title(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.title
     }
     ///
     pub fn get_signature(&self) -> &SignatureId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.signature
     }
     ///
     pub fn get_created_at(&self) -> &Timestamp {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.created_at
     }
     ///
     pub fn get_modified_at(&self) -> &Option<Timestamp> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.modified_at
     }
 }

@@ -10,8 +10,8 @@ Try to get a `Account` from the `account` table whose value matches the value fr
         &'a self,
         external_id: &u64,
     ) -> Result<Account, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().account().external_id().find(external_id) {
             Some(account) => Ok(account),
             None => {
@@ -35,8 +35,8 @@ Try to get a `Account` from the `account` table whose value matches the value fr
         &'a self,
         external_id: &u64,
     ) -> Result<Account, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().account().external_id().find(external_id) {
             Some(account) => Ok(account),
             None => {

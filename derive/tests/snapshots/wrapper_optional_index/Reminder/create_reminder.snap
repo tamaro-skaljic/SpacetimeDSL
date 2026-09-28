@@ -8,18 +8,12 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         &'a self,
         reminder: CreateReminder,
     ) -> Result<Reminder, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let id = u64::default();
         let acknowledged_at = reminder.acknowledged_at;
         let due_at = reminder.due_at;
-        let mut due_at_option = None;
-        if due_at.is_some() {
-            due_at_option = Some(
-                Into::<ReminderDueAt>::into(due_at.expect("value should exist")).value(),
-            );
-        }
-        let due_at = due_at_option;
+        let due_at = due_at.map(|value| Into::<ReminderDueAt>::into(value).value());
         let reminder = Reminder {
             id,
             acknowledged_at,
@@ -29,7 +23,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
-                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
                         Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
                             table_name: "reminder".into(),
                             action: crate::spacetimedsl::error::Action::Create,
@@ -41,7 +35,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 .into(),
                         })
                     }
-                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
                         Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
                             table_name: "reminder".into(),
                         })

@@ -1,6 +1,6 @@
 use quote::quote;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum OneOrMultiple {
     One,
     Multiple,

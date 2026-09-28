@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct GadgetId {
     value: u64,
 }
@@ -17,7 +26,7 @@ impl std::fmt::Display for GadgetId {
         write!(f, "{} {{ id: {:?} }}", "GadgetId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, GadgetId> for GadgetId {
+impl crate::spacetimedsl::Wrapper<u64> for GadgetId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -41,35 +50,35 @@ impl From<&Gadget> for Option<GadgetId> {
 }
 impl From<&GadgetId> for Option<GadgetId> {
     fn from(value: &GadgetId) -> Option<GadgetId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(GadgetId::new(value.value()))
     }
 }
 impl From<&GadgetId> for GadgetId {
     fn from(value: &GadgetId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         GadgetId::new(value.value())
     }
 }
 impl Gadget {
     ///
     pub fn get_id(&self) -> GadgetId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         GadgetId::new(self.id.clone())
     }
     ///
     pub fn get_owner_id(&self) -> &u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.owner_id
     }
     ///
     pub fn get_owner_id_mut(&mut self) -> &mut u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.owner_id
     }
     ///
     pub fn set_owner_id(&mut self, owner_id: u64) -> u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.owner_id, owner_id);
         old_value
     }

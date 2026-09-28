@@ -1,9 +1,8 @@
-pub use itertools;
-pub use spacetimedsl_derive::{SpacetimeDSL, dsl, hook};
 use std::fmt::Display;
 pub use {
-    delete::{DeletionResult, DeletionResultEntry, OnDeleteStrategy},
-    error::{ReferenceIntegrityViolationError, SpacetimeDSLError},
+    itertools,
+    prelude::*,
+    spacetimedsl_derive::{SpacetimeDSL, dsl, hook},
 };
 
 pub mod as_anonymous_view_context;
@@ -23,21 +22,31 @@ pub mod new_uuid;
 pub mod delete;
 pub mod error;
 
-use as_anonymous_view_context::AsAnonymousViewContext;
-use as_reducer_context::AsReducerContext;
-use as_view_context::AsViewContext;
-use get_auth::GetAuth;
-use get_connection_id::GetConnectionId;
-use get_immutable_database::GetImmutableDatabase;
-use get_module_identity::GetModuleIdentity;
-use get_mutable_database::GetMutableDatabase;
-use get_random::GetRandom;
-use get_random_number_generator::GetRandomNumberGenerator;
-use get_sender::GetSender;
-use get_timestamp::GetTimestamp;
-use new_uuid::NewUUID;
+/// Every runtime item a module or its generated code uses, listed once. The crate root and the
+/// module `spacetimedsl!()` generates re-export it, and so does the prelude of that module.
+pub mod prelude {
+    pub use crate::{
+        Context, ReadContext, Wrapper, WriteContext,
+        as_anonymous_view_context::AsAnonymousViewContext,
+        as_reducer_context::AsReducerContext,
+        as_view_context::AsViewContext,
+        delete::{DeletionResult, DeletionResultEntry, OnDeleteStrategy, OnDeleteStrategyFailure},
+        error::{ReferenceIntegrityViolationError, SpacetimeDSLError},
+        get_auth::GetAuth,
+        get_connection_id::GetConnectionId,
+        get_immutable_database::GetImmutableDatabase,
+        get_module_identity::GetModuleIdentity,
+        get_mutable_database::GetMutableDatabase,
+        get_random::GetRandom,
+        get_random_number_generator::GetRandomNumberGenerator,
+        get_sender::GetSender,
+        get_timestamp::GetTimestamp,
+        itertools::Itertools,
+        new_uuid::NewUUID,
+    };
+}
 
-pub enum ContextType {
+pub(crate) enum ContextType {
     AnonymousView,
     Reducer,
     Transaction,
@@ -77,7 +86,7 @@ pub trait WriteContext: ReadContext + Context + spacetimedb::CtxDbWrite {}
 
 pub trait ReadContext: Context + spacetimedb::CtxDbRead {}
 
-pub trait Wrapper<WrappedType: Clone, WrapperType>:
+pub trait Wrapper<WrappedType: Clone>:
     Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
 {
     fn new(value: WrappedType) -> Self;
@@ -196,61 +205,21 @@ macro_rules! spacetimedsl {
                 pub struct DSLInternals;
             }
 
-            // Re-export key extern-crate items directly so that proc-macro–generated code
-            // can reach them via `crate::spacetimedsl::X` without needing `::spacetimedsl::X`.
-            pub use ::spacetimedsl::Context;
-            pub use ::spacetimedsl::ReadContext;
-            pub use ::spacetimedsl::Wrapper;
-            pub use ::spacetimedsl::WriteContext;
-            pub use ::spacetimedsl::delete;
-            pub use ::spacetimedsl::error;
-            pub use ::spacetimedsl::itertools;
-            pub use ::spacetimedsl::new_uuid::NewUUID;
-            // Flat re-exports so that `spacetimedsl::X` paths (which in user crates resolve to
-            // `crate::spacetimedsl::X`) work without needing the sub-module prefix.
-            pub use ::spacetimedsl::delete::{
-                DeletionResult, DeletionResultEntry, OnDeleteStrategy, OnDeleteStrategyFailure,
-            };
-            pub use ::spacetimedsl::error::{ReferenceIntegrityViolationError, SpacetimeDSLError};
+            // The runtime items, reachable as `crate::spacetimedsl::X`, which is how
+            // proc-macro–generated code names them.
+            pub use ::spacetimedsl::{SpacetimeDSL, delete, error, itertools, prelude::*};
 
             pub mod prelude {
-                pub use super::{
-                    DSL, DSLMethodHooks, DefaultSingleton, ReadOnlyDSL, dsl, read_only_dsl,
-                };
-                pub use ::spacetimedsl::Context;
-                pub use ::spacetimedsl::ReadContext;
-                pub use ::spacetimedsl::WriteContext;
-
-                pub use ::spacetimedsl::delete::{
-                    DeletionResult, DeletionResultEntry, OnDeleteStrategy, OnDeleteStrategyFailure,
-                };
-
-                pub use ::spacetimedsl::error::{
-                    ReferenceIntegrityViolationError, SpacetimeDSLError,
-                };
-
-                pub use ::spacetimedsl::Wrapper;
-
-                pub use ::spacetimedsl::get_auth::GetAuth;
-                pub use ::spacetimedsl::get_connection_id::GetConnectionId;
-                pub use ::spacetimedsl::get_immutable_database::GetImmutableDatabase;
-                pub use ::spacetimedsl::get_module_identity::GetModuleIdentity;
-                pub use ::spacetimedsl::get_mutable_database::GetMutableDatabase;
-                pub use ::spacetimedsl::get_random::GetRandom;
-                pub use ::spacetimedsl::get_random_number_generator::GetRandomNumberGenerator;
-                pub use ::spacetimedsl::get_sender::GetSender;
-                pub use ::spacetimedsl::get_timestamp::GetTimestamp;
-                pub use ::spacetimedsl::new_uuid::NewUUID;
-
-                pub use ::spacetimedsl::as_anonymous_view_context::AsAnonymousViewContext;
-                pub use ::spacetimedsl::as_reducer_context::AsReducerContext;
-                pub use ::spacetimedsl::as_view_context::AsViewContext;
-
-                pub use ::spacetimedsl::itertools::Itertools;
-
-                pub use spacetimedb::{
-                    AnonymousViewContext, Identity, ProcedureContext, ReducerContext, ScheduleAt,
-                    SpacetimeType, Table, TimeDuration, Timestamp, ViewContext, rand::Rng,
+                pub use {
+                    super::{
+                        DSL, DSLMethodHooks, DefaultSingleton, ReadOnlyDSL, dsl, read_only_dsl,
+                    },
+                    ::spacetimedb::{
+                        AnonymousViewContext, Identity, ProcedureContext, ReducerContext,
+                        ScheduleAt, SpacetimeType, Table, TimeDuration, Timestamp, ViewContext,
+                        rand::Rng,
+                    },
+                    ::spacetimedsl::prelude::*,
                 };
             }
         }

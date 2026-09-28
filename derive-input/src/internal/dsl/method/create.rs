@@ -1,32 +1,37 @@
-use super::context::TableContributions;
-use super::{
-    context::MethodGenerationContext,
-    hook_call::hook_tokens,
-    reference_integrity::{
-        Action, multi_column_index_checks, reference_integrity_checks_on_create,
-    },
-};
-use crate::{
-    api::{
-        dsl::{
-            method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
-            soft_delete::SoftDeleteMarkerKind,
-            table::{CreateDSLMethodArg, SpacetimeDSLTable},
-            wrapper::WrapperType,
-        },
-        runtime,
-    },
-    internal::{
-        column::{ColumnTypeKind, InternalColumn},
-        dsl::{
-            one_or_multiple::OneOrMultiple, singleton,
-            wrapper::map_wrapper_type_option_to_wrapped_type_option,
+use {
+    super::{
+        context::{MethodGenerationContext, TableContributions},
+        hook_call::hook_tokens,
+        message, naming,
+        reference_integrity::{
+            Action, multi_column_index_checks, reference_integrity_checks_on_create,
         },
     },
+    crate::{
+        api::{
+            dsl::{
+                auto_gen::UUIDVersion,
+                hook::HookKind,
+                method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
+                soft_delete::SoftDeleteMarkerKind,
+                table::{CreateDSLMethodArg, SpacetimeDSLTable},
+                wrapper::WrapperType,
+            },
+            runtime,
+        },
+        internal::{
+            column::{ColumnTypeKind, InternalColumn},
+            dsl::{
+                one_or_multiple::OneOrMultiple, singleton,
+                wrapper::map_wrapper_type_option_to_wrapped_type_option,
+            },
+            spacetimedb,
+        },
+    },
+    itertools::Itertools,
+    proc_macro2::TokenStream,
+    quote::{ToTokens, format_ident, quote},
 };
-use itertools::Itertools;
-use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote};
 
 /// The pieces the Create method needs from one column: the argument it contributes to the
 /// `Create<Table>` struct, the mapper that unwraps an optional wrapper, the `let` binding
@@ -38,184 +43,184 @@ struct CreateMethodColumnParts {
     constructor_arg_name: TokenStream,
 }
 
+/// What a column is to `create_<table>`: filled in by the DSL, or asked of the caller, and
+/// in which shape. `upsert_<singleton>` reads the timestamp roles from it too.
+#[derive(Clone, Copy)]
+pub(super) enum CreateColumnRole {
+    /// The primary key the `derive` crate injects into a singleton.
+    SingletonPrimaryKey,
+    /// An `#[auto_gen]` column, generated through its wrapper.
+    GeneratedUuid(UUIDVersion),
+    /// An `#[auto_inc]` column, which SpacetimeDB fills in.
+    AutoIncrement,
+    /// The column with the `set_on_create` role.
+    SetOnCreate { optional: bool },
+    /// The column with the `set_on_update` role.
+    SetOnUpdate { optional: bool },
+    /// The soft-delete marker, which starts out unmarked.
+    SoftDeleteMarker(SoftDeleteMarkerKind),
+    /// A `#[create_wrapper]` column the caller supplies as the wrapped type.
+    CreatedWrapper,
+    /// A `#[use_wrapper(...)]` column the caller supplies as the wrapper.
+    UsedWrapper { optional: bool },
+    /// Any other column, supplied as its own type.
+    Plain,
+}
+
+impl CreateColumnRole {
+    /// The first of the roles, in the order they are declared, that the column has.
+    pub(super) fn of(
+        spacetimedsl_table: &SpacetimeDSLTable,
+        internal_column: &InternalColumn,
+    ) -> CreateColumnRole {
+        let column_name = &internal_column.rust_field_name;
+        let optional = internal_column.rust_field_type_kind == ColumnTypeKind::Optional;
+        let names_this_column =
+            |role_column_name: &Option<syn::Ident>| role_column_name.as_ref() == Some(column_name);
+
+        if spacetimedsl_table.is_singleton()
+            && singleton::is_primary_key_column(
+                column_name,
+                &internal_column.rust_field_type_name_or_path,
+            )
+        {
+            return CreateColumnRole::SingletonPrimaryKey;
+        }
+
+        if let Some(uuid_version) = internal_column.spacetimedsl_column_auto_generated_uuid_version
+        {
+            return CreateColumnRole::GeneratedUuid(uuid_version);
+        }
+
+        if internal_column.spacetimedb_column_is_auto_inc {
+            return CreateColumnRole::AutoIncrement;
+        }
+
+        if names_this_column(&spacetimedsl_table.on_insert_set_current_timestamp_column_name) {
+            return CreateColumnRole::SetOnCreate { optional };
+        }
+
+        if names_this_column(&spacetimedsl_table.on_update_set_current_timestamp_column_name) {
+            return CreateColumnRole::SetOnUpdate { optional };
+        }
+
+        if let Some(marker) = &spacetimedsl_table.soft_delete_marker
+            && marker.column_name == *column_name
+        {
+            return CreateColumnRole::SoftDeleteMarker(marker.kind);
+        }
+
+        match &internal_column.spacetimedsl_column_wrapper_type {
+            Some(WrapperType::Created(_)) => CreateColumnRole::CreatedWrapper,
+            Some(WrapperType::Used(_)) => CreateColumnRole::UsedWrapper {
+                optional: internal_column.spacetimedsl_column_is_option,
+            },
+            None => CreateColumnRole::Plain,
+        }
+    }
+}
+
 fn create_method_column_parts(
     spacetimedsl_table: &SpacetimeDSLTable,
     internal_column: &InternalColumn,
 ) -> CreateMethodColumnParts {
-    let mut arg = None;
-    let mut wrapper_option_mapper = None;
-    let mut constructor_arg = None;
-
     let singular_table_name = &internal_column.spacetimedb_table_singular_name;
     let column_name = &internal_column.rust_field_name;
-    let constructor_arg_name = quote! { #column_name };
-
     let column_type = &internal_column.rust_field_type_name_or_path;
 
-    // A singleton table does not ask for its injected primary key, it fills it in.
-    if spacetimedsl_table.is_singleton()
-        && singleton::is_primary_key_column(
-            &internal_column.rust_field_name,
-            &internal_column.rust_field_type_name_or_path,
-        )
-    {
-        let primary_key_value = singleton::primary_key_value();
+    // A column the DSL fills in: no argument, only the binding.
+    let filled_in = |value: TokenStream| CreateMethodColumnParts {
+        arg: None,
+        wrapper_option_mapper: None,
+        constructor_arg: Some(quote! { let #column_name = #value; }),
+        constructor_arg_name: quote! { #column_name },
+    };
 
-        return CreateMethodColumnParts {
-            arg,
-            wrapper_option_mapper,
-            constructor_arg: Some(quote! {
-                let #column_name = #primary_key_value;
+    // A column the caller supplies: its argument, read back into the binding as `value`.
+    let supplied = |is_option: bool, arg_type: SpacetimeDSLArgType, value: TokenStream| {
+        CreateMethodColumnParts {
+            arg: Some(SpacetimeDSLArg {
+                is_option,
+                arg_name: column_name.clone(),
+                arg_type,
             }),
-            constructor_arg_name,
-        };
-    }
-
-    if let Some(uuid_version) = &internal_column.spacetimedsl_column_auto_generated_uuid_version {
-        let wrapper_type = WrapperType::map(
-            internal_column
-                .spacetimedsl_column_wrapper_type
-                .as_ref()
-                .expect("an #[auto_gen] column has a #[create_wrapper]"),
-        );
-        let wrapper_constructor_name = uuid_version.wrapper_constructor_name();
-
-        constructor_arg = Some(quote! {
-            let #column_name = #wrapper_type::#wrapper_constructor_name(self)?.value();
-        });
-    } else if internal_column.spacetimedb_column_is_auto_inc {
-        constructor_arg = Some(quote! {
-            let #column_name = #column_type::default();
-        });
-    } else if let Some(column_name) =
-        &spacetimedsl_table.on_insert_set_current_timestamp_column_name
-        && { internal_column.rust_field_name.eq(column_name) }
-    {
-        let current_timestamp = runtime::current_timestamp(&quote! { self });
-        constructor_arg = Some(quote! {
-            let #column_name = #current_timestamp;
-        });
-    } else if let Some(column_name) =
-        &spacetimedsl_table.on_update_set_current_timestamp_column_name
-        && { internal_column.rust_field_name.eq(column_name) }
-    {
-        let timestamp_value = if internal_column.rust_field_type_kind == ColumnTypeKind::Optional {
-            quote! { None }
-        } else {
-            runtime::current_timestamp(&quote! { self })
-        };
-        constructor_arg = Some(quote! {
-            let #column_name = #timestamp_value;
-        });
-    } else if let Some(marker) = &spacetimedsl_table.soft_delete_marker
-        && { internal_column.rust_field_name.eq(&marker.column_name) }
-    {
-        let initial_value = match marker.kind {
-            SoftDeleteMarkerKind::Flag => quote! { false },
-            SoftDeleteMarkerKind::Timestamp => quote! { None },
-        };
-        constructor_arg = Some(quote! {
-            let #column_name = #initial_value;
-        });
-    }
-
-    if constructor_arg.is_some() {
-        return CreateMethodColumnParts {
-            arg,
-            wrapper_option_mapper,
-            constructor_arg,
-            constructor_arg_name,
-        };
-    }
-
-    match &internal_column.spacetimedsl_column_wrapper_type {
-        Some(wrapper_type) => match wrapper_type {
-            WrapperType::Created(_) => {
-                if internal_column.rust_field_type_kind == ColumnTypeKind::String {
-                    arg = Some(SpacetimeDSLArg {
-                        is_option: false,
-                        arg_name: column_name.clone(),
-                        arg_type: SpacetimeDSLArgType::Normal(quote! { String }),
-                    });
-                } else {
-                    arg = Some(SpacetimeDSLArg {
-                        is_option: false,
-                        arg_name: column_name.clone(),
-                        arg_type: SpacetimeDSLArgType::Normal(
-                            WrapperType::map_to_wrapped_type(wrapper_type).to_token_stream(),
-                        ),
-                    });
-                }
-
-                constructor_arg = Some(quote! {
-                    let #column_name = #singular_table_name.#column_name;
-                });
-            }
-            WrapperType::Used(_) => {
-                let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
-
-                if internal_column.spacetimedsl_column_is_option {
-                    arg = Some(SpacetimeDSLArg {
-                        is_option: true,
-                        arg_name: column_name.clone(),
-                        arg_type: SpacetimeDSLArgType::Wrapped {
-                            wrapped_type: WrapperType::map_to_wrapped_type(wrapper_type)
-                                .to_token_stream(),
-                            actual_type: quote! { Option<#wrapper_type_name_or_path> },
-                        },
-                    });
-                    constructor_arg = Some(quote! {
-                        let #column_name = #singular_table_name.#column_name;
-                    });
-                    wrapper_option_mapper = Some(map_wrapper_type_option_to_wrapped_type_option(
-                        column_name,
-                        wrapper_type_name_or_path,
-                    ));
-                } else {
-                    let wrapped_type =
-                        WrapperType::map_to_wrapped_type(wrapper_type).to_token_stream();
-
-                    arg = Some(SpacetimeDSLArg {
-                        is_option: false,
-                        arg_name: column_name.clone(),
-                        arg_type: SpacetimeDSLArgType::Wrapped {
-                            wrapped_type: wrapped_type.clone(),
-                            actual_type: quote! { #wrapper_type_name_or_path },
-                        },
-                    });
-
-                    constructor_arg = Some(quote! {
-                        let #column_name = #singular_table_name.#column_name.value();
-                    });
-                }
-            }
-        },
-        None => {
-            if internal_column.rust_field_type_kind == ColumnTypeKind::String {
-                arg = Some(SpacetimeDSLArg {
-                    is_option: false,
-                    arg_name: column_name.clone(),
-                    arg_type: SpacetimeDSLArgType::Normal(quote! { String }),
-                });
-            } else {
-                arg = Some(SpacetimeDSLArg {
-                    is_option: internal_column.spacetimedsl_column_is_option,
-                    arg_name: column_name.clone(),
-                    arg_type: SpacetimeDSLArgType::Normal(quote! { #column_type }),
-                });
-            }
-
-            constructor_arg = Some(quote! {
-                let #column_name = #singular_table_name.#column_name;
-            });
+            wrapper_option_mapper: None,
+            constructor_arg: Some(quote! { let #column_name = #value; }),
+            constructor_arg_name: quote! { #column_name },
         }
     };
 
-    CreateMethodColumnParts {
-        arg,
-        wrapper_option_mapper,
-        constructor_arg,
-        constructor_arg_name,
+    let wrapper_type = || {
+        internal_column
+            .spacetimedsl_column_wrapper_type
+            .as_ref()
+            .expect("a wrapper role is only given to a column with a wrapper")
+    };
+
+    let current_timestamp = || runtime::current_timestamp(&quote! { self });
+
+    match CreateColumnRole::of(spacetimedsl_table, internal_column) {
+        CreateColumnRole::SingletonPrimaryKey => {
+            filled_in(singleton::primary_key_value().to_token_stream())
+        }
+        CreateColumnRole::GeneratedUuid(uuid_version) => {
+            let wrapper_path = wrapper_type().wrapper_path();
+            let wrapper_constructor_name = uuid_version.wrapper_constructor_name();
+
+            filled_in(quote! { #wrapper_path::#wrapper_constructor_name(self)?.value() })
+        }
+        CreateColumnRole::AutoIncrement => filled_in(quote! { #column_type::default() }),
+        CreateColumnRole::SetOnCreate { .. } => filled_in(current_timestamp()),
+        CreateColumnRole::SetOnUpdate { optional: true } => filled_in(quote! { None }),
+        CreateColumnRole::SetOnUpdate { optional: false } => filled_in(current_timestamp()),
+        CreateColumnRole::SoftDeleteMarker(SoftDeleteMarkerKind::Flag) => {
+            filled_in(quote! { false })
+        }
+        CreateColumnRole::SoftDeleteMarker(SoftDeleteMarkerKind::Timestamp) => {
+            filled_in(quote! { None })
+        }
+        CreateColumnRole::CreatedWrapper => supplied(
+            false,
+            SpacetimeDSLArgType::Normal(wrapper_type().wrapped_type().to_token_stream()),
+            quote! { #singular_table_name.#column_name },
+        ),
+        CreateColumnRole::UsedWrapper { optional: true } => {
+            let wrapper_type = wrapper_type();
+            let wrapper_path = wrapper_type.wrapper_path();
+
+            CreateMethodColumnParts {
+                wrapper_option_mapper: Some(map_wrapper_type_option_to_wrapped_type_option(
+                    column_name,
+                    &wrapper_path,
+                )),
+                ..supplied(
+                    true,
+                    SpacetimeDSLArgType::Wrapped {
+                        wrapped_type: wrapper_type.wrapped_type().to_token_stream(),
+                        actual_type: quote! { Option<#wrapper_path> },
+                    },
+                    quote! { #singular_table_name.#column_name },
+                )
+            }
+        }
+        CreateColumnRole::UsedWrapper { optional: false } => {
+            let wrapper_type = wrapper_type();
+            let wrapper_path = wrapper_type.wrapper_path();
+
+            supplied(
+                false,
+                SpacetimeDSLArgType::Wrapped {
+                    wrapped_type: wrapper_type.wrapped_type().to_token_stream(),
+                    actual_type: quote! { #wrapper_path },
+                },
+                quote! { #singular_table_name.#column_name.value() },
+            )
+        }
+        CreateColumnRole::Plain => supplied(
+            internal_column.spacetimedsl_column_is_option,
+            SpacetimeDSLArgType::Normal(quote! { #column_type }),
+            quote! { #singular_table_name.#column_name },
+        ),
     }
 }
 
@@ -230,8 +235,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
         internal_columns,
         struct_name,
         singular_table_name,
-        singular_table_name_as_string,
-        singular_table_name_pascal_case,
+        singular_table_name_as_string: _,
         primary_key_column_name,
         field_name_for_found_value,
         ..
@@ -270,7 +274,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
     }
 
     if !method_arg_members.is_empty() {
-        let method_arg_name = format_ident!("Create{singular_table_name_pascal_case}");
+        let method_arg_name = naming::create_request_struct_name(singular_table_name);
 
         method_args.push(SpacetimeDSLArg {
             is_option: false,
@@ -284,10 +288,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
             .iter()
             .map(|member| {
                 let member_name = &member.arg_name;
-                let member_type = match &member.arg_type {
-                    SpacetimeDSLArgType::Normal(member_type) => member_type,
-                    SpacetimeDSLArgType::Wrapped { actual_type, .. } => actual_type,
-                };
+                let member_type = member.arg_type.actual_type();
                 quote! {
                     pub #member_name : #member_type
                 }
@@ -305,13 +306,10 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
         });
     }
 
-    // The row does not exist yet, so the message renders the whole struct rather than
-    // naming the columns a lookup was made on.
-    let column_names_and_row_values = format!("{{{{ {singular_table_name} : {{:?}} }}}}");
-
     let multi_column_index_checks = multi_column_index_checks(
         Action::Create,
         singular_table_name,
+        field_name_for_found_value,
         spacetimedb_table,
         internal_columns,
         primary_key_column_name,
@@ -336,7 +334,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
         };
 
     let before_insert_hook = hook_tokens(
-        &spacetimedsl_table.hooks.before_insert,
+        spacetimedsl_table.hooks.get(HookKind::BEFORE_INSERT),
         |hook_function_name| {
             let hook_call = runtime::dsl_method_hooks_call(
                 hook_function_name,
@@ -350,7 +348,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
     );
 
     let after_insert_hook = hook_tokens(
-        &spacetimedsl_table.hooks.after_insert,
+        spacetimedsl_table.hooks.get(HookKind::AFTER_INSERT),
         |hook_function_name| {
             let hook_call =
                 runtime::dsl_method_hooks_call(hook_function_name, &quote! { self, &entity });
@@ -361,15 +359,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
         },
     );
 
-    // FIXME: Only show unique columns here
-    let unique_constraint_violation_error = runtime::unique_constraint_violation(
-        singular_table_name_as_string,
-        &quote! { Create },
-        &quote! { SpacetimeDB },
-        &OneOrMultiple::One,
-        &quote! { format!(#column_names_and_row_values, #singular_table_name) },
-    );
-    let auto_inc_overflow_error = runtime::auto_inc_overflow(singular_table_name_as_string);
+    let insert = insert_and_map_errors(context, &after_insert_hook);
 
     let method = SpacetimeDSLMethod {
         doc_comment: format!("Create a row in the `{singular_table_name}` table."),
@@ -393,27 +383,60 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
 
             #(#reference_integrity_checks)*
 
-            match self
-                .db()
-                .#singular_table_name()
-                .try_insert(#singular_table_name.clone()) { // FIXME: No clone?
-                Ok(entity) => {
-                    #after_insert_hook
-
-                    Ok(entity)
-                },
-                Err(error) => match error {
-                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
-                        Err(#unique_constraint_violation_error)
-                    }
-                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
-                        Err(#auto_inc_overflow_error)
-                    }
-                },
-            }
+            #insert
         },
+        // Inserting writes a row.
         read_context_compatible: false,
     };
 
     (method, contributions)
+}
+
+/// The `try_insert` of the row bound to the table's singular name, with SpacetimeDB's insert
+/// errors mapped to `SpacetimeDSLError` and `after_insert_hook` run on success, shared by
+/// `create_<table>` and the insert path of `upsert_<singleton>`.
+pub(super) fn insert_and_map_errors(
+    context: &MethodGenerationContext,
+    after_insert_hook: &TokenStream,
+) -> TokenStream {
+    let MethodGenerationContext {
+        singular_table_name,
+        singular_table_name_as_string,
+        ..
+    } = context;
+
+    // The row does not exist yet, so the message renders the whole struct rather than
+    // naming the columns a lookup was made on.
+    let unique_constraint_violation_error = runtime::unique_constraint_violation(
+        singular_table_name_as_string,
+        &quote! { Create },
+        &quote! { SpacetimeDB },
+        &OneOrMultiple::One,
+        &message::whole_row(singular_table_name),
+    );
+    let auto_inc_overflow_error = runtime::auto_inc_overflow(singular_table_name_as_string);
+    let unique_constraint_violation =
+        spacetimedb::try_insert_error(&quote! { UniqueConstraintViolation });
+    let auto_inc_overflow = spacetimedb::try_insert_error(&quote! { AutoIncOverflow });
+
+    quote! {
+        match self
+            .db()
+            .#singular_table_name()
+            .try_insert(#singular_table_name.clone()) {
+            Ok(entity) => {
+                #after_insert_hook
+
+                Ok(entity)
+            },
+            Err(error) => match error {
+                #unique_constraint_violation(_) => {
+                    Err(#unique_constraint_violation_error)
+                }
+                #auto_inc_overflow(_) => {
+                    Err(#auto_inc_overflow_error)
+                }
+            },
+        }
+    }
 }

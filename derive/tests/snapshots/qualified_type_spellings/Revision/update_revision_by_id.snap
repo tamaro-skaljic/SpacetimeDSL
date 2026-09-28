@@ -1,0 +1,68 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Revision` row of the `revision` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_revision_by_id<'a>(
+        &'a self,
+        revision: Revision,
+    ) -> Result<Revision, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut revision = revision;
+        let mut the_same_or_another_revision: Option<Revision> = None;
+        let draft_id = revision.get_draft_id().value();
+        if draft_id.ne(&0) {
+            if the_same_or_another_revision.is_none() {
+                the_same_or_another_revision = match self
+                    .db()
+                    .revision()
+                    .id()
+                    .find(revision.get_id().value())
+                {
+                    Some(revision) => Some(revision),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "revision".into(),
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", draft_id
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_revision
+                .as_ref()
+                .expect("field_name_for_found_value should be Some(_)")
+                .get_draft_id()
+                .ne(&revision.get_draft_id())
+            {
+                match self.get_draft_by_id(revision.get_draft_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "revision".into(),
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ draft_id : {} }}", draft_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        revision
+            .modified_at = Some(
+            self.ctx().timestamp().expect("a `WriteContext` always has a timestamp"),
+        );
+        let revision = self.db().revision().id().update(revision);
+        Ok(revision)
+    }
+}

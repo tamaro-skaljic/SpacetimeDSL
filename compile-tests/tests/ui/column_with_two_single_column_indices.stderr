@@ -1,0 +1,5 @@
+error: The column `name` has two single-column indices, `by_name` and `name`! Its lookup methods come from one of them, so the other would generate nothing. Remove one.
+  --> tests/ui/column_with_two_single_column_indices.rs:20:13
+   |
+20 |         pub name: String,
+   |             ^^^^

@@ -17,8 +17,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_profile_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_account_table;
         use self::this_compilation_error_occurs_because_the_account_note_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_account_table;
         use self::this_compilation_error_occurs_because_the_active_membership_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_account_table;
@@ -130,8 +130,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
             >,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_profile_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_account_table;
         use self::this_compilation_error_occurs_because_the_account_note_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_account_table;
         use self::this_compilation_error_occurs_because_the_active_membership_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_account_table;
@@ -159,9 +159,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                     entries
                         .get_mut(&primary_key_value_of_a_row_to_delete)
                         .expect(
-                            &format!(
-                                "{primary_key_value_of_a_row_to_delete} should exist in entries."
-                            ),
+                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
                         )
                         .append(&mut child_entries);
                 }
@@ -175,9 +173,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                     entries
                         .get_mut(&primary_key_value_of_a_row_to_delete)
                         .expect(
-                            &format!(
-                                "{primary_key_value_of_a_row_to_delete} should exist in entries."
-                            ),
+                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
                         )
                         .append(&mut child_entries);
                 }
@@ -195,9 +191,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                     entries
                         .get_mut(&primary_key_value_of_a_row_to_delete)
                         .expect(
-                            &format!(
-                                "{primary_key_value_of_a_row_to_delete} should exist in entries."
-                            ),
+                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
                         )
                         .append(&mut child_entries);
                 }
@@ -211,9 +205,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                     entries
                         .get_mut(&primary_key_value_of_a_row_to_delete)
                         .expect(
-                            &format!(
-                                "{primary_key_value_of_a_row_to_delete} should exist in entries."
-                            ),
+                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
                         )
                         .append(&mut child_entries);
                 }
@@ -231,9 +223,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                     entries
                         .get_mut(&primary_key_value_of_a_row_to_delete)
                         .expect(
-                            &format!(
-                                "{primary_key_value_of_a_row_to_delete} should exist in entries."
-                            ),
+                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
                         )
                         .append(&mut child_entries);
                 }
@@ -247,9 +237,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                     entries
                         .get_mut(&primary_key_value_of_a_row_to_delete)
                         .expect(
-                            &format!(
-                                "{primary_key_value_of_a_row_to_delete} should exist in entries."
-                            ),
+                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
                         )
                         .append(&mut child_entries);
                 }
@@ -267,9 +255,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                     entries
                         .get_mut(&primary_key_value_of_a_row_to_delete)
                         .expect(
-                            &format!(
-                                "{primary_key_value_of_a_row_to_delete} should exist in entries."
-                            ),
+                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
                         )
                         .append(&mut child_entries);
                 }
@@ -283,9 +269,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                     entries
                         .get_mut(&primary_key_value_of_a_row_to_delete)
                         .expect(
-                            &format!(
-                                "{primary_key_value_of_a_row_to_delete} should exist in entries."
-                            ),
+                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
                         )
                         .append(&mut child_entries);
                 }

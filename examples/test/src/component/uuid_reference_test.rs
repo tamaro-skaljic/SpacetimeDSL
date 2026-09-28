@@ -1,9 +1,13 @@
 //! References an auto-generated `Uuid` primary key from another module, where the private
 //! field of its wrapper is out of reach.
 
-use crate::component::uuid_test::CreateUuidPrimaryKeyRecord;
-use crate::spacetimedsl::prelude::*;
-use spacetimedb::Uuid;
+use {
+    crate::{
+        component::uuid_test::{CreateUuidPrimaryKeyRecord, UUIDPrimaryKeyRecordId},
+        spacetimedsl::prelude::*,
+    },
+    spacetimedb::Uuid,
+};
 
 #[spacetimedsl::dsl(
     plural_name = uuid_references,
@@ -25,6 +29,28 @@ pub struct UUIDReference {
     record_id: Uuid,
 }
 
+/// Like `UUIDReference`, but deleting the referenced record resets the key to `Uuid::NIL`,
+/// the `Uuid` that references no row.
+#[spacetimedsl::dsl(
+    plural_name = uuid_set_zero_references,
+    method(update = true),
+)]
+#[spacetimedb::table(
+    accessor = uuid_set_zero_reference,
+    public,
+)]
+pub struct UUIDSetZeroReference {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    #[index(btree)]
+    #[use_wrapper(crate::component::uuid_test::UUIDPrimaryKeyRecordId)]
+    #[foreign_key(path = crate::component::uuid_test, table = uuid_primary_key_record, column = id, on_delete = SetZero)]
+    pub record_id: Uuid,
+}
+
 pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
     let referenced_record = dsl.create_uuid_primary_key_record(CreateUuidPrimaryKeyRecord {
         name: "referenced".to_string(),
@@ -41,5 +67,103 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
         return Err("Deleting the UUID row should delete the referencing row.".to_string());
     }
 
+    set_zero_resets_the_key_to_nil(dsl)?;
+    nil_references_no_row(dsl)?;
+    error_messages_name_each_column_with_its_value(dsl)?;
+
     Ok(())
+}
+
+/// Deleting the referenced record resets the key of a `SetZero` reference to `Uuid::NIL`.
+fn set_zero_resets_the_key_to_nil(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
+    let referenced_record = dsl.create_uuid_primary_key_record(CreateUuidPrimaryKeyRecord {
+        name: "referenced by a SetZero reference".to_string(),
+    })?;
+    let reference = dsl.create_uuid_set_zero_reference(CreateUuidSetZeroReference {
+        record_id: referenced_record.get_id(),
+    })?;
+
+    dsl.delete_uuid_primary_key_record_by_id(referenced_record.get_id())
+        .map_err(|error| format!("Deleting the referenced record should succeed: {error}"))?;
+
+    let reference = dsl.get_uuid_set_zero_reference_by_id(reference.get_id())?;
+    if reference.get_record_id().value() != Uuid::NIL {
+        return Err(format!(
+            "Deleting the referenced record should reset the key to Uuid::NIL, found {}!",
+            reference.get_record_id()
+        ));
+    }
+
+    Ok(())
+}
+
+/// A key of `Uuid::NIL` references no row, like `0` for an unsigned integer, so create and
+/// update accept it without a referenced row, while any other key still needs one.
+fn nil_references_no_row(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
+    let nil = UUIDPrimaryKeyRecordId::new(Uuid::NIL);
+    let mut reference = dsl
+        .create_uuid_set_zero_reference(CreateUuidSetZeroReference {
+            record_id: nil.clone(),
+        })
+        .map_err(|error| {
+            format!("Creating a reference with a Uuid::NIL key should succeed: {error}")
+        })?;
+
+    reference.set_record_id(nil);
+    dsl.update_uuid_set_zero_reference_by_id(reference)
+        .map_err(|error| {
+            format!("Updating a reference to a Uuid::NIL key should succeed: {error}")
+        })?;
+
+    let dangling = UUIDPrimaryKeyRecordId::new(Uuid::MAX);
+    if dsl
+        .create_uuid_set_zero_reference(CreateUuidSetZeroReference {
+            record_id: dangling,
+        })
+        .is_ok()
+    {
+        return Err(
+            "Creating a reference whose non-NIL key references no row should fail!".to_string(),
+        );
+    }
+
+    Ok(())
+}
+
+/// The "which row" part of a generated error names each column with its value, as
+/// `{ column : value }`.
+fn error_messages_name_each_column_with_its_value(
+    dsl: &DSL<'_, ReducerContext>,
+) -> Result<(), String> {
+    let missing_id = UUIDSetZeroReferenceId::new(u64::MAX);
+    match dsl.get_uuid_set_zero_reference_by_id(&missing_id) {
+        Err(SpacetimeDSLError::NotFoundError {
+            column_names_and_row_values,
+            ..
+        }) if *column_names_and_row_values == format!("{{ id : {} }}", u64::MAX) => {}
+        other => {
+            return Err(format!(
+                "Getting a missing row should fail naming `{{ id : {} }}`, found {other:?}!",
+                u64::MAX
+            ));
+        }
+    }
+
+    let mut reference = dsl.create_uuid_set_zero_reference(CreateUuidSetZeroReference {
+        record_id: UUIDPrimaryKeyRecordId::new(Uuid::NIL),
+    })?;
+    reference.set_record_id(UUIDPrimaryKeyRecordId::new(Uuid::MAX));
+
+    let expected = format!("{{ record_id : {} }}", Uuid::MAX);
+    match dsl.update_uuid_set_zero_reference_by_id(reference) {
+        Err(SpacetimeDSLError::ReferenceIntegrityViolation(
+            ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                column_names_and_row_values,
+                ..
+            },
+        )) if *column_names_and_row_values == expected => Ok(()),
+        other => Err(format!(
+            "Updating a reference to a missing record should fail naming `{expected}`, found {other:?}!"
+        )),
+    }
 }

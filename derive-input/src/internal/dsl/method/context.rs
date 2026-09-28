@@ -6,19 +6,20 @@
 //! table, returned rather than written, so reordering two generator calls cannot change the
 //! table.
 
-use crate::{
-    api::{
-        db::table::SpacetimeDBTable,
-        dsl::table::{CreateDSLMethodArg, SpacetimeDSLTable},
-        rust::table::RustStruct,
+use {
+    crate::{
+        api::{
+            db::table::SpacetimeDBTable,
+            dsl::table::{CreateDSLMethodArg, SpacetimeDSLTable, SpacetimeDSLTableKind},
+            rust::table::RustStruct,
+        },
+        internal::column::InternalColumn,
     },
-    internal::column::InternalColumn,
+    proc_macro2::TokenStream,
+    quote::{ToTokens, format_ident},
+    std::collections::BTreeSet,
+    syn::Ident,
 };
-use ident_case::RenameRule;
-use proc_macro2::TokenStream;
-use quote::format_ident;
-use std::collections::BTreeSet;
-use syn::Ident;
 
 /// Everything every method generator needs, under one name.
 ///
@@ -37,7 +38,9 @@ pub struct MethodGenerationContext<'a> {
     pub struct_name: Ident,
     pub singular_table_name: Ident,
     pub singular_table_name_as_string: String,
-    pub singular_table_name_pascal_case: String,
+    /// The `plural_name` of the table. A singleton has none and stands in with its accessor:
+    /// it has no index besides its primary key and no `get_all` or `count_of_all`, so no
+    /// method named after a plural name is generated for it.
     pub plural_table_name: Ident,
     pub primary_key_column_name: Ident,
     pub primary_key_column_name_as_string: String,
@@ -55,6 +58,10 @@ impl<'a> MethodGenerationContext<'a> {
     ) -> MethodGenerationContext<'a> {
         let singular_table_name = spacetimedb_table.singular_name.clone();
         let primary_key_column_name = primary_key_column.rust_field_name.clone();
+        let plural_table_name = match &spacetimedsl_table.kind {
+            SpacetimeDSLTableKind::Normal { plural_name } => plural_name.clone(),
+            SpacetimeDSLTableKind::Singleton(_) => singular_table_name.clone(),
+        };
 
         MethodGenerationContext {
             spacetimedb_table,
@@ -64,9 +71,7 @@ impl<'a> MethodGenerationContext<'a> {
 
             struct_name: rust_struct.name.clone(),
             singular_table_name_as_string: singular_table_name.to_string(),
-            singular_table_name_pascal_case: RenameRule::PascalCase
-                .apply_to_field(singular_table_name.to_string()),
-            plural_table_name: spacetimedsl_table.plural_name.clone(),
+            plural_table_name,
             primary_key_column_name_as_string: primary_key_column_name.to_string(),
             field_name_for_found_value: format_ident!("the_same_or_another_{singular_table_name}"),
             singular_table_name,
@@ -116,5 +121,6 @@ pub fn primary_key_wrapper_type(primary_key_column: &InternalColumn) -> TokenStr
         .expect(
             "A primary key column must be accompanied by `#[create_wrapper]` or `#[use_wrapper(crate::path::to::MyIdType)]`",
         )
-        .struct_name_or_path_tokens()
+        .wrapper_path()
+        .to_token_stream()
 }

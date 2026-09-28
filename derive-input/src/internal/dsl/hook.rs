@@ -1,14 +1,21 @@
-use ident_case::RenameRule;
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-
-use crate::api::{
-    dsl::{
-        hook::{SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks},
-        method::{SpacetimeDSLArg, SpacetimeDSLArgType},
-        table::SingletonKind,
+use {
+    crate::{
+        api::{
+            dsl::{
+                hook::{
+                    HookKind, Operation, SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks, Timing,
+                },
+                method::{SpacetimeDSLArg, SpacetimeDSLArgType},
+                table::SingletonKind,
+            },
+            runtime,
+        },
+        internal::dsl::method::naming,
     },
-    runtime,
+    ident_case::RenameRule,
+    proc_macro2::TokenStream,
+    quote::{format_ident, quote},
+    std::collections::BTreeSet,
 };
 
 /// What the `before_insert` hook of a table receives.
@@ -32,118 +39,36 @@ impl InsertedValue {
     }
 }
 
-/// Which hooks the table declared in `#[dsl(hook(...))]`.
-///
-/// Eight flags of the same type, so they travel under their names rather than in a row of
-/// positional arguments no compiler can tell apart.
-#[derive(Clone, Copy)]
-pub struct DeclaredHooks {
-    pub before_insert: bool,
-    pub before_update: bool,
-    pub before_delete: bool,
-    pub before_soft_delete: bool,
-    pub after_insert: bool,
-    pub after_update: bool,
-    pub after_delete: bool,
-    pub after_soft_delete: bool,
-}
-
 pub fn build(
     singular_table_name: &syn::Ident,
     singleton: Option<SingletonKind>,
-    declared: DeclaredHooks,
+    declared: &BTreeSet<HookKind>,
 ) -> SpacetimeDSLMethodHooks {
     let inserted_value = InsertedValue::of(singleton);
 
-    let before_insert = build_any(
-        declared.before_insert,
-        Timing::Before,
-        singular_table_name,
-        Operation::Insert,
-        inserted_value,
-    );
-    let before_update = build_any(
-        declared.before_update,
-        Timing::Before,
-        singular_table_name,
-        Operation::Update,
-        inserted_value,
-    );
-    let before_delete = build_any(
-        declared.before_delete,
-        Timing::Before,
-        singular_table_name,
-        Operation::Delete,
-        inserted_value,
-    );
-    let before_soft_delete = build_any(
-        declared.before_soft_delete,
-        Timing::Before,
-        singular_table_name,
-        Operation::SoftDelete,
-        inserted_value,
-    );
-    let after_insert = build_any(
-        declared.after_insert,
-        Timing::After,
-        singular_table_name,
-        Operation::Insert,
-        inserted_value,
-    );
-    let after_update = build_any(
-        declared.after_update,
-        Timing::After,
-        singular_table_name,
-        Operation::Update,
-        inserted_value,
-    );
-    let after_delete = build_any(
-        declared.after_delete,
-        Timing::After,
-        singular_table_name,
-        Operation::Delete,
-        inserted_value,
-    );
-
-    let after_soft_delete = build_any(
-        declared.after_soft_delete,
-        Timing::After,
-        singular_table_name,
-        Operation::SoftDelete,
-        inserted_value,
-    );
-
     SpacetimeDSLMethodHooks {
-        before_insert,
-        before_delete,
-        before_soft_delete,
-        before_update,
-        after_insert,
-        after_update,
-        after_delete,
-        after_soft_delete,
+        declared: declared
+            .iter()
+            .map(|&kind| (kind, build_one(kind, singular_table_name, inserted_value)))
+            .collect(),
     }
 }
 
-fn build_any(
-    should_exist: bool,
-    timing: Timing,
+fn build_one(
+    HookKind { timing, operation }: HookKind,
     singular_table_name: &syn::Ident,
-    operation: Operation,
     inserted_value: InsertedValue,
-) -> Option<SpacetimeDSLMethodHook> {
-    if !should_exist {
-        return None;
-    }
-
+) -> SpacetimeDSLMethodHook {
     let singular_table_name_pascal_case = format_ident!(
         "{}",
         RenameRule::PascalCase.apply_to_field(singular_table_name.to_string())
     );
 
-    Some(SpacetimeDSLMethodHook {
-        trait_name: get_trait_name(&timing, &singular_table_name_pascal_case, &operation),
-        function_name: get_function_name(&timing, singular_table_name, &operation),
+    let function_name = get_function_name(&timing, singular_table_name, &operation);
+
+    SpacetimeDSLMethodHook {
+        trait_name: naming::hook_trait_name(&function_name),
+        function_name,
         function_args: get_function_args(
             &timing,
             singular_table_name,
@@ -154,49 +79,11 @@ fn build_any(
         return_type: get_return_type(
             &timing,
             &operation,
+            singular_table_name,
             &singular_table_name_pascal_case,
             inserted_value,
         ),
-    })
-}
-
-#[derive(PartialEq)]
-enum Timing {
-    Before,
-    After,
-}
-
-#[derive(PartialEq)]
-enum Operation {
-    Insert,
-    Update,
-    Delete,
-    SoftDelete,
-}
-
-fn get_trait_name(
-    timing: &Timing,
-    singular_table_name_pascal_case: &syn::Ident,
-    operation: &Operation,
-) -> syn::Ident {
-    let timing = match timing {
-        Timing::Before => "Before",
-        Timing::After => "After",
-    };
-
-    let operation = match operation {
-        Operation::Insert => "Insert",
-        Operation::Update => "Update",
-        Operation::Delete => "Delete",
-        Operation::SoftDelete => "SoftDelete",
-    };
-
-    format_ident!(
-        "{}{}{}Hook",
-        timing,
-        singular_table_name_pascal_case,
-        operation,
-    )
+    }
 }
 
 fn get_function_name(
@@ -229,8 +116,7 @@ fn get_function_args(
     match (timing, operation) {
         (Timing::Before, Operation::Insert) => match inserted_value {
             InsertedValue::CreateRequest => {
-                // FIXME: Single Source of Truth Violation for arg type name
-                let arg_type = format_ident!("Create{singular_table_name_pascal_case}");
+                let arg_type = naming::create_request_struct_name(singular_table_name);
 
                 vec![
                     build_dsl_function_arg(),
@@ -292,6 +178,7 @@ fn get_function_args(
 fn get_return_type(
     timing: &Timing,
     operation: &Operation,
+    singular_table_name: &syn::Ident,
     singular_table_name_pascal_case: &syn::Ident,
     inserted_value: InsertedValue,
 ) -> TokenStream {
@@ -301,7 +188,7 @@ fn get_return_type(
         (Timing::Before, Operation::Insert) => {
             let returned_type = match inserted_value {
                 InsertedValue::CreateRequest => {
-                    format_ident!("Create{singular_table_name_pascal_case}")
+                    naming::create_request_struct_name(singular_table_name)
                 }
                 InsertedValue::WholeRow => singular_table_name_pascal_case.clone(),
             };

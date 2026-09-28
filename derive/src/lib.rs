@@ -1,10 +1,15 @@
-use ident_case::RenameRule;
-use proc_macro::TokenStream;
-use quote::{ToTokens, format_ident, quote};
-use spacetimedsl_derive_input::api::{Table, runtime};
+use {
+    proc_macro::TokenStream,
+    quote::quote,
+    spacetimedsl_derive_input::api::{
+        Table, attribute::is_dsl_attribute, dsl::hook::hook_trait_name, runtime,
+    },
+};
 
 #[cfg(test)]
 mod characterization_tests;
+#[cfg(test)]
+mod data_transfer_contract_tests;
 mod output;
 
 /// Add `#[dsl]` to your structs with `#[table]`
@@ -52,13 +57,15 @@ fn expand_dsl_attribute_parts(
     // Parse the input tokens into a syntax tree
     let mut derive_input: syn::DeriveInput = syn::parse2(item)?;
 
-    // Check if this is a singleton table by scanning args for the `singleton` keyword
-    let is_singleton = args.clone().into_iter().any(|token| {
-        if let proc_macro2::TokenTree::Ident(ident) = token {
-            ident == "singleton"
-        } else {
-            false
-        }
+    // A singleton is declared by the top-level argument `singleton`, not by the word as the
+    // value of another argument, such as `table = singleton`.
+    let arguments: Vec<proc_macro2::TokenTree> = args.clone().into_iter().collect();
+    let is_singleton = arguments.iter().enumerate().any(|(position, token)| {
+        let is_the_word = matches!(token, proc_macro2::TokenTree::Ident(ident) if ident == "singleton");
+        let is_a_value = position > 0
+            && matches!(&arguments[position - 1], proc_macro2::TokenTree::Punct(punct) if punct.as_char() == '=');
+
+        is_the_word && !is_a_value
     });
 
     // For singletons, inject `#[primary_key] id: u8` into the struct
@@ -98,17 +105,16 @@ fn expand_dsl_attribute_parts(
 }
 
 fn derive_table_helper_attr() -> syn::Attribute {
-    let source = quote!(#[derive(Clone, Debug, PartialEq, ::spacetimedsl::SpacetimeDSL)]); // TODO: Add PartialOrd if ScheduledAt has implemented it
+    let spacetimedsl_derive = runtime::spacetimedsl_derive();
 
-    syn::parse::Parser::parse2(syn::Attribute::parse_outer, source)
-        .unwrap()
-        .into_iter()
-        .next()
-        .unwrap()
+    syn::parse_quote!(#[derive(Clone, Debug, PartialEq, #spacetimedsl_derive)])
 }
 
-/// Provides helper attributes for `#[dsl]` because proc_macro_attribute's currently don't support them.
-// TODO: Remove if https://github.com/rust-lang/rust/issues/65823 is implemented.
+/// Declares the field attributes `#[dsl]` reads as helper attributes, so the compiler accepts
+/// them on the fields: an attribute macro cannot declare helper attributes, a derive can.
+///
+/// The list has to be literal identifiers, so it cannot be generated from
+/// `FIELD_ATTRIBUTE_NAMES`; `helper_attributes_match_field_attributes` keeps both equal.
 #[proc_macro_derive(
     SpacetimeDSL,
     attributes(
@@ -139,21 +145,7 @@ fn ok_or_compile_error<Res: Into<proc_macro::TokenStream>>(
 /// Each attribute removes itself before the macro function runs, so the last one
 /// will see 0 remaining DSL attributes in the attributes list.
 fn is_last_dsl_attribute(derive_input: &syn::DeriveInput) -> bool {
-    // Find all remaining dsl attributes similar to how integration.rs finds table attributes
-    let mut dsl_attr_count = 0;
-
-    for attr in &derive_input.attrs {
-        // Check for #[dsl(...)] attributes with require_list()
-        if let Ok(list) = attr.meta.require_list() {
-            let path_string = list.path.to_token_stream().to_string();
-            if path_string == "dsl" || path_string == "spacetimedsl :: dsl" {
-                dsl_attr_count += 1;
-            }
-        }
-    }
-
-    // If there are 0 dsl attributes left, this is the last one being processed
-    dsl_attr_count == 0
+    !derive_input.attrs.iter().any(is_dsl_attribute)
 }
 
 // TODO: Temporarily disabled to allow public primary key columns
@@ -231,10 +223,7 @@ pub fn hook(_args: TokenStream, item: TokenStream) -> TokenStream {
     ok_or_compile_error(|| {
         let function_input: syn::ItemFn = syn::parse(item)?;
 
-        let trait_name = format_ident!(
-            "{}Hook",
-            RenameRule::PascalCase.apply_to_field(function_input.sig.ident.to_string())
-        );
+        let trait_name = hook_trait_name(&function_input.sig.ident);
 
         let write_context = runtime::write_context();
         let dsl_method_hooks_type = runtime::dsl_method_hooks_type();

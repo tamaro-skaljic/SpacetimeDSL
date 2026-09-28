@@ -10,8 +10,8 @@ Try to update a `Book` row of the `book` table whose value matches the value fro
         &'a self,
         book: Book,
     ) -> Result<Book, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut book = book;
         let mut the_same_or_another_book: Option<Book> = None;
         let author_id = book.get_author_id().value();
@@ -47,9 +47,9 @@ Try to update a `Book` row of the `book` table whose value matches the value fro
                         return Err(
                             crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                 table_name: "book".into(),
-                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", "author_id", author_id
+                                    "{{ author_id : {} }}", author_id
                                 )
                                     .into(),
                             }),

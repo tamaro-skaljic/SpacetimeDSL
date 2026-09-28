@@ -8,9 +8,9 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         &'a self,
         module1: CreateModule1,
     ) -> Result<Module, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::itertools::Itertools;
         let id = u64::default();
         let database_id = module1.database_id;
         let name = module1.name;
@@ -58,7 +58,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
-                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
                         Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
                             table_name: "module1".into(),
                             action: crate::spacetimedsl::error::Action::Create,
@@ -70,7 +70,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 .into(),
                         })
                     }
-                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
                         Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
                             table_name: "module1".into(),
                         })

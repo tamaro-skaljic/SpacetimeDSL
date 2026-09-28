@@ -2,7 +2,16 @@
 source: derive/src/characterization_tests.rs
 ---
 pub trait this_compilation_error_occurs_because_the_child_marker_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_parent_record_table {}
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct ChildMarkerId {
     value: u64,
 }
@@ -18,7 +27,7 @@ impl std::fmt::Display for ChildMarkerId {
         write!(f, "{} {{ id: {:?} }}", "ChildMarkerId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, ChildMarkerId> for ChildMarkerId {
+impl crate::spacetimedsl::Wrapper<u64> for ChildMarkerId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -42,25 +51,25 @@ impl From<&ChildMarker> for Option<ChildMarkerId> {
 }
 impl From<&ChildMarkerId> for Option<ChildMarkerId> {
     fn from(value: &ChildMarkerId) -> Option<ChildMarkerId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(ChildMarkerId::new(value.value()))
     }
 }
 impl From<&ChildMarkerId> for ChildMarkerId {
     fn from(value: &ChildMarkerId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ChildMarkerId::new(value.value())
     }
 }
 impl ChildMarker {
     ///
     pub fn get_id(&self) -> ChildMarkerId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ChildMarkerId::new(self.id.clone())
     }
     ///
     pub fn get_parent_id(&self) -> ParentRecordId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ParentRecordId::new(self.parent_id.clone())
     }
     ///
@@ -68,7 +77,7 @@ impl ChildMarker {
         &mut self,
         parent_id: impl Into<ParentRecordId>,
     ) -> ParentRecordId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.parent_id, parent_id.into().value());
         ParentRecordId::new(old_value)
     }

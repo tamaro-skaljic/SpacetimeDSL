@@ -3,17 +3,20 @@
 //! Each one looks rows up through the DSL method of the column's index, so the lookup, its
 //! name and its return type stay defined once, in `get.rs`.
 
-use super::context::MethodGenerationContext;
-use crate::api::{
-    Column,
-    dsl::{
-        column::SpacetimeDSLColumnMethods,
-        wrapper::{WrapperMethod, WrapperType},
+use {
+    super::context::MethodGenerationContext,
+    crate::api::{
+        Column,
+        dsl::{
+            column::SpacetimeDSLColumnMethods,
+            wrapper::{WrapperMethod, WrapperType},
+        },
     },
+    ident_case::RenameRule,
+    proc_macro2::TokenStream,
+    quote::{format_ident, quote},
+    syn::Type,
 };
-use ident_case::RenameRule;
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
 
 /// One method per column of `columns_with_foreign_key`, which all reference
 /// `referenced_table_name`.
@@ -71,7 +74,7 @@ pub fn for_wrapper_methods(
                 RenameRule::SnakeCase.apply_to_variant(wrapper_struct_name.to_string());
 
             Some(WrapperMethod {
-                wrapper_type: WrapperType::map(wrapper_type),
+                wrapper_type: wrapper_type_of(wrapper_type),
                 doc_comment: format!(
                     "Get {rows_found} whose `{column_name}` column references this `{wrapper_struct_name}`.\n\nUse it like `{wrapper_variable_name}.{method_name}(&dsl)`."
                 ),
@@ -83,4 +86,11 @@ pub fn for_wrapper_methods(
             })
         })
         .collect()
+}
+
+/// The wrapper type as the `Type` `WrapperMethod::wrapper_type` holds.
+fn wrapper_type_of(wrapper_type: &WrapperType) -> Type {
+    let wrapper_path = wrapper_type.wrapper_path();
+
+    syn::parse_quote!(#wrapper_path)
 }

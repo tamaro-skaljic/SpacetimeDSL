@@ -12,32 +12,36 @@
 //! framework has the last word on a timestamp. `create_<table>`, `update_<table>_by_<key>`
 //! and `soft_delete_<table>_by_<index>` order the two the same way.
 
-use super::{
-    context::MethodGenerationContext,
-    hook_call::{hook_tokens, hook_use_and_call},
-    index::column_names_and_row_values,
-    reference_integrity::{
-        reference_integrity_checks_on_create, reference_integrity_checks_on_update,
-    },
-};
-use crate::{
-    api::{
-        dsl::{
-            method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
-            table::SpacetimeDSLTable,
-            wrapper::WrapperType,
+use {
+    super::{
+        context::MethodGenerationContext,
+        create::{self, CreateColumnRole},
+        hook_call::{hook_tokens, hook_use_and_call},
+        naming,
+        reference_integrity::{
+            reference_integrity_checks_on_create, reference_integrity_checks_on_update,
         },
-        runtime,
-        rust::visibility::RustVisibility,
     },
-    internal::{
-        column::{ColumnTypeKind, InternalColumn},
-        dsl::{one_or_multiple::OneOrMultiple, singleton},
+    crate::{
+        api::{
+            dsl::{
+                hook::HookKind,
+                method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
+                table::SpacetimeDSLTable,
+                wrapper::WrapperType,
+            },
+            runtime,
+            rust::visibility::RustVisibility,
+        },
+        internal::{
+            column::{ColumnTypeKind, InternalColumn},
+            dsl::{one_or_multiple::OneOrMultiple, singleton},
+        },
     },
+    proc_macro2::TokenStream,
+    quote::{format_ident, quote},
+    syn::Ident,
 };
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-use syn::Ident;
 
 //region Pieces shared with `update.rs`
 
@@ -63,13 +67,13 @@ impl ForeignKeyColumnScope {
         }
 
         match self {
-            ForeignKeyColumnScope::CheckedOnUpdate => internal_column
-                .rust_field_visibility
-                .to_string()
-                .ne(&RustVisibility::Private.to_string()),
+            ForeignKeyColumnScope::CheckedOnUpdate => !matches!(
+                internal_column.rust_field_visibility,
+                RustVisibility::Private
+            ),
             ForeignKeyColumnScope::CheckedOnCreate => matches!(
                 internal_column.rust_field_type_kind,
-                ColumnTypeKind::UnsignedInteger | ColumnTypeKind::Optional
+                ColumnTypeKind::UnsignedInteger | ColumnTypeKind::UUID | ColumnTypeKind::Optional
             ),
         }
     }
@@ -81,7 +85,7 @@ impl ForeignKeyColumnScope {
 fn row_value_getter(internal_column: &InternalColumn) -> TokenStream {
     let singular_table_name = &internal_column.spacetimedb_table_singular_name;
     let column_name = &internal_column.rust_field_name;
-    let getter_name = format_ident!("get_{column_name}");
+    let getter_name = naming::getter_name(column_name);
 
     let is_string = internal_column.rust_field_type_kind == ColumnTypeKind::String;
 
@@ -114,21 +118,14 @@ fn updated_at_column<'a>(
     spacetimedsl_table: &SpacetimeDSLTable,
     internal_columns: &'a [InternalColumn],
 ) -> Option<(&'a Ident, bool)> {
-    let column_name = spacetimedsl_table
-        .on_update_set_current_timestamp_column_name
-        .as_ref()?;
-
-    let internal_column = internal_columns
-        .iter()
-        .find(|c| c.rust_field_name.eq(column_name))
-        .unwrap_or_else(|| {
-            panic!("The column {column_name} named by an on_update attribute must be one of this table's columns")
-        });
-
-    Some((
-        &internal_column.rust_field_name,
-        internal_column.rust_field_type_kind == ColumnTypeKind::Optional,
-    ))
+    internal_columns.iter().find_map(|internal_column| {
+        match CreateColumnRole::of(spacetimedsl_table, internal_column) {
+            CreateColumnRole::SetOnUpdate { optional } => {
+                Some((&internal_column.rust_field_name, optional))
+            }
+            _ => None,
+        }
+    })
 }
 
 /// `<row>.<updated_at> = <now>;`, or nothing when the table declares no such column.
@@ -189,7 +186,7 @@ pub fn before_update_hook_use_and_call(
     found_row: &Ident,
 ) -> (TokenStream, TokenStream) {
     hook_use_and_call(
-        &spacetimedsl_table.hooks.before_update,
+        spacetimedsl_table.hooks.get(HookKind::BEFORE_UPDATE),
         |hook_function_name| {
             let hook_call = runtime::dsl_method_hooks_call(
                 hook_function_name,
@@ -236,7 +233,7 @@ pub fn after_update_hook(
     found_row: &Ident,
 ) -> TokenStream {
     hook_tokens(
-        &spacetimedsl_table.hooks.after_update,
+        spacetimedsl_table.hooks.get(HookKind::AFTER_UPDATE),
         |hook_function_name| {
             let hook_call = runtime::dsl_method_hooks_call(
                 hook_function_name,
@@ -294,21 +291,22 @@ fn set_created_at_on_insert(
     internal_columns: &[InternalColumn],
     row: &Ident,
 ) -> TokenStream {
-    match &spacetimedsl_table.on_insert_set_current_timestamp_column_name {
+    let created_at_column = internal_columns.iter().find_map(|internal_column| {
+        match CreateColumnRole::of(spacetimedsl_table, internal_column) {
+            CreateColumnRole::SetOnCreate { optional } => {
+                Some((&internal_column.rust_field_name, optional))
+            }
+            _ => None,
+        }
+    });
+
+    match created_at_column {
         None => TokenStream::default(),
-        Some(column_name) => {
-            let internal_column = internal_columns
-                .iter()
-                .find(|column| column.rust_field_name.eq(column_name))
-                .unwrap_or_else(|| {
-                    panic!(
-                        "The column {column_name} named by an on_insert attribute must be one of this table's columns"
-                    )
-                });
+        Some((column_name, optional)) => {
             let current_timestamp = runtime::current_timestamp(&quote! { self });
-            let timestamp_value = match internal_column.rust_field_type_kind {
-                ColumnTypeKind::Optional => quote! { Some(#current_timestamp) },
-                _ => current_timestamp,
+            let timestamp_value = match optional {
+                true => quote! { Some(#current_timestamp) },
+                false => current_timestamp,
             };
 
             quote! {
@@ -330,7 +328,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
         primary_key_column,
         struct_name,
         singular_table_name,
-        singular_table_name_as_string,
+        singular_table_name_as_string: _,
         field_name_for_found_value,
         ..
     } = context;
@@ -349,7 +347,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
     let checks_on_update = reference_integrity_checks_on_update(
         spacetimedb_table,
         internal_columns,
-        &column_names_and_row_values(&index_columns),
+        field_name_for_found_value,
         &index_columns,
         &OneOrMultiple::One,
         primary_key_column,
@@ -411,7 +409,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
     );
 
     let before_insert_hook = hook_tokens(
-        &spacetimedsl_table.hooks.before_insert,
+        spacetimedsl_table.hooks.get(HookKind::BEFORE_INSERT),
         |hook_function_name| {
             let hook_call = runtime::dsl_method_hooks_call(
                 hook_function_name,
@@ -430,7 +428,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
     );
 
     let after_insert_hook = hook_tokens(
-        &spacetimedsl_table.hooks.after_insert,
+        spacetimedsl_table.hooks.get(HookKind::AFTER_INSERT),
         |hook_function_name| {
             let hook_call =
                 runtime::dsl_method_hooks_call(hook_function_name, &quote! { self, &entity });
@@ -441,19 +439,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
         },
     );
 
-    // The row does not exist yet, so the message renders the whole struct rather than naming
-    // the columns a lookup was made on.
-    let column_names_and_row_values = format!("{{{{ {singular_table_name} : {{:?}} }}}}");
-
-    // FIXME: Only show unique columns here
-    let unique_constraint_violation_error = runtime::unique_constraint_violation(
-        singular_table_name_as_string,
-        &quote! { Create },
-        &quote! { SpacetimeDB },
-        &OneOrMultiple::One,
-        &quote! { format!(#column_names_and_row_values, #singular_table_name) },
-    );
-    let auto_inc_overflow_error = runtime::auto_inc_overflow(singular_table_name_as_string);
+    let insert = create::insert_and_map_errors(context, &after_insert_hook);
 
     SpacetimeDSLMethod {
         doc_comment: format!(
@@ -502,26 +488,10 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
                 #set_created_at
                 #set_updated_at_on_insert
 
-                match self
-                    .db()
-                    .#singular_table_name()
-                    .try_insert(#singular_table_name.clone()) { // FIXME: No clone?
-                    Ok(entity) => {
-                        #after_insert_hook
-
-                        Ok(entity)
-                    },
-                    Err(error) => match error {
-                        spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
-                            Err(#unique_constraint_violation_error)
-                        }
-                        spacetimedb::TryInsertError::AutoIncOverflow(_) => {
-                            Err(#auto_inc_overflow_error)
-                        }
-                    },
-                }
+                #insert
             }
         },
+        // Upserting writes the row.
         read_context_compatible: false,
     }
 }

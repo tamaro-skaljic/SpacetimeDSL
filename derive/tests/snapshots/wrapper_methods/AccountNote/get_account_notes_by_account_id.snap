@@ -8,8 +8,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         &'a self,
         account_id: impl Into<crate::accounts::AccountId>,
     ) -> impl Iterator<Item = AccountNote> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         self.db().account_note().account_id().filter(account_id.into().value())
     }
 }
@@ -20,8 +20,8 @@ impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T
         &'a self,
         account_id: impl Into<crate::accounts::AccountId>,
     ) -> impl Iterator<Item = AccountNote> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         self.db().account_note().account_id().filter(account_id.into().value())
     }
 }

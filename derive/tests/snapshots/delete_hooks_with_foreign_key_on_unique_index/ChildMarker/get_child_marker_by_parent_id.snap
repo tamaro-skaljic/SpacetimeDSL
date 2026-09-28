@@ -10,8 +10,8 @@ Try to get a `ChildMarker` from the `child_marker` table whose value matches the
         &'a self,
         parent_id: impl Into<ParentRecordId> + Clone,
     ) -> Result<ChildMarker, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().child_marker().parent_id().find(parent_id.clone().into().value())
         {
             Some(child_marker) => Ok(child_marker),
@@ -36,8 +36,8 @@ Try to get a `ChildMarker` from the `child_marker` table whose value matches the
         &'a self,
         parent_id: impl Into<ParentRecordId> + Clone,
     ) -> Result<ChildMarker, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().child_marker().parent_id().find(parent_id.clone().into().value())
         {
             Some(child_marker) => Ok(child_marker),

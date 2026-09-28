@@ -1,0 +1,32 @@
+---
+source: derive/src/characterization_tests.rs
+---
+pub trait this_compilation_error_occurs_because_the_active_bracket_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_bracket_table {}
+impl ActiveBracket {
+    ///
+    pub fn get_bracket_id(&self) -> BracketId {
+        use crate::spacetimedsl::Wrapper;
+        BracketId::new(self.bracket_id.clone())
+    }
+    ///
+    pub fn set_bracket_id(&mut self, bracket_id: impl Into<BracketId>) -> BracketId {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(
+            &mut self.bracket_id,
+            bracket_id.into().value(),
+        );
+        BracketId::new(old_value)
+    }
+    ///
+    pub fn get_seed_bracket_id(&self) -> BracketId {
+        use crate::spacetimedsl::Wrapper;
+        BracketId::new(self.seed_bracket_id.clone())
+    }
+}
+
+// Generated DSL methods:
+// delete_active_bracket
+// execute_on_delete_strategies_of_the_active_bracket_table_after_multiple_rows_of_the_bracket_table_were_deleted
+// execute_on_delete_strategies_of_the_active_bracket_table_after_one_row_of_the_bracket_table_was_deleted
+// get_active_bracket
+// upsert_active_bracket

@@ -8,8 +8,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         &'a self,
         qualified_note: &impl Into<Option<DocumentQualifiedNote>>,
     ) -> impl Iterator<Item = Document> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let qualified_note = match qualified_note.into() {
             None => None,
             Some(qualified_note) => {
@@ -26,8 +26,8 @@ impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T
         &'a self,
         qualified_note: &impl Into<Option<DocumentQualifiedNote>>,
     ) -> impl Iterator<Item = Document> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let qualified_note = match qualified_note.into() {
             None => None,
             Some(qualified_note) => {

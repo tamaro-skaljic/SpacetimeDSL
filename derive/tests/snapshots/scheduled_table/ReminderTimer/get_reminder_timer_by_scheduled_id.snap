@@ -1,0 +1,63 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `ReminderTimer` from the `reminder_timer` table whose value matches the value from the unique single-column btree index on the `scheduled_id` column.*/
+    pub fn get_reminder_timer_by_scheduled_id<'a>(
+        &'a self,
+        scheduled_id: impl Into<ReminderTimerScheduledId> + Clone,
+    ) -> Result<ReminderTimer, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self
+            .db()
+            .reminder_timer()
+            .scheduled_id()
+            .find(scheduled_id.clone().into().value())
+        {
+            Some(reminder_timer) => Ok(reminder_timer),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "reminder_timer".into(),
+                    column_names_and_row_values: format!(
+                        "{{ scheduled_id : {} }}", scheduled_id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `ReminderTimer` from the `reminder_timer` table whose value matches the value from the unique single-column btree index on the `scheduled_id` column.*/
+    pub fn get_reminder_timer_by_scheduled_id<'a>(
+        &'a self,
+        scheduled_id: impl Into<ReminderTimerScheduledId> + Clone,
+    ) -> Result<ReminderTimer, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self
+            .db()
+            .reminder_timer()
+            .scheduled_id()
+            .find(scheduled_id.clone().into().value())
+        {
+            Some(reminder_timer) => Ok(reminder_timer),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "reminder_timer".into(),
+                    column_names_and_row_values: format!(
+                        "{{ scheduled_id : {} }}", scheduled_id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

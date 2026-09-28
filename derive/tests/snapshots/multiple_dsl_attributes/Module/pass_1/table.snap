@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct ModuleId {
     value: u64,
 }
@@ -17,7 +26,7 @@ impl std::fmt::Display for ModuleId {
         write!(f, "{} {{ id: {:?} }}", "ModuleId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, ModuleId> for ModuleId {
+impl crate::spacetimedsl::Wrapper<u64> for ModuleId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -41,51 +50,51 @@ impl From<&Module> for Option<ModuleId> {
 }
 impl From<&ModuleId> for Option<ModuleId> {
     fn from(value: &ModuleId) -> Option<ModuleId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(ModuleId::new(value.value()))
     }
 }
 impl From<&ModuleId> for ModuleId {
     fn from(value: &ModuleId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ModuleId::new(value.value())
     }
 }
 impl Module {
     ///
     pub fn get_id(&self) -> ModuleId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ModuleId::new(self.id.clone())
     }
     ///
     pub fn get_database_id(&self) -> &u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.database_id
     }
     ///
     pub fn get_database_id_mut(&mut self) -> &mut u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.database_id
     }
     ///
     pub fn set_database_id(&mut self, database_id: u64) -> u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.database_id, database_id);
         old_value
     }
     ///
     pub fn get_name(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.name
     }
     ///
     pub fn get_name_mut(&mut self) -> &mut String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.name
     }
     ///
     pub fn set_name(&mut self, name: String) -> String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.name, name);
         old_value
     }

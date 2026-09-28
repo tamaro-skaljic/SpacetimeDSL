@@ -8,8 +8,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         &'a self,
         tags: &impl Into<Option<ArticleTags>>,
     ) -> impl Iterator<Item = Article> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let tags = match tags.into() {
             None => None,
             Some(tags) => Into::<ArticleTags>::into(tags).value(),
@@ -24,8 +24,8 @@ impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T
         &'a self,
         tags: &impl Into<Option<ArticleTags>>,
     ) -> impl Iterator<Item = Article> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let tags = match tags.into() {
             None => None,
             Some(tags) => Into::<ArticleTags>::into(tags).value(),

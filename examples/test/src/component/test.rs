@@ -1,6 +1,7 @@
-use crate::entity::EntityId;
-use crate::spacetimedsl::prelude::*;
-use spacetimedb::{ScheduleAt, Timestamp};
+use {
+    crate::{entity::EntityId, spacetimedsl::prelude::*},
+    spacetimedb::{ScheduleAt, Timestamp},
+};
 
 /// A Position in the World.
 #[spacetimedsl::dsl(
@@ -134,6 +135,7 @@ pub struct SpaceShipObject {
 
 #[spacetimedsl::dsl(
     plural_name = modules1,
+    table = module1,
     method(update = true),
     unique_index(name = database_and_parent_id_and_name),
 )]
@@ -144,6 +146,7 @@ pub struct SpaceShipObject {
 )]
 #[spacetimedsl::dsl(
     plural_name = modules2,
+    table = module2,
     method(update = true),
     unique_index(name = database_and_name_and_parent_id),
 )]
@@ -229,36 +232,91 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
         return Err("Tags should have been updated to contain nothing".to_string());
     }
 
-    let _: Option<EntityId> = world1.get_wrapped_option();
+    let wrapped_option_of_world1: Option<EntityId> = world1.get_wrapped_option();
+    if wrapped_option_of_world1.is_some() {
+        return Err("wrapped_option of a Test created with None should be None!".to_string());
+    }
+
     world2.set_wrapped_option(None);
     world2.set_wrapped_option(&player);
     world2.set_wrapped_option(player.get_obj_id());
     world2.set_wrapped_option(player.get_obj_id());
 
     // TODO: Add commented lines if https://github.com/tamaro-skaljic/SpacetimeDSL/issues/21 is added
-    let _ = dsl.get_tests_by_wrapped_index(&player);
-    let _ = dsl.get_tests_by_wrapped_index(player.get_obj_id());
-    let _ = dsl.get_tests_by_wrapped_index(&player.get_obj_id());
-    let _ = dsl.get_tests_by_wrapped_index(world2.get_wrapped_index());
+    for (argument, found_test_count) in [
+        ("&Entity", dsl.get_tests_by_wrapped_index(&player).count()),
+        (
+            "EntityId",
+            dsl.get_tests_by_wrapped_index(player.get_obj_id()).count(),
+        ),
+        (
+            "&EntityId",
+            dsl.get_tests_by_wrapped_index(&player.get_obj_id()).count(),
+        ),
+        (
+            "the getter of the column",
+            dsl.get_tests_by_wrapped_index(world2.get_wrapped_index())
+                .count(),
+        ),
+    ] {
+        if found_test_count.ne(&2) {
+            return Err(format!(
+                "get_tests_by_wrapped_index called with {argument} should find both Tests whose wrapped_index is the player! Found: {found_test_count}"
+            ));
+        }
+    }
     //let _ = dsl.get_tests_by_wrapped_index(&player..);
     //let _ = dsl.get_tests_by_wrapped_index(world2.get_wrapped_index()..);
-    let _ = dsl.delete_tests_by_wrapped_index(&player);
-    let _ = dsl.delete_tests_by_wrapped_index(player.get_obj_id());
-    let _ = dsl.delete_tests_by_wrapped_index(player.get_obj_id());
-    let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index());
+
+    let deletion = dsl.delete_tests_by_wrapped_index(&player)?;
+    if deletion.entries.len().ne(&2) {
+        return Err(format!(
+            "delete_tests_by_wrapped_index should delete both Tests whose wrapped_index is the player! Got:\n{deletion}"
+        ));
+    }
+    // The borrowed form comes first: the id is still used afterwards, so the `&` is not
+    // needless and `clippy --fix` keeps it.
+    let obj_id = player.get_obj_id();
+    for (argument, deletion) in [
+        ("&EntityId", dsl.delete_tests_by_wrapped_index(&obj_id)?),
+        ("EntityId", dsl.delete_tests_by_wrapped_index(obj_id)?),
+        (
+            "the getter of the column",
+            dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index())?,
+        ),
+    ] {
+        if !deletion.entries.is_empty() {
+            return Err(format!(
+                "delete_tests_by_wrapped_index called with {argument} should find nothing left to delete! Got:\n{deletion}"
+            ));
+        }
+    }
     //let _ = dsl.delete_tests_by_wrapped_index(&player..);
     //let _ = dsl.delete_tests_by_wrapped_index(&player..&player);
     //let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index()..);
     //let _ = dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index()..world2.get_wrapped_index());
 
-    let _ = dsl.get_tests_by_btree_index(world2.get_btree_index());
+    let found_test_count = dsl
+        .get_tests_by_btree_index(world2.get_btree_index())
+        .count();
+    if found_test_count.ne(&0) {
+        return Err(format!(
+            "get_tests_by_btree_index should find no Test after both were deleted! Found: {found_test_count}"
+        ));
+    }
     //let _ = dsl.get_tests_by_btree_index(world2.get_btree_index()..);
-    let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index());
+
+    let deletion = dsl.delete_tests_by_btree_index(world2.get_btree_index())?;
+    if !deletion.entries.is_empty() {
+        return Err(format!(
+            "delete_tests_by_btree_index should find nothing left to delete after both Tests were deleted! Got:\n{deletion}"
+        ));
+    }
     //let _ = dsl.delete_tests_by_btree_index(world2.get_btree_index()..);
 
-    let _ = dsl.create_ship_object(CreateShipObject {
+    dsl.create_ship_object(CreateShipObject {
         entity_id: player.get_obj_id(),
-    });
+    })?;
 
     if let Ok(success) = dsl.delete_entity_by_obj_id(&player) {
         return Err(format!(

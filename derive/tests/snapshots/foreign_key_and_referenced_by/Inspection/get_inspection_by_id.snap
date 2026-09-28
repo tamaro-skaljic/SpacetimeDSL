@@ -10,8 +10,8 @@ Try to get a `Inspection` from the `inspection` table whose value matches the va
         &'a self,
         id: impl Into<InspectionId> + Clone,
     ) -> Result<Inspection, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().inspection().id().find(id.clone().into().value()) {
             Some(inspection) => Ok(inspection),
             None => {
@@ -35,8 +35,8 @@ Try to get a `Inspection` from the `inspection` table whose value matches the va
         &'a self,
         id: impl Into<InspectionId> + Clone,
     ) -> Result<Inspection, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().inspection().id().find(id.clone().into().value()) {
             Some(inspection) => Ok(inspection),
             None => {

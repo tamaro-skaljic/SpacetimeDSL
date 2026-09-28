@@ -1,0 +1,27 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Gadget` iterator that contains all rows in the `gadget` table whose value matches the value from the single-column btree index on the `owner_id` column.
+    pub fn get_gadgets_by_owner_id<'a>(
+        &'a self,
+        owner_id: impl Into<OwnerId>,
+    ) -> impl Iterator<Item = Gadget> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().gadget().owner_id().filter(owner_id.into().value())
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Gadget` iterator that contains all rows in the `gadget` table whose value matches the value from the single-column btree index on the `owner_id` column.
+    pub fn get_gadgets_by_owner_id<'a>(
+        &'a self,
+        owner_id: impl Into<OwnerId>,
+    ) -> impl Iterator<Item = Gadget> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().gadget().owner_id().filter(owner_id.into().value())
+    }
+}

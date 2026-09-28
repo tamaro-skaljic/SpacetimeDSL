@@ -1,14 +1,17 @@
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-use spacetimedsl_derive_input::api::{
-    Table,
-    dsl::{
-        column::SpacetimeDSLColumnMethods,
-        method::{SpacetimeDSLArg, SpacetimeDSLMethod},
-        wrapper::WrapperType,
+use {
+    proc_macro2::TokenStream,
+    quote::{format_ident, quote},
+    spacetimedsl_derive_input::api::{
+        Table,
+        dsl::{
+            column::SpacetimeDSLColumnMethods,
+            method::{SpacetimeDSLArg, SpacetimeDSLMethod},
+            table::CascadeEntryPoints,
+            wrapper::WrapperType,
+        },
     },
+    syn::Ident,
 };
-use syn::Ident;
 
 mod accessor;
 mod create_method_arg;
@@ -93,9 +96,7 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
         .spacetimedsl_methods
         .on_delete_strategies_of_referencing_tables
     {
-        for entry_points in [&strategies.on_deletion, &strategies.on_soft_deletion]
-            .into_iter()
-            .flatten()
+        for entry_points in held_entry_points(&strategies.on_deletion, &strategies.on_soft_deletion)
         {
             dsl_methods.push(build_internal_dsl_method(&entry_points.after_one_row)?);
             dsl_methods.push(build_internal_dsl_method(
@@ -106,30 +107,24 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
 
     // Two loops, not one: every one-row method is emitted before any many-row method, and a
     // single loop over the pairs would interleave them.
-    for strategies in &input
-        .spacetimedsl_methods
-        .on_delete_strategies_of_this_table
-    {
-        for entry_points in [&strategies.on_deletion, &strategies.on_soft_deletion]
-            .into_iter()
-            .flatten()
-        {
-            dsl_methods.push(build_internal_dsl_method(&entry_points.after_one_row)?);
-        }
+    let entry_points_of_this_table = || {
+        input
+            .spacetimedsl_methods
+            .on_delete_strategies_of_this_table
+            .iter()
+            .flat_map(|strategies| {
+                held_entry_points(&strategies.on_deletion, &strategies.on_soft_deletion)
+            })
+    };
+
+    for entry_points in entry_points_of_this_table() {
+        dsl_methods.push(build_internal_dsl_method(&entry_points.after_one_row)?);
     }
 
-    for strategies in &input
-        .spacetimedsl_methods
-        .on_delete_strategies_of_this_table
-    {
-        for entry_points in [&strategies.on_deletion, &strategies.on_soft_deletion]
-            .into_iter()
-            .flatten()
-        {
-            dsl_methods.push(build_internal_dsl_method(
-                &entry_points.after_multiple_rows,
-            )?);
-        }
+    for entry_points in entry_points_of_this_table() {
+        dsl_methods.push(build_internal_dsl_method(
+            &entry_points.after_multiple_rows,
+        )?);
     }
 
     for multi_column_index in &input.spacetimedsl_methods.multi_column_indices {
@@ -139,15 +134,15 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
     for column in &input.columns {
         if first_dsl_attribute {
             if let Some(getter) = &column.spacetimedsl_column.getter {
-                table_methods.push(accessor::build(accessor::Accessor::Getter(getter))?);
+                table_methods.push(accessor::build(accessor::Accessor::Getter(getter)));
             }
 
             if let Some(mut_getter) = &column.spacetimedsl_column.mut_getter {
-                table_methods.push(accessor::build(accessor::Accessor::MutGetter(mut_getter))?)
+                table_methods.push(accessor::build(accessor::Accessor::MutGetter(mut_getter)))
             }
 
             if let Some(setter) = &column.spacetimedsl_column.setter {
-                table_methods.push(accessor::build(accessor::Accessor::Setter(setter))?)
+                table_methods.push(accessor::build(accessor::Accessor::Setter(setter)))
             }
         }
 
@@ -173,16 +168,12 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
         None => TokenStream::default(),
     };
 
-    let hooks = vec![
-        hook::build(&input.spacetimedsl_table.hooks.before_insert)?,
-        hook::build(&input.spacetimedsl_table.hooks.before_update)?,
-        hook::build(&input.spacetimedsl_table.hooks.before_delete)?,
-        hook::build(&input.spacetimedsl_table.hooks.before_soft_delete)?,
-        hook::build(&input.spacetimedsl_table.hooks.after_insert)?,
-        hook::build(&input.spacetimedsl_table.hooks.after_update)?,
-        hook::build(&input.spacetimedsl_table.hooks.after_delete)?,
-        hook::build(&input.spacetimedsl_table.hooks.after_soft_delete)?,
-    ];
+    let hooks: Vec<_> = input
+        .spacetimedsl_table
+        .hooks
+        .iter()
+        .map(hook::build)
+        .collect();
 
     let wrapper_methods = input
         .spacetimedsl_methods
@@ -208,6 +199,15 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
         dsl_methods,
         wrapper_methods,
     })
+}
+
+/// The cascade entry points one side of a foreign key relationship holds, those for deletion
+/// before those for soft deletion.
+fn held_entry_points<'a>(
+    on_deletion: &'a Option<CascadeEntryPoints>,
+    on_soft_deletion: &'a Option<CascadeEntryPoints>,
+) -> impl Iterator<Item = &'a CascadeEntryPoints> {
+    [on_deletion, on_soft_deletion].into_iter().flatten()
 }
 
 fn build_public_dsl_method(method: &SpacetimeDSLMethod) -> syn::Result<GeneratedDSLMethod> {
@@ -263,7 +263,6 @@ fn get_column_dsl_methods(
     Ok(dsl_methods)
 }
 
-// FIXME: We can also add the table definition directly to this malformed code generation result, so that it can just be copied and pasted for easier debugging.
 pub fn malformed_code_generation_result(result: String) -> String {
     let mut result = result.replace("\n", " ");
 
@@ -284,25 +283,15 @@ Please include your table definition as well as the following, malformed, code g
 ")
 }
 
-fn map_args(args: &Vec<SpacetimeDSLArg>) -> Vec<TokenStream> {
-    let mut function_args = vec![];
+fn map_args(args: &[SpacetimeDSLArg]) -> Vec<TokenStream> {
+    args.iter()
+        .map(|arg| {
+            let arg_name = &arg.arg_name;
+            let arg_type = arg.arg_type.actual_type();
 
-    for arg in args {
-        let arg_name = &arg.arg_name;
-        let arg_type = match &arg.arg_type {
-            spacetimedsl_derive_input::api::dsl::method::SpacetimeDSLArgType::Normal(
-                actual_type,
-            ) => actual_type,
-            spacetimedsl_derive_input::api::dsl::method::SpacetimeDSLArgType::Wrapped {
-                wrapped_type: _,
-                actual_type,
-            } => actual_type,
-        };
-
-        function_args.push(quote! {
-            #arg_name: #arg_type
-        });
-    }
-
-    function_args
+            quote! {
+                #arg_name: #arg_type
+            }
+        })
+        .collect()
 }

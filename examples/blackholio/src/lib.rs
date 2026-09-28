@@ -1,13 +1,16 @@
 ::spacetimedsl::spacetimedsl!();
 
-pub mod math;
+use {
+    crate::spacetimedsl::prelude::*,
+    math::DbVector2,
+    spacetimedb::{
+        ReducerContext, SpacetimeType, TimeDuration, Timestamp, rand::Rng,
+        spacetimedb_lib::ScheduleAt,
+    },
+    std::{collections::HashMap, time::Duration},
+};
 
-use crate::spacetimedsl::prelude::*;
-use math::DbVector2;
-use spacetimedb::SpacetimeType;
-use spacetimedb::rand::Rng;
-use spacetimedb::{ReducerContext, TimeDuration, Timestamp, spacetimedb_lib::ScheduleAt};
-use std::{collections::HashMap, time::Duration};
+pub mod math;
 
 // TODO:
 // - [x] Remove players when they are eaten on the client + death + respawn screen
@@ -38,10 +41,14 @@ pub enum LoginStatus {
 }
 
 pub mod tables {
-    use super::LoginStatus;
-    use super::{circle_decay, circle_recombine, consume_entity, move_all_players, spawn_food};
-    use crate::math::DbVector2;
-    use spacetimedb::{Identity, Timestamp};
+    use {
+        super::{
+            LoginStatus, circle_decay, circle_recombine, consume_entity, move_all_players,
+            spawn_food,
+        },
+        crate::math::DbVector2,
+        spacetimedb::{Identity, Timestamp},
+    };
 
     #[spacetimedsl::dsl(plural_name = config, method(update = false))]
     #[spacetimedb::table(accessor = config, public)]
@@ -62,10 +69,10 @@ pub mod tables {
         #[referenced_by(path = self, table = food)]
         #[referenced_by(path = self, table = consume_entity_timer)]
         id: i32,
-        pub position: DbVector2, // FIXME (find out where used in dsl macro): binary operation `==` cannot be applied to type `DbVector2` consider annotating `DbVector2` with `#[derive(PartialEq)]`
+        pub position: DbVector2,
         pub mass: i32,
         #[index(btree)]
-        pub login_status: LoginStatus, // FIXME (find out where used in dsl macro): binary operation `==` cannot be applied to type `LoginStatus` consider annotating `LoginStatus` with `#[derive(PartialEq)]`
+        pub login_status: LoginStatus,
     }
 
     #[spacetimedsl::dsl(plural_name = circles, method(update = true))]
@@ -86,7 +93,6 @@ pub mod tables {
         pub login_status: LoginStatus,
     }
 
-    // FIXME: update = true should not have been valid here because all fields were private and no modified_at / updated_at column existed
     #[spacetimedsl::dsl(plural_name = players, method(update = true), hook(after(update)))]
     #[spacetimedb::table(accessor = player, public)]
     pub struct Player {

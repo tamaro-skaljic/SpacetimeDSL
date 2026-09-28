@@ -7,9 +7,14 @@
 //! field, its type and its single legal value by hand. This module is where it names
 //! them, so a change to the injected key has one place to reach in each crate.
 
-use proc_macro2::{Literal, Span};
-use quote::ToTokens;
-use syn::{Ident, Path};
+use {
+    crate::{
+        api::db::index::{Index, IndexType},
+        internal::{column::canonical_type, error},
+    },
+    proc_macro2::{Literal, Span},
+    syn::{Ident, Path},
+};
 
 /// The name of the injected column.
 pub const PRIMARY_KEY_NAME: &str = "id";
@@ -35,19 +40,38 @@ pub fn rendered_primary_key_value() -> String {
     PRIMARY_KEY_VALUE.to_string()
 }
 
-/// The injected column and its value, as a not-found error renders them: `{ id : 0 }`.
-///
-/// The surrounding braces and the spacing match what
-/// `internal::dsl::method::index::column_names_and_row_values` produces for any other index, so
-/// a singleton's not-found message reads like every other table's.
-pub fn rendered_primary_key() -> String {
-    format!("{{ {PRIMARY_KEY_NAME} : {PRIMARY_KEY_VALUE} }}")
-}
-
 /// Whether this column is the injected primary key rather than one the user wrote.
 ///
 /// The caller has already established that the table is a singleton; this answers which
 /// of its columns the injection added.
 pub fn is_primary_key_column(name: &Ident, type_name_or_path: &Path) -> bool {
-    name == PRIMARY_KEY_NAME && type_name_or_path.to_token_stream().to_string() == PRIMARY_KEY_TYPE
+    name == PRIMARY_KEY_NAME && canonical_type(type_name_or_path) == PRIMARY_KEY_TYPE
+}
+
+/// A singleton holds one row, which its injected primary key already finds, so an index over
+/// several of its columns has nothing to look up.
+pub fn reject_multi_column_indices(multi_column_indices: &[Index]) -> syn::Result<()> {
+    for index in multi_column_indices {
+        if let IndexType::BTreeMultiColumn { columns } | IndexType::HashMultiColumn { columns } =
+            &index.index_type
+        {
+            return Err(error::multi_column_index_on_singleton(&index.name, columns));
+        }
+    }
+
+    Ok(())
+}
+
+/// The injected primary key is a singleton's only index; `#[index]`, `#[unique]` or a
+/// single-column `index(...)` on another column would find the same one row.
+pub fn reject_single_column_index(
+    column_name: &Ident,
+    is_primary_key: bool,
+    has_single_column_index: bool,
+) -> syn::Result<()> {
+    if !is_primary_key && has_single_column_index {
+        return Err(error::single_column_index_on_singleton(column_name));
+    }
+
+    Ok(())
 }

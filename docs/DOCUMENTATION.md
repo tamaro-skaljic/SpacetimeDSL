@@ -12,8 +12,10 @@
 
 Authoritative reference to transform **SpacetimeDB** Rust Server Modules to use **SpacetimeDSL**.
 
-- **SpacetimeDSL** version **0.23.3**
+- **SpacetimeDSL** version **0.24.0**
 - **SpacetimeDB** version **2.10.1**
+
+Upgrading from an earlier release? See [`MIGRATION.md`](MIGRATION.md).
 
 ## Quick Transformation Checklist
 
@@ -23,7 +25,7 @@ When transforming a **SpacetimeDB** module to use **SpacetimeDSL**, follow these
 2. Add `::spacetimedsl::spacetimedsl!();` at the top of `lib.rs` (before table definitions - the starting `::` is required to avoid macro expansion context issues!)
 3. Add `use crate::spacetimedsl::prelude::*;` at the top of every file that uses DSL features
 4. Add `#[spacetimedsl::dsl]` attribute above each `#[spacetimedb::table]`
-5. Define `plural_name`, `method(update = ..., delete = ...)`
+5. Define `plural_name`, `method(update = ..., delete = ...)`, and `table = <accessor>` on a struct with several `#[spacetimedb::table]` attributes
 6. Add `#[create_wrapper]` / `#[use_wrapper]` on `#[primary_key]`, `#[unique]`, and `#[index]` columns
 7. Add `#[foreign_key]` + `#[referenced_by]` for relationships
 8. Replace all `ctx.db.table_name()` calls with DSL methods
@@ -70,7 +72,7 @@ Add this call once at the top of your crate root (`lib.rs`), before any table de
 ::spacetimedsl::spacetimedsl!();
 ```
 
-This generates a `crate::spacetimedsl` module containing the `DSL` and `ReadOnlyDSL` structs, their constructor functions, and the prelude.
+This generates a `crate::spacetimedsl` module containing the `DSL` and `ReadOnlyDSL` structs, their constructor functions, and the prelude. The code `#[spacetimedsl::dsl]` generates reaches the runtime only through this module, so it works in any module of your crate, the crate root included — there, spell the attribute `#[::spacetimedsl::dsl]`, because `spacetimedsl` alone names both the crate and this module. A hand-written `impl spacetimedsl::Wrapper<…>` outside the crate root keeps naming the runtime crate directly and stays valid.
 
 Then add this import at the top of every file that uses DSL features, alongside your `use spacetimedb::...` imports:
 
@@ -83,14 +85,15 @@ use crate::spacetimedsl::prelude::*;
 `crate::spacetimedsl::prelude` provides these types and functions:
 
 - `DSL`, `ReadOnlyDSL` — DSL context structs (generated into your crate)
-- `Wrapper` — trait for wrapper types
-- `DeletionResult`, `DeletionResultEntry`, `OnDeleteStrategyFailure` — deletion audit types
 - `dsl`, `read_only_dsl` — constructor functions
-- `SpacetimeDSLError`, `ReferenceIntegrityViolationError` — error types
-- `hook` — hook attribute macro
-- `WriteContext`, `ReadContext` — context traits
-- `GetAuth`, `GetSender`, `GetTimestamp`, `NewUUID`, `GetConnectionId`, `GetModuleIdentity`, `GetRandom`, `GetRandomNumberGenerator`, `GetImmutableDatabase`, `GetMutableDatabase`, `AsReducerContext`, `AsViewContext`, `AsAnonymousViewContext` — context accessor traits
-- `Itertools` — re-exported from `itertools` crate
+- `DSLMethodHooks`, `DefaultSingleton` — what hooks and `singleton(with_default)` tables implement
+- Everything in `spacetimedsl::prelude`, the one list of the runtime's items, which the crate root of `spacetimedsl` re-exports as well:
+  - `Context`, `ReadContext`, `WriteContext` — context traits
+  - `Wrapper` — trait for wrapper types
+  - `DeletionResult`, `DeletionResultEntry`, `OnDeleteStrategy`, `OnDeleteStrategyFailure` — deletion types
+  - `SpacetimeDSLError`, `ReferenceIntegrityViolationError` — error types
+  - `GetAuth`, `GetSender`, `GetTimestamp`, `NewUUID`, `GetConnectionId`, `GetModuleIdentity`, `GetRandom`, `GetRandomNumberGenerator`, `GetImmutableDatabase`, `GetMutableDatabase`, `AsReducerContext`, `AsViewContext`, `AsAnonymousViewContext` — context accessor traits
+  - `Itertools` — re-exported from `itertools` crate
 - `AnonymousViewContext`, `Identity`, `ProcedureContext`, `ReducerContext`, `ScheduleAt`, `SpacetimeType`, `Table`, `TimeDuration`, `Timestamp`, `ViewContext`, `rand::Rng` — re-exported from `spacetimedb`
 
 ### Cross-Module Imports
@@ -556,13 +559,28 @@ pub struct Entity {
 
 ### Pairing with #[spacetimedb::table]
 
-The `#[spacetimedsl::dsl]` attribute must appear directly above the `#[spacetimedb::table]` attribute:
+Every `#[spacetimedsl::dsl]` attribute belongs to one `#[spacetimedb::table]` attribute on the same struct. Write it above that table; on a struct with several tables, name the table with [`table = <accessor>`](#table):
 
 ```rust
 #[spacetimedsl::dsl(plural_name = entities, method(update = true, delete = true))]
 #[spacetimedb::table(accessor = entity, public)]
 pub struct Entity { ... }
 ```
+
+### Column Type Spellings
+
+A column's type has to be a path, such as `u64`, `String`, `Option<T>`, `spacetimedb::Timestamp` or a type of your own. Arrays, tuples, references, slices, function pointers, trait objects, `impl Trait` and qualified paths such as `<T as Trait>::Type` are rejected with a diagnostic; wrap such a value in a type of your own, such as a struct deriving `SpacetimeType`.
+
+Where **SpacetimeDSL** checks or treats a column's type specially, it accepts every spelling of that type:
+
+| Type                  | Accepted spellings                                                            |
+| --------------------- | ----------------------------------------------------------------------------- |
+| `String`              | `String`, `std::string::String`, `alloc::string::String`                      |
+| `Option<T>`           | `Option<T>`, `std::option::Option<T>`, `core::option::Option<T>`              |
+| `u8`–`u128`, `bool`   | bare, `core::primitive::u64`, `std::primitive::u64` (likewise for the others) |
+| `Timestamp`, `Uuid`   | bare, `spacetimedb::Timestamp`, `spacetimedb::Uuid`                           |
+
+Each rooted spelling may also start with `::`, such as `::spacetimedb::Timestamp`. A path to a type of your own crate with the same last name, such as `my_crate::String`, is a different type.
 
 ### Singleton Tables
 
@@ -746,13 +764,24 @@ The `plural_name` parameter is required (except on singleton tables) and control
 - `count_of_all_{plural_name}()` — e.g., `count_of_all_entities()`
 - `delete_{plural_name}_by_{column}()` — e.g., `delete_entities_by_status()`
 
+### `table`
+
+`#[dsl(table = <accessor>)]` names the `#[spacetimedb::table]` attribute the `#[dsl]` attribute belongs to, by its `accessor`. A `#[dsl]` sees only the `#[table]` attributes below it, because each `#[table]` removes itself from the struct when it expands, so write every `#[dsl]` above its `#[table]`:
+
+- With **several** `#[table]` attributes below the `#[dsl]`, `table` is required.
+- With **one** it is optional; when given, it must name that table's accessor.
+- A singleton must have exactly one `#[table]` attribute; it may name it with `table` as well.
+
+A `table` which names no `#[table]` attribute below the `#[dsl]` is rejected, and so is a missing `table` where it is required.
+
 ### Multiple #[spacetimedsl::dsl] + #[spacetimedb::table] on Same Struct
 
-A single struct can have multiple `#[spacetimedsl::dsl]` + `#[spacetimedb::table]` pairs, each generating a separate table with its own accessor but sharing the same struct definition:
+A single struct can have multiple `#[spacetimedsl::dsl]` + `#[spacetimedb::table]` pairs, each generating a separate table with its own accessor but sharing the same struct definition. Each `#[dsl]` stays above the `#[table]` it names with [`table = <accessor>`](#table):
 
 ```rust
 #[spacetimedsl::dsl(
     plural_name = offline_players,
+    table = offline_player,
     method(update = true, delete = true),
 )]
 #[spacetimedb::table(
@@ -761,6 +790,7 @@ A single struct can have multiple `#[spacetimedsl::dsl]` + `#[spacetimedb::table
 )]
 #[spacetimedsl::dsl(
     plural_name = online_players,
+    table = online_player,
     method(update = true, delete = true),
 )]
 #[spacetimedb::table(
@@ -828,7 +858,7 @@ Default name: `{SingularTableNamePascalCase}{ColumnNamePascalCase}`
 All wrappers implement:
 
 ```rust
-pub trait Wrapper<WrappedType: Clone, WrapperType>:
+pub trait Wrapper<WrappedType: Clone>:
     Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
 {
     fn new(value: WrappedType) -> Self;
@@ -1478,9 +1508,10 @@ unresolved import crate::entity_relationship::this_compilation_error_occurs_beca
 - Rows already retired are skipped, so the cascade is idempotent
 - Cascades further, through the soft entry points of the retired rows' own referencing tables
 
-**`SetZero`** — Set foreign key column to `0`:
+**`SetZero`** — Set foreign key column to the value that references no row:
 
-- Numeric types only
+- Unsigned integers (`u8`–`u128`) are set to `0`, `Uuid` to `Uuid::NIL`; any other column type is rejected
+- Create and update treat `0` and `Uuid::NIL` as referencing no row, so a row holding either passes the reference integrity check
 - Requires `method(update = true)` on the referencing table's `#[spacetimedsl::dsl]`
 - Requires the foreign key column to be `pub` (so a setter exists)
 - Clearing the column is an update of the referencing row: its [`before_update` and `after_update` hooks](#during-a-cascading-delete) run around the write, and its `#[set_on_update]` column is set, as in `update_<table>_by_<key>`
@@ -1633,7 +1664,7 @@ You MUST return the error from the reducer or procedure, otherwise deletions whi
 
 ### Declaration
 
-The `unique_index(name = ...)` in `#[spacetimedsl::dsl]` must match a **SpacetimeDB** `index(accessor = ...)` on the same table. Use `name` (not `accessor`) in the DSL attribute:
+The `unique_index(name = ...)` in `#[spacetimedsl::dsl]` must match a **SpacetimeDB** `index(accessor = ...)` on the same table. Use `name` (not `accessor`) in the DSL attribute. A name no index of the table has is rejected with a list of the table's indices, and so is naming the same index twice:
 
 ```rust
 #[spacetimedsl::dsl(
@@ -2022,7 +2053,7 @@ pub struct ConfigId {
     id: i32,
 }
 
-impl spacetimedsl::Wrapper<i32, ConfigId> for ConfigId {
+impl spacetimedsl::Wrapper<i32> for ConfigId {
     fn new(value: i32) -> ConfigId { ConfigId { id: value } }
     fn value(&self) -> i32 { self.id.clone() }
 }

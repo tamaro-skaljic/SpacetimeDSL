@@ -1,13 +1,15 @@
-use crate::api::rust::visibility::RustVisibility;
-use quote::ToTokens;
-use std::fmt;
+use {
+    crate::api::rust::visibility::RustVisibility,
+    proc_macro2::TokenStream,
+    quote::{ToTokens, quote},
+};
 
 pub mod table;
 
 pub mod column;
 
 impl RustVisibility {
-    pub fn map(value: &syn::Visibility) -> RustVisibility {
+    pub(crate) fn map(value: &syn::Visibility) -> RustVisibility {
         match value {
             syn::Visibility::Public(_) => RustVisibility::Public,
             syn::Visibility::Restricted(vis) => RustVisibility::Restricted(*vis.path.clone()),
@@ -16,30 +18,15 @@ impl RustVisibility {
     }
 }
 
-impl fmt::Display for RustVisibility {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Public => {
-                write!(f, "pub")
+impl ToTokens for RustVisibility {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        tokens.extend(match self {
+            Self::Public => quote! { pub },
+            Self::Restricted(path) if path.is_ident("crate") || path.is_ident("super") => {
+                quote! { pub(#path) }
             }
-            Self::Restricted(str) => {
-                let str = str.to_token_stream().to_string();
-
-                match str.as_str() {
-                    "crate" => {
-                        write!(f, "pub (crate)")
-                    }
-                    "super" => {
-                        write!(f, "pub (super)")
-                    }
-                    str => {
-                        write!(f, "pub (in {str})")
-                    }
-                }
-            }
-            Self::Private => {
-                write!(f, "")
-            }
-        }
+            Self::Restricted(path) => quote! { pub(in #path) },
+            Self::Private => TokenStream::new(),
+        });
     }
 }
