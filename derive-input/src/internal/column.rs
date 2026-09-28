@@ -20,20 +20,34 @@ use quote::ToTokens;
 use spacetime_bindings_macro_input::table::ColumnArgs;
 use syn::{GenericArgument, Ident, Path, PathArguments, Type};
 
-#[allow(clippy::type_complexity)]
+/// Every column of a table, in the shape the public API exposes and in the shape the
+/// generators work with, each with its primary key picked out.
+pub struct AnalysedColumns {
+    pub columns: Vec<Column>,
+    pub primary_key_column: Column,
+    pub internal_columns: Vec<InternalColumn>,
+    pub internal_primary_key_column: InternalColumn,
+}
+
 pub fn try_parse(
     column_args: &ColumnArgs,
     rust_struct: &RustStruct,
     spacetimedb_table: &SpacetimeDBTable,
     mut single_column_index_by_column: BTreeMap<Ident, Index>,
     spacetimedsl_table: &SpacetimeDSLTable,
-) -> syn::Result<(Vec<Column>, Column, Vec<InternalColumn>, InternalColumn)> {
+) -> syn::Result<AnalysedColumns> {
     let primary_key_column_name = match get_primary_key_column_name(column_args) {
-        Some(pk) => pk,
+        Some(primary_key_column_name) => primary_key_column_name,
         None => {
             return Err(error::missing_primary_key(&rust_struct.name));
         }
     };
+
+    let primary_key_position = column_args
+        .fields
+        .iter()
+        .position(|field| field.ident == Some(&primary_key_column_name))
+        .expect("`ColumnArgs` guarantees the primary key is one of the fields");
 
     let auto_inc_column_names = get_auto_inc_column_names(column_args);
 
@@ -83,15 +97,7 @@ pub fn try_parse(
         internal_columns.push(internal_column);
     }
 
-    let internal_primary_key_column = internal_columns
-        .iter()
-        .find(|c| {
-            c.rust_field_name
-                .to_string()
-                .eq(&primary_key_column_name.to_string())
-        })
-        .expect("PK column should be present")
-        .clone();
+    let internal_primary_key_column = internal_columns[primary_key_position].clone();
 
     let context = MethodGenerationContext::new(
         rust_struct,
@@ -114,23 +120,14 @@ pub fn try_parse(
         });
     }
 
-    let primary_key_column = columns
-        .iter()
-        .find(|c| {
-            c.rust_field
-                .name
-                .to_string()
-                .eq(&primary_key_column_name.to_string())
-        })
-        .expect("PK column should be present")
-        .clone();
+    let primary_key_column = columns[primary_key_position].clone();
 
-    Ok((
+    Ok(AnalysedColumns {
         columns,
         primary_key_column,
         internal_columns,
         internal_primary_key_column,
-    ))
+    })
 }
 
 /// What the generators and the validation need to know about a column's type.

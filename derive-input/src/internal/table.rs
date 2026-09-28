@@ -53,14 +53,18 @@ pub fn try_parse(
     let mut spacetimedsl_table =
         SpacetimeDSLTable::try_parse(dsl_data, column_args, &table_args.accessor.unraw())?;
 
-    let (columns, primary_key_column, internal_columns, internal_primary_key_column) =
-        super::column::try_parse(
-            column_args,
-            &rust_struct,
-            &spacetimedb_table,
-            single_column_index_by_column,
-            &spacetimedsl_table,
-        )?;
+    let super::column::AnalysedColumns {
+        columns,
+        primary_key_column,
+        internal_columns,
+        internal_primary_key_column,
+    } = super::column::try_parse(
+        column_args,
+        &rust_struct,
+        &spacetimedb_table,
+        single_column_index_by_column,
+        &spacetimedsl_table,
+    )?;
 
     let context = MethodGenerationContext::new(
         &rust_struct,
