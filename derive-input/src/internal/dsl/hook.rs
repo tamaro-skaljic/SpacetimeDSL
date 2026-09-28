@@ -4,7 +4,7 @@ use quote::{format_ident, quote};
 
 use crate::api::{
     dsl::{
-        hook::{SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks},
+        hook::{Operation, SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks, Timing},
         method::{SpacetimeDSLArg, SpacetimeDSLArgType},
         table::SingletonKind,
     },
@@ -158,20 +158,6 @@ fn build_any(
             inserted_value,
         ),
     })
-}
-
-#[derive(PartialEq)]
-enum Timing {
-    Before,
-    After,
-}
-
-#[derive(PartialEq)]
-enum Operation {
-    Insert,
-    Update,
-    Delete,
-    SoftDelete,
 }
 
 fn get_trait_name(

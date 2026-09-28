@@ -1,3 +1,6 @@
+use std::collections::BTreeMap;
+
+use crate::api::dsl::hook::{HookKind, Operation, Timing};
 use crate::api::dsl::table::SingletonKind;
 use crate::internal::dsl::soft_delete::SoftDeleteMethodArgument;
 use crate::internal::dsl::{
@@ -68,8 +71,26 @@ fn reject_unique_index_on_singleton(
     ))
 }
 
-// Parse plural_name from DSL arguments
 fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
+    validate(parse_dsl_arguments(args)?, args)
+}
+
+/// Every `#[dsl(...)]` argument as written, with the spans the diagnostics point at.
+struct ParsedDSLArguments {
+    is_singleton: bool,
+    singleton_with_default: Option<Span>,
+    plural_name: Option<Ident>,
+    unique_indices: Vec<Ident>,
+    declared_hook_spans: BTreeMap<HookKind, Span>,
+    update_method: Option<bool>,
+    delete_method: Option<bool>,
+    soft_delete_method: Option<SoftDeleteMethodArgument>,
+}
+
+/// Parses every `#[dsl(...)]` argument. It rejects only what cannot be parsed: an unknown
+/// or repeated argument, or a value of the wrong kind. How the arguments combine is left
+/// to [`validate`].
+fn parse_dsl_arguments(args: &proc_macro2::TokenStream) -> syn::Result<ParsedDSLArguments> {
     let mut name_plural: Option<Ident> = None;
     let mut is_singleton: Option<()> = None;
     let mut singleton_with_default: Option<Span> = None;
@@ -79,15 +100,7 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     let mut hooks = None;
     let mut before_hooks = None;
     let mut after_hooks = None;
-
-    let mut before_insert_hook: Option<Span> = None;
-    let mut before_update_hook: Option<Span> = None;
-    let mut before_delete_hook: Option<Span> = None;
-    let mut before_soft_delete_hook: Option<Span> = None;
-    let mut after_insert_hook: Option<Span> = None;
-    let mut after_update_hook: Option<Span> = None;
-    let mut after_delete_hook: Option<Span> = None;
-    let mut after_soft_delete_hook: Option<Span> = None;
+    let mut declared_hook_spans = BTreeMap::new();
 
     let mut methods = None;
     let mut update_method = None;
@@ -128,54 +141,12 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
                         before => {
                             check_duplicate(&before_hooks, &meta)?;
                             before_hooks = Some(());
-
-                            meta.parse_nested_meta(|meta| {
-                                match_meta!(match meta {
-                                    insert => {
-                                        check_duplicate(&before_insert_hook, &meta)?;
-                                        before_insert_hook = Some(meta.path.span());
-                                    }
-                                    update => {
-                                        check_duplicate(&before_update_hook, &meta)?;
-                                        before_update_hook = Some(meta.path.span());
-                                    }
-                                    delete => {
-                                        check_duplicate(&before_delete_hook, &meta)?;
-                                        before_delete_hook = Some(meta.path.span());
-                                    }
-                                    soft_delete => {
-                                        check_duplicate(&before_soft_delete_hook, &meta)?;
-                                        before_soft_delete_hook = Some(meta.path.span());
-                                    }
-                                });
-                                Ok(())
-                            })?;
+                            parse_hooks_of_timing(meta, Timing::Before, &mut declared_hook_spans)?;
                         }
                         after => {
                             check_duplicate(&after_hooks, &meta)?;
                             after_hooks = Some(());
-
-                            meta.parse_nested_meta(|meta| {
-                                match_meta!(match meta {
-                                    insert => {
-                                        check_duplicate(&after_insert_hook, &meta)?;
-                                        after_insert_hook = Some(meta.path.span());
-                                    }
-                                    update => {
-                                        check_duplicate(&after_update_hook, &meta)?;
-                                        after_update_hook = Some(meta.path.span());
-                                    }
-                                    delete => {
-                                        check_duplicate(&after_delete_hook, &meta)?;
-                                        after_delete_hook = Some(meta.path.span());
-                                    }
-                                    soft_delete => {
-                                        check_duplicate(&after_soft_delete_hook, &meta)?;
-                                        after_soft_delete_hook = Some(meta.path.span());
-                                    }
-                                });
-                                Ok(())
-                            })?;
+                            parse_hooks_of_timing(meta, Timing::After, &mut declared_hook_spans)?;
                         }
                     });
                     Ok(())
@@ -210,6 +181,60 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     })
     .parse2(args.clone())?;
 
+    Ok(ParsedDSLArguments {
+        is_singleton: is_singleton.is_some(),
+        singleton_with_default,
+        plural_name: name_plural,
+        unique_indices,
+        declared_hook_spans,
+        update_method,
+        delete_method,
+        soft_delete_method,
+    })
+}
+
+/// Parses the operations of `before(...)` or `after(...)` into `declared_hook_spans`.
+fn parse_hooks_of_timing(
+    meta: ParseNestedMeta<'_>,
+    timing: Timing,
+    declared_hook_spans: &mut BTreeMap<HookKind, Span>,
+) -> syn::Result<()> {
+    meta.parse_nested_meta(|meta| {
+        let operation = match_meta!(match meta {
+            insert => Operation::Insert,
+            update => Operation::Update,
+            delete => Operation::Delete,
+            soft_delete => Operation::SoftDelete,
+        });
+        let kind = HookKind { timing, operation };
+
+        check_duplicate(&declared_hook_spans.get(&kind), &meta)?;
+        declared_hook_spans.insert(kind, meta.path.span());
+
+        Ok(())
+    })
+}
+
+/// Checks how the parsed arguments combine. The checks run in a fixed order, which decides
+/// the diagnostic an input breaking several rules gets.
+fn validate(parsed: ParsedDSLArguments, args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
+    let ParsedDSLArguments {
+        is_singleton,
+        singleton_with_default,
+        plural_name: name_plural,
+        unique_indices,
+        declared_hook_spans,
+        update_method,
+        delete_method,
+        soft_delete_method,
+    } = parsed;
+
+    let declared_hook_span = |timing, operation| {
+        declared_hook_spans
+            .get(&HookKind { timing, operation })
+            .copied()
+    };
+
     if let Some(soft_delete_method) = &soft_delete_method
         && delete_method.is_none()
     {
@@ -219,20 +244,20 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     }
 
     if !update_method.unwrap_or(true) {
-        if let Some(span) = before_update_hook {
+        if let Some(span) = declared_hook_span(Timing::Before, Operation::Update) {
             return Err(error::before_update_hook_without_update_method(span));
         }
-        if let Some(span) = after_update_hook {
+        if let Some(span) = declared_hook_span(Timing::After, Operation::Update) {
             return Err(error::after_update_hook_without_update_method(span));
         }
     }
 
     if !delete_method.unwrap_or(true) {
-        if let Some(span) = before_delete_hook {
+        if let Some(span) = declared_hook_span(Timing::Before, Operation::Delete) {
             return Err(error::before_delete_hook_without_delete_method(span));
         }
 
-        if let Some(span) = after_delete_hook {
+        if let Some(span) = declared_hook_span(Timing::After, Operation::Delete) {
             return Err(error::after_delete_hook_without_delete_method(span));
         }
     }
@@ -241,20 +266,18 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         .as_ref()
         .is_some_and(SoftDeleteMethodArgument::is_enabled)
     {
-        if let Some(span) = before_soft_delete_hook {
+        if let Some(span) = declared_hook_span(Timing::Before, Operation::SoftDelete) {
             return Err(error::before_soft_delete_hook_on_table_not_soft_deletable(
                 span,
             ));
         }
 
-        if let Some(span) = after_soft_delete_hook {
+        if let Some(span) = declared_hook_span(Timing::After, Operation::SoftDelete) {
             return Err(error::after_soft_delete_hook_on_table_not_soft_deletable(
                 span,
             ));
         }
     }
-
-    let is_singleton = is_singleton.is_some();
 
     if let Some(span) = singleton_with_default
         && update_method == Some(false)
@@ -279,17 +302,19 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         }
     };
 
+    let is_declared = |timing, operation| declared_hook_span(timing, operation).is_some();
+
     Ok(DSLData {
         kind,
         unique_indices,
-        before_insert_hook: before_insert_hook.is_some(),
-        before_update_hook: before_update_hook.is_some(),
-        before_delete_hook: before_delete_hook.is_some(),
-        before_soft_delete_hook: before_soft_delete_hook.is_some(),
-        after_insert_hook: after_insert_hook.is_some(),
-        after_update_hook: after_update_hook.is_some(),
-        after_delete_hook: after_delete_hook.is_some(),
-        after_soft_delete_hook: after_soft_delete_hook.is_some(),
+        before_insert_hook: is_declared(Timing::Before, Operation::Insert),
+        before_update_hook: is_declared(Timing::Before, Operation::Update),
+        before_delete_hook: is_declared(Timing::Before, Operation::Delete),
+        before_soft_delete_hook: is_declared(Timing::Before, Operation::SoftDelete),
+        after_insert_hook: is_declared(Timing::After, Operation::Insert),
+        after_update_hook: is_declared(Timing::After, Operation::Update),
+        after_delete_hook: is_declared(Timing::After, Operation::Delete),
+        after_soft_delete_hook: is_declared(Timing::After, Operation::SoftDelete),
         update_method,
         delete_method,
         soft_delete_method,

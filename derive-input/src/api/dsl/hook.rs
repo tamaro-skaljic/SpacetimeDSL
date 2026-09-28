@@ -3,6 +3,29 @@ use syn::Ident;
 
 use crate::api::dsl::method::SpacetimeDSLArg;
 
+/// When a hook runs: before or after the write it hooks into.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Timing {
+    Before,
+    After,
+}
+
+/// The write a hook hooks into.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Operation {
+    Insert,
+    Update,
+    Delete,
+    SoftDelete,
+}
+
+/// A hook `#[dsl(hook(<timing>(<operation>)))]` can declare.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct HookKind {
+    pub timing: Timing,
+    pub operation: Operation,
+}
+
 /// The hooks `#[dsl(hook(before(...), after(...)))]` declares. Each is `Some` when its
 /// operation is listed in its timing.
 #[derive(Clone)]
