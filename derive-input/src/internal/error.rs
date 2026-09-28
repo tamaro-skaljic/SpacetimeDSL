@@ -175,7 +175,7 @@ pub fn missing_update_method_with_non_private_column(struct_name: &Ident) -> Err
 pub fn missing_update_method_with_only_private_columns(struct_name: &Ident) -> Error {
     Error::new_spanned(
         struct_name,
-        "HasUpdateMethod must be set in `#[dsl(method(update = HasUpdateMethod))]`, e.g. `update = false`.\nBecause all your columns are private, you should set `#[dsl(method(update = false))]`.\nIf, instead, you want mutable rows in this table which have setters and can be updated, at least one column must be non-private or named `modified_at`/`updated_at` and you must specify `#[dsl(method(update = true))]`.",
+        "HasUpdateMethod must be set in `#[dsl(method(update = HasUpdateMethod))]`, e.g. `update = false`.\nBecause all your columns are private, you should set `#[dsl(method(update = false))]`.\nIf, instead, you want mutable rows in this table which have setters and can be updated, at least one column must be non-private, carry `#[set_on_update]` or be named `modified_at`/`updated_at`, and you must specify `#[dsl(method(update = true))]`.",
     )
 }
 

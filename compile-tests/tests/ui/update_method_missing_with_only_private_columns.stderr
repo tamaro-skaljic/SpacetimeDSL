@@ -1,0 +1,7 @@
+error: HasUpdateMethod must be set in `#[dsl(method(update = HasUpdateMethod))]`, e.g. `update = false`.
+       Because all your columns are private, you should set `#[dsl(method(update = false))]`.
+       If, instead, you want mutable rows in this table which have setters and can be updated, at least one column must be non-private, carry `#[set_on_update]` or be named `modified_at`/`updated_at`, and you must specify `#[dsl(method(update = true))]`.
+ --> tests/ui/update_method_missing_with_only_private_columns.rs:9:16
+  |
+9 |     pub struct Thing {
+  |                ^^^^^
