@@ -62,10 +62,10 @@ pub mod tables {
         #[referenced_by(path = self, table = food)]
         #[referenced_by(path = self, table = consume_entity_timer)]
         id: i32,
-        pub position: DbVector2, // FIXME (find out where used in dsl macro): binary operation `==` cannot be applied to type `DbVector2` consider annotating `DbVector2` with `#[derive(PartialEq)]`
+        pub position: DbVector2,
         pub mass: i32,
         #[index(btree)]
-        pub login_status: LoginStatus, // FIXME (find out where used in dsl macro): binary operation `==` cannot be applied to type `LoginStatus` consider annotating `LoginStatus` with `#[derive(PartialEq)]`
+        pub login_status: LoginStatus,
     }
 
     #[spacetimedsl::dsl(plural_name = circles, method(update = true))]
@@ -86,7 +86,6 @@ pub mod tables {
         pub login_status: LoginStatus,
     }
 
-    // FIXME: update = true should not have been valid here because all fields were private and no modified_at / updated_at column existed
     #[spacetimedsl::dsl(plural_name = players, method(update = true), hook(after(update)))]
     #[spacetimedb::table(accessor = player, public)]
     pub struct Player {
