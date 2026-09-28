@@ -2,8 +2,8 @@ use crate::api::{
     dsl::{mut_getter::MutGetter, wrapper::WrapperType},
     rust::{column::RustField, visibility::RustVisibility},
 };
-use quote::{format_ident, quote};
-use syn::Ident;
+use crate::internal::dsl::method::naming;
+use quote::quote;
 
 impl MutGetter {
     pub(crate) fn map(
@@ -24,13 +24,9 @@ impl MutGetter {
 
         Some(MutGetter {
             method_visibility: rust_field.visibility.clone(),
-            method_name: get_mut_getter_method_name(column_name),
+            method_name: naming::mut_getter_name(column_name),
             return_type: quote! { &mut #column_type },
             method_impl: quote! { &mut self.#column_name },
         })
     }
-}
-
-pub fn get_mut_getter_method_name(column_name: &Ident) -> Ident {
-    format_ident!("get_{column_name}_mut")
 }

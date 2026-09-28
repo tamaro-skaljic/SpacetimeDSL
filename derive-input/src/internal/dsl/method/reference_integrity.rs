@@ -6,6 +6,7 @@
 //! on create and on update because the delete side is handled by the on-delete strategies.
 
 use super::index::column_names_and_row_values;
+use super::naming;
 use crate::{
     api::{
         db::{index::IndexType, table::SpacetimeDBTable},
@@ -99,7 +100,7 @@ pub fn reference_integrity_checks_on_create(
         let referencing_table_name_as_string = referencing_table_name.to_string();
         let referencing_table_column_name = &column.rust_field_name;
         let referencing_table_column_getter_name =
-            format_ident!("get_{referencing_table_column_name}");
+            naming::getter_name(referencing_table_column_name);
 
         let reference_integrity_violation_error =
             runtime::reference_integrity_violation_on_create_or_update(
@@ -148,7 +149,7 @@ pub fn reference_integrity_checks_on_update(
         let referencing_table_column_name_as_string = referencing_table_column_name.to_string();
         let primary_key_column_name_of_referencing_table = &primary_key_column.rust_field_name;
         let referencing_table_column_getter_name =
-            format_ident!("get_{referencing_table_column_name}");
+            naming::getter_name(referencing_table_column_name);
 
         let field_name_for_found_value =
             format_ident!("the_same_or_another_{referencing_table_name}");
@@ -177,8 +178,7 @@ pub fn reference_integrity_checks_on_update(
                 quote! { &#primary_key_value }
             }
             false => {
-                let getter_name =
-                    format_ident!("get_{primary_key_column_name_of_referencing_table}");
+                let getter_name = naming::getter_name(primary_key_column_name_of_referencing_table);
                 quote! { #referencing_table_name.#getter_name().value() }
             }
         };

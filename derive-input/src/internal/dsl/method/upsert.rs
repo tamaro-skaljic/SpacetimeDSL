@@ -12,6 +12,7 @@
 //! framework has the last word on a timestamp. `create_<table>`, `update_<table>_by_<key>`
 //! and `soft_delete_<table>_by_<index>` order the two the same way.
 
+use super::naming;
 use super::{
     context::MethodGenerationContext,
     hook_call::{hook_tokens, hook_use_and_call},
@@ -83,7 +84,7 @@ impl ForeignKeyColumnScope {
 fn row_value_getter(internal_column: &InternalColumn) -> TokenStream {
     let singular_table_name = &internal_column.spacetimedb_table_singular_name;
     let column_name = &internal_column.rust_field_name;
-    let getter_name = format_ident!("get_{column_name}");
+    let getter_name = naming::getter_name(column_name);
 
     let is_string = internal_column.rust_field_type_kind == ColumnTypeKind::String;
 

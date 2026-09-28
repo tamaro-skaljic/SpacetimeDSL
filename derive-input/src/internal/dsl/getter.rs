@@ -2,8 +2,8 @@ use crate::api::{
     dsl::{getter::Getter, wrapper::WrapperType},
     rust::column::RustField,
 };
-use quote::{format_ident, quote};
-use syn::Ident;
+use crate::internal::dsl::method::naming;
+use quote::quote;
 
 impl Getter {
     pub(crate) fn map(
@@ -49,13 +49,9 @@ impl Getter {
         };
 
         Getter {
-            method_name: get_getter_method_name(column_name),
+            method_name: naming::getter_name(column_name),
             return_type,
             method_impl,
         }
     }
-}
-
-pub fn get_getter_method_name(column_name: &Ident) -> Ident {
-    format_ident!("get_{column_name}")
 }

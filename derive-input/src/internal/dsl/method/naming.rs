@@ -1,4 +1,6 @@
-//! The identifiers that two tables in a foreign key relationship agree on by name.
+//! The identifiers that generated code and the code calling it agree on by name: the
+//! accessors of a column, which user code calls and other generated methods call too, and
+//! the identifiers two tables in a foreign key relationship share.
 //!
 //! A referencing table calls a function it does not see the definition of, and imports a
 //! trait the other table defines, so both sides have to build the same identifier from the
@@ -19,6 +21,21 @@ use crate::internal::dsl::one_or_multiple::OneOrMultiple;
 use ident_case::RenameRule;
 use quote::format_ident;
 use syn::Ident;
+
+/// `get_<column>`, the getter of a column.
+pub(crate) fn getter_name(column_name: &Ident) -> Ident {
+    format_ident!("get_{column_name}")
+}
+
+/// `get_<column>_mut`, the mut getter of a column.
+pub(crate) fn mut_getter_name(column_name: &Ident) -> Ident {
+    format_ident!("get_{column_name}_mut")
+}
+
+/// `set_<column>`, the setter of a column.
+pub(crate) fn setter_name(column_name: &Ident) -> Ident {
+    format_ident!("set_{column_name}")
+}
 
 /// `Create<Table>`, the struct `create_<table>` takes and the `before_insert` hook of the
 /// table receives and returns.

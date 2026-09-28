@@ -1,3 +1,4 @@
+use crate::internal::dsl::method::naming;
 use crate::{
     api::{
         dsl::{setter::Setter, wrapper::WrapperType},
@@ -6,7 +7,7 @@ use crate::{
     internal::dsl::wrapper::map_wrapper_type_option_to_wrapped_type_option,
 };
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 
 /// The parts of a setter that depend on the column's wrapper, built together per shape.
 struct SetterParts {
@@ -93,7 +94,7 @@ impl Setter {
 
         Some(Setter {
             method_visibility: rust_field.visibility.clone(),
-            method_name: format_ident!("set_{column_name}"),
+            method_name: naming::setter_name(column_name),
             method_arg: argument,
             return_type,
             method_impl: body,
