@@ -52,6 +52,8 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 
 ### Changed messages and generated code
 
+- Diagnostics about a column's visibility print it as written — `` `pub` ``, `` `pub(crate)` ``, `` `pub(in path)` `` — and ask for "no visibility modifier" instead of naming `syn` types such as `Visibility::Inherited` or `Visibility::Public`. The soft-delete marker diagnostic now also says which visibility it found.
+
 - A struct without a `#[table]` attribute is rejected with *Haven't found a `#[table]`/`#[spacetimedb::table]` attribute on this struct! `#[dsl]`/`#[spacetimedsl::dsl]` builds on the table it declares.* It used to ask for `#[dsl]` to be directly above a `#[table]`, which was never the rule.
 
 - The root of the `spacetimedsl` crate re-exports everything in the new `spacetimedsl::prelude`, which adds the context accessor traits, `OnDeleteStrategyFailure`, `NewUUID` and `Itertools` to what `spacetimedsl::X` reaches. This is additive.

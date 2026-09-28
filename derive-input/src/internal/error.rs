@@ -15,11 +15,24 @@ use syn::{Error, Ident, Type, Visibility, meta::ParseNestedMeta};
 /// Why a singleton is never soft-deletable, shared by the three shapes it is rejected in.
 const SINGLETON_IS_NEVER_SOFT_DELETABLE: &str = "A singleton holds one row which the DSL looks up by its injected primary key, so retiring that row would leave the table with a row no method can reach.";
 
-fn visibility_variant_name(visibility: &Visibility) -> &'static str {
+/// A visibility the way the user wrote it: `` `pub` ``, `` `pub(crate)` ``,
+/// `` `pub(in path)` ``, or "no visibility modifier" for a private field.
+fn written_visibility(visibility: &Visibility) -> String {
     match visibility {
-        Visibility::Public(_) => "Visibility::Public",
-        Visibility::Restricted(_) => "Visibility::Restricted",
-        Visibility::Inherited => "Visibility::Inherited",
+        Visibility::Public(_) => "`pub`".to_string(),
+        Visibility::Restricted(restricted) => {
+            let path = restricted
+                .path
+                .to_token_stream()
+                .to_string()
+                .replace(' ', "");
+
+            match restricted.in_token {
+                Some(_) => format!("`pub(in {path})`"),
+                None => format!("`pub({path})`"),
+            }
+        }
+        Visibility::Inherited => "no visibility modifier".to_string(),
     }
 }
 
@@ -170,8 +183,8 @@ pub fn non_private_column_without_update_method(visibility: &Visibility) -> Erro
     Error::new_spanned(
         visibility,
         format!(
-            "All columns in a table with disabled `update` DSL method should be private! Found: {:?}",
-            visibility.to_token_stream().to_string()
+            "All columns in a table with disabled `update` DSL method should be private! Found: {}",
+            written_visibility(visibility)
         ),
     )
 }
@@ -350,8 +363,8 @@ pub fn auto_gen_column_not_private(visibility: &Visibility) -> Error {
     Error::new_spanned(
         visibility,
         format!(
-            "A column with `#[auto_gen]` should be private, because its value is generated and should never change! Found: `{}`",
-            visibility.to_token_stream()
+            "A column with `#[auto_gen]` should be private, because its value is generated and should never change! Found: {}",
+            written_visibility(visibility)
         ),
     )
 }
@@ -417,8 +430,8 @@ pub fn set_on_create_column_not_private(visibility: &Visibility) -> Error {
     Error::new_spanned(
         visibility,
         format!(
-            "A column with the `set_on_create` role should have `Visibility::Inherited`! Found: {}",
-            visibility_variant_name(visibility)
+            "A column with the `set_on_create` role should have no visibility modifier! Found: {}",
+            written_visibility(visibility)
         ),
     )
 }
@@ -451,8 +464,8 @@ pub fn set_on_update_column_not_private(visibility: &Visibility) -> Error {
     Error::new_spanned(
         visibility,
         format!(
-            "A column with the `set_on_update` role should have `Visibility::Inherited`! Found: {}",
-            visibility_variant_name(visibility)
+            "A column with the `set_on_update` role should have no visibility modifier! Found: {}",
+            written_visibility(visibility)
         ),
     )
 }
@@ -509,7 +522,10 @@ pub fn multiple_marker_columns(column_name: &Ident) -> Error {
 pub fn marker_column_not_private(visibility: &Visibility) -> Error {
     Error::new_spanned(
         visibility,
-        "A column with the soft-delete marker role should have `Visibility::Inherited`!\nOnly DSL methods are allowed to set this column, and they do it internally, so it has a getter but no setter.",
+        format!(
+            "A column with the soft-delete marker role should have no visibility modifier! Found: {}\nOnly DSL methods are allowed to set this column, and they do it internally, so it has a getter but no setter.",
+            written_visibility(visibility)
+        ),
     )
 }
 

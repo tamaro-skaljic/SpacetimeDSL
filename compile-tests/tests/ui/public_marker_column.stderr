@@ -1,4 +1,4 @@
-error: A column with the soft-delete marker role should have `Visibility::Inherited`!
+error: A column with the soft-delete marker role should have no visibility modifier! Found: `pub`
        Only DSL methods are allowed to set this column, and they do it internally, so it has a getter but no setter.
   --> tests/ui/public_marker_column.rs:21:9
    |

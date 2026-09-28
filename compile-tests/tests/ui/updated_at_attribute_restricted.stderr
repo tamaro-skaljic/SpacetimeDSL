@@ -1,4 +1,4 @@
-error: A column with the `set_on_update` role should have `Visibility::Inherited`! Found: Visibility::Restricted
+error: A column with the `set_on_update` role should have no visibility modifier! Found: `pub(crate)`
   --> tests/ui/updated_at_attribute_restricted.rs:13:5
    |
 13 |     pub(crate) finished_at: spacetimedb::Timestamp,
