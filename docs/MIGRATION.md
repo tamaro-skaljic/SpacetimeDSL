@@ -101,5 +101,24 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 - `api::dsl::hook::hook_trait_name(&Ident)` maps a hook function name to the trait it implements (`before_entity_insert` → `BeforeEntityInsertHook`). Both the generator and `#[spacetimedsl::hook]` use it; a macro implementing hooks should too.
 - `ScheduledReducer::reducer_name: Ident` became `ScheduledReducer::reducer_path: syn::Path`, the reducer or procedure exactly as `scheduled(...)` names it. A qualified path such as `scheduled(crate::timers::tick)` used to make the macro panic. Use `reducer_path.get_ident()` where you need a bare name.
 - `OnDeleteStrategiesOfReferencingTables::entry_points()` and `OnDeleteStrategiesOfTheReferencedTable::entry_points()` yield the `CascadeEntryPoints` each holds, those for deletion before those for soft deletion, so you need not name `on_deletion` and `on_soft_deletion` yourself.
-- `api::runtime::error_from_hook_declaration` takes the binding to declare: `error_from_hook_declaration(&quote! { error_from_hook })` instead of `error_from_hook_declaration()`.
+- Several `api::runtime` token constructors changed with the generated code they emit, which now reaches the runtime through `crate::spacetimedsl` only:
+
+  ```rust
+  // 0.23
+  runtime::wrapper_trait(&wrapped_type, &wrapper_type)          // Wrapper<Wrapped, Wrapper>
+  runtime::wrapper_trait_path()                                 // ::spacetimedsl::Wrapper
+  runtime::deletion_result_entry(&table, &column, &strategy, &value, &quote! { child_entries })
+  runtime::reference_integrity_violation_on_create_or_update(&table, &quote! { Create }, &message)
+  runtime::error_from_hook_declaration()
+
+  // 0.24
+  runtime::wrapper_trait(&wrapped_type)                         // Wrapper<Wrapped>
+  runtime::wrapper_trait_import()                               // use crate::spacetimedsl::Wrapper;
+  runtime::deletion_result_entry(&table, &column, &strategy, &value, &quote! { vec![] }) // the value of `child_entries`
+  runtime::reference_integrity_violation_on_create_or_update(&table, &quote! { Create }, &message) // names error::CreateOrUpdate::Create
+  runtime::error_from_hook_declaration(&quote! { error_from_hook }) // the binding to declare
+  ```
+
+  `api::spacetimedb` is new: the `::spacetimedb::…` paths the generated code uses (`try_insert_error`, `spacetimetype_derive`, `table_traits_import`, `uuid_nil`).
+- `SpacetimeDBTable::multi_column_indices` holds only indices over several columns. Before, a second single-column index on a column was left in it; that input is now rejected.
 - `SpacetimeDSLArgType::actual_type()` returns the type of a parameter as written, for both variants.
