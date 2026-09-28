@@ -18,6 +18,9 @@ pub enum SoftDeleteMarkerKind {
 /// `method(soft_delete)` flag and this column are rejected unless they agree.
 #[derive(Clone)]
 pub struct SoftDeleteMarker {
+    /// The name of the marker column: `#[set_on_soft_delete]`, or one of the conventional
+    /// names `deleted`, `removed`, `deleted_at` and `removed_at`.
     pub column_name: Ident,
+    /// The shape of the marker column.
     pub kind: SoftDeleteMarkerKind,
 }

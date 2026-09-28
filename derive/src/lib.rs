@@ -5,6 +5,8 @@ use spacetimedsl_derive_input::api::{Table, runtime};
 
 #[cfg(test)]
 mod characterization_tests;
+#[cfg(test)]
+mod data_transfer_contract_tests;
 mod output;
 
 /// Add `#[dsl]` to your structs with `#[table]`
