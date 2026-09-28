@@ -20,7 +20,7 @@ impl SpacetimeDBTable {
         table: &TableArgs,
         multi_column_indices: Vec<Index>,
         dsl_unique_index_names: &BTreeSet<Ident>,
-    ) -> syn::Result<SpacetimeDBTable> {
+    ) -> SpacetimeDBTable {
         let singular_name = table.accessor.unraw();
         let visibility = SpacetimeDBTableVisibility::map(&table.access);
         let scheduled_reducer = table.scheduled.as_ref().map(ScheduledReducer::map);
@@ -33,12 +33,12 @@ impl SpacetimeDBTable {
             })
             .collect();
 
-        Ok(SpacetimeDBTable {
+        SpacetimeDBTable {
             singular_name,
             visibility,
             multi_column_indices,
             scheduled_reducer,
-        })
+        }
     }
 }
 

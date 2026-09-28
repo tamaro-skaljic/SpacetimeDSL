@@ -96,6 +96,10 @@ generate_header() {
         echo "$do_not_change"
         echo
         cat << 'EOF'
+#Requires -Version 7
+# PowerShell 7: Windows PowerShell 5.1 turns a native command's stderr into a terminating
+# error under `$ErrorActionPreference = 'Stop'`, which would end the server wait loop.
+
 param(
     [Parameter(Position=0)]
     [ArgumentCompleter({

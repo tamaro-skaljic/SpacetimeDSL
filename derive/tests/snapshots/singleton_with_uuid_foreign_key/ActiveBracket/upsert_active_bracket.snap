@@ -1,0 +1,131 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Write the `ActiveBracket` row of the singleton `active_bracket` table, whether or not it exists yet.
+    pub fn upsert_active_bracket<'a>(
+        &'a self,
+        active_bracket: ActiveBracket,
+    ) -> Result<ActiveBracket, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut active_bracket = active_bracket;
+        active_bracket.id = 0u8;
+        let mut the_same_or_another_active_bracket: Option<ActiveBracket> = self
+            .db()
+            .active_bracket()
+            .id()
+            .find(&0u8);
+        if the_same_or_another_active_bracket.is_some() {
+            let bracket_id = active_bracket.get_bracket_id().value();
+            if bracket_id.ne(&::spacetimedb::Uuid::NIL) {
+                if the_same_or_another_active_bracket.is_none() {
+                    the_same_or_another_active_bracket = match self
+                        .db()
+                        .active_bracket()
+                        .id()
+                        .find(&0u8)
+                    {
+                        Some(active_bracket) => Some(active_bracket),
+                        None => {
+                            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                                table_name: "active_bracket".into(),
+                                column_names_and_row_values: format!(
+                                    "{{ id : {} }}", bracket_id
+                                )
+                                    .into(),
+                            });
+                        }
+                    };
+                }
+                if the_same_or_another_active_bracket
+                    .as_ref()
+                    .expect("field_name_for_found_value should be Some(_)")
+                    .get_bracket_id()
+                    .ne(&active_bracket.get_bracket_id())
+                {
+                    match self.get_bracket_by_id(active_bracket.get_bracket_id()) {
+                        Ok(_) => {}
+                        Err(_) => {
+                            return Err(
+                                crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                    table_name: "active_bracket".into(),
+                                    create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
+                                    column_names_and_row_values: format!(
+                                        "{{ bracket_id : {} }}", bracket_id
+                                    )
+                                        .into(),
+                                }),
+                            );
+                        }
+                    };
+                }
+            }
+            let active_bracket = self.db().active_bracket().id().update(active_bracket);
+            Ok(active_bracket)
+        } else {
+            let bracket_id = active_bracket.get_bracket_id().value();
+            let seed_bracket_id = active_bracket.get_seed_bracket_id().value();
+            if bracket_id.ne(&::spacetimedb::Uuid::NIL) {
+                match self.get_bracket_by_id(active_bracket.get_bracket_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "active_bracket".into(),
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", bracket_id, active_bracket.get_bracket_id()
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+            if seed_bracket_id.ne(&::spacetimedb::Uuid::NIL) {
+                match self.get_bracket_by_id(active_bracket.get_seed_bracket_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "active_bracket".into(),
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                                column_names_and_row_values: format!(
+                                    "{{ {} : {} }}", seed_bracket_id, active_bracket
+                                    .get_seed_bracket_id()
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+            match self.db().active_bracket().try_insert(active_bracket.clone()) {
+                Ok(entity) => Ok(entity),
+                Err(error) => {
+                    match error {
+                        ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                            Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                                table_name: "active_bracket".into(),
+                                action: crate::spacetimedsl::error::Action::Create,
+                                error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                                one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                                column_names_and_row_values: format!(
+                                    "{{ active_bracket : {:?} }}", active_bracket
+                                )
+                                    .into(),
+                            })
+                        }
+                        ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                            Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                                table_name: "active_bracket".into(),
+                            })
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

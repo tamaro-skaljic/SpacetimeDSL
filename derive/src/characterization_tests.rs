@@ -113,6 +113,16 @@ fn singleton_with_foreign_key() {
 }
 
 #[test]
+fn singleton_with_uuid_foreign_key() {
+    snapshot_fixture("singleton_with_uuid_foreign_key");
+}
+
+#[test]
+fn table_named_singleton() {
+    snapshot_fixture("table_named_singleton");
+}
+
+#[test]
 fn foreign_key_and_referenced_by() {
     snapshot_fixture("foreign_key_and_referenced_by");
 }
@@ -120,6 +130,11 @@ fn foreign_key_and_referenced_by() {
 #[test]
 fn foreign_keys_with_equivalent_spellings() {
     snapshot_fixture("foreign_keys_with_equivalent_spellings");
+}
+
+#[test]
+fn foreign_key_with_table_level_index() {
+    snapshot_fixture("foreign_key_with_table_level_index");
 }
 
 #[test]

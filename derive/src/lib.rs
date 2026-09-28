@@ -57,13 +57,15 @@ fn expand_dsl_attribute_parts(
     // Parse the input tokens into a syntax tree
     let mut derive_input: syn::DeriveInput = syn::parse2(item)?;
 
-    // Check if this is a singleton table by scanning args for the `singleton` keyword
-    let is_singleton = args.clone().into_iter().any(|token| {
-        if let proc_macro2::TokenTree::Ident(ident) = token {
-            ident == "singleton"
-        } else {
-            false
-        }
+    // A singleton is declared by the top-level argument `singleton`, not by the word as the
+    // value of another argument, such as `table = singleton`.
+    let arguments: Vec<proc_macro2::TokenTree> = args.clone().into_iter().collect();
+    let is_singleton = arguments.iter().enumerate().any(|(position, token)| {
+        let is_the_word = matches!(token, proc_macro2::TokenTree::Ident(ident) if ident == "singleton");
+        let is_a_value = position > 0
+            && matches!(&arguments[position - 1], proc_macro2::TokenTree::Punct(punct) if punct.as_char() == '=');
+
+        is_the_word && !is_a_value
     });
 
     // For singletons, inject `#[primary_key] id: u8` into the struct

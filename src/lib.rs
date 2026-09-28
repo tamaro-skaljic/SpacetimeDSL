@@ -215,12 +215,12 @@ macro_rules! spacetimedsl {
                     super::{
                         DSL, DSLMethodHooks, DefaultSingleton, ReadOnlyDSL, dsl, read_only_dsl,
                     },
-                    ::spacetimedsl::prelude::*,
-                    spacetimedb::{
+                    ::spacetimedb::{
                         AnonymousViewContext, Identity, ProcedureContext, ReducerContext,
                         ScheduleAt, SpacetimeType, Table, TimeDuration, Timestamp, ViewContext,
                         rand::Rng,
                     },
+                    ::spacetimedsl::prelude::*,
                 };
             }
         }

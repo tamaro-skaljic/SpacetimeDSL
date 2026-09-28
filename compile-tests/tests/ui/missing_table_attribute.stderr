@@ -1,4 +1,4 @@
-error: Haven't found a `#[table]`/`#[spacetimedb::table]` attribute on this struct! `#[dsl]`/`#[spacetimedsl::dsl]` builds on the table it declares.
+error: Haven't found a `#[table]`/`#[spacetimedb::table]` attribute below this `#[dsl]`! `#[dsl]`/`#[spacetimedsl::dsl]` builds on the table it declares, so write it above that `#[table]`.
  --> tests/ui/missing_table_attribute.rs:8:16
   |
 8 |     pub struct Thing {

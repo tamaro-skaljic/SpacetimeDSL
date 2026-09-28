@@ -1,0 +1,27 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `ShelvedBook` iterator that contains all rows in the `shelved_book` table whose value matches the value from the single-column btree index on the `shelf_id` column.
+    pub fn get_shelved_books_by_by_shelf<'a>(
+        &'a self,
+        shelf_id: impl Into<ShelfId>,
+    ) -> impl Iterator<Item = ShelvedBook> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().shelved_book().by_shelf().filter(shelf_id.into().value())
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `ShelvedBook` iterator that contains all rows in the `shelved_book` table whose value matches the value from the single-column btree index on the `shelf_id` column.
+    pub fn get_shelved_books_by_by_shelf<'a>(
+        &'a self,
+        shelf_id: impl Into<ShelfId>,
+    ) -> impl Iterator<Item = ShelvedBook> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().shelved_book().by_shelf().filter(shelf_id.into().value())
+    }
+}

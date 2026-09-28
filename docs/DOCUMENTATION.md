@@ -766,17 +766,17 @@ The `plural_name` parameter is required (except on singleton tables) and control
 
 ### `table`
 
-`#[dsl(table = <accessor>)]` names the `#[spacetimedb::table]` attribute the `#[dsl]` attribute belongs to, by its `accessor`:
+`#[dsl(table = <accessor>)]` names the `#[spacetimedb::table]` attribute the `#[dsl]` attribute belongs to, by its `accessor`. A `#[dsl]` sees only the `#[table]` attributes below it, because each `#[table]` removes itself from the struct when it expands, so write every `#[dsl]` above its `#[table]`:
 
-- With **several** `#[table]` attributes on the struct, `table` is required on every `#[dsl]`.
-- With **one** `#[table]` attribute it is optional; when given, it must name that table's accessor.
+- With **several** `#[table]` attributes below the `#[dsl]`, `table` is required.
+- With **one** it is optional; when given, it must name that table's accessor.
 - A singleton must have exactly one `#[table]` attribute; it may name it with `table` as well.
 
-A `table` which names no `#[table]` attribute of the struct is rejected, and so is a missing `table` where it is required.
+A `table` which names no `#[table]` attribute below the `#[dsl]` is rejected, and so is a missing `table` where it is required.
 
 ### Multiple #[spacetimedsl::dsl] + #[spacetimedb::table] on Same Struct
 
-A single struct can have multiple `#[spacetimedsl::dsl]` + `#[spacetimedb::table]` pairs, each generating a separate table with its own accessor but sharing the same struct definition. Each `#[dsl]` names its table with [`table = <accessor>`](#table); their order on the struct does not matter:
+A single struct can have multiple `#[spacetimedsl::dsl]` + `#[spacetimedb::table]` pairs, each generating a separate table with its own accessor but sharing the same struct definition. Each `#[dsl]` stays above the `#[table]` it names with [`table = <accessor>`](#table):
 
 ```rust
 #[spacetimedsl::dsl(

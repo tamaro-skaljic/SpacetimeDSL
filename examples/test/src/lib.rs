@@ -18,6 +18,7 @@ pub mod singleton_test;
 pub mod singleton_with_default_test;
 pub mod singleton_with_foreign_key_test;
 pub mod soft_deletion;
+pub mod table_level_index_foreign_key_test;
 pub mod timestamp_helper_test;
 pub mod update_and_soft_delete_hook_test;
 
@@ -52,6 +53,10 @@ const TEST_GROUPS: &[(&str, TestGroup)] = &[
         hand_written_wrapper_test::run_tests,
     ),
     ("hash_index_test", hash_index_test::run_tests),
+    (
+        "table_level_index_foreign_key_test",
+        table_level_index_foreign_key_test::run_tests,
+    ),
     ("hook_trait_name_test", hook_trait_name_test::run_tests),
     (
         "primary_key_foreign_key_cascade_test",

@@ -46,7 +46,7 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
   pub struct Player { /* … */ }
   ```
 
-  Without it: *This struct has 2 `#[table]` attributes (`offline_player`, `online_player`), so `#[dsl]` has to name the one it belongs to!* A `table` that names no `#[table]` of the struct is rejected with *No `#[table]` attribute of this struct has the accessor `…`!*, also on a struct with a single `#[table]`.
+  Without it: *There are 2 `#[table]` attributes below this `#[dsl]` (`offline_player`, `online_player`), so it has to name the one it belongs to!* A `#[dsl]` sees only the `#[table]` attributes below it, so the second `#[dsl]` above sees one table and needs no `table`, though it may name it. A `table` that names no `#[table]` below its `#[dsl]` is rejected with *No `#[table]` attribute below this `#[dsl]` has the accessor `…`!*, also when there is a single `#[table]`.
 
 - `unique_index(name = …)` must name an index of the table, and each index only once. A misspelled name used to be accepted without effect; now it is rejected with *No index of this table has the accessor `…`! Its indices: …*. A repeated name is rejected with *`unique_index(name = …)` is given twice!* Fix the name, or remove the repetition. A name of a hash or single-column index is still accepted without effect.
 
@@ -56,7 +56,7 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 
 - A column with two single-column indices — for example `#[index(btree)]` on the field and `index(accessor = by_name, hash(columns = [name]))` in `#[table]` — is rejected with *The column `name` has two single-column indices, `by_name` and `name`!* Before, the second index generated no methods and nothing said so. Remove one of them.
 
-- `on_delete = SetZero` is rejected on a foreign key column that is neither an unsigned integer nor a `Uuid`, at the column's type: *`OnDeleteStrategy::SetZero` is only allowed on unsigned integer and `Uuid` columns, …* Before, it failed inside the expanded code. Choose another strategy for such a column.
+- `on_delete = SetZero` is rejected on a foreign key column that is neither an unsigned integer (`u8`–`u128`, in any spelling) nor a `Uuid`, at the column's type: *`OnDeleteStrategy::SetZero` is only allowed on unsigned integer and `Uuid` columns, …* This includes columns that used to work: signed integers such as `i32` / `i64`, and type aliases such as `type PlayerId = u64`, which the check cannot see through. Other types, such as `String`, used to fail inside the expanded code. Spell an aliased key as its unsigned type, move a signed key to an unsigned one, or choose another strategy (`Delete`, `Ignore`, …).
 
 ### Changed messages and generated code
 
@@ -64,7 +64,7 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 
 - `on_delete = SetZero` is available on `Uuid` foreign keys and sets them to `Uuid::NIL`. Create, update and upsert treat a `Uuid` foreign key equal to `Uuid::NIL` as referencing no row, as they treat `0` for an unsigned integer: they no longer report a reference integrity violation for it. The generated create and update methods gain that guard.
 - Foreign keys of one table to the same table may spell their type and path differently (`u64` / `core::primitive::u64`, `::my_crate::tables` / `my_crate::tables`); they used to be rejected as mismatched. A real mismatch is still rejected, and the path message now adds *Spell both paths the same way; a leading `::` makes no difference.*
-- A foreign key column counts as indexed through every single-column index on it, including one declared as `index(…)` in `#[table]`; before, only `#[primary_key]`, `#[unique]` and `#[index]` on the field counted.
+- A foreign key column counts as indexed through every single-column index on it, including one declared as `index(…)` in `#[table]` under an accessor of its own; before, only `#[primary_key]`, `#[unique]` and `#[index]` on the field counted. The cascade reaches the column's rows through that index's accessor.
 
 - Qualified spellings of the types SpacetimeDSL checks are accepted where they used to be rejected: `::spacetimedb::Timestamp` and `std::option::Option<spacetimedb::Timestamp>` for `#[set_on_create]` / `#[set_on_update]`, and `core::primitive::u64` / `std::primitive::u64` count as unsigned integers (so a foreign key spelled that way skips its reference-integrity check for `0`, like `u64`). See *Column Type Spellings* in the documentation. This is not breaking.
 
@@ -72,7 +72,7 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 
 - Diagnostics about a column's visibility print it as written — `` `pub` ``, `` `pub(crate)` ``, `` `pub(in path)` `` — and ask for "no visibility modifier" instead of naming `syn` types such as `Visibility::Inherited` or `Visibility::Public`. The soft-delete marker diagnostic now also says which visibility it found.
 
-- A struct without a `#[table]` attribute is rejected with *Haven't found a `#[table]`/`#[spacetimedb::table]` attribute on this struct! `#[dsl]`/`#[spacetimedsl::dsl]` builds on the table it declares.* It used to ask for `#[dsl]` to be directly above a `#[table]`, which was never the rule.
+- A `#[dsl]` without a `#[table]` attribute below it is rejected with *Haven't found a `#[table]`/`#[spacetimedb::table]` attribute below this `#[dsl]`! `#[dsl]`/`#[spacetimedsl::dsl]` builds on the table it declares, so write it above that `#[table]`.* It used to ask for `#[dsl]` to be *directly* above a `#[table]`; anywhere above it is enough.
 
 - The root of the `spacetimedsl` crate re-exports everything in the new `spacetimedsl::prelude`, which adds the context accessor traits, `OnDeleteStrategyFailure`, `NewUUID` and `Itertools` to what `spacetimedsl::X` reaches. This is additive.
 - `#[::spacetimedsl::dsl(…)]` and `#[::spacetimedb::table(…)]`, spelled with a leading `::`, are recognised like `#[spacetimedsl::dsl(…)]` and `#[spacetimedb::table(…)]`. Before, a `::spacetimedb::table` attribute was not found, so the struct was rejected for missing a table attribute.

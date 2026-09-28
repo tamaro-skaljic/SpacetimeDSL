@@ -74,7 +74,7 @@ pub fn for_wrapper_methods(
                 RenameRule::SnakeCase.apply_to_variant(wrapper_struct_name.to_string());
 
             Some(WrapperMethod {
-wrapper_type: wrapper_type_of(wrapper_type),
+                wrapper_type: wrapper_type_of(wrapper_type),
                 doc_comment: format!(
                     "Get {rows_found} whose `{column_name}` column references this `{wrapper_struct_name}`.\n\nUse it like `{wrapper_variable_name}.{method_name}(&dsl)`."
                 ),

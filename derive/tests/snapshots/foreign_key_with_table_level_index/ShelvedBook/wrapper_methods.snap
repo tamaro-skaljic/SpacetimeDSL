@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl ShelfId {
+    /**Get all `ShelvedBook` rows whose `shelf_id` column references this `ShelfId`.
+
+Use it like `shelf_id.get_shelved_books(&dsl)`.*/
+    pub fn get_shelved_books<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<ShelvedBook> {
+        dsl.into().get_shelved_books_by_by_shelf(self).collect()
+    }
+}

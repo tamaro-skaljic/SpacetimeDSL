@@ -134,20 +134,28 @@ pub fn on_delete_strategy_implementation(
                 #spacetimedb_call_prefix.#primary_key().find(&#primary_key_value).filter(|row| row.#column_name == *#primary_key_value_of_a_row_of_another_table_to_delete)
             }
         } else {
+            // The index is reached through its own accessor, which is the column's name only
+            // when the index was declared on the field rather than in `#[table]`.
+            let index_name = &column
+                .spacetimedb_column
+                .single_column_index
+                .as_ref()
+                .expect("A foreign key column always has a single-column index, except in singleton-tables")
+                .name;
+
             match index_uniqueness {
                 IndexUniqueness::Unique => {
                     quote! {
-                        #spacetimedb_call_prefix.#column_name().find(#primary_key_value_of_a_row_of_another_table_to_delete)
+                        #spacetimedb_call_prefix.#index_name().find(#primary_key_value_of_a_row_of_another_table_to_delete)
                     }
                 }
                 IndexUniqueness::NonUnique => {
                     quote! {
-                        #spacetimedb_call_prefix.#column_name().filter(#primary_key_value_of_a_row_of_another_table_to_delete)
+                        #spacetimedb_call_prefix.#index_name().filter(#primary_key_value_of_a_row_of_another_table_to_delete)
                     }
                 }
             }
         };
-
         let row_value_format = if is_singleton {
             // The injected primary key has no wrapper type to render it.
             let rendered_primary_key_value = singleton::rendered_primary_key_value();

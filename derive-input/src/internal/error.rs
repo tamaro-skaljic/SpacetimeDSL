@@ -73,7 +73,7 @@ pub fn unsupported_column_type(column_type: &Type) -> Error {
 pub fn missing_table_attribute(struct_name: &Ident) -> Error {
     Error::new_spanned(
         struct_name,
-        "Haven't found a `#[table]`/`#[spacetimedb::table]` attribute on this struct! `#[dsl]`/`#[spacetimedsl::dsl]` builds on the table it declares.",
+        "Haven't found a `#[table]`/`#[spacetimedb::table]` attribute below this `#[dsl]`! `#[dsl]`/`#[spacetimedsl::dsl]` builds on the table it declares, so write it above that `#[table]`.",
     )
 }
 
@@ -81,7 +81,7 @@ pub fn table_selector_missing(struct_name: &Ident, accessors: &[&Ident]) -> Erro
     Error::new_spanned(
         struct_name,
         format!(
-            "This struct has {} `#[table]` attributes ({}), so `#[dsl]` has to name the one it belongs to! Add `table = <accessor>`, such as `#[dsl(table = {}, ...)]`.",
+            "There are {} `#[table]` attributes below this `#[dsl]` ({}), so it has to name the one it belongs to! Add `table = <accessor>`, such as `#[dsl(table = {}, ...)]`.",
             accessors.len(),
             quoted_list(accessors),
             accessors[0],
@@ -93,7 +93,7 @@ pub fn table_selector_names_no_table(table_selector: &Ident, accessors: &[&Ident
     Error::new_spanned(
         table_selector,
         format!(
-            "No `#[table]` attribute of this struct has the accessor `{table_selector}`! Found: {}.",
+            "No `#[table]` attribute below this `#[dsl]` has the accessor `{table_selector}`! Found: {}. A `#[dsl]` sees only the `#[table]` attributes below it.",
             quoted_list(accessors),
         ),
     )

@@ -49,7 +49,7 @@ pub fn try_parse(
     }
 
     let spacetimedb_table =
-        SpacetimeDBTable::map(table_args, multi_column_indices, &dsl_unique_index_names)?;
+        SpacetimeDBTable::map(table_args, multi_column_indices, &dsl_unique_index_names);
 
     let mut spacetimedsl_table =
         SpacetimeDSLTable::try_parse(dsl_data, column_args, &table_args.accessor.unraw())?;

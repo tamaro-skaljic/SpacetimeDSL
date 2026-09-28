@@ -274,15 +274,12 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
             "delete_tests_by_wrapped_index should delete both Tests whose wrapped_index is the player! Got:\n{deletion}"
         ));
     }
+    // The borrowed form comes first: the id is still used afterwards, so the `&` is not
+    // needless and `clippy --fix` keeps it.
+    let obj_id = player.get_obj_id();
     for (argument, deletion) in [
-        (
-            "EntityId",
-            dsl.delete_tests_by_wrapped_index(player.get_obj_id())?,
-        ),
-        (
-            "&EntityId",
-            dsl.delete_tests_by_wrapped_index(player.get_obj_id())?,
-        ),
+        ("&EntityId", dsl.delete_tests_by_wrapped_index(&obj_id)?),
+        ("EntityId", dsl.delete_tests_by_wrapped_index(obj_id)?),
         (
             "the getter of the column",
             dsl.delete_tests_by_wrapped_index(world2.get_wrapped_index())?,
