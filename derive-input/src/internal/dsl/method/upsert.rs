@@ -15,8 +15,9 @@
 use {
     super::{
         context::MethodGenerationContext,
+        create,
         hook_call::{hook_tokens, hook_use_and_call},
-        message, naming,
+        naming,
         reference_integrity::{
             reference_integrity_checks_on_create, reference_integrity_checks_on_update,
         },
@@ -31,7 +32,6 @@ use {
             },
             runtime,
             rust::visibility::RustVisibility,
-            spacetimedb,
         },
         internal::{
             column::{ColumnTypeKind, InternalColumn},
@@ -334,7 +334,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
         primary_key_column,
         struct_name,
         singular_table_name,
-        singular_table_name_as_string,
+        singular_table_name_as_string: _,
         field_name_for_found_value,
         ..
     } = context;
@@ -444,20 +444,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
         },
     );
 
-    // The row does not exist yet, so the message renders the whole struct rather than naming
-    // the columns a lookup was made on.
-    // FIXME: Only show unique columns here
-    let unique_constraint_violation_error = runtime::unique_constraint_violation(
-        singular_table_name_as_string,
-        &quote! { Create },
-        &quote! { SpacetimeDB },
-        &OneOrMultiple::One,
-        &message::whole_row(singular_table_name),
-    );
-    let auto_inc_overflow_error = runtime::auto_inc_overflow(singular_table_name_as_string);
-    let unique_constraint_violation =
-        spacetimedb::try_insert_error(&quote! { UniqueConstraintViolation });
-    let auto_inc_overflow = spacetimedb::try_insert_error(&quote! { AutoIncOverflow });
+    let insert = create::insert_and_map_errors(context, &after_insert_hook);
 
     SpacetimeDSLMethod {
         doc_comment: format!(
@@ -506,24 +493,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
                 #set_created_at
                 #set_updated_at_on_insert
 
-                match self
-                    .db()
-                    .#singular_table_name()
-                    .try_insert(#singular_table_name.clone()) { // FIXME: No clone?
-                    Ok(entity) => {
-                        #after_insert_hook
-
-                        Ok(entity)
-                    },
-                    Err(error) => match error {
-                        #unique_constraint_violation(_) => {
-                            Err(#unique_constraint_violation_error)
-                        }
-                        #auto_inc_overflow(_) => {
-                            Err(#auto_inc_overflow_error)
-                        }
-                    },
-                }
+                #insert
             }
         },
         // Upserting writes the row.

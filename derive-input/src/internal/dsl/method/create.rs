@@ -230,7 +230,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
         internal_columns,
         struct_name,
         singular_table_name,
-        singular_table_name_as_string,
+        singular_table_name_as_string: _,
         primary_key_column_name,
         field_name_for_found_value,
         ..
@@ -353,20 +353,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
         },
     );
 
-    // The row does not exist yet, so the message renders the whole struct rather than
-    // naming the columns a lookup was made on.
-    // FIXME: Only show unique columns here
-    let unique_constraint_violation_error = runtime::unique_constraint_violation(
-        singular_table_name_as_string,
-        &quote! { Create },
-        &quote! { SpacetimeDB },
-        &OneOrMultiple::One,
-        &message::whole_row(singular_table_name),
-    );
-    let auto_inc_overflow_error = runtime::auto_inc_overflow(singular_table_name_as_string);
-    let unique_constraint_violation =
-        spacetimedb::try_insert_error(&quote! { UniqueConstraintViolation });
-    let auto_inc_overflow = spacetimedb::try_insert_error(&quote! { AutoIncOverflow });
+    let insert = insert_and_map_errors(context, &after_insert_hook);
 
     let method = SpacetimeDSLMethod {
         doc_comment: format!("Create a row in the `{singular_table_name}` table."),
@@ -390,28 +377,60 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
 
             #(#reference_integrity_checks)*
 
-            match self
-                .db()
-                .#singular_table_name()
-                .try_insert(#singular_table_name.clone()) { // FIXME: No clone?
-                Ok(entity) => {
-                    #after_insert_hook
-
-                    Ok(entity)
-                },
-                Err(error) => match error {
-                    #unique_constraint_violation(_) => {
-                        Err(#unique_constraint_violation_error)
-                    }
-                    #auto_inc_overflow(_) => {
-                        Err(#auto_inc_overflow_error)
-                    }
-                },
-            }
+            #insert
         },
         // Inserting writes a row.
         read_context_compatible: false,
     };
 
     (method, contributions)
+}
+
+/// The `try_insert` of the row bound to the table's singular name, with SpacetimeDB's insert
+/// errors mapped to `SpacetimeDSLError` and `after_insert_hook` run on success, shared by
+/// `create_<table>` and the insert path of `upsert_<singleton>`.
+pub(super) fn insert_and_map_errors(
+    context: &MethodGenerationContext,
+    after_insert_hook: &TokenStream,
+) -> TokenStream {
+    let MethodGenerationContext {
+        singular_table_name,
+        singular_table_name_as_string,
+        ..
+    } = context;
+
+    // The row does not exist yet, so the message renders the whole struct rather than
+    // naming the columns a lookup was made on.
+    let unique_constraint_violation_error = runtime::unique_constraint_violation(
+        singular_table_name_as_string,
+        &quote! { Create },
+        &quote! { SpacetimeDB },
+        &OneOrMultiple::One,
+        &message::whole_row(singular_table_name),
+    );
+    let auto_inc_overflow_error = runtime::auto_inc_overflow(singular_table_name_as_string);
+    let unique_constraint_violation =
+        spacetimedb::try_insert_error(&quote! { UniqueConstraintViolation });
+    let auto_inc_overflow = spacetimedb::try_insert_error(&quote! { AutoIncOverflow });
+
+    quote! {
+        match self
+            .db()
+            .#singular_table_name()
+            .try_insert(#singular_table_name.clone()) {
+            Ok(entity) => {
+                #after_insert_hook
+
+                Ok(entity)
+            },
+            Err(error) => match error {
+                #unique_constraint_violation(_) => {
+                    Err(#unique_constraint_violation_error)
+                }
+                #auto_inc_overflow(_) => {
+                    Err(#auto_inc_overflow_error)
+                }
+            },
+        }
+    }
 }
