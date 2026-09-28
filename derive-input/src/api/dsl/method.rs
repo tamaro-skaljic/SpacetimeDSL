@@ -15,6 +15,11 @@ pub struct SpacetimeDSLMethod {
     /// The body of the method.
     pub method_impl: TokenStream,
     /// Whether the method is also generated for the read-only DSL, which views use.
+    ///
+    /// A read-only table handle (a view's, or `LocalReadOnly`) offers `count()` and index
+    /// lookups but no full-table `iter()`. So `get_all_<plural_name>` is `false`, while
+    /// `count_of_all_<plural_name>` and the getters of an index are `true`. Every method which
+    /// writes is `false`.
     pub read_context_compatible: bool,
 }
 

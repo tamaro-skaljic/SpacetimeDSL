@@ -447,6 +447,7 @@ pub fn for_removal_many(
         method_args,
         return_type: runtime::error_result_type(&runtime::deletion_result_type()),
         method_impl,
+        // A removal writes.
         read_context_compatible: false,
     }
 }
@@ -797,6 +798,7 @@ pub fn for_removal_one(
         method_args,
         return_type: runtime::error_result_type(&runtime::deletion_result_type()),
         method_impl,
+        // A removal writes.
         read_context_compatible: false,
     }
 }

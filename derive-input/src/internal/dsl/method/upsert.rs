@@ -522,6 +522,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
                 }
             }
         },
+        // Upserting writes the row.
         read_context_compatible: false,
     }
 }

@@ -412,6 +412,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
                 },
             }
         },
+        // Inserting writes a row.
         read_context_compatible: false,
     };
 

@@ -310,6 +310,7 @@ pub fn for_foreign_key(
         method_args: function_args,
         return_type,
         method_impl: function_impl,
+        // A strategy writes the referencing rows.
         read_context_compatible: false,
     };
 

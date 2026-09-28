@@ -1,7 +1,8 @@
 use proc_macro2::TokenStream;
 use syn::Ident;
 
-/// The getter `get_<column>` every column gets.
+/// The getter `get_<column>`, which every column gets except the primary key SpacetimeDSL
+/// injects into a singleton.
 #[derive(Clone)]
 pub struct Getter {
     /// `get_<column>`.

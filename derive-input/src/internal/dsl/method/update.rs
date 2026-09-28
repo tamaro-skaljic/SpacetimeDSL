@@ -187,6 +187,7 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
 
             Ok(#singular_table_name)
         },
+        // Updating writes the row.
         read_context_compatible: false,
     }
 }

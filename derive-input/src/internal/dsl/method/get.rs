@@ -32,6 +32,7 @@ pub fn for_get_all(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
                 .#singular_table_name()
                 .iter()
         },
+        // A read-only table handle offers no full-table `iter()`.
         read_context_compatible: false,
     }
 }
@@ -57,6 +58,7 @@ pub fn for_get_count(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
                 .#singular_table_name()
                 .count()
         },
+        // A read-only table handle offers `count()`.
         read_context_compatible: true,
     }
 }
@@ -107,6 +109,7 @@ pub fn for_get_many(shape: &IndexShape, context: &MethodGenerationContext) -> Sp
             impl Iterator<Item = #struct_name>
         },
         method_impl,
+        // A read-only table handle offers index lookups.
         read_context_compatible: true,
     }
 }
@@ -198,6 +201,7 @@ pub fn for_get_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spa
         method_args,
         return_type: runtime::error_result_type(struct_name),
         method_impl,
+        // A read-only table handle offers index lookups.
         read_context_compatible: true,
     }
 }

@@ -70,6 +70,7 @@ pub fn for_singleton_get(context: &MethodGenerationContext) -> SpacetimeDSLMetho
                 None => #absent_row
             }
         },
+        // A read-only table handle offers primary key lookups.
         read_context_compatible: true,
     }
 }
@@ -171,6 +172,7 @@ pub fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMe
 
             return Ok(#single_entry_deletion_result);
         },
+        // Deleting writes.
         read_context_compatible: false,
     }
 }

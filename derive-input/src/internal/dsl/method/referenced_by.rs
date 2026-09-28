@@ -332,6 +332,7 @@ pub fn for_referenced_by(
         method_args: function_args,
         return_type,
         method_impl: function_impl,
+        // A cascade entry point removes or writes the referencing rows.
         read_context_compatible: false,
     };
 
