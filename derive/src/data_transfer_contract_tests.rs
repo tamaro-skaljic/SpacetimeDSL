@@ -306,14 +306,14 @@ fn the_model_holds_what_a_table_declares() {
         cleanup_timer.spacetimedb_table.visibility,
         SpacetimeDBTableVisibility::Private
     ));
-    assert_eq!(
+    assert!(
         cleanup_timer
             .spacetimedb_table
             .scheduled_reducer
             .as_ref()
             .expect("the table declares `scheduled(run_cleanup)`")
-            .reducer_name,
-        "run_cleanup"
+            .reducer_path
+            .is_ident("run_cleanup")
     );
     assert!(!cleanup_timer.spacetimedsl_table.has_update_method);
 }
@@ -379,7 +379,7 @@ fn visit_spacetimedb_table(spacetimedb_table: &SpacetimeDBTable) {
         SpacetimeDBTableVisibility::Public | SpacetimeDBTableVisibility::Private => {}
     }
     multi_column_indices.iter().for_each(visit_index);
-    if let Some(ScheduledReducer { reducer_name: _ }) = scheduled_reducer {}
+    if let Some(ScheduledReducer { reducer_path: _ }) = scheduled_reducer {}
 }
 
 fn visit_index(index: &Index) {

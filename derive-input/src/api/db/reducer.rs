@@ -1,8 +1,12 @@
-use syn::Ident;
+use syn::Path;
 
-/// The reducer a scheduled table calls, from `#[spacetimedb::table(scheduled(...))]`.
+/// The reducer or procedure a scheduled table calls, from
+/// `#[spacetimedb::table(scheduled(...))]`.
+///
+/// SpacetimeDSL does not read it itself; it is kept for crates building on this one.
 #[derive(Clone)]
 pub struct ScheduledReducer {
-    /// The name of the reducer.
-    pub reducer_name: Ident,
+    /// The path of the reducer or procedure as written, such as `run_cleanup` or
+    /// `crate::timers::send_reminder`.
+    pub reducer_path: Path,
 }

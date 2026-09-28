@@ -5,7 +5,6 @@ use crate::api::db::{
     reducer::ScheduledReducer,
     table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
 };
-use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::table::{
     IndexArg, IndexType as SpacetimeIndexType, ScheduledArg, TableAccess, TableArgs,
 };
@@ -96,11 +95,8 @@ impl Index {
 
 impl ScheduledReducer {
     fn map(scheduled: &ScheduledArg) -> ScheduledReducer {
-        let reducer_name = format_ident!(
-            "{}",
-            scheduled.reducer_or_procedure.to_token_stream().to_string()
-        );
-
-        ScheduledReducer { reducer_name }
+        ScheduledReducer {
+            reducer_path: scheduled.reducer_or_procedure.clone(),
+        }
     }
 }
