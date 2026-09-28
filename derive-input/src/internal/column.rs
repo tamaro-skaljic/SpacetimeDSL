@@ -1,6 +1,8 @@
+use std::collections::BTreeMap;
+
 use crate::api::{
     Column,
-    db::{column::SpacetimeDBColumn, table::SpacetimeDBTable},
+    db::{column::SpacetimeDBColumn, index::Index, table::SpacetimeDBTable},
     dsl::{
         auto_gen::UUIDVersion,
         column::{SpacetimeDSLColumn, SpacetimeDSLColumnMethods},
@@ -22,15 +24,10 @@ use syn::{GenericArgument, Ident, Path, PathArguments, Type};
 pub fn try_parse(
     column_args: &ColumnArgs,
     rust_struct: &RustStruct,
-    mut spacetimedb_table: SpacetimeDBTable,
+    spacetimedb_table: &SpacetimeDBTable,
+    mut single_column_index_by_column: BTreeMap<Ident, Index>,
     spacetimedsl_table: &SpacetimeDSLTable,
-) -> syn::Result<(
-    SpacetimeDBTable,
-    Vec<Column>,
-    Column,
-    Vec<InternalColumn>,
-    InternalColumn,
-)> {
+) -> syn::Result<(Vec<Column>, Column, Vec<InternalColumn>, InternalColumn)> {
     let primary_key_column_name = match get_primary_key_column_name(column_args) {
         Some(pk) => pk,
         None => {
@@ -49,15 +46,14 @@ pub fn try_parse(
     for field in &column_args.fields {
         let rust_field = RustField::map(field)?;
 
-        let res = SpacetimeDBColumn::map(
+        let spacetimedb_column = SpacetimeDBColumn::map(
             &rust_field,
-            spacetimedb_table,
+            single_column_index_by_column.remove(&rust_field.name),
+            &spacetimedb_table.singular_name,
             &auto_inc_column_names,
             &primary_key_column_name,
             spacetimedsl_table.is_singleton(),
         )?;
-        spacetimedb_table = res.0;
-        let spacetimedb_column = res.1;
 
         let spacetimedsl_column = SpacetimeDSLColumn::try_parse(
             spacetimedsl_table,
@@ -99,7 +95,7 @@ pub fn try_parse(
 
     let context = MethodGenerationContext::new(
         rust_struct,
-        &spacetimedb_table,
+        spacetimedb_table,
         spacetimedsl_table,
         &internal_columns,
         &internal_primary_key_column,
@@ -130,7 +126,6 @@ pub fn try_parse(
         .clone();
 
     Ok((
-        spacetimedb_table,
         columns,
         primary_key_column,
         internal_columns,

@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::{
     api::db::{
         index::{Index, IndexType},
@@ -13,15 +15,23 @@ use spacetime_bindings_macro_input::table::{
 use syn::{Ident, ext::IdentExt};
 
 impl SpacetimeDBTable {
-    pub(crate) fn map(table: &TableArgs, is_singleton: bool) -> syn::Result<SpacetimeDBTable> {
+    /// Assembles the table from what `#[table]` declares and the index assignment
+    /// `internal::table` computed: `multi_column_indices` are the indices no column claimed,
+    /// in declaration order, and a B-tree multi-column index named in
+    /// `dsl_unique_index_names` is unique.
+    pub(crate) fn map(
+        table: &TableArgs,
+        multi_column_indices: Vec<Index>,
+        dsl_unique_index_names: &BTreeSet<Ident>,
+        is_singleton: bool,
+    ) -> syn::Result<SpacetimeDBTable> {
         let singular_name = table.accessor.unraw();
         let visibility = SpacetimeDBTableVisibility::map(&table.access);
-        let indices: Vec<Index> = table.indices.iter().map(Index::map).collect();
         let scheduled_reducer = table.scheduled.as_ref().map(ScheduledReducer::map);
 
         // Singleton validation: no multi-column indices allowed
         if is_singleton {
-            for index in &indices {
+            for index in &multi_column_indices {
                 match &index.index_type {
                     IndexType::BTreeMultiColumn { columns }
                     | IndexType::HashMultiColumn { columns } => {
@@ -32,11 +42,18 @@ impl SpacetimeDBTable {
             }
         }
 
+        let multi_column_indices = multi_column_indices
+            .into_iter()
+            .map(|index| Index {
+                is_unique: index.is_unique || dsl_unique_index_names.contains(&index.name),
+                ..index
+            })
+            .collect();
+
         Ok(SpacetimeDBTable {
             singular_name,
             visibility,
-            // Contains all indices during processing for the moment, but all single column indices are removed from the Vector after the columns are processed.
-            multi_column_indices: indices,
+            multi_column_indices,
             scheduled_reducer,
         })
     }
@@ -55,7 +72,7 @@ impl SpacetimeDBTableVisibility {
 }
 
 impl Index {
-    fn map(index: &IndexArg) -> Index {
+    pub(crate) fn map(index: &IndexArg) -> Index {
         let name = index.accessor.clone();
         let is_unique = index.is_unique;
         let r#type = match &index.kind {

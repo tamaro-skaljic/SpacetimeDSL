@@ -1,6 +1,5 @@
 use std::collections::BTreeSet;
 
-use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::{SingletonKind, SpacetimeDSLTable};
 use crate::internal::column::ColumnTypeKind;
@@ -9,7 +8,7 @@ use crate::internal::error;
 use crate::internal::{DSLData, DSLTableKind};
 use quote::format_ident;
 use spacetime_bindings_macro_input::table::ColumnArgs;
-use syn::Type;
+use syn::{Ident, Type};
 
 #[derive(Clone, Copy)]
 enum TimestampRole {
@@ -21,26 +20,10 @@ impl SpacetimeDSLTable {
     pub(crate) fn try_parse(
         dsl_data: DSLData,
         column_args: &ColumnArgs<'_>,
-        mut spacetimedb_table: SpacetimeDBTable,
-    ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
+        singular_table_name: &Ident,
+    ) -> syn::Result<SpacetimeDSLTable> {
         let singleton = dsl_data.kind.singleton();
-        let unique_indices = dsl_data.unique_indices;
-
-        for unique_index_name in unique_indices {
-            for multi_column_index in &mut spacetimedb_table.multi_column_indices {
-                if let IndexType::BTreeMultiColumn { columns: _ } = &multi_column_index.index_type
-                    && multi_column_index.name.eq(&unique_index_name)
-                {
-                    multi_column_index.is_unique = true;
-                }
-            }
-        }
-
-        let hooks = super::hook::build(
-            &spacetimedb_table.singular_name,
-            singleton,
-            &dsl_data.declared_hooks,
-        );
+        let hooks = super::hook::build(singular_table_name, singleton, &dsl_data.declared_hooks);
 
         let has_update_method = &dsl_data.update_method;
         let has_delete_method = &dsl_data.delete_method;
@@ -161,28 +144,25 @@ impl SpacetimeDSLTable {
         // A singleton has no `plural_name`; the methods named after it are not generated
         // for a singleton, so the accessor stands in.
         let plural_name = match dsl_data.kind {
-            DSLTableKind::Singleton(_) => spacetimedb_table.singular_name.clone(),
+            DSLTableKind::Singleton(_) => singular_table_name.clone(),
             DSLTableKind::Table { plural_name } => plural_name,
         };
 
-        Ok((
-            spacetimedb_table,
-            SpacetimeDSLTable {
-                singleton,
-                plural_name,
-                has_update_method,
-                has_delete_method: has_delete_method.unwrap_or(true),
-                soft_delete_marker,
-                on_insert_set_current_timestamp_column_name,
-                on_update_set_current_timestamp_column_name,
-                referencing_tables,
-                compile_error_checks: BTreeSet::new(),
-                // `TableContributions::apply_to` fills this in, after the create method is
-                // generated.
-                create_dsl_method_arg: None,
-                hooks,
-            },
-        ))
+        Ok(SpacetimeDSLTable {
+            singleton,
+            plural_name,
+            has_update_method,
+            has_delete_method: has_delete_method.unwrap_or(true),
+            soft_delete_marker,
+            on_insert_set_current_timestamp_column_name,
+            on_update_set_current_timestamp_column_name,
+            referencing_tables,
+            compile_error_checks: BTreeSet::new(),
+            // `TableContributions::apply_to` fills this in, after the create method is
+            // generated.
+            create_dsl_method_arg: None,
+            hooks,
+        })
     }
 }
 
