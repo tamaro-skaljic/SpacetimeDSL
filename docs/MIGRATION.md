@@ -52,6 +52,8 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 
 - On a `singleton(with_default)` table, a `Timestamp` column is rejected in every spelling. Before, a qualified spelling such as `::spacetimedb::Timestamp` slipped past the check. Use `Option<Timestamp>`, as the diagnostic says.
 
+- A column whose type is not a path — an array such as `[u8; 4]`, a tuple, a reference, and the like — used to make the macro panic (*should be parseable as Path*). It now gets a diagnostic on the type: *SpacetimeDSL supports only path types as column types, such as `u64`, `String` or `spacetimedb::Timestamp`! This column's type is an array.* Wrap the value in a type of your own.
+
 ### Changed messages and generated code
 
 - Qualified spellings of the types SpacetimeDSL checks are accepted where they used to be rejected: `::spacetimedb::Timestamp` and `std::option::Option<spacetimedb::Timestamp>` for `#[set_on_create]` / `#[set_on_update]`, and `core::primitive::u64` / `std::primitive::u64` count as unsigned integers (so a foreign key spelled that way skips its reference-integrity check for `0`, like `u64`). See *Column Type Spellings* in the documentation. This is not breaking.

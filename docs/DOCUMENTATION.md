@@ -569,6 +569,8 @@ pub struct Entity { ... }
 
 ### Column Type Spellings
 
+A column's type has to be a path, such as `u64`, `String`, `Option<T>`, `spacetimedb::Timestamp` or a type of your own. Arrays, tuples, references, slices, function pointers, trait objects, `impl Trait` and qualified paths such as `<T as Trait>::Type` are rejected with a diagnostic; wrap such a value in a type of your own, such as a struct deriving `SpacetimeType`.
+
 Where **SpacetimeDSL** checks or treats a column's type specially, it accepts every spelling of that type:
 
 | Type                  | Accepted spellings                                                            |

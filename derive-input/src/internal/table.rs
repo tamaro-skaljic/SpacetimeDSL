@@ -9,12 +9,20 @@ use crate::{
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::DeriveInput;
 
+use crate::internal::rust::column::column_type_path;
+
 pub fn try_parse(
     input: &DeriveInput,
     dsl_data: DSLData,
     table_args: &TableArgs,
     column_args: &ColumnArgs<'_>,
 ) -> syn::Result<Table> {
+    // Every other column analysis assumes a path type, so an unsupported one is reported
+    // before any of them runs.
+    for field in &column_args.fields {
+        column_type_path(field.ty)?;
+    }
+
     let rust_struct = crate::internal::rust::table::map_struct(input);
 
     let spacetimedb_table = SpacetimeDBTable::map(table_args, dsl_data.kind.singleton().is_some())?;

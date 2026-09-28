@@ -12,6 +12,7 @@ use crate::api::{
 };
 use crate::internal::dsl::method::MethodGenerationContext;
 use crate::internal::error;
+use crate::internal::rust::column::column_type_path;
 use itertools::izip;
 use quote::ToTokens;
 use spacetime_bindings_macro_input::table::ColumnArgs;
@@ -46,7 +47,7 @@ pub fn try_parse(
     let mut internal_columns = vec![];
 
     for field in &column_args.fields {
-        let rust_field = RustField::map(field);
+        let rust_field = RustField::map(field)?;
 
         let res = SpacetimeDBColumn::map(
             &rust_field,
@@ -219,24 +220,16 @@ impl ColumnTypeKind {
         })
     }
 
-    /// The kind of a field's type, `Other` for a type which is no plain path.
+    /// The kind of a field's type, `Other` for a type which is no path.
     pub fn of_type(field_type: &Type) -> ColumnTypeKind {
-        match field_type {
-            Type::Path(type_path) if type_path.qself.is_none() => {
-                ColumnTypeKind::of(&type_path.path)
-            }
-            _ => ColumnTypeKind::Other,
-        }
+        column_type_path(field_type).map_or(ColumnTypeKind::Other, ColumnTypeKind::of)
     }
 
     /// [`ColumnTypeKind::of_option_argument`] of a field's type.
     pub fn of_option_argument_of_type(field_type: &Type) -> Option<ColumnTypeKind> {
-        match field_type {
-            Type::Path(type_path) if type_path.qself.is_none() => {
-                ColumnTypeKind::of_option_argument(&type_path.path)
-            }
-            _ => None,
-        }
+        column_type_path(field_type)
+            .ok()
+            .and_then(ColumnTypeKind::of_option_argument)
     }
 }
 

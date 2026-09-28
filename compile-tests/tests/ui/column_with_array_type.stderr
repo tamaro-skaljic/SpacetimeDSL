@@ -1,0 +1,5 @@
+error: SpacetimeDSL supports only path types as column types, such as `u64`, `String` or `spacetimedb::Timestamp`! This column's type is an array.
+  --> tests/ui/column_with_array_type.rs:15:20
+   |
+15 |         pub value: [u8; 4],
+   |                    ^^^^^^^

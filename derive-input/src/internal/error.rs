@@ -37,6 +37,33 @@ fn written_visibility(visibility: &Visibility) -> String {
     }
 }
 
+// Column types
+
+pub fn unsupported_column_type(column_type: &Type) -> Error {
+    let kind = match column_type {
+        Type::Array(_) => "an array",
+        Type::Tuple(_) => "a tuple",
+        Type::Reference(_) => "a reference",
+        Type::Slice(_) => "a slice",
+        Type::FnPtr(_) => "a function pointer",
+        Type::TraitObject(_) => "a trait object",
+        Type::ImplTrait(_) => "an `impl Trait`",
+        Type::Never(_) => "the never type",
+        Type::Path(_) => "a qualified path such as `<T as Trait>::Type`",
+        Type::Ptr(_) => "a raw pointer",
+        Type::Infer(_) => "the inferred type `_`",
+        Type::Macro(_) => "a macro",
+        _ => "not a path",
+    };
+
+    Error::new_spanned(
+        column_type,
+        format!(
+            "SpacetimeDSL supports only path types as column types, such as `u64`, `String` or `spacetimedb::Timestamp`! This column's type is {kind}."
+        ),
+    )
+}
+
 // `#[table]`
 
 pub fn missing_table_attribute(struct_name: &Ident) -> Error {
