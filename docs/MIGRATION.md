@@ -51,4 +51,5 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
   ```
 
   `hooks.iter()` yields the declared hooks in emission order, and `hooks.declared` is the `BTreeMap<HookKind, SpacetimeDSLMethodHook>` itself. `HookKind::ALL` lists all eight kinds.
+- `api::dsl::hook::hook_trait_name(&Ident)` maps a hook function name to the trait it implements (`before_entity_insert` → `BeforeEntityInsertHook`). Both the generator and `#[spacetimedsl::hook]` use it; a macro implementing hooks should too.
 - `SpacetimeDSLArgType::actual_type()` returns the type of a parameter as written, for both variants.

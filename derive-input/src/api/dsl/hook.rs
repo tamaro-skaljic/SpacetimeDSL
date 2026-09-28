@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
+use ident_case::RenameRule;
 use proc_macro2::TokenStream;
+use quote::format_ident;
 use syn::Ident;
 
 use crate::api::dsl::method::SpacetimeDSLArg;
@@ -91,4 +93,16 @@ pub struct SpacetimeDSLMethodHook {
     /// What the hook function returns: for a before hook of an insert, update or soft
     /// deletion the value to write, otherwise `()`, in a `Result` with `SpacetimeDSLError`.
     pub return_type: TokenStream,
+}
+
+/// The trait a hook function implements: the PascalCase form of `hook_function_name`
+/// followed by `Hook`, such as `BeforeEntityInsertHook` for `before_entity_insert`.
+///
+/// The generator declares the trait under this name and `#[spacetimedsl::hook]` implements
+/// it under this name, so both have to call this one function.
+pub fn hook_trait_name(hook_function_name: &Ident) -> Ident {
+    format_ident!(
+        "{}Hook",
+        RenameRule::PascalCase.apply_to_field(hook_function_name.to_string())
+    )
 }

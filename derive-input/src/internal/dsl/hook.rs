@@ -6,7 +6,10 @@ use quote::{format_ident, quote};
 
 use crate::api::{
     dsl::{
-        hook::{HookKind, Operation, SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks, Timing},
+        hook::{
+            HookKind, Operation, SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks, Timing,
+            hook_trait_name,
+        },
         method::{SpacetimeDSLArg, SpacetimeDSLArgType},
         table::SingletonKind,
     },
@@ -59,9 +62,11 @@ fn build_one(
         RenameRule::PascalCase.apply_to_field(singular_table_name.to_string())
     );
 
+    let function_name = get_function_name(&timing, singular_table_name, &operation);
+
     SpacetimeDSLMethodHook {
-        trait_name: get_trait_name(&timing, &singular_table_name_pascal_case, &operation),
-        function_name: get_function_name(&timing, singular_table_name, &operation),
+        trait_name: hook_trait_name(&function_name),
+        function_name,
         function_args: get_function_args(
             &timing,
             singular_table_name,
@@ -76,31 +81,6 @@ fn build_one(
             inserted_value,
         ),
     }
-}
-
-fn get_trait_name(
-    timing: &Timing,
-    singular_table_name_pascal_case: &syn::Ident,
-    operation: &Operation,
-) -> syn::Ident {
-    let timing = match timing {
-        Timing::Before => "Before",
-        Timing::After => "After",
-    };
-
-    let operation = match operation {
-        Operation::Insert => "Insert",
-        Operation::Update => "Update",
-        Operation::Delete => "Delete",
-        Operation::SoftDelete => "SoftDelete",
-    };
-
-    format_ident!(
-        "{}{}{}Hook",
-        timing,
-        singular_table_name_pascal_case,
-        operation,
-    )
 }
 
 fn get_function_name(

@@ -1,7 +1,8 @@
-use ident_case::RenameRule;
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
-use spacetimedsl_derive_input::api::{Table, attribute::is_dsl_attribute, runtime};
+use quote::quote;
+use spacetimedsl_derive_input::api::{
+    Table, attribute::is_dsl_attribute, dsl::hook::hook_trait_name, runtime,
+};
 
 #[cfg(test)]
 mod characterization_tests;
@@ -220,10 +221,7 @@ pub fn hook(_args: TokenStream, item: TokenStream) -> TokenStream {
     ok_or_compile_error(|| {
         let function_input: syn::ItemFn = syn::parse(item)?;
 
-        let trait_name = format_ident!(
-            "{}Hook",
-            RenameRule::PascalCase.apply_to_field(function_input.sig.ident.to_string())
-        );
+        let trait_name = hook_trait_name(&function_input.sig.ident);
 
         let write_context = runtime::write_context();
         let dsl_method_hooks_type = runtime::dsl_method_hooks_type();

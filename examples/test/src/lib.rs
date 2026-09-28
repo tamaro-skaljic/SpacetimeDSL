@@ -9,6 +9,7 @@ pub mod component;
 pub mod entity;
 pub mod hand_written_wrapper_test;
 pub mod hash_index_test;
+pub mod hook_trait_name_test;
 pub mod primary_key_foreign_key_cascade_test;
 pub mod self_referencing_cascade_test;
 pub mod singleton_test;
@@ -49,6 +50,7 @@ const TEST_GROUPS: &[(&str, TestGroup)] = &[
         hand_written_wrapper_test::run_tests,
     ),
     ("hash_index_test", hash_index_test::run_tests),
+    ("hook_trait_name_test", hook_trait_name_test::run_tests),
     (
         "primary_key_foreign_key_cascade_test",
         primary_key_foreign_key_cascade_test::run_tests,
