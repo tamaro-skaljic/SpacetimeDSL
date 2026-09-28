@@ -101,29 +101,38 @@ case "${1:-}" in
         ;;
 
     loc)
+        # Get all .rs files recursively from src directories and count lines
         while IFS= read -r file; do
+            # Get line count
             lines=$(wc -l < "$file")
 
+            # Get relative path
             rel_path="${file#./}"
 
+            # Extract first directory
             first_dir="${rel_path%%/*}"
 
+            # Get path without first directory
             path_without_first="${rel_path#*/}"
 
+            # Remove src/ prefix if present
             if [[ "$path_without_first" == src/* ]]; then
                 path_without_first="${path_without_first#src/}"
             fi
 
+            # Store for grouping
             echo "$first_dir|$lines|$path_without_first"
         done < <(find . -path "*/src/*.rs" -type f) | sort -t'|' -k1,1 -k2,2nr | {
             current_group=""
             total=0
 
             while IFS='|' read -r first_dir lines path_without_first; do
+                # Track total for src, derive-input, derive
                 if [[ "$first_dir" == "src" || "$first_dir" == "derive-input" || "$first_dir" == "derive" ]]; then
                     total=$((total + lines))
                 fi
 
+                # Print group header when directory changes
                 if [[ "$current_group" != "$first_dir" ]]; then
                     if [[ -n "$current_group" ]]; then
                         echo
@@ -132,6 +141,7 @@ case "${1:-}" in
                     current_group="$first_dir"
                 fi
 
+                # Print with padding
                 printf "%6d %s\n" "$lines" "$path_without_first"
             done
 
