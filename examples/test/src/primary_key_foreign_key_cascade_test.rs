@@ -7,7 +7,7 @@ pub struct ParentRecord {
     #[auto_inc]
     #[create_wrapper(ParentRecordId)]
     #[referenced_by(
-        path = crate::spacetimedsl_cascade_delete_hook_repro,
+        path = crate::primary_key_foreign_key_cascade_test,
         table = child_marker
     )]
     id: u64,
@@ -23,7 +23,7 @@ pub struct ChildMarker {
     #[primary_key]
     #[use_wrapper(ParentRecordId)]
     #[foreign_key(
-        path = crate::spacetimedsl_cascade_delete_hook_repro,
+        path = crate::primary_key_foreign_key_cascade_test,
         table = parent_record,
         column = id,
         on_delete = Delete

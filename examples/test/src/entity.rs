@@ -224,6 +224,8 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
         }
     };
 
+    let entity_relationships_before = dsl.count_of_all_entity_relationships();
+
     let player2 = match dsl.create_entity() {
         Ok(entity) => entity,
         Err(error) => {
@@ -254,8 +256,11 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
         child_entity_id: player3.get_obj_id(),
     })?;
 
-    if dsl.count_of_all_entity_relationships().ne(&3) {
-        return Err("Count of entity relationships should be 3!".to_string());
+    if dsl
+        .count_of_all_entity_relationships()
+        .ne(&(entity_relationships_before + 3))
+    {
+        return Err("The count of entity relationships should have grown by 3!".to_string());
     }
 
     if player
@@ -289,8 +294,11 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
         );
     }
 
-    if dsl.count_of_all_entity_relationships().ne(&3) {
-        return Err("Count of entity relationships should be 3!".to_string());
+    if dsl
+        .count_of_all_entity_relationships()
+        .ne(&(entity_relationships_before + 3))
+    {
+        return Err("The count of entity relationships should have grown by 3!".to_string());
     }
 
     match dsl.delete_entity_by_obj_id(&player3) {
@@ -302,8 +310,11 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
         }
     };
 
-    if dsl.count_of_all_entity_relationships().ne(&1) {
-        return Err("Count of entity relationships should be 1 because 2 should be deleted through the foreign key / referenced by feature! (1)".to_string());
+    if dsl
+        .count_of_all_entity_relationships()
+        .ne(&(entity_relationships_before + 1))
+    {
+        return Err("The count of entity relationships should have grown by only 1, because 2 should be deleted through the foreign key / referenced by feature! (1)".to_string());
     }
 
     match dsl.delete_entity_by_obj_id(&player2) {
@@ -315,9 +326,12 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
         }
     };
 
-    if dsl.count_of_all_entity_relationships().ne(&0) {
+    if dsl
+        .count_of_all_entity_relationships()
+        .ne(&entity_relationships_before)
+    {
         return Err(
-            "Count of entity relationships should be 0 because the last one should be deleted through the foreign key / referenced by feature!".to_string(),
+            "The count of entity relationships should be back to where it was before, because the last one should be deleted through the foreign key / referenced by feature!".to_string(),
         );
     }
     match dsl.delete_entity_by_obj_id(&player) {
@@ -342,6 +356,8 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
         }
     };
 
+    let entity_relationships2_before = dsl.count_of_all_entity_relationships2();
+
     let player2 = dsl.create_entity()?;
     let player3 = dsl.create_entity()?;
 
@@ -358,8 +374,11 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
         child_entity_id: player.get_obj_id(),
     })?;
 
-    if dsl.count_of_all_entity_relationships2().ne(&3) {
-        return Err("Count of entity relationships 2 should be 3!".to_string());
+    if dsl
+        .count_of_all_entity_relationships2()
+        .ne(&(entity_relationships2_before + 3))
+    {
+        return Err("The count of entity relationships 2 should have grown by 3!".to_string());
     }
 
     match dsl.delete_entity_by_obj_id(&player2) {
@@ -367,8 +386,11 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
         Err(error) => return Err(format!("Should be able to delete 'player'! Got:\n{error}")),
     };
 
-    if dsl.count_of_all_entity_relationships2().ne(&1) {
-        return Err("Count of entity relationships should be 1 because 2 should be deleted through the foreign key / referenced by feature! (2)".to_string());
+    if dsl
+        .count_of_all_entity_relationships2()
+        .ne(&(entity_relationships2_before + 1))
+    {
+        return Err("The count of entity relationships 2 should have grown by only 1, because 2 should be deleted through the foreign key / referenced by feature! (2)".to_string());
     }
 
     let er4_1 = dsl.create_entity_relationship4(CreateEntityRelationship4 {

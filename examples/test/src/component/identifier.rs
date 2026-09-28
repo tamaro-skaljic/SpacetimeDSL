@@ -53,6 +53,8 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
 
     let time = ctx.timestamp.to_system_time();
 
+    let identifiers_before = dsl.count_of_all_identifiers();
+
     let player = dsl.create_entity()?;
 
     match dsl.create_identifier(CreateIdentifier {
@@ -67,14 +69,14 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
         }
     };
 
-    if dsl.count_of_all_identifiers().ne(&1) {
-        return Err("Count of identifiers should be 1!".to_string());
+    if dsl.count_of_all_identifiers().ne(&(identifiers_before + 1)) {
+        return Err("Creating an Identifier should add 1 to the count of Identifiers!".to_string());
     }
 
     dsl.delete_entity_by_obj_id(&player)?;
 
-    if dsl.count_of_all_identifiers().ne(&0) {
-        return Err("Count of identifiers should be 0 because the last one should be deleted through the foreign key / referenced by feature!".to_string());
+    if dsl.count_of_all_identifiers().ne(&identifiers_before) {
+        return Err("The count of Identifiers should be back to where it was before, because the Identifier should be deleted through the foreign key / referenced by feature!".to_string());
     }
 
     let player = dsl.create_entity()?;
@@ -193,8 +195,8 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
         }
     }
 
-    if dsl.count_of_all_identifiers().ne(&0) {
-        return Err("The count of Identifiers should be 0 because the player_reflection Entity was deleted and the foreign key has a Delete strategy!".to_string());
+    if dsl.count_of_all_identifiers().ne(&identifiers_before) {
+        return Err("The count of Identifiers should be back to where it was before, because the player_reflection Entity was deleted and the foreign key has a Delete strategy!".to_string());
     }
 
     Ok(())

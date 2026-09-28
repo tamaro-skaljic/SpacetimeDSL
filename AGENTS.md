@@ -88,7 +88,9 @@ fn soft_delete_flag() {
 
 **Runtime — `examples/test/src`**
 
-The only gate that compiles, links and runs generated code against a real **SpacetimeDB**. Put tables which belong together in a file of their own, with their hooks and a `pub(crate) fn run_tests` holding their assertions, and call it from the `tester` reducer in `lib.rs`. Return `Err(String)` naming what should have happened.
+The only gate that compiles, links and runs generated code against a real **SpacetimeDB**. Put tables which belong together in a file of their own, with their hooks and a `pub(crate) fn run_tests` holding their assertions, and add it to `TEST_GROUPS` in `lib.rs`. Return `Err(String)` naming what should have happened. The `tester` reducer runs every group, also after one failed, and reports all failures together.
+
+- The groups share one database, so a count a group asserts is relative to a count it took before its act, never absolute.
 
 - Use it for what no token stream can show: a value actually written, a cascade actually reaching a row, an operation actually being idempotent.
 - Blind spot: it is one **SpacetimeDB** module, so table and accessor names are global across all of its files and collide.
