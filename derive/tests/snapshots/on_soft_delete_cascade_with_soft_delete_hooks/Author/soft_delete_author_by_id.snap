@@ -91,7 +91,7 @@ Try to soft-delete a `Author` row in the `author` table whose value matches the 
                 return Err(
                     crate::spacetimedsl::error::SpacetimeDSLError::Error(
                         format!(
-                            "Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
+                            "Soft Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
                         ),
                     ),
                 );
@@ -118,7 +118,7 @@ Try to soft-delete a `Author` row in the `author` table whose value matches the 
                 return Err(
                     crate::spacetimedsl::error::SpacetimeDSLError::Error(
                         format!(
-                            "Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
+                            "Soft Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}"
                         ),
                     ),
                 );

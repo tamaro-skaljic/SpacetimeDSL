@@ -60,6 +60,8 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 
 ### Changed messages and generated code
 
+- The error a `soft_delete_*` method returns when a cascade fails after the database already changed now starts with *Soft Delete One Error* / *Soft Delete Many Error* instead of *Delete One Error* / *Delete Many Error*.
+
 - `on_delete = SetZero` is available on `Uuid` foreign keys and sets them to `Uuid::NIL`. Create, update and upsert treat a `Uuid` foreign key equal to `Uuid::NIL` as referencing no row, as they treat `0` for an unsigned integer: they no longer report a reference integrity violation for it. The generated create and update methods gain that guard.
 - Foreign keys of one table to the same table may spell their type and path differently (`u64` / `core::primitive::u64`, `::my_crate::tables` / `my_crate::tables`); they used to be rejected as mismatched. A real mismatch is still rejected, and the path message now adds *Spell both paths the same way; a leading `::` makes no difference.*
 - A foreign key column counts as indexed through every single-column index on it, including one declared as `index(…)` in `#[table]`; before, only `#[primary_key]`, `#[unique]` and `#[index]` on the field counted.

@@ -141,17 +141,18 @@ fn marker_of(spacetimedsl_table: &SpacetimeDSLTable) -> &SoftDeleteMarker {
         .expect("a soft removal is only generated for a soft-deletable table")
 }
 
-/// The statements that retire the row a surrounding binding called `old_row` points at.
+/// The statements that retire the row `row` points at.
 ///
 /// SpacetimeDB has no bulk update, so retiring many rows is retiring one row repeatedly,
-/// and both generators emit this. The before hook hands back the row to write, so it runs
+/// and both row counts emit this. The before hook hands back the row to write, so it runs
 /// between the clone and the marker rather than around the whole statement; the `mut` then
 /// moves to a rebinding after it, because the hook's own binding is not `mut` — the shape
 /// `update_<table>_by_<key>` uses, for the same reason.
 ///
 /// `updated_at` is deliberately left alone: the marker records the retirement, and
 /// `updated_at` keeps meaning the last ordinary edit.
-fn retire_row_named_old_row(
+fn retire_row(
+    row: &syn::Ident,
     spacetimedsl_table: &SpacetimeDSLTable,
     singular_table_name: &syn::Ident,
     primary_key_column_name: &syn::Ident,
@@ -163,10 +164,8 @@ fn retire_row_named_old_row(
     let before_hook = hook_tokens(
         spacetimedsl_table.hooks.get(HookKind::BEFORE_SOFT_DELETE),
         |hook_function_name| {
-            let hook_call = runtime::dsl_method_hooks_call(
-                hook_function_name,
-                &quote! { self, old_row, new_row },
-            );
+            let hook_call =
+                runtime::dsl_method_hooks_call(hook_function_name, &quote! { self, #row, new_row });
 
             quote! {
                 let new_row = #hook_call?;
@@ -179,7 +178,7 @@ fn retire_row_named_old_row(
         |hook_function_name| {
             let hook_call = runtime::dsl_method_hooks_call(
                 hook_function_name,
-                &quote! { self, old_row, &new_row },
+                &quote! { self, #row, &new_row },
             );
 
             quote! {
@@ -189,8 +188,8 @@ fn retire_row_named_old_row(
     );
 
     let clone_row = match before_hook.is_empty() {
-        true => quote! { let mut new_row = old_row.clone(); },
-        false => quote! { let new_row = old_row.clone(); },
+        true => quote! { let mut new_row = #row.clone(); },
+        false => quote! { let new_row = #row.clone(); },
     };
 
     let rebind_row = rebind_row_as_mutable_after_hook(&new_row, &before_hook, &[&set_marker]);
@@ -229,18 +228,13 @@ pub fn for_removal_many(
 ) -> SpacetimeDSLMethod {
     let MethodGenerationContext {
         spacetimedsl_table,
-        primary_key_column,
         struct_name,
         singular_table_name,
         singular_table_name_as_string,
-        plural_table_name,
-        primary_key_column_name,
-        primary_key_column_name_as_string,
         ..
     } = context;
 
     let index_name = &shape.index_name;
-    let described_as = &shape.described_as;
 
     let IndexColumnArguments {
         method_args,
@@ -278,7 +272,7 @@ pub fn for_removal_many(
         }
     };
 
-    let impl_until_return_ok_on_is_empty = quote! {
+    let find_rows_to_delete = quote! {
         #itertools_import
 
         #(#wrapper_option_mappers)*
@@ -295,233 +289,14 @@ pub fn for_removal_many(
         }
     };
 
-    let wrapper_type_struct_name_or_path = context::primary_key_wrapper_type(primary_key_column);
-
-    // Variation point: the strategy the entry reports.
-    let reported_strategy = match removal {
-        Removal::Hard => runtime::on_delete_strategy(&quote! { Delete }),
-        Removal::Soft => runtime::on_delete_strategy(&quote! { SoftDelete }),
-    };
-
-    let deletion_result_entry_per_row = runtime::deletion_result_entry(
-        singular_table_name_as_string,
-        primary_key_column_name_as_string,
-        &reported_strategy,
-        &quote! {
-            format!("{}", #wrapper_type_struct_name_or_path::new(row_to_delete.#primary_key_column_name.clone()))
-        },
-        &quote! { vec![] },
-    );
-
-    let map_rows_to_delete_to_deletion_result_entries = quote! {
-        let mut deletion_result_entries = std::collections::HashMap::new();
-
-        for row_to_delete in &rows_to_delete {
-            deletion_result_entries.insert(
-                &row_to_delete.#primary_key_column_name,
-                #deletion_result_entry_per_row
-            );
-        }
-    };
-
-    // Variation point: which pair of hooks runs, and where.
-    //
-    // A hard deletion's hooks bracket the one bulk `delete`, so they are blocks of their
-    // own. A soft deletion writes each row separately and its before hook hands back the
-    // row to write, so its hooks belong inside that loop rather than around it; the two
-    // outer slots are then empty and the loop below carries the calls.
-    let before_delete_hook = match removal {
-        Removal::Hard => hook_tokens(
-            spacetimedsl_table.hooks.get(HookKind::BEFORE_DELETE),
-            |hook_function_name| {
-                let hook_call = runtime::dsl_method_hooks_call(
-                    hook_function_name,
-                    &quote! { self, &row_to_delete },
-                );
-
-                quote! {
-                    for row_to_delete in &rows_to_delete {
-                        #hook_call?;
-                    }
-                }
-            },
-        ),
-        Removal::Soft => TokenStream::default(),
-    };
-
-    let after_delete_hook = match removal {
-        Removal::Hard => hook_tokens(
-            spacetimedsl_table.hooks.get(HookKind::AFTER_DELETE),
-            |hook_function_name| {
-                let hook_call = runtime::dsl_method_hooks_call(
-                    hook_function_name,
-                    &quote! { self, &row_to_delete },
-                );
-
-                quote! {
-                    for row_to_delete in &rows_to_delete {
-                        #hook_call?;
-                    }
-                }
-            },
-        ),
-        Removal::Soft => TokenStream::default(),
-    };
-
-    let count_mismatch_error = runtime::generic_error(&quote! {
-        format!(
-            "Delete Many Error: `count_of_rows_to_delete ( {} ) != ( {} ) count_of_deleted_rows`!",
-            &count_of_rows_to_delete,
-            &count_of_deleted_rows
-        )
-    });
-
-    // Variation point: the statement that writes, and the check around it.
-    let delete_many_impl = match removal {
-        Removal::Hard => quote! {
-            let count_of_rows_to_delete: u64 = rows_to_delete
-                .len()
-                .try_into()
-                .unwrap_or(u64::MAX);
-
-            let count_of_deleted_rows = #index_accessor.delete(#index_name);
-
-            if count_of_rows_to_delete.ne(&count_of_deleted_rows) {
-                return Err(#count_mismatch_error);
-            }
-        },
-        Removal::Soft => {
-            let retire_row = retire_row_named_old_row(
-                spacetimedsl_table,
-                singular_table_name,
-                primary_key_column_name,
-            );
-
-            quote! {
-                for old_row in &rows_to_delete {
-                    #retire_row
-                }
-            }
-        }
-    };
-
-    let deletion_result_from_entries = runtime::deletion_result(
-        singular_table_name_as_string,
+    removal_method(
+        removal,
         &OneOrMultiple::Multiple,
-        &quote! { deletion_result_entries.into_values().collect_vec() },
-        &quote! { None },
-    );
-
-    let deletion_result_from_entries_with_error_from_hook = runtime::deletion_result(
-        singular_table_name_as_string,
-        &OneOrMultiple::Multiple,
-        &quote! { deletion_result_entries.into_values().collect_vec() },
-        &quote! { error_from_hook },
-    );
-
-    let return_result_impl = quote! {
-        return Ok(#deletion_result_from_entries);
-    };
-
-    let method_impl = if spacetimedsl_table.referencing_tables.is_empty() {
-        quote! {
-            #impl_until_return_ok_on_is_empty
-
-            #map_rows_to_delete_to_deletion_result_entries
-
-            #before_delete_hook
-
-            #delete_many_impl
-
-            #after_delete_hook
-
-            #return_result_impl
-        }
-    } else {
-        let error_after_state_change = runtime::generic_error(&quote! {
-            format!("Delete Many Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
-        });
-
-        let on_error_handler = quote! {
-            let error = #deletion_result_from_entries_with_error_from_hook;
-
-            return Err(#error_after_state_change);
-        };
-
-        let reference_integrity_violation_on_delete_error =
-            runtime::reference_integrity_violation_on_delete(&quote! { error });
-
-        let error_strategy = referenced_table_function_call_for_dsl_method(
-            removal,
-            singular_table_name,
-            primary_key_column_name,
-            OnDeleteStrategy::Error,
-            OneOrMultiple::Multiple,
-            &quote! {
-                let error = #deletion_result_from_entries_with_error_from_hook;
-
-                return Err(#reference_integrity_violation_on_delete_error);
-            },
-        );
-
-        let strategies_after_the_write = strategies_after_the_write(removal)
-            .iter()
-            .map(|strategy| {
-                referenced_table_function_call_for_dsl_method(
-                    removal,
-                    singular_table_name,
-                    primary_key_column_name,
-                    strategy.clone(),
-                    OneOrMultiple::Multiple,
-                    &on_error_handler,
-                )
-            })
-            .collect_vec();
-
-        quote! {
-            #impl_until_return_ok_on_is_empty
-
-            #map_rows_to_delete_to_deletion_result_entries
-
-            #error_strategy
-
-            #before_delete_hook
-
-            #delete_many_impl
-
-            #after_delete_hook
-
-            #(#strategies_after_the_write)*
-
-            #return_result_impl
-        }
-    };
-
-    // Variation point: what the method is called and what it says it does.
-    let (doc_comment, method_name) = match removal {
-        Removal::Hard => (
-            format!(
-                "Try to delete all `{struct_name}` rows in the `{singular_table_name}` table {described_as}."
-            ),
-            format_ident!("delete_{plural_table_name}_by_{index_name}"),
-        ),
-        Removal::Soft => (
-            format!(
-                "Try to soft-delete all `{struct_name}` rows in the `{singular_table_name}` table {described_as}."
-            ),
-            format_ident!("soft_delete_{plural_table_name}_by_{index_name}"),
-        ),
-    };
-
-    SpacetimeDSLMethod {
-        doc_comment,
-        method_name,
+        shape,
+        context,
         method_args,
-        return_type: runtime::error_result_type(&runtime::deletion_result_type()),
-        method_impl,
-        // A removal writes.
-        read_context_compatible: false,
-    }
+        find_rows_to_delete,
+    )
 }
 
 /// `delete_<table>_by_<index>` and `soft_delete_<table>_by_<index>`: retire or remove the
@@ -534,19 +309,14 @@ pub fn for_removal_one(
     let MethodGenerationContext {
         spacetimedsl_table,
         internal_columns,
-        primary_key_column,
         struct_name,
         singular_table_name,
         singular_table_name_as_string,
-        primary_key_column_name,
-        primary_key_column_name_as_string,
         field_name_for_found_value,
         ..
     } = context;
 
     let index_name = &shape.index_name;
-    let described_as = &shape.described_as;
-    let unique_multi_column_index_hint = shape.unique_multi_column_hint;
 
     let IndexColumnArguments {
         method_args,
@@ -555,60 +325,6 @@ pub fn for_removal_one(
     } = index_column_arguments(shape, &OneOrMultiple::One, context);
 
     let index_accessor = index_accessor(singular_table_name, index_name);
-
-    // Variation point: which pair of hooks runs, and where. A soft deletion's hooks sit
-    // inside the write, for the reason given in `for_removal_many`.
-    let before_delete_hook = match removal {
-        Removal::Hard => hook_tokens(
-            spacetimedsl_table.hooks.get(HookKind::BEFORE_DELETE),
-            |hook_function_name| {
-                let hook_call = runtime::dsl_method_hooks_call(
-                    hook_function_name,
-                    &quote! { self, &row_to_delete },
-                );
-
-                quote! {
-                    #hook_call?;
-                }
-            },
-        ),
-        Removal::Soft => TokenStream::default(),
-    };
-
-    let after_delete_hook = match removal {
-        Removal::Hard => hook_tokens(
-            spacetimedsl_table.hooks.get(HookKind::AFTER_DELETE),
-            |hook_function_name| {
-                let hook_call = runtime::dsl_method_hooks_call(
-                    hook_function_name,
-                    &quote! { self, &row_to_delete },
-                );
-
-                quote! {
-                    #hook_call?;
-                }
-            },
-        ),
-        Removal::Soft => TokenStream::default(),
-    };
-
-    let count_mismatch_error = runtime::generic_error(&quote! {
-        "Delete One Error: `count_of_rows_to_delete ( 1 ) != ( 0 ) count_of_deleted_rows`!".to_string()
-    });
-
-    let single_entry_deletion_result = runtime::deletion_result(
-        singular_table_name_as_string,
-        &OneOrMultiple::One,
-        &quote! { vec![deletion_result_entry] },
-        &quote! { None },
-    );
-
-    let single_entry_deletion_result_with_error_from_hook = runtime::deletion_result(
-        singular_table_name_as_string,
-        &OneOrMultiple::One,
-        &quote! { vec![deletion_result_entry] },
-        &quote! { error_from_hook },
-    );
 
     let get_row_to_delete;
     let return_error_on_is_none;
@@ -708,7 +424,7 @@ pub fn for_removal_one(
         }
     };
 
-    let impl_until_return_err_on_is_none = quote! {
+    let find_row_to_delete = quote! {
         #itertools_import
 
         #(#wrapper_option_mappers)*
@@ -719,6 +435,43 @@ pub fn for_removal_one(
 
         #return_ok_on_already_retired
     };
+
+    removal_method(
+        removal,
+        &OneOrMultiple::One,
+        shape,
+        context,
+        method_args,
+        find_row_to_delete,
+    )
+}
+
+/// Everything a removal method does once `find_rows` has bound the rows to remove —
+/// `row_to_delete` for one row, `rows_to_delete` for many: build the entries, refuse
+/// through the `Error` strategy, run the hooks around the write, write, run the remaining
+/// strategies, and report. The kind of removal and the row count are the only variables.
+fn removal_method(
+    removal: Removal,
+    one_or_multiple: &OneOrMultiple,
+    shape: &IndexShape,
+    context: &MethodGenerationContext,
+    method_args: Vec<SpacetimeDSLArg>,
+    find_rows: TokenStream,
+) -> SpacetimeDSLMethod {
+    let MethodGenerationContext {
+        spacetimedsl_table,
+        primary_key_column,
+        struct_name,
+        singular_table_name,
+        singular_table_name_as_string,
+        plural_table_name,
+        primary_key_column_name,
+        primary_key_column_name_as_string,
+        ..
+    } = context;
+
+    let index_name = &shape.index_name;
+    let described_as = &shape.described_as;
 
     let wrapper_type_struct_name_or_path = context::primary_key_wrapper_type(primary_key_column);
 
@@ -738,64 +491,174 @@ pub fn for_removal_one(
         &quote! { vec![] },
     );
 
-    let map_row_to_delete_to_deletion_result_entry = quote! {
-        let mut deletion_result_entry = #deletion_result_entry_for_row;
+    // Variation point: one entry, or one per row keyed by its primary key value.
+    let (build_entries, entries) = match one_or_multiple {
+        OneOrMultiple::One => (
+            quote! {
+                let mut deletion_result_entry = #deletion_result_entry_for_row;
+            },
+            quote! { vec![deletion_result_entry] },
+        ),
+        OneOrMultiple::Multiple => (
+            quote! {
+                let mut deletion_result_entries = std::collections::HashMap::new();
+
+                for row_to_delete in &rows_to_delete {
+                    deletion_result_entries.insert(
+                        &row_to_delete.#primary_key_column_name,
+                        #deletion_result_entry_for_row
+                    );
+                }
+            },
+            quote! { deletion_result_entries.into_values().collect_vec() },
+        ),
     };
 
+    let deletion_result = runtime::deletion_result(
+        singular_table_name_as_string,
+        one_or_multiple,
+        &entries,
+        &quote! { None },
+    );
+
+    let deletion_result_with_error_from_hook = runtime::deletion_result(
+        singular_table_name_as_string,
+        one_or_multiple,
+        &entries,
+        &quote! { error_from_hook },
+    );
+
+    // Variation point: which pair of hooks runs, and where.
+    //
+    // A hard deletion's hooks bracket the write, so they are blocks of their own, looping
+    // over the rows when there are many. A soft deletion writes each row separately and its
+    // before hook hands back the row to write, so its hooks belong inside `retire_row`
+    // rather than around it; the two outer slots are then empty.
+    let hard_deletion_hook = |hook_kind| match removal {
+        Removal::Hard => hook_tokens(
+            spacetimedsl_table.hooks.get(hook_kind),
+            |hook_function_name| {
+                let hook_call = runtime::dsl_method_hooks_call(
+                    hook_function_name,
+                    &quote! { self, &row_to_delete },
+                );
+
+                match one_or_multiple {
+                    OneOrMultiple::One => quote! {
+                        #hook_call?;
+                    },
+                    OneOrMultiple::Multiple => quote! {
+                        for row_to_delete in &rows_to_delete {
+                            #hook_call?;
+                        }
+                    },
+                }
+            },
+        ),
+        Removal::Soft => TokenStream::default(),
+    };
+
+    let before_delete_hook = hard_deletion_hook(HookKind::BEFORE_DELETE);
+    let after_delete_hook = hard_deletion_hook(HookKind::AFTER_DELETE);
+
     // Variation point: the statement that writes, and the check around it.
-    let delete_one_impl = match removal {
-        Removal::Hard => quote! {
-            match self
-                    .db()
-                    .#singular_table_name()
-                    .#primary_key_column_name()
-                    .delete(&row_to_delete.#primary_key_column_name) {
-                false => {
+    let write = match (removal, one_or_multiple) {
+        (Removal::Hard, OneOrMultiple::One) => {
+            let count_mismatch_error = runtime::generic_error(&quote! {
+                "Delete One Error: `count_of_rows_to_delete ( 1 ) != ( 0 ) count_of_deleted_rows`!".to_string()
+            });
+
+            quote! {
+                match self
+                        .db()
+                        .#singular_table_name()
+                        .#primary_key_column_name()
+                        .delete(&row_to_delete.#primary_key_column_name) {
+                    false => {
+                        return Err(#count_mismatch_error);
+                    },
+                    true => {},
+                };
+            }
+        }
+        (Removal::Hard, OneOrMultiple::Multiple) => {
+            let index_accessor = index_accessor(singular_table_name, index_name);
+
+            let count_mismatch_error = runtime::generic_error(&quote! {
+                format!(
+                    "Delete Many Error: `count_of_rows_to_delete ( {} ) != ( {} ) count_of_deleted_rows`!",
+                    &count_of_rows_to_delete,
+                    &count_of_deleted_rows
+                )
+            });
+
+            quote! {
+                let count_of_rows_to_delete: u64 = rows_to_delete
+                    .len()
+                    .try_into()
+                    .unwrap_or(u64::MAX);
+
+                let count_of_deleted_rows = #index_accessor.delete(#index_name);
+
+                if count_of_rows_to_delete.ne(&count_of_deleted_rows) {
                     return Err(#count_mismatch_error);
-                },
-                true => {},
-            };
-        },
-        Removal::Soft => {
-            let retire_row = retire_row_named_old_row(
+                }
+            }
+        }
+        (Removal::Soft, _) => {
+            let old_row = format_ident!("old_row");
+            let retire_row = retire_row(
+                &old_row,
                 spacetimedsl_table,
                 singular_table_name,
                 primary_key_column_name,
             );
 
-            quote! {
-                let old_row = &row_to_delete;
+            match one_or_multiple {
+                OneOrMultiple::One => quote! {
+                    let #old_row = &row_to_delete;
 
-                #retire_row
+                    #retire_row
+                },
+                OneOrMultiple::Multiple => quote! {
+                    for #old_row in &rows_to_delete {
+                        #retire_row
+                    }
+                },
             }
         }
     };
 
-    let return_result_impl = quote! {
-        return Ok(#single_entry_deletion_result);
+    let return_result = quote! {
+        return Ok(#deletion_result);
     };
 
     let method_impl = if spacetimedsl_table.referencing_tables.is_empty() {
         quote! {
-            #impl_until_return_err_on_is_none
+            #find_rows
 
-            #map_row_to_delete_to_deletion_result_entry
+            #build_entries
 
             #before_delete_hook
 
-            #delete_one_impl
+            #write
 
             #after_delete_hook
 
-            #return_result_impl
+            #return_result
         }
     } else {
+        let error_after_state_change_message = format!(
+            "{}: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {{error}}",
+            removal_error_name(removal, one_or_multiple)
+        );
+
         let error_after_state_change = runtime::generic_error(&quote! {
-            format!("Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: {error}")
+            format!(#error_after_state_change_message)
         });
 
         let on_error_handler = quote! {
-            let error = #single_entry_deletion_result_with_error_from_hook;
+            let error = #deletion_result_with_error_from_hook;
 
             return Err(#error_after_state_change);
         };
@@ -808,9 +671,9 @@ pub fn for_removal_one(
             singular_table_name,
             primary_key_column_name,
             OnDeleteStrategy::Error,
-            OneOrMultiple::One,
+            *one_or_multiple,
             &quote! {
-                let error = #single_entry_deletion_result_with_error_from_hook;
+                let error = #deletion_result_with_error_from_hook;
 
                 return Err(#reference_integrity_violation_on_delete_error);
             },
@@ -824,44 +687,50 @@ pub fn for_removal_one(
                     singular_table_name,
                     primary_key_column_name,
                     strategy.clone(),
-                    OneOrMultiple::One,
+                    *one_or_multiple,
                     &on_error_handler,
                 )
             })
             .collect_vec();
 
         quote! {
-            #impl_until_return_err_on_is_none
+            #find_rows
 
-            #map_row_to_delete_to_deletion_result_entry
+            #build_entries
 
             #error_strategy
 
             #before_delete_hook
 
-            #delete_one_impl
+            #write
 
             #after_delete_hook
 
             #(#strategies_after_the_write)*
 
-            #return_result_impl
+            #return_result
         }
     };
 
     // Variation point: what the method is called and what it says it does.
-    let (doc_comment, method_name) = match removal {
-        Removal::Hard => (
+    let (verb, method_prefix) = match removal {
+        Removal::Hard => ("delete", "delete"),
+        Removal::Soft => ("soft-delete", "soft_delete"),
+    };
+
+    let (doc_comment, method_name) = match one_or_multiple {
+        OneOrMultiple::One => (
             format!(
-                "{unique_multi_column_index_hint}\n\nTry to delete a `{struct_name}` row in the `{singular_table_name}` table {described_as}."
+                "{}\n\nTry to {verb} a `{struct_name}` row in the `{singular_table_name}` table {described_as}.",
+                shape.unique_multi_column_hint
             ),
-            format_ident!("delete_{singular_table_name}_by_{index_name}"),
+            format_ident!("{method_prefix}_{singular_table_name}_by_{index_name}"),
         ),
-        Removal::Soft => (
+        OneOrMultiple::Multiple => (
             format!(
-                "{unique_multi_column_index_hint}\n\nTry to soft-delete a `{struct_name}` row in the `{singular_table_name}` table {described_as}."
+                "Try to {verb} all `{struct_name}` rows in the `{singular_table_name}` table {described_as}."
             ),
-            format_ident!("soft_delete_{singular_table_name}_by_{index_name}"),
+            format_ident!("{method_prefix}_{plural_table_name}_by_{index_name}"),
         ),
     };
 
@@ -873,5 +742,16 @@ pub fn for_removal_one(
         method_impl,
         // A removal writes.
         read_context_compatible: false,
+    }
+}
+
+/// How an error raised after the database changed names the method it came from:
+/// "Delete One Error", "Soft Delete Many Error", and so on.
+fn removal_error_name(removal: Removal, one_or_multiple: &OneOrMultiple) -> &'static str {
+    match (removal, one_or_multiple) {
+        (Removal::Hard, OneOrMultiple::One) => "Delete One Error",
+        (Removal::Hard, OneOrMultiple::Multiple) => "Delete Many Error",
+        (Removal::Soft, OneOrMultiple::One) => "Soft Delete One Error",
+        (Removal::Soft, OneOrMultiple::Multiple) => "Soft Delete Many Error",
     }
 }
