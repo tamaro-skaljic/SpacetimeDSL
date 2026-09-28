@@ -12,7 +12,7 @@ use {
                 method::SpacetimeDSLMethod,
                 table::{
                     CascadeEntryPoints, OnDeleteStrategiesOfReferencingTables,
-                    OnDeleteStrategiesOfTheReferencedTable, SingletonKind,
+                    OnDeleteStrategiesOfTheReferencedTable, SingletonKind, SpacetimeDSLTableKind,
                     SpacetimeDSLTableMethods,
                 },
                 wrapper::WrapperMethod,
@@ -142,8 +142,8 @@ impl SpacetimeDSLColumnMethods {
             true => Some(for_singleton_delete(context)),
         };
 
-        let methods = match spacetimedsl_table.singleton {
-            Some(SingletonKind::WithoutDefault) => {
+        let methods = match spacetimedsl_table.kind {
+            SpacetimeDSLTableKind::Singleton(SingletonKind::WithoutDefault) => {
                 SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
                     get_one_option: for_singleton_get(context),
                     update: update_method_for(&IndexShape::of(index, context), context),
@@ -154,7 +154,7 @@ impl SpacetimeDSLColumnMethods {
             }
             // `internal.rs` rejects `method(update = false)` on such a table, so the upsert
             // always exists: it is the only method which writes the row.
-            Some(SingletonKind::WithDefault) => {
+            SpacetimeDSLTableKind::Singleton(SingletonKind::WithDefault) => {
                 SpacetimeDSLColumnMethods::ForUniqueIndex(SpacetimeDSLColumnMethodsForUniqueIndex {
                     get_one_option: for_singleton_get(context),
                     update: Some(for_singleton_upsert(context)),
@@ -163,7 +163,7 @@ impl SpacetimeDSLColumnMethods {
                     soft_delete_one: None,
                 })
             }
-            None => column_methods_for(index, context),
+            SpacetimeDSLTableKind::Normal { .. } => column_methods_for(index, context),
         };
 
         Some(methods)

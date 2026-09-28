@@ -24,15 +24,25 @@ pub enum SingletonKind {
     WithDefault,
 }
 
+/// Whether `#[spacetimedsl::dsl]` declares an ordinary table or a singleton.
+#[derive(Clone)]
+pub enum SpacetimeDSLTableKind {
+    /// A table without `singleton`, which holds any number of rows.
+    Normal {
+        /// `plural_name = ...`, used in the names of the methods which return many rows,
+        /// such as `get_all_entities`.
+        plural_name: Ident,
+    },
+    /// `#[dsl(singleton)]` or `#[dsl(singleton(with_default))]`. A singleton has no
+    /// `plural_name`: it holds one row, so no method returns many.
+    Singleton(SingletonKind),
+}
+
 /// What `#[spacetimedsl::dsl]` declares for the struct.
 #[derive(Clone)]
 pub struct SpacetimeDSLTable {
-    /// `None` for an ordinary table.
-    pub singleton: Option<SingletonKind>,
-    /// The `plural_name` of the table, used in the names of the methods which return many
-    /// rows, such as `get_all_entities`. For a singleton, which has no `plural_name`, the
-    /// accessor of the table.
-    pub plural_name: Ident,
+    /// Whether the table is an ordinary table, with its `plural_name`, or a singleton.
+    pub kind: SpacetimeDSLTableKind,
     /// `method(update = ...)`, which every `#[dsl]` states.
     pub has_update_method: bool,
     /// `method(delete = ...)`, `true` unless stated otherwise.
@@ -63,7 +73,7 @@ pub struct SpacetimeDSLTable {
 
 impl SpacetimeDSLTable {
     pub fn is_singleton(&self) -> bool {
-        self.singleton.is_some()
+        matches!(self.kind, SpacetimeDSLTableKind::Singleton(_))
     }
 
     pub fn is_soft_deletable(&self) -> bool {
@@ -72,7 +82,10 @@ impl SpacetimeDSLTable {
 
     /// Whether `get_<table>` falls back to `DefaultSingleton::get_default` instead of failing.
     pub fn singleton_has_default(&self) -> bool {
-        self.singleton == Some(SingletonKind::WithDefault)
+        matches!(
+            self.kind,
+            SpacetimeDSLTableKind::Singleton(SingletonKind::WithDefault)
+        )
     }
 }
 

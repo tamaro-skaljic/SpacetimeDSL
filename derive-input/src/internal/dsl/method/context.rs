@@ -10,7 +10,7 @@ use {
     crate::{
         api::{
             db::table::SpacetimeDBTable,
-            dsl::table::{CreateDSLMethodArg, SpacetimeDSLTable},
+            dsl::table::{CreateDSLMethodArg, SpacetimeDSLTable, SpacetimeDSLTableKind},
             rust::table::RustStruct,
         },
         internal::column::InternalColumn,
@@ -38,6 +38,9 @@ pub struct MethodGenerationContext<'a> {
     pub struct_name: Ident,
     pub singular_table_name: Ident,
     pub singular_table_name_as_string: String,
+    /// The `plural_name` of the table. A singleton has none and stands in with its accessor:
+    /// it has no index besides its primary key and no `get_all` or `count_of_all`, so no
+    /// method named after a plural name is generated for it.
     pub plural_table_name: Ident,
     pub primary_key_column_name: Ident,
     pub primary_key_column_name_as_string: String,
@@ -55,6 +58,10 @@ impl<'a> MethodGenerationContext<'a> {
     ) -> MethodGenerationContext<'a> {
         let singular_table_name = spacetimedb_table.singular_name.clone();
         let primary_key_column_name = primary_key_column.rust_field_name.clone();
+        let plural_table_name = match &spacetimedsl_table.kind {
+            SpacetimeDSLTableKind::Normal { plural_name } => plural_name.clone(),
+            SpacetimeDSLTableKind::Singleton(_) => singular_table_name.clone(),
+        };
 
         MethodGenerationContext {
             spacetimedb_table,
@@ -64,7 +71,7 @@ impl<'a> MethodGenerationContext<'a> {
 
             struct_name: rust_struct.name.clone(),
             singular_table_name_as_string: singular_table_name.to_string(),
-            plural_table_name: spacetimedsl_table.plural_name.clone(),
+            plural_table_name,
             primary_key_column_name_as_string: primary_key_column_name.to_string(),
             field_name_for_found_value: format_ident!("the_same_or_another_{singular_table_name}"),
             singular_table_name,

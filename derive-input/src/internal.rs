@@ -8,7 +8,7 @@ use {
     crate::{
         api::dsl::{
             hook::{HookKind, Operation, Timing},
-            table::SingletonKind,
+            table::{SingletonKind, SpacetimeDSLTableKind},
         },
         internal::dsl::{
             after, before, delete, hook, insert, method, plural_name, singleton,
@@ -52,7 +52,7 @@ pub fn try_parse(
         dsl_data.kind.singleton().is_some(),
     )?;
 
-    if let DSLTableKind::Singleton(_) = dsl_data.kind {
+    if let SpacetimeDSLTableKind::Singleton(_) = dsl_data.kind {
         reject_unique_index_on_singleton(&dsl_data.unique_indices, &table_args)?;
     }
 
@@ -342,12 +342,12 @@ fn validate(parsed: ParsedDSLArguments, args: &proc_macro2::TokenStream) -> syn:
     }
 
     let kind = if is_singleton {
-        DSLTableKind::Singleton(match singleton_with_default {
+        SpacetimeDSLTableKind::Singleton(match singleton_with_default {
             None => SingletonKind::WithoutDefault,
             Some(_) => SingletonKind::WithDefault,
         })
     } else {
-        DSLTableKind::Table {
+        SpacetimeDSLTableKind::Normal {
             plural_name: name_plural.ok_or_else(|| error::missing_plural_name(args))?,
         }
     };
@@ -363,24 +363,8 @@ fn validate(parsed: ParsedDSLArguments, args: &proc_macro2::TokenStream) -> syn:
     })
 }
 
-/// Whether `#[dsl]` declares a singleton, which has no `plural_name`, or a table, which
-/// must have one.
-pub enum DSLTableKind {
-    Singleton(SingletonKind),
-    Table { plural_name: Ident },
-}
-
-impl DSLTableKind {
-    pub fn singleton(&self) -> Option<SingletonKind> {
-        match self {
-            DSLTableKind::Singleton(singleton_kind) => Some(*singleton_kind),
-            DSLTableKind::Table { .. } => None,
-        }
-    }
-}
-
 pub struct DSLData {
-    kind: DSLTableKind,
+    kind: SpacetimeDSLTableKind,
     /// `table = <accessor>`: the `#[table]` attribute this `#[dsl]` belongs to.
     table_selector: Option<Ident>,
     unique_indices: Vec<Ident>,

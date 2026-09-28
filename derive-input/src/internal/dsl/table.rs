@@ -2,9 +2,9 @@ use {
     crate::{
         api::dsl::{
             reference::ReferencingTable,
-            table::{SingletonKind, SpacetimeDSLTable},
+            table::{SingletonKind, SpacetimeDSLTable, SpacetimeDSLTableKind},
         },
-        internal::{DSLData, DSLTableKind, column::ColumnTypeKind, dsl::column_role, error},
+        internal::{DSLData, column::ColumnTypeKind, dsl::column_role, error},
     },
     quote::format_ident,
     spacetime_bindings_macro_input::table::ColumnArgs,
@@ -16,6 +16,16 @@ use {
 enum TimestampRole {
     CreatedAt,
     UpdatedAt,
+}
+
+impl SpacetimeDSLTableKind {
+    /// The kind of the singleton, or `None` for an ordinary table.
+    pub(crate) fn singleton(&self) -> Option<SingletonKind> {
+        match self {
+            SpacetimeDSLTableKind::Singleton(singleton_kind) => Some(*singleton_kind),
+            SpacetimeDSLTableKind::Normal { .. } => None,
+        }
+    }
 }
 
 impl SpacetimeDSLTable {
@@ -143,16 +153,8 @@ impl SpacetimeDSLTable {
             ));
         }
 
-        // A singleton has no `plural_name`; the methods named after it are not generated
-        // for a singleton, so the accessor stands in.
-        let plural_name = match dsl_data.kind {
-            DSLTableKind::Singleton(_) => singular_table_name.clone(),
-            DSLTableKind::Table { plural_name } => plural_name,
-        };
-
         Ok(SpacetimeDSLTable {
-            singleton,
-            plural_name,
+            kind: dsl_data.kind,
             has_update_method,
             has_delete_method: has_delete_method.unwrap_or(true),
             soft_delete_marker,

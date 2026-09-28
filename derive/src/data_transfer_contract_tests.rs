@@ -4,7 +4,7 @@
 //! Every public struct reachable from [`Table`] is destructured without `..`, and every public
 //! enum is matched without a wildcard arm. Adding, removing or renaming a field or a variant
 //! therefore fails to compile here, which is what it does to every crate building on the model:
-//! a change of this structure is a breaking change. The assertions read a few values of two
+//! a change of this structure is a breaking change. The assertions read a few values of three
 //! parsed fixture tables, so the test also checks what the structure holds.
 
 use {
@@ -35,7 +35,7 @@ use {
             table::{
                 CascadeEntryPoints, CreateDSLMethodArg, OnDeleteStrategiesOfReferencingTables,
                 OnDeleteStrategiesOfTheReferencedTable, SingletonKind, SpacetimeDSLTable,
-                SpacetimeDSLTableMethods,
+                SpacetimeDSLTableKind, SpacetimeDSLTableMethods,
             },
             wrapper::{CreatedWrapper, UsedWrapper, WrapperMethod, WrapperType},
         },
@@ -111,8 +111,10 @@ fn the_model_holds_what_a_table_declares() {
     assert_eq!(columns, &["owner_id", "name"]);
 
     let spacetimedsl_table = &gadget.spacetimedsl_table;
-    assert!(spacetimedsl_table.singleton.is_none());
-    assert_eq!(spacetimedsl_table.plural_name, "gadgets");
+    let SpacetimeDSLTableKind::Normal { plural_name } = &spacetimedsl_table.kind else {
+        panic!("`gadget` is not a singleton");
+    };
+    assert_eq!(plural_name, "gadgets");
     assert!(spacetimedsl_table.has_update_method);
     assert!(spacetimedsl_table.has_delete_method);
     let soft_delete_marker = spacetimedsl_table
@@ -318,6 +320,27 @@ fn the_model_holds_what_a_table_declares() {
             .is_ident("run_cleanup")
     );
     assert!(!cleanup_timer.spacetimedsl_table.has_update_method);
+
+    // The struct carries the `#[primary_key] id: u8` that `#[dsl]` injects into a singleton
+    // before it calls `Table::try_parse`.
+    let feature_flags = parse_table(
+        quote! { singleton(with_default), method(update = true) },
+        quote! {
+            #[spacetimedb::table(accessor = feature_flags, public)]
+            pub struct FeatureFlags {
+                #[primary_key]
+                id: u8,
+
+                pub tutorial_is_enabled: bool,
+            }
+        },
+    );
+    visit_table(&feature_flags);
+
+    assert!(matches!(
+        feature_flags.spacetimedsl_table.kind,
+        SpacetimeDSLTableKind::Singleton(SingletonKind::WithDefault)
+    ));
 }
 
 fn parse_table(args: TokenStream, item: TokenStream) -> Table {
@@ -401,8 +424,7 @@ fn visit_index(index: &Index) {
 
 fn visit_spacetimedsl_table(spacetimedsl_table: &SpacetimeDSLTable) {
     let SpacetimeDSLTable {
-        singleton,
-        plural_name: _,
+        kind,
         has_update_method: _,
         has_delete_method: _,
         soft_delete_marker,
@@ -414,8 +436,11 @@ fn visit_spacetimedsl_table(spacetimedsl_table: &SpacetimeDSLTable) {
         hooks,
     } = spacetimedsl_table;
 
-    match singleton {
-        None | Some(SingletonKind::WithoutDefault) | Some(SingletonKind::WithDefault) => {}
+    match kind {
+        SpacetimeDSLTableKind::Normal { plural_name: _ } => {}
+        SpacetimeDSLTableKind::Singleton(
+            SingletonKind::WithoutDefault | SingletonKind::WithDefault,
+        ) => {}
     }
     if let Some(SoftDeleteMarker {
         column_name: _,

@@ -146,6 +146,22 @@ The functions `derive-input` used to build the model — among them `RustField::
 
 `api::attribute::is_dsl_attribute(&Attribute)` tells whether an attribute is `#[spacetimedsl::dsl]` in any spelling: `dsl`, `spacetimedsl::dsl` or `::spacetimedsl::dsl`. Use it instead of comparing the stringified path.
 
+#### `SpacetimeDSLTable::kind` replaces `singleton` and `plural_name`
+
+`SpacetimeDSLTable::singleton: Option<SingletonKind>` and `SpacetimeDSLTable::plural_name: Ident` became one field, `kind: SpacetimeDSLTableKind`. Only its `Normal` variant has a `plural_name`. A singleton has none; `plural_name` used to hold its accessor instead.
+
+```rust
+// 0.23
+if let Some(singleton_kind) = table.spacetimedsl_table.singleton { /* … */ }
+let plural_name = &table.spacetimedsl_table.plural_name;
+
+// 0.24
+match &table.spacetimedsl_table.kind {
+    SpacetimeDSLTableKind::Normal { plural_name } => { /* … */ }
+    SpacetimeDSLTableKind::Singleton(singleton_kind) => { /* … */ }
+}
+```
+
 #### `SpacetimeDSLMethodHooks` is a map keyed by `HookKind`
 
 `SpacetimeDSLMethodHooks` is a map keyed by the new `api::dsl::hook::HookKind` (a `Timing` and an `Operation`) instead of eight fields:
