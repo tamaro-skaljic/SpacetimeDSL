@@ -9,9 +9,10 @@
 //!
 //! Each pair in `Document` is one type written two ways, and each pair generates the same
 //! code - apart from where `prettyplease` wraps a line, because the two spellings are
-//! different lengths. `Revision` spells every column it has a role for qualified: a
-//! qualified primitive still counts as an unsigned integer for the reference-integrity
-//! guard of its foreign key, and qualified timestamps still fill the timestamp roles.
+//! different lengths. `Revision`, `ArchivedNote` and `HiddenNote` spell every column they
+//! have a role for qualified: a qualified primitive still counts as an unsigned integer for
+//! the reference-integrity guard of its foreign key, and qualified timestamps and flags
+//! still fill the timestamp and soft-delete marker roles.
 
 #[spacetimedsl::dsl(plural_name = documents, method(update = true))]
 #[spacetimedb::table(accessor = document, public)]
@@ -64,4 +65,37 @@ pub struct Revision {
 
     #[set_on_update]
     modified_at: std::option::Option<spacetimedb::Timestamp>,
+}
+
+#[spacetimedsl::dsl(
+    plural_name = archived_notes,
+    method(update = true, delete = true, soft_delete = true)
+)]
+#[spacetimedb::table(accessor = archived_note, public)]
+pub struct ArchivedNote {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    pub text: String,
+
+    deleted_at: core::option::Option<::spacetimedb::Timestamp>,
+}
+
+#[spacetimedsl::dsl(
+    plural_name = hidden_notes,
+    method(update = true, delete = true, soft_delete = true)
+)]
+#[spacetimedb::table(accessor = hidden_note, public)]
+pub struct HiddenNote {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    pub text: String,
+
+    #[set_on_soft_delete]
+    hidden: core::primitive::bool,
 }

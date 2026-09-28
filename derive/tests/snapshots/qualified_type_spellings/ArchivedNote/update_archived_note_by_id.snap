@@ -1,0 +1,19 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `ArchivedNote` row of the `archived_note` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_archived_note_by_id<'a>(
+        &'a self,
+        archived_note: ArchivedNote,
+    ) -> Result<ArchivedNote, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut archived_note = archived_note;
+        let archived_note = self.db().archived_note().id().update(archived_note);
+        Ok(archived_note)
+    }
+}
