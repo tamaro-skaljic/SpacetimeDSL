@@ -1,0 +1,19 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Gauge` row of the `gauge` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_gauge_by_id<'a>(
+        &'a self,
+        gauge: Gauge,
+    ) -> Result<Gauge, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use ::spacetimedsl::Wrapper;
+        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut gauge = gauge;
+        let gauge = self.db().gauge().id().update(gauge);
+        Ok(gauge)
+    }
+}

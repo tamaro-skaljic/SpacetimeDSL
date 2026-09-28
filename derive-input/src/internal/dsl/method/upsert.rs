@@ -63,10 +63,10 @@ impl ForeignKeyColumnScope {
         }
 
         match self {
-            ForeignKeyColumnScope::CheckedOnUpdate => internal_column
-                .rust_field_visibility
-                .to_string()
-                .ne(&RustVisibility::Private.to_string()),
+            ForeignKeyColumnScope::CheckedOnUpdate => !matches!(
+                internal_column.rust_field_visibility,
+                RustVisibility::Private
+            ),
             ForeignKeyColumnScope::CheckedOnCreate => matches!(
                 internal_column.rust_field_type_kind,
                 ColumnTypeKind::UnsignedInteger | ColumnTypeKind::Optional

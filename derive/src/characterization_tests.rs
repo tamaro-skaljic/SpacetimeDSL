@@ -226,6 +226,11 @@ fn self_referencing_cascade() {
     snapshot_fixture("self_referencing_cascade");
 }
 
+#[test]
+fn restricted_accessor_visibility() {
+    snapshot_fixture("restricted_accessor_visibility");
+}
+
 /// Expanding the same fixture twice must produce byte-identical output, otherwise the
 /// snapshots above would fail at random and a regenerated module would differ from the
 /// previous one for no reason.

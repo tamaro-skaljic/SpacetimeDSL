@@ -42,10 +42,10 @@ fn reference_integrity_checks(
 
     for column in columns {
         if skip_private_columns
-            && column
-                .rust_field_visibility
-                .to_string()
-                .eq(&crate::api::rust::visibility::RustVisibility::Private.to_string())
+            && matches!(
+                column.rust_field_visibility,
+                crate::api::rust::visibility::RustVisibility::Private
+            )
         {
             continue;
         }

@@ -139,15 +139,15 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
     for column in &input.columns {
         if first_dsl_attribute {
             if let Some(getter) = &column.spacetimedsl_column.getter {
-                table_methods.push(accessor::build(accessor::Accessor::Getter(getter))?);
+                table_methods.push(accessor::build(accessor::Accessor::Getter(getter)));
             }
 
             if let Some(mut_getter) = &column.spacetimedsl_column.mut_getter {
-                table_methods.push(accessor::build(accessor::Accessor::MutGetter(mut_getter))?)
+                table_methods.push(accessor::build(accessor::Accessor::MutGetter(mut_getter)))
             }
 
             if let Some(setter) = &column.spacetimedsl_column.setter {
-                table_methods.push(accessor::build(accessor::Accessor::Setter(setter))?)
+                table_methods.push(accessor::build(accessor::Accessor::Setter(setter)))
             }
         }
 
