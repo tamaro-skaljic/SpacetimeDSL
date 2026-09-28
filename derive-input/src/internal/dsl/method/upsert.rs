@@ -15,7 +15,7 @@
 use {
     super::{
         context::MethodGenerationContext,
-        create,
+        create::{self, CreateColumnRole},
         hook_call::{hook_tokens, hook_use_and_call},
         naming,
         reference_integrity::{
@@ -118,21 +118,14 @@ fn updated_at_column<'a>(
     spacetimedsl_table: &SpacetimeDSLTable,
     internal_columns: &'a [InternalColumn],
 ) -> Option<(&'a Ident, bool)> {
-    let column_name = spacetimedsl_table
-        .on_update_set_current_timestamp_column_name
-        .as_ref()?;
-
-    let internal_column = internal_columns
-        .iter()
-        .find(|c| c.rust_field_name.eq(column_name))
-        .unwrap_or_else(|| {
-            panic!("The column {column_name} named by an on_update attribute must be one of this table's columns")
-        });
-
-    Some((
-        &internal_column.rust_field_name,
-        internal_column.rust_field_type_kind == ColumnTypeKind::Optional,
-    ))
+    internal_columns.iter().find_map(|internal_column| {
+        match CreateColumnRole::of(spacetimedsl_table, internal_column) {
+            CreateColumnRole::SetOnUpdate { optional } => {
+                Some((&internal_column.rust_field_name, optional))
+            }
+            _ => None,
+        }
+    })
 }
 
 /// `<row>.<updated_at> = <now>;`, or nothing when the table declares no such column.
@@ -298,21 +291,22 @@ fn set_created_at_on_insert(
     internal_columns: &[InternalColumn],
     row: &Ident,
 ) -> TokenStream {
-    match &spacetimedsl_table.on_insert_set_current_timestamp_column_name {
+    let created_at_column = internal_columns.iter().find_map(|internal_column| {
+        match CreateColumnRole::of(spacetimedsl_table, internal_column) {
+            CreateColumnRole::SetOnCreate { optional } => {
+                Some((&internal_column.rust_field_name, optional))
+            }
+            _ => None,
+        }
+    });
+
+    match created_at_column {
         None => TokenStream::default(),
-        Some(column_name) => {
-            let internal_column = internal_columns
-                .iter()
-                .find(|column| column.rust_field_name.eq(column_name))
-                .unwrap_or_else(|| {
-                    panic!(
-                        "The column {column_name} named by an on_insert attribute must be one of this table's columns"
-                    )
-                });
+        Some((column_name, optional)) => {
             let current_timestamp = runtime::current_timestamp(&quote! { self });
-            let timestamp_value = match internal_column.rust_field_type_kind {
-                ColumnTypeKind::Optional => quote! { Some(#current_timestamp) },
-                _ => current_timestamp,
+            let timestamp_value = match optional {
+                true => quote! { Some(#current_timestamp) },
+                false => current_timestamp,
             };
 
             quote! {

@@ -145,7 +145,7 @@ impl Document {
 ///
 pub struct CreateDocument {
     pub bare_title: String,
-    pub qualified_title: String,
+    pub qualified_title: std::string::String,
     pub bare_note: Option<DocumentBareNote>,
     pub qualified_note: Option<DocumentQualifiedNote>,
 }
