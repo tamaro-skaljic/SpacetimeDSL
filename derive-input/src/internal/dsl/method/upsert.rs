@@ -347,6 +347,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
     let checks_on_update = reference_integrity_checks_on_update(
         spacetimedb_table,
         internal_columns,
+        field_name_for_found_value,
         &index_columns,
         &OneOrMultiple::One,
         primary_key_column,

@@ -101,9 +101,11 @@ pub fn reference_integrity_checks_on_create(
         let referenced_table_name = &foreign_key.table_name;
 
         let primary_key_column_name_of_referenced_table = &foreign_key.primary_key_column_name;
-        let get_row_of_referenced_table_by_primary_key_method_name = format_ident!(
-            "get_{referenced_table_name}_by_{primary_key_column_name_of_referenced_table}"
-        );
+        let get_row_of_referenced_table_by_primary_key_method_name =
+            naming::get_by_index_method_name(
+                referenced_table_name,
+                primary_key_column_name_of_referenced_table,
+            );
 
         let referencing_table_name = &spacetimedb_table.singular_name;
         let referencing_table_name_as_string = referencing_table_name.to_string();
@@ -141,6 +143,7 @@ pub fn reference_integrity_checks_on_create(
 pub fn reference_integrity_checks_on_update(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &[InternalColumn],
+    field_name_for_found_value: &Ident,
     index_columns: &[Ident],
     one_or_multiple: &OneOrMultiple,
     primary_key_column: &InternalColumn,
@@ -150,9 +153,11 @@ pub fn reference_integrity_checks_on_update(
         let referenced_table_name = &foreign_key.table_name;
 
         let primary_key_column_name_of_referenced_table = &foreign_key.primary_key_column_name;
-        let get_row_of_referenced_table_by_primary_key_method_name = format_ident!(
-            "get_{referenced_table_name}_by_{primary_key_column_name_of_referenced_table}"
-        );
+        let get_row_of_referenced_table_by_primary_key_method_name =
+            naming::get_by_index_method_name(
+                referenced_table_name,
+                primary_key_column_name_of_referenced_table,
+            );
 
         let referencing_table_name = &spacetimedb_table.singular_name;
         let referencing_table_name_as_string = referencing_table_name.to_string();
@@ -160,9 +165,6 @@ pub fn reference_integrity_checks_on_update(
         let primary_key_column_name_of_referencing_table = &primary_key_column.rust_field_name;
         let referencing_table_column_getter_name =
             naming::getter_name(referencing_table_column_name);
-
-        let field_name_for_found_value =
-            format_ident!("the_same_or_another_{referencing_table_name}");
 
         let row_value_getters = index_columns
             .iter()
@@ -231,6 +233,7 @@ pub fn reference_integrity_checks_on_update(
 pub fn multi_column_index_checks(
     action: Action,
     singular_table_name: &Ident,
+    field_name_for_found_value: &Ident,
     spacetimedb_table: &SpacetimeDBTable,
     internal_columns: &[InternalColumn],
     primary_key_column_name: &Ident,
@@ -270,12 +273,11 @@ pub fn multi_column_index_checks(
         let mut multi_column_index_check = unique_multi_column_index_check(
             &action,
             singular_table_name,
+            field_name_for_found_value,
             index_name,
             index_column_names,
             &row_value_getters,
         );
-
-        let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
 
         let unique_constraint_violation_error = unique_multi_column_index_violation(
             &action,
@@ -329,12 +331,11 @@ fn row_value_getter(internal_column: &InternalColumn, singular_table_name: &Iden
 pub fn unique_multi_column_index_check(
     action: &Action,
     singular_table_name: &Ident,
+    field_name_for_found_value: &Ident,
     index_name: &Ident,
     index_column_names: &[Ident],
     row_value_getters: &[TokenStream],
 ) -> TokenStream {
-    let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
-
     let unique_constraint_violation_error = unique_multi_column_index_violation(
         action,
         singular_table_name,

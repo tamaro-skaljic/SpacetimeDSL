@@ -56,6 +56,7 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
     let multi_column_index_checks = multi_column_index_checks(
         Action::Update,
         singular_table_name,
+        field_name_for_found_value,
         spacetimedb_table,
         internal_columns,
         primary_key_column_name,
@@ -87,6 +88,7 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
     let reference_integrity_checks = reference_integrity_checks_on_update(
         spacetimedb_table,
         internal_columns,
+        field_name_for_found_value,
         &shape.index_columns,
         &one_or_multiple,
         primary_key_column,

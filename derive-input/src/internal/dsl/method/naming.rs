@@ -21,6 +21,12 @@ use {
     ident_case::RenameRule, quote::format_ident, syn::Ident,
 };
 
+/// `get_<table>_by_<index>`, the method that finds rows by an index. A referencing table
+/// calls it on the table its foreign key names, so both sides have to build it here.
+pub(crate) fn get_by_index_method_name(table_name: &Ident, index_name: &Ident) -> Ident {
+    format_ident!("get_{table_name}_by_{index_name}")
+}
+
 /// `get_<column>`, the getter of a column.
 pub(crate) fn getter_name(column_name: &Ident) -> Ident {
     format_ident!("get_{column_name}")

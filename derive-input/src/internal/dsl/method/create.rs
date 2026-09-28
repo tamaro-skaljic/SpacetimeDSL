@@ -308,6 +308,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
     let multi_column_index_checks = multi_column_index_checks(
         Action::Create,
         singular_table_name,
+        field_name_for_found_value,
         spacetimedb_table,
         internal_columns,
         primary_key_column_name,

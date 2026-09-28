@@ -549,6 +549,7 @@ pub fn for_removal_one(
             let multi_column_index_check = unique_multi_column_index_check(
                 &Action::Delete,
                 singular_table_name,
+                field_name_for_found_value,
                 index_name,
                 &shape.index_columns,
                 &row_value_getters,
