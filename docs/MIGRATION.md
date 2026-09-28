@@ -16,6 +16,16 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
   impl spacetimedsl::Wrapper<i32> for ConfigId { /* … */ }
   ```
 
+- `ReferenceIntegrityViolationError::OnCreateOrUpdate::create_or_update` has the new type `error::CreateOrUpdate` instead of `error::Action`, so it can no longer hold an action that is not a write, and formatting the error can no longer panic:
+
+  ```rust
+  // 0.23
+  if let ReferenceIntegrityViolationError::OnCreateOrUpdate { create_or_update: Action::Create, .. } = error { /* … */ }
+
+  // 0.24
+  if let ReferenceIntegrityViolationError::OnCreateOrUpdate { create_or_update: CreateOrUpdate::Create, .. } = error { /* … */ }
+  ```
+
 ### Newly rejected inputs
 
 ### Changed messages and generated code

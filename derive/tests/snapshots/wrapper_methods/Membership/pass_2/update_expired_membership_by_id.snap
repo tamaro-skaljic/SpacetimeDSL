@@ -47,7 +47,7 @@ Try to update a `Membership` row of the `expired_membership` table whose value m
                         return Err(
                             crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                 table_name: "expired_membership".into(),
-                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                 column_names_and_row_values: format!(
                                     "{{ {} : {} }}", "account_id", account_id
                                 )

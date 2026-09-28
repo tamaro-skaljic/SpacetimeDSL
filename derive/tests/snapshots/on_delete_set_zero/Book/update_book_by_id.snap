@@ -47,7 +47,7 @@ Try to update a `Book` row of the `book` table whose value matches the value fro
                         return Err(
                             crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                 table_name: "book".into(),
-                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                 column_names_and_row_values: format!(
                                     "{{ {} : {} }}", "author_id", author_id
                                 )

@@ -51,7 +51,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             return Err(
                                 crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                     table_name: "active_tournament".into(),
-                                    create_or_update: crate::spacetimedsl::error::Action::Update,
+                                    create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                     column_names_and_row_values: format!(
                                         "{{ {} : {} }}", "region_id", region_id
                                     )
@@ -80,7 +80,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                         return Err(
                             crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                 table_name: "active_tournament".into(),
-                                create_or_update: crate::spacetimedsl::error::Action::Create,
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                                 column_names_and_row_values: format!(
                                     "{{ {} : {} }}", region_id, active_tournament
                                     .get_region_id()
@@ -99,7 +99,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                         return Err(
                             crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                 table_name: "active_tournament".into(),
-                                create_or_update: crate::spacetimedsl::error::Action::Create,
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                                 column_names_and_row_values: format!(
                                     "{{ {} : {} }}", qualifier_region_id, active_tournament
                                     .get_qualifier_region_id()

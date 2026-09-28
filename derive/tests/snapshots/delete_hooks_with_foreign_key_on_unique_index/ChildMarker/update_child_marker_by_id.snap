@@ -47,7 +47,7 @@ Try to update a `ChildMarker` row of the `child_marker` table whose value matche
                         return Err(
                             crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                 table_name: "child_marker".into(),
-                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                 column_names_and_row_values: format!(
                                     "{{ {} : {} }}", "parent_id", parent_id
                                 )

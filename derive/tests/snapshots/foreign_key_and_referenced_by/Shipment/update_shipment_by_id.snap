@@ -48,7 +48,7 @@ Try to update a `Shipment` row of the `shipment` table whose value matches the v
                         return Err(
                             crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                 table_name: "shipment".into(),
-                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                 column_names_and_row_values: format!(
                                     "{{ {} : {} }}", "origin_warehouse_id", origin_warehouse_id
                                 )
@@ -91,7 +91,7 @@ Try to update a `Shipment` row of the `shipment` table whose value matches the v
                         return Err(
                             crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                 table_name: "shipment".into(),
-                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                 column_names_and_row_values: format!(
                                     "{{ {} : {} }}", "destination_warehouse_id",
                                     destination_warehouse_id

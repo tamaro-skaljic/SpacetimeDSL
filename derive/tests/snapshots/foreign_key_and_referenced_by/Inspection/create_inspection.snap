@@ -21,7 +21,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                     return Err(
                         crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                             table_name: "inspection".into(),
-                            create_or_update: crate::spacetimedsl::error::Action::Create,
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
                                 "{{ {} : {} }}", warehouse_id, inspection.get_warehouse_id()
                             )

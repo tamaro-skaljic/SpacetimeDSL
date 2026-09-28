@@ -26,12 +26,27 @@ pub enum SpacetimeDSLError {
 pub enum ReferenceIntegrityViolationError {
     OnCreateOrUpdate {
         table_name: Box<str>,
-        create_or_update: Action,
+        create_or_update: CreateOrUpdate,
         column_names_and_row_values: Box<str>,
     },
     OnDelete(DeletionResult),
 }
 
+/// The write a reference integrity violation on create or update interrupted.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CreateOrUpdate {
+    Create,
+    Update,
+}
+
+impl Display for CreateOrUpdate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CreateOrUpdate::Create => write!(f, "create"),
+            CreateOrUpdate::Update => write!(f, "update"),
+        }
+    }
+}
 #[derive(Debug)]
 pub enum Action {
     Create,
@@ -79,16 +94,18 @@ impl Display for OnDeleteStrategy {
 
 impl Display for SpacetimeDSLError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut message: String = String::new();
+        let spacetimedb_gives_no_details =
+            "Unfortunately SpacetimeDB doesn't provide more information";
 
-        let dig_spacetimedb = "Unfortunately SpacetimeDB doesn't provide more information";
-
-        message.push_str(&match self {
-            SpacetimeDSLError::Error(error) => error.into(),
+        match self {
+            SpacetimeDSLError::Error(error) => write!(f, "{error}"),
             SpacetimeDSLError::NotFoundError {
                 table_name,
-                column_names_and_row_values
-            } => format!("Not Found Error while trying to find a row in the `{table_name}` table with `{column_names_and_row_values}`!"),
+                column_names_and_row_values,
+            } => write!(
+                f,
+                "Not Found Error while trying to find a row in the `{table_name}` table with `{column_names_and_row_values}`!"
+            ),
             SpacetimeDSLError::UniqueConstraintViolation {
                 table_name,
                 action,
@@ -96,49 +113,59 @@ impl Display for SpacetimeDSLError {
                 one_or_multiple,
                 column_names_and_row_values,
             } => {
-                let column_names_and_row_values = match error_from {
-                    ErrorFrom::SpacetimeDB => format!("! {dig_spacetimedb}, so here are all columns and their values: `{column_names_and_row_values}`."),
+                write!(
+                    f,
+                    "Unique Constraint Violation Error while trying to {action} a row in the `{table_name}` table"
+                )?;
+
+                match error_from {
+                    ErrorFrom::SpacetimeDB => write!(
+                        f,
+                        "! {spacetimedb_gives_no_details}, so here are all columns and their values: `{column_names_and_row_values}`."
+                    ),
                     ErrorFrom::SpacetimeDSL => {
                         let one_or_multiple = match one_or_multiple {
                             OneOrMultiple::One => "",
-                            OneOrMultiple::Multiple => " There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the unique multi-column index feature of SpacetimeDSL is broken.",
+                            OneOrMultiple::Multiple => {
+                                " There can be two reasons for this: You are inserting or updating somewhere using spacetimedb::ReducerContext instead of spacetimedsl::DSL or the unique multi-column index feature of SpacetimeDSL is broken."
+                            }
                         };
-                        format!(" because of `{column_names_and_row_values}`!{one_or_multiple}")
-                    },
-                };
-
-                format!("Unique Constraint Violation Error while trying to {action} a row in the `{table_name}` table{column_names_and_row_values}")
-            }
-            SpacetimeDSLError::AutoIncOverflow { table_name } => {
-                format!("Auto Inc Overflow Error on the `{table_name}` table! {dig_spacetimedb}.")
-            }
-            SpacetimeDSLError::ReferenceIntegrityViolation(error) => {
-                match error {
-                    ReferenceIntegrityViolationError::OnCreateOrUpdate {
-                        table_name,
-                        create_or_update,
-                        column_names_and_row_values
-                    } => {
-                        let create_or_update = match create_or_update {
-                            Action::Get | Action::Delete | Action::SoftDelete => panic!("Reference Integrity Violation Error On Create Or Update only allowed while creating or updating a row."),
-                            action => action.to_string()
-                        };
-
-                        format!("Reference Integrity Violation Error while trying to {create_or_update} a row in the `{table_name}` table because of `{column_names_and_row_values}`!")
-                    },
-                    ReferenceIntegrityViolationError::OnDelete(deletion_result) => {
-                        let one_or_multiple_rows = match deletion_result.one_or_multiple {
-                            OneOrMultiple::One => "a row",
-                            OneOrMultiple::Multiple => "multiple rows",
-                        };
-
-                        format!("Reference Integrity Violation Error while trying to delete {one_or_multiple_rows} in the `{}` table because of:\n\n{}", &deletion_result.table_name, deletion_result)
-                    },
+                        write!(
+                            f,
+                            " because of `{column_names_and_row_values}`!{one_or_multiple}"
+                        )
+                    }
                 }
             }
-        });
+            SpacetimeDSLError::AutoIncOverflow { table_name } => {
+                write!(
+                    f,
+                    "Auto Inc Overflow Error on the `{table_name}` table! {spacetimedb_gives_no_details}."
+                )
+            }
+            SpacetimeDSLError::ReferenceIntegrityViolation(error) => match error {
+                ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                    table_name,
+                    create_or_update,
+                    column_names_and_row_values,
+                } => write!(
+                    f,
+                    "Reference Integrity Violation Error while trying to {create_or_update} a row in the `{table_name}` table because of `{column_names_and_row_values}`!"
+                ),
+                ReferenceIntegrityViolationError::OnDelete(deletion_result) => {
+                    let one_or_multiple_rows = match deletion_result.one_or_multiple {
+                        OneOrMultiple::One => "a row",
+                        OneOrMultiple::Multiple => "multiple rows",
+                    };
 
-        write!(f, "{message}")
+                    write!(
+                        f,
+                        "Reference Integrity Violation Error while trying to delete {one_or_multiple_rows} in the `{}` table because of:\n\n{}",
+                        &deletion_result.table_name, deletion_result
+                    )
+                }
+            },
+        }
     }
 }
 

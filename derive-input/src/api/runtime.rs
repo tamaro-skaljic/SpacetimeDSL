@@ -91,17 +91,17 @@ pub fn reference_integrity_violation_on_delete(deletion_result: &impl ToTokens) 
 }
 
 /// `SpacetimeDSLError::ReferenceIntegrityViolation(ReferenceIntegrityViolationError::OnCreateOrUpdate { .. })`.
-/// `action` names a variant of `error::Action`.
+/// `create_or_update` names a variant of `error::CreateOrUpdate`.
 pub fn reference_integrity_violation_on_create_or_update(
     table_name: &impl ToTokens,
-    action: &impl ToTokens,
+    create_or_update: &impl ToTokens,
     column_names_and_row_values: &impl ToTokens,
 ) -> TokenStream {
     quote! {
         crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(
             crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                 table_name: #table_name.into(),
-                create_or_update: crate::spacetimedsl::error::Action::#action,
+                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::#create_or_update,
                 column_names_and_row_values: #column_names_and_row_values.into()
             }
         )

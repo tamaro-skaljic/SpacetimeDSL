@@ -1,3 +1,4 @@
+use crate::spacetimedsl::error::CreateOrUpdate;
 use crate::spacetimedsl::prelude::*;
 use spacetimedb::Timestamp;
 
@@ -482,11 +483,7 @@ fn update_rejects_a_new_reference_to_a_deleted_row(
 
     let update = dsl.update_entity_relationship4_by_id(referencing);
 
-    if update.is_ok() {
-        return Err("Shouldn't be able to set `parent_entity_relationship4_id` to the id of a deleted entity relationship 4!".to_string());
-    }
-
-    Ok(())
+    expect_reference_integrity_violation(update, CreateOrUpdate::Update, "update")
 }
 
 fn create_rejects_a_reference_to_a_deleted_row(
@@ -497,8 +494,50 @@ fn create_rejects_a_reference_to_a_deleted_row(
 
     let creation = create_entity_relationship4(dsl, deleted.get_id());
 
-    if creation.is_ok() {
-        return Err("Shouldn't be able to create an entity relationship 4 whose `parent_entity_relationship4_id` is the id of a deleted one!".to_string());
+    expect_reference_integrity_violation(creation, CreateOrUpdate::Create, "create")
+}
+
+/// Checks that writing an entity relationship 4 whose `parent_entity_relationship4_id` names
+/// a deleted row failed with a reference integrity violation of the expected write.
+fn expect_reference_integrity_violation(
+    write: Result<EntityRelationship4, SpacetimeDSLError>,
+    expected_write: CreateOrUpdate,
+    expected_verb: &str,
+) -> Result<(), String> {
+    let error = match write {
+        Err(
+            error @ SpacetimeDSLError::ReferenceIntegrityViolation(
+                ReferenceIntegrityViolationError::OnCreateOrUpdate { .. },
+            ),
+        ) => error,
+        other => {
+            return Err(format!(
+                "Shouldn't be able to {expected_verb} an entity relationship 4 whose `parent_entity_relationship4_id` is the id of a deleted one! Got: {other:?}"
+            ));
+        }
+    };
+
+    let SpacetimeDSLError::ReferenceIntegrityViolation(
+        ReferenceIntegrityViolationError::OnCreateOrUpdate {
+            create_or_update, ..
+        },
+    ) = &error
+    else {
+        unreachable!("the error was matched as a reference integrity violation on a write");
+    };
+    if create_or_update.ne(&expected_write) {
+        return Err(format!(
+            "The reference integrity violation should name the {expected_verb}! Got: {create_or_update}"
+        ));
+    }
+
+    let expected_message = format!(
+        "Reference Integrity Violation Error while trying to {expected_verb} a row in the `entity_relationship4` table"
+    );
+    if !error.to_string().starts_with(&expected_message) {
+        return Err(format!(
+            "The message of the reference integrity violation should start with \"{expected_message}\"! Got: {error}"
+        ));
     }
 
     Ok(())

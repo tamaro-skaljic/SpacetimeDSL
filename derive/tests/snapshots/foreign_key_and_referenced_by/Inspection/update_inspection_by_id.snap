@@ -47,7 +47,7 @@ Try to update a `Inspection` row of the `inspection` table whose value matches t
                         return Err(
                             crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                                 table_name: "inspection".into(),
-                                create_or_update: crate::spacetimedsl::error::Action::Update,
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                 column_names_and_row_values: format!(
                                     "{{ {} : {} }}", "warehouse_id", warehouse_id
                                 )

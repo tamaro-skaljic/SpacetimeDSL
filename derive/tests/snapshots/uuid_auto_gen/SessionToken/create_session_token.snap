@@ -25,7 +25,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 return Err(
                     crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                         table_name: "session_token".into(),
-                        create_or_update: crate::spacetimedsl::error::Action::Create,
+                        create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                         column_names_and_row_values: format!(
                             "{{ {} : {} }}", account_id, session_token.get_account_id()
                         )

@@ -26,7 +26,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                     return Err(
                         crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                             table_name: "shipment".into(),
-                            create_or_update: crate::spacetimedsl::error::Action::Create,
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
                                 "{{ {} : {} }}", origin_warehouse_id, shipment
                                 .get_origin_warehouse_id()
@@ -44,7 +44,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                     return Err(
                         crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
                             table_name: "shipment".into(),
-                            create_or_update: crate::spacetimedsl::error::Action::Create,
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
                                 "{{ {} : {} }}", destination_warehouse_id, shipment
                                 .get_destination_warehouse_id()
