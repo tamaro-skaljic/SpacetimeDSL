@@ -263,7 +263,6 @@ fn get_column_dsl_methods(
     Ok(dsl_methods)
 }
 
-// FIXME: We can also add the table definition directly to this malformed code generation result, so that it can just be copied and pasted for easier debugging.
 pub fn malformed_code_generation_result(result: String) -> String {
     let mut result = result.replace("\n", " ");
 
@@ -285,24 +284,14 @@ Please include your table definition as well as the following, malformed, code g
 }
 
 fn map_args(args: &[SpacetimeDSLArg]) -> Vec<TokenStream> {
-    let mut function_args = vec![];
+    args.iter()
+        .map(|arg| {
+            let arg_name = &arg.arg_name;
+            let arg_type = arg.arg_type.actual_type();
 
-    for arg in args {
-        let arg_name = &arg.arg_name;
-        let arg_type = match &arg.arg_type {
-            spacetimedsl_derive_input::api::dsl::method::SpacetimeDSLArgType::Normal(
-                actual_type,
-            ) => actual_type,
-            spacetimedsl_derive_input::api::dsl::method::SpacetimeDSLArgType::Wrapped {
-                wrapped_type: _,
-                actual_type,
-            } => actual_type,
-        };
-
-        function_args.push(quote! {
-            #arg_name: #arg_type
-        });
-    }
-
-    function_args
+            quote! {
+                #arg_name: #arg_type
+            }
+        })
+        .collect()
 }

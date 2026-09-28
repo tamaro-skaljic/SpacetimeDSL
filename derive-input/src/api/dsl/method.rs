@@ -49,3 +49,12 @@ pub enum SpacetimeDSLArgType {
         actual_type: TokenStream,
     },
 }
+
+impl SpacetimeDSLArgType {
+    /// The type of the parameter as written, whether or not its column has a wrapper type.
+    pub fn actual_type(&self) -> &TokenStream {
+        match self {
+            Self::Normal(actual_type) | Self::Wrapped { actual_type, .. } => actual_type,
+        }
+    }
+}

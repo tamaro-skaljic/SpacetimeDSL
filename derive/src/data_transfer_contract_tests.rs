@@ -138,13 +138,19 @@ fn the_model_holds_what_a_table_declares() {
         panic!("one table references the table");
     };
     assert_eq!(referencing_table.table_name, "part");
+    let create_dsl_method_arg = spacetimedsl_table
+        .create_dsl_method_arg
+        .as_ref()
+        .expect("the table has a create method");
+    assert_eq!(create_dsl_method_arg.struct_name, "CreateGadget");
+    let owner_id_member = create_dsl_method_arg
+        .struct_members
+        .iter()
+        .find(|member| member.arg_name == "owner_id")
+        .expect("the caller supplies `owner_id`");
     assert_eq!(
-        spacetimedsl_table
-            .create_dsl_method_arg
-            .as_ref()
-            .expect("the table has a create method")
-            .struct_name,
-        "CreateGadget"
+        owner_id_member.arg_type.actual_type().to_string(),
+        "crate :: owner :: OwnerId"
     );
     let before_insert = spacetimedsl_table
         .hooks

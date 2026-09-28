@@ -284,10 +284,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
             .iter()
             .map(|member| {
                 let member_name = &member.arg_name;
-                let member_type = match &member.arg_type {
-                    SpacetimeDSLArgType::Normal(member_type) => member_type,
-                    SpacetimeDSLArgType::Wrapped { actual_type, .. } => actual_type,
-                };
+                let member_type = member.arg_type.actual_type();
                 quote! {
                     pub #member_name : #member_type
                 }
