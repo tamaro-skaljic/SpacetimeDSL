@@ -119,10 +119,7 @@ impl Document {
         let bare_note = bare_note
             .map(|value| Into::<DocumentBareNote>::into(value).value());
         let old_value = std::mem::replace(&mut self.bare_note, bare_note);
-        match old_value {
-            Some(old_value) => Some(DocumentBareNote::new(old_value)),
-            None => None,
-        }
+        old_value.map(DocumentBareNote::new)
     }
     ///
     pub fn get_qualified_note(&self) -> Option<DocumentQualifiedNote> {
@@ -142,10 +139,7 @@ impl Document {
         let qualified_note = qualified_note
             .map(|value| Into::<DocumentQualifiedNote>::into(value).value());
         let old_value = std::mem::replace(&mut self.qualified_note, qualified_note);
-        match old_value {
-            Some(old_value) => Some(DocumentQualifiedNote::new(old_value)),
-            None => None,
-        }
+        old_value.map(DocumentQualifiedNote::new)
     }
 }
 ///

@@ -159,10 +159,7 @@ impl Reminder {
         let due_at = due_at.into();
         let due_at = due_at.map(|value| Into::<ReminderDueAt>::into(value).value());
         let old_value = std::mem::replace(&mut self.due_at, due_at);
-        match old_value {
-            Some(old_value) => Some(ReminderDueAt::new(old_value)),
-            None => None,
-        }
+        old_value.map(ReminderDueAt::new)
     }
 }
 ///

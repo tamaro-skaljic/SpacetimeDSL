@@ -14,34 +14,19 @@ impl MutGetter {
             return None;
         };
 
+        // A wrapped column is changed through its setter, which takes the wrapper.
+        if wrapper_type.is_some() {
+            return None;
+        }
+
         let column_name = &rust_field.name;
-
-        let method_visibility = rust_field.visibility.clone();
-        let method_name = get_mut_getter_method_name(column_name);
-        let return_type;
-        let method_impl;
-
-        match wrapper_type {
-            Some(_) => {
-                return None;
-            }
-            None => {
-                let rt = &rust_field.type_name_or_path;
-                return_type = quote! {
-                    &mut #rt
-                };
-
-                method_impl = quote! {
-                    &mut self.#column_name
-                };
-            }
-        };
+        let column_type = &rust_field.type_name_or_path;
 
         Some(MutGetter {
-            method_visibility,
-            method_name,
-            return_type,
-            method_impl,
+            method_visibility: rust_field.visibility.clone(),
+            method_name: get_mut_getter_method_name(column_name),
+            return_type: quote! { &mut #column_type },
+            method_impl: quote! { &mut self.#column_name },
         })
     }
 }

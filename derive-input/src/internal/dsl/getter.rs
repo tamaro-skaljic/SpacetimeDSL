@@ -13,61 +13,43 @@ impl Getter {
     ) -> Getter {
         let column_name = &rust_field.name;
 
-        let method_name = get_getter_method_name(column_name);
-        let return_type;
-        let method_impl;
+        let (return_type, method_impl) = match wrapper_type {
+            Some(wrapper_type) if is_option => {
+                let wrapper = wrapper_type.wrapper_path();
 
-        match wrapper_type {
+                // A created wrapper wraps the whole `Option`, a used one only its content.
+                let wrapped_value = match wrapper_type {
+                    WrapperType::Created(_) => quote! { Some(value.clone()) },
+                    WrapperType::Used(_) => quote! { value.clone() },
+                };
+
+                (
+                    quote! { Option<#wrapper> },
+                    quote! {
+                        match &self.#column_name {
+                            None => None,
+                            Some(value) => Some(#wrapper::new(#wrapped_value)),
+                        }
+                    },
+                )
+            }
             Some(wrapper_type) => {
-                let wrapper_type_name_or_path = &wrapper_type.wrapper_path();
+                let wrapper = wrapper_type.wrapper_path();
 
-                if is_option {
-                    return_type = quote! {
-                        Option<#wrapper_type_name_or_path>
-                    };
-
-                    match wrapper_type {
-                        WrapperType::Created(_) => {
-                            method_impl = quote! {
-                                match &self.#column_name {
-                                    None => None,
-                                    Some(value) => Some(#wrapper_type_name_or_path::new(Some(value.clone()))),
-                                }
-                            };
-                        }
-                        WrapperType::Used(_) => {
-                            method_impl = quote! {
-                                match &self.#column_name {
-                                    None => None,
-                                    Some(value) => Some(#wrapper_type_name_or_path::new(value.clone())),
-                                }
-                            };
-                        }
-                    }
-                } else {
-                    return_type = quote! {
-                        #wrapper_type_name_or_path
-                    };
-
-                    method_impl = quote! {
-                        #wrapper_type_name_or_path::new(self.#column_name.clone())
-                    };
-                }
+                (
+                    quote! { #wrapper },
+                    quote! { #wrapper::new(self.#column_name.clone()) },
+                )
             }
             None => {
-                let rt = &rust_field.type_name_or_path;
-                return_type = quote! {
-                    &#rt
-                };
+                let column_type = &rust_field.type_name_or_path;
 
-                method_impl = quote! {
-                    &self.#column_name
-                };
+                (quote! { &#column_type }, quote! { &self.#column_name })
             }
         };
 
         Getter {
-            method_name,
+            method_name: get_getter_method_name(column_name),
             return_type,
             method_impl,
         }
