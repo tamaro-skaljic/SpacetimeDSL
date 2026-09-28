@@ -534,39 +534,18 @@ fn removal_method(
     // over the rows when there are many. A soft deletion writes each row separately and its
     // before hook hands back the row to write, so its hooks belong inside `retire_row`
     // rather than around it; the two outer slots are then empty.
-    let hard_deletion_hook = |hook_kind| match removal {
-        Removal::Hard => hook_tokens(
-            spacetimedsl_table.hooks.get(hook_kind),
-            |hook_function_name| {
-                let hook_call = runtime::dsl_method_hooks_call(
-                    hook_function_name,
-                    &quote! { self, &row_to_delete },
-                );
-
-                match one_or_multiple {
-                    OneOrMultiple::One => quote! {
-                        #hook_call?;
-                    },
-                    OneOrMultiple::Multiple => quote! {
-                        for row_to_delete in &rows_to_delete {
-                            #hook_call?;
-                        }
-                    },
-                }
-            },
-        ),
+    let deletion_hook = |hook_kind| match removal {
+        Removal::Hard => hard_deletion_hook(spacetimedsl_table, hook_kind, one_or_multiple),
         Removal::Soft => TokenStream::default(),
     };
 
-    let before_delete_hook = hard_deletion_hook(HookKind::BEFORE_DELETE);
-    let after_delete_hook = hard_deletion_hook(HookKind::AFTER_DELETE);
+    let before_delete_hook = deletion_hook(HookKind::BEFORE_DELETE);
+    let after_delete_hook = deletion_hook(HookKind::AFTER_DELETE);
 
     // Variation point: the statement that writes, and the check around it.
     let write = match (removal, one_or_multiple) {
         (Removal::Hard, OneOrMultiple::One) => {
-            let count_mismatch_error = runtime::generic_error(&quote! {
-                "Delete One Error: `count_of_rows_to_delete ( 1 ) != ( 0 ) count_of_deleted_rows`!".to_string()
-            });
+            let count_mismatch_error = delete_one_count_mismatch_error();
 
             quote! {
                 match self
@@ -754,4 +733,40 @@ fn removal_error_name(removal: Removal, one_or_multiple: &OneOrMultiple) -> &'st
         (Removal::Soft, OneOrMultiple::One) => "Soft Delete One Error",
         (Removal::Soft, OneOrMultiple::Multiple) => "Soft Delete Many Error",
     }
+}
+
+/// The `before_delete` or `after_delete` hook of a hard deletion: one call on
+/// `row_to_delete`, or one per row in `rows_to_delete`.
+pub(super) fn hard_deletion_hook(
+    spacetimedsl_table: &SpacetimeDSLTable,
+    hook_kind: HookKind,
+    one_or_multiple: &OneOrMultiple,
+) -> TokenStream {
+    hook_tokens(
+        spacetimedsl_table.hooks.get(hook_kind),
+        |hook_function_name| {
+            let hook_call = runtime::dsl_method_hooks_call(
+                hook_function_name,
+                &quote! { self, &row_to_delete },
+            );
+
+            match one_or_multiple {
+                OneOrMultiple::One => quote! {
+                    #hook_call?;
+                },
+                OneOrMultiple::Multiple => quote! {
+                    for row_to_delete in &rows_to_delete {
+                        #hook_call?;
+                    }
+                },
+            }
+        },
+    )
+}
+
+/// The error a one-row hard deletion returns when SpacetimeDB deleted nothing.
+pub(super) fn delete_one_count_mismatch_error() -> TokenStream {
+    runtime::generic_error(&quote! {
+        "Delete One Error: `count_of_rows_to_delete ( 1 ) != ( 0 ) count_of_deleted_rows`!".to_string()
+    })
 }

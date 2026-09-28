@@ -12,7 +12,6 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     > {
         use crate::spacetimedsl::Wrapper;
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use crate::spacetimedsl::itertools::Itertools;
         let row_to_delete = match self.db().installation().id().find(&0u8) {
             None => {
                 return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
