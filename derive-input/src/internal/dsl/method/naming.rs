@@ -88,13 +88,8 @@ pub fn referencing_table_compile_error_check_for_soft_deletions(
 }
 
 /// How a dispatcher name ends, which is the only part the kind of removal changes.
-fn removal_suffix(removal: Removal, one_or_multiple: &OneOrMultiple) -> &'static str {
-    match (removal, one_or_multiple) {
-        (Removal::Hard, OneOrMultiple::One) => "was_deleted",
-        (Removal::Hard, OneOrMultiple::Multiple) => "were_deleted",
-        (Removal::Soft, OneOrMultiple::One) => "was_soft_deleted",
-        (Removal::Soft, OneOrMultiple::Multiple) => "were_soft_deleted",
-    }
+fn removal_suffix(removal: Removal, one_or_multiple: &OneOrMultiple) -> String {
+    removal.past_tense(one_or_multiple).replace([' ', '-'], "_")
 }
 
 /// How the beginning of a dispatcher name reads, which is the only part the count changes.

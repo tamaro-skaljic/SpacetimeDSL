@@ -15,14 +15,14 @@ use {
             referencing_table_function_name,
         },
         on_delete_strategy::{ReferencingTables, on_delete_strategy_implementation},
-        removal::Removal,
+        removal::{Removal, dispatcher_signature},
     },
     crate::{
         api::{
             Column,
             dsl::{
                 foreign_key::{ForeignKey, OnDeleteStrategy},
-                method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
+                method::SpacetimeDSLMethod,
             },
             runtime,
         },
@@ -118,8 +118,6 @@ pub fn for_foreign_key(
     let singular_table_name = &context.singular_table_name;
     let referenced_table_name = format_ident!("{}", *referenced_table_name);
 
-    let doc_comment;
-
     let function_name = referencing_table_function_name(
         removal,
         one_or_multiple,
@@ -127,75 +125,31 @@ pub fn for_foreign_key(
         &referenced_table_name,
     );
 
-    let mut function_args = vec![
-        SpacetimeDSLArg {
-            is_option: false,
-            arg_name: format_ident!("dsl"),
-            arg_type: SpacetimeDSLArgType::Normal(runtime::dsl_reference_type()),
-        },
-        SpacetimeDSLArg {
-            is_option: false,
-            arg_name: format_ident!("strategy"),
-            arg_type: SpacetimeDSLArgType::Normal({
-                let on_delete_strategy_type = runtime::on_delete_strategy_type();
-                quote! { &#on_delete_strategy_type }
-            }),
-        },
-    ];
+    let past_tense = removal.past_tense(one_or_multiple);
 
-    let past_tense = match (removal, one_or_multiple) {
-        (Removal::Hard, OneOrMultiple::One) => "was deleted",
-        (Removal::Hard, OneOrMultiple::Multiple) => "were deleted",
-        (Removal::Soft, OneOrMultiple::One) => "was soft-deleted",
-        (Removal::Soft, OneOrMultiple::Multiple) => "were soft-deleted",
-    };
-
-    let return_type;
-
-    let arg_name;
-
-    match one_or_multiple {
-        OneOrMultiple::One => {
-            doc_comment = format!(
+    let (doc_comment, arg_name) = match one_or_multiple {
+        OneOrMultiple::One => (
+            format!(
                 "Execute On Delete Strategies of the referencing table `{singular_table_name}` after one row of the referenced table `{referenced_table_name}` {past_tense}."
-            );
-            arg_name = format_ident!("primary_key_value_of_a_row_of_another_table_to_delete");
-            function_args.push(SpacetimeDSLArg {
-                is_option: false,
-                arg_name: arg_name.clone(),
-                arg_type: SpacetimeDSLArgType::Normal(
-                    quote! { &#referenced_table_primary_key_column_type },
-                ),
-            });
-            let deletion_result_entry_type = runtime::deletion_result_entry_type();
-            let entries_type = quote! { Vec<#deletion_result_entry_type> };
-            let failure_type = runtime::on_delete_strategy_failure_type(&entries_type);
-            return_type = quote! {
-                Result<#entries_type, #failure_type>
-            };
-        }
-        OneOrMultiple::Multiple => {
-            doc_comment = format!(
+            ),
+            format_ident!("primary_key_value_of_a_row_of_another_table_to_delete"),
+        ),
+        OneOrMultiple::Multiple => (
+            format!(
                 "Execute On Delete Strategies of the referencing table `{singular_table_name}` after multiple rows of the referenced table `{referenced_table_name}` {past_tense}."
-            );
-            arg_name = format_ident!("primary_key_values_of_rows_of_another_table_to_delete");
-            function_args.push(SpacetimeDSLArg {
-                is_option: false,
-                arg_name: arg_name.clone(),
-                arg_type: SpacetimeDSLArgType::Normal(quote! {
-                    &'a [#referenced_table_primary_key_column_type]
-                }),
-            });
-            let deletion_result_entry_type = runtime::deletion_result_entry_type();
-            let entries_type = quote! {
-                std::collections::HashMap<&'a #referenced_table_primary_key_column_type, Vec<#deletion_result_entry_type>>
-            };
-            let failure_type = runtime::on_delete_strategy_failure_type(&entries_type);
-            return_type = quote! {
-                Result<#entries_type, #failure_type>
-            };
-        }
+            ),
+            format_ident!("primary_key_values_of_rows_of_another_table_to_delete"),
+        ),
     };
+
+    let on_delete_strategy_type = runtime::on_delete_strategy_type();
+
+    let (function_args, return_type) = dispatcher_signature(
+        one_or_multiple,
+        quote! { &#on_delete_strategy_type },
+        &arg_name,
+        referenced_table_primary_key_column_type,
+    );
 
     let create_data_structure_for_child_entries = match one_or_multiple {
         OneOrMultiple::One => {

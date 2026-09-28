@@ -20,8 +20,11 @@ use {
     crate::{
         api::{
             dsl::{
-                foreign_key::OnDeleteStrategy, hook::HookKind, method::SpacetimeDSLMethod,
-                soft_delete::SoftDeleteMarker, table::SpacetimeDSLTable,
+                foreign_key::OnDeleteStrategy,
+                hook::HookKind,
+                method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
+                soft_delete::SoftDeleteMarker,
+                table::SpacetimeDSLTable,
             },
             runtime,
         },
@@ -37,6 +40,72 @@ use {
 pub enum Removal {
     Hard,
     Soft,
+}
+
+impl Removal {
+    /// How a doc comment says the rows were removed: "was deleted", "were soft-deleted", and
+    /// so on. `naming` derives the dispatcher names from the same words.
+    pub fn past_tense(self, one_or_multiple: &OneOrMultiple) -> &'static str {
+        match (self, one_or_multiple) {
+            (Removal::Hard, OneOrMultiple::One) => "was deleted",
+            (Removal::Hard, OneOrMultiple::Multiple) => "were deleted",
+            (Removal::Soft, OneOrMultiple::One) => "was soft-deleted",
+            (Removal::Soft, OneOrMultiple::Multiple) => "were soft-deleted",
+        }
+    }
+}
+
+/// The arguments and the return type every cascade dispatcher has: the DSL, the strategy,
+/// then one primary key value or a slice of them under `key_arg_name`; it returns the
+/// entries it built, in a `Vec` for one row or in a `HashMap` keyed by primary key value
+/// for several.
+pub fn dispatcher_signature(
+    one_or_multiple: &OneOrMultiple,
+    strategy_type: TokenStream,
+    key_arg_name: &syn::Ident,
+    primary_key_column_type: &impl quote::ToTokens,
+) -> (Vec<SpacetimeDSLArg>, TokenStream) {
+    let deletion_result_entry_type = runtime::deletion_result_entry_type();
+
+    let (key_type, entries_type) = match one_or_multiple {
+        OneOrMultiple::One => (
+            quote! { &#primary_key_column_type },
+            quote! { Vec<#deletion_result_entry_type> },
+        ),
+        OneOrMultiple::Multiple => (
+            quote! { &'a [#primary_key_column_type] },
+            quote! {
+                std::collections::HashMap<&'a #primary_key_column_type, Vec<#deletion_result_entry_type>>
+            },
+        ),
+    };
+
+    let failure_type = runtime::on_delete_strategy_failure_type(&entries_type);
+
+    let arguments = vec![
+        SpacetimeDSLArg {
+            is_option: false,
+            arg_name: format_ident!("dsl"),
+            arg_type: SpacetimeDSLArgType::Normal(runtime::dsl_reference_type()),
+        },
+        SpacetimeDSLArg {
+            is_option: false,
+            arg_name: format_ident!("strategy"),
+            arg_type: SpacetimeDSLArgType::Normal(strategy_type),
+        },
+        SpacetimeDSLArg {
+            is_option: false,
+            arg_name: key_arg_name.clone(),
+            arg_type: SpacetimeDSLArgType::Normal(key_type),
+        },
+    ];
+
+    (
+        arguments,
+        quote! {
+            Result<#entries_type, #failure_type>
+        },
+    )
 }
 
 /// The strategies a removal fans out to after it has written, in the order the generated
