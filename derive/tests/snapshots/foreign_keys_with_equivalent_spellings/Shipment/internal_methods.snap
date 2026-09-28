@@ -141,9 +141,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     primary_key_value_of_a_row_of_another_table_to_delete,
                                 )
                                 .expect(
-                                    &format!(
-                                        "{primary_key_value_of_a_row_of_another_table_to_delete} should exist in entries."
-                                    ),
+                                    "every primary key value of a removed row of the referenced table was given an entry list before its strategies ran",
                                 )
                                 .push(crate::spacetimedsl::delete::DeletionResultEntry {
                                     table_name: "shipment".into(),
@@ -170,9 +168,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     primary_key_value_of_a_row_of_another_table_to_delete,
                                 )
                                 .expect(
-                                    &format!(
-                                        "{primary_key_value_of_a_row_of_another_table_to_delete} should exist in entries."
-                                    ),
+                                    "every primary key value of a removed row of the referenced table was given an entry list before its strategies ran",
                                 )
                                 .push(crate::spacetimedsl::delete::DeletionResultEntry {
                                     table_name: "shipment".into(),

@@ -15,6 +15,7 @@ use {
             referencing_table_compile_error_check_for_soft_deletions,
             referencing_table_function_name,
         },
+        on_delete_strategy::CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE,
         removal::{Removal, dispatcher_signature},
     },
     crate::{
@@ -84,7 +85,7 @@ pub fn referenced_table_function_call_for_dsl_method(
                 match #referenced_table_call {
                     Err(failure) => {
                         for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure.entries {
-                            deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries.")).child_entries.append(&mut child_entries);
+                            deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).expect(#CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE).child_entries.append(&mut child_entries);
                         }
 
                         let error_from_hook = failure.error_from_hook;
@@ -93,7 +94,7 @@ pub fn referenced_table_function_call_for_dsl_method(
                     },
                     Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                         for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                            deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in deletion_result_entries.")).child_entries.append(&mut child_entries);
+                            deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).expect(#CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE).child_entries.append(&mut child_entries);
                         }
                     }
                 };
@@ -244,7 +245,7 @@ pub fn for_referenced_by(
                         match #referencing_table_call {
                             Err(failure) => {
                                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure.entries {
-                                    entries.get_mut(&primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in entries.")).append(&mut child_entries);
+                                    entries.get_mut(&primary_key_value_of_a_row_to_delete).expect(#CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE).append(&mut child_entries);
                                 }
 
                                 if error_from_hook.is_none() {
@@ -255,7 +256,7 @@ pub fn for_referenced_by(
                             },
                             Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
                                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                                    entries.get_mut(&primary_key_value_of_a_row_to_delete).expect(&format!("{primary_key_value_of_a_row_to_delete} should exist in entries.")).append(&mut child_entries);
+                                    entries.get_mut(&primary_key_value_of_a_row_to_delete).expect(#CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE).append(&mut child_entries);
                                 }
                             },
                         };
