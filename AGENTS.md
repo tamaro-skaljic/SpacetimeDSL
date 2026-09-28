@@ -133,9 +133,9 @@ Accepting `*.snap.new` files one batch at a time costs a whole harness run per m
 
 #### Green includes the formatter
 
-`.\x.ps1 format` runs `cargo fmt` and `clippy --fix`. Anything it rewrites is a finding to review and commit, not a pass. A task is done when a second run changes nothing.
+`.\x.ps1 format` runs `cargo fmt` on the nightly toolchain, whose unstable options merge the imports into one `use` item, and `clippy --fix`. Anything it rewrites is a finding to review and commit, not a pass. A task is done when a second run changes nothing.
 
-`.\x.ps1 lint` checks the formatting and runs clippy over the whole workspace with warnings denied, changing no file. It is the command CI runs, so it must exit 0 before a task counts as done.
+`.\x.ps1 lint` checks the formatting and runs clippy over the whole workspace with warnings denied, changing no file. It is the command CI runs, so it must exit 0 before a task counts as done. It checks the formatting with the pinned toolchain, the one CI installs, so it does not check how the imports are grouped.
 
 ## Programming Principles
 

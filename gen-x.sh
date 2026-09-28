@@ -303,12 +303,14 @@ generate_format() {
 }
 
 # The check-only counterpart of `format`, which CI runs: it changes no file and fails on
-# unformatted code or on any clippy warning, over the same whole workspace.
+# unformatted code or on any clippy warning, over the same whole workspace. It checks with the
+# rustfmt of the pinned toolchain, the one CI installs, so the import grouping `format` applies
+# through nightly rustfmt is not checked.
 generate_lint() {
     local shell="$1"
 
     switch_case "$shell" "lint"
-    cmd_native "$shell" "cargo +nightly fmt --all -- --config imports_granularity=One,group_imports=One --check"
+    cmd_native "$shell" "cargo fmt --all -- --check"
     echo
     cmd_native "$shell" "cargo clippy --workspace --all-targets --all-features -- -D warnings"
     switch_case_end "$shell"

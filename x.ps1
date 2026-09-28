@@ -120,8 +120,8 @@ switch ($Command) {
     }
 
     "lint" {
-        cargo +nightly fmt --all -- --config imports_granularity=One,group_imports=One --check
-        if ($LASTEXITCODE -ne 0) { throw "'cargo +nightly fmt --all -- --config imports_granularity=One,group_imports=One --check' failed with exit code $LASTEXITCODE." }
+        cargo fmt --all -- --check
+        if ($LASTEXITCODE -ne 0) { throw "'cargo fmt --all -- --check' failed with exit code $LASTEXITCODE." }
 
         cargo clippy --workspace --all-targets --all-features -- -D warnings
         if ($LASTEXITCODE -ne 0) { throw "'cargo clippy --workspace --all-targets --all-features -- -D warnings' failed with exit code $LASTEXITCODE." }

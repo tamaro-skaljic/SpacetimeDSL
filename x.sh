@@ -86,7 +86,7 @@ case "${1:-}" in
         ;;
 
     lint)
-        cargo +nightly fmt --all -- --config imports_granularity=One,group_imports=One --check
+        cargo fmt --all -- --check
 
         cargo clippy --workspace --all-targets --all-features -- -D warnings
         ;;
