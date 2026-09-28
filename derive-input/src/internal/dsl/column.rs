@@ -90,7 +90,7 @@ impl SpacetimeDSLColumn {
 
 /// A primary key named `<table>_<name>` repeats the table's name in every method generated
 /// for it, such as `get_entity_by_entity_id`.
-pub(crate) fn reject_primary_key_prefixed_with_table_name(
+pub fn reject_primary_key_prefixed_with_table_name(
     column_name: &Ident,
     is_primary_key: bool,
     singular_table_name: &Ident,

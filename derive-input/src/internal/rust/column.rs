@@ -24,7 +24,7 @@ impl RustField {
 /// The path a column's type is written as, looking through invisible groups and
 /// parentheses. SpacetimeDSL supports only path types as column types, so every other type
 /// is rejected with a diagnostic that names its kind.
-pub(crate) fn column_type_path(column_type: &Type) -> syn::Result<&Path> {
+pub fn column_type_path(column_type: &Type) -> syn::Result<&Path> {
     match column_type {
         Type::Group(group) => column_type_path(&group.elem),
         Type::Paren(paren) => column_type_path(&paren.elem),

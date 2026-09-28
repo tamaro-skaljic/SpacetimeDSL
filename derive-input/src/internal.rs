@@ -1,3 +1,9 @@
+//! How `#[spacetimedsl::dsl]` analyses a struct and generates its DSL methods.
+//!
+//! The module is private, so its items are `pub` without leaving the crate. A method of an
+//! `api` type is the exception: it is callable wherever its type is, whichever module holds
+//! the `impl` block, so a method only this crate calls stays `pub(crate)`.
+
 use {
     crate::{
         api::dsl::{
@@ -30,7 +36,7 @@ mod rust;
 
 mod db;
 
-pub(crate) mod dsl;
+pub mod dsl;
 
 mod error;
 
