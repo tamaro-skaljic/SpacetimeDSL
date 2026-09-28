@@ -26,7 +26,7 @@ impl std::fmt::Display for TicketId {
         write!(f, "{} {{ id: {:?} }}", "TicketId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, TicketId> for TicketId {
+impl crate::spacetimedsl::Wrapper<u64> for TicketId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -85,7 +85,7 @@ impl std::fmt::Display for TicketReference {
         write!(f, "{} {{ id: {:?} }}", "TicketReference", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<String, TicketReference> for TicketReference {
+impl crate::spacetimedsl::Wrapper<String> for TicketReference {
     fn new(value: String) -> Self {
         Self { value }
     }

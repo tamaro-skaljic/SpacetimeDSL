@@ -27,7 +27,7 @@ impl std::fmt::Display for SessionTokenId {
         write!(f, "{} {{ id: {:?} }}", "SessionTokenId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, SessionTokenId> for SessionTokenId {
+impl crate::spacetimedsl::Wrapper<u64> for SessionTokenId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -97,8 +97,7 @@ impl std::fmt::Display for SessionTokenToken {
         write!(f, "{} {{ id: {:?} }}", "SessionTokenToken", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<spacetimedb::Uuid, SessionTokenToken>
-for SessionTokenToken {
+impl crate::spacetimedsl::Wrapper<spacetimedb::Uuid> for SessionTokenToken {
     fn new(value: spacetimedb::Uuid) -> Self {
         Self { value }
     }

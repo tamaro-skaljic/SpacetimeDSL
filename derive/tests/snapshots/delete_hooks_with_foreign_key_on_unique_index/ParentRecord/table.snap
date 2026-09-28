@@ -27,7 +27,7 @@ impl std::fmt::Display for ParentRecordId {
         write!(f, "{} {{ id: {:?} }}", "ParentRecordId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, ParentRecordId> for ParentRecordId {
+impl crate::spacetimedsl::Wrapper<u64> for ParentRecordId {
     fn new(value: u64) -> Self {
         Self { value }
     }

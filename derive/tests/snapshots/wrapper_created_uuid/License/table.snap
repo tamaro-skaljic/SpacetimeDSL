@@ -37,7 +37,7 @@ impl std::fmt::Display for LicenseId {
         write!(f, "{} {{ id: {:?} }}", "LicenseId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<Uuid, LicenseId> for LicenseId {
+impl crate::spacetimedsl::Wrapper<Uuid> for LicenseId {
     fn new(value: Uuid) -> Self {
         Self { value }
     }
@@ -107,8 +107,7 @@ impl std::fmt::Display for ExternalReference {
         write!(f, "{} {{ id: {:?} }}", "ExternalReference", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<spacetimedb::Uuid, ExternalReference>
-for ExternalReference {
+impl crate::spacetimedsl::Wrapper<spacetimedb::Uuid> for ExternalReference {
     fn new(value: spacetimedb::Uuid) -> Self {
         Self { value }
     }

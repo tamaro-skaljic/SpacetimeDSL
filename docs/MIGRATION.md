@@ -6,6 +6,16 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 
 ### Breaking API changes
 
+- The `Wrapper` trait lost its second type parameter, which carried no information. A hand-written wrapper type implements `Wrapper<WrappedType>`:
+
+  ```rust
+  // 0.23
+  impl spacetimedsl::Wrapper<i32, ConfigId> for ConfigId { /* … */ }
+
+  // 0.24
+  impl spacetimedsl::Wrapper<i32> for ConfigId { /* … */ }
+  ```
+
 ### Newly rejected inputs
 
 ### Changed messages and generated code

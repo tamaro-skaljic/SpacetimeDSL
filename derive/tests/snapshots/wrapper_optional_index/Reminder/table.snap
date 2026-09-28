@@ -26,7 +26,7 @@ impl std::fmt::Display for ReminderId {
         write!(f, "{} {{ id: {:?} }}", "ReminderId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, ReminderId> for ReminderId {
+impl crate::spacetimedsl::Wrapper<u64> for ReminderId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -85,8 +85,7 @@ impl std::fmt::Display for ReminderAcknowledgedAt {
         write!(f, "{} {{ id: {:?} }}", "ReminderAcknowledgedAt", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<Option<Timestamp>, ReminderAcknowledgedAt>
-for ReminderAcknowledgedAt {
+impl crate::spacetimedsl::Wrapper<Option<Timestamp>> for ReminderAcknowledgedAt {
     fn new(value: Option<Timestamp>) -> Self {
         Self { value }
     }

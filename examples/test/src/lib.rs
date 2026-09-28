@@ -7,6 +7,7 @@ use spacetimedb::ReducerContext;
 pub mod cascade_hook_error_test;
 pub mod component;
 pub mod entity;
+pub mod hand_written_wrapper_test;
 pub mod hash_index_test;
 pub mod primary_key_foreign_key_cascade_test;
 pub mod self_referencing_cascade_test;
@@ -42,6 +43,10 @@ const TEST_GROUPS: &[(&str, TestGroup)] = &[
     (
         "singleton_with_foreign_key_test",
         singleton_with_foreign_key_test::run_tests,
+    ),
+    (
+        "hand_written_wrapper_test",
+        hand_written_wrapper_test::run_tests,
     ),
     ("hash_index_test", hash_index_test::run_tests),
     (

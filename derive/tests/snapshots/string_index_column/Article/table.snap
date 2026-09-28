@@ -26,7 +26,7 @@ impl std::fmt::Display for ArticleId {
         write!(f, "{} {{ id: {:?} }}", "ArticleId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, ArticleId> for ArticleId {
+impl crate::spacetimedsl::Wrapper<u64> for ArticleId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -85,7 +85,7 @@ impl std::fmt::Display for ArticleSlug {
         write!(f, "{} {{ id: {:?} }}", "ArticleSlug", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<String, ArticleSlug> for ArticleSlug {
+impl crate::spacetimedsl::Wrapper<String> for ArticleSlug {
     fn new(value: String) -> Self {
         Self { value }
     }
@@ -144,7 +144,7 @@ impl std::fmt::Display for ArticleTags {
         write!(f, "{} {{ id: {:?} }}", "ArticleTags", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<Option<String>, ArticleTags> for ArticleTags {
+impl crate::spacetimedsl::Wrapper<Option<String>> for ArticleTags {
     fn new(value: Option<String>) -> Self {
         Self { value }
     }

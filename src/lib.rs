@@ -77,7 +77,7 @@ pub trait WriteContext: ReadContext + Context + spacetimedb::CtxDbWrite {}
 
 pub trait ReadContext: Context + spacetimedb::CtxDbRead {}
 
-pub trait Wrapper<WrappedType: Clone, WrapperType>:
+pub trait Wrapper<WrappedType: Clone>:
     Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
 {
     fn new(value: WrappedType) -> Self;

@@ -326,10 +326,10 @@ pub fn dsl_method_hooks_type() -> TokenStream {
     }
 }
 
-/// `Wrapper<#wrapped_type, #wrapper_type>`, the trait a generated wrapper implements.
-pub fn wrapper_trait(wrapped_type: &impl ToTokens, wrapper_type: &impl ToTokens) -> TokenStream {
+/// `Wrapper<#wrapped_type>`, the trait a generated wrapper implements.
+pub fn wrapper_trait(wrapped_type: &impl ToTokens) -> TokenStream {
     quote! {
-        crate::spacetimedsl::Wrapper<#wrapped_type, #wrapper_type>
+        crate::spacetimedsl::Wrapper<#wrapped_type>
     }
 }
 

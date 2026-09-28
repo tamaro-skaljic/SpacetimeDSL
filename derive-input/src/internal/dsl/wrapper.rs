@@ -117,7 +117,7 @@ fn get_wrapper_impl(
 
     let wrapper_struct_name_as_str = wrapper_struct_name.to_string();
 
-    let wrapper_trait = runtime::wrapper_trait(&wrapped_type, wrapper_struct_name);
+    let wrapper_trait = runtime::wrapper_trait(&wrapped_type);
     let wrapper_trait_import = runtime::wrapper_trait_import();
     let spacetimetype_derive = spacetimedb::spacetimetype_derive();
 

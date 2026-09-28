@@ -26,7 +26,7 @@ impl std::fmt::Display for SignatureId {
         write!(f, "{} {{ id: {:?} }}", "SignatureId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, SignatureId> for SignatureId {
+impl crate::spacetimedsl::Wrapper<u64> for SignatureId {
     fn new(value: u64) -> Self {
         Self { value }
     }
@@ -85,7 +85,7 @@ impl std::fmt::Display for SignatureValue {
         write!(f, "{} {{ id: {:?} }}", "SignatureValue", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<String, SignatureValue> for SignatureValue {
+impl crate::spacetimedsl::Wrapper<String> for SignatureValue {
     fn new(value: String) -> Self {
         Self { value }
     }

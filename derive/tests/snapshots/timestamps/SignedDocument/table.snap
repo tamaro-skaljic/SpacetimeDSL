@@ -26,7 +26,7 @@ impl std::fmt::Display for SignedDocumentId {
         write!(f, "{} {{ id: {:?} }}", "SignedDocumentId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, SignedDocumentId> for SignedDocumentId {
+impl crate::spacetimedsl::Wrapper<u64> for SignedDocumentId {
     fn new(value: u64) -> Self {
         Self { value }
     }

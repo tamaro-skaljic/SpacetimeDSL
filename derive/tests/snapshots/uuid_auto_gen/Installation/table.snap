@@ -37,7 +37,7 @@ impl std::fmt::Display for InstallationId {
         write!(f, "{} {{ id: {:?} }}", "InstallationId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<Uuid, InstallationId> for InstallationId {
+impl crate::spacetimedsl::Wrapper<Uuid> for InstallationId {
     fn new(value: Uuid) -> Self {
         Self { value }
     }

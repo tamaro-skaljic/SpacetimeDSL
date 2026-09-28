@@ -27,7 +27,7 @@ impl std::fmt::Display for AccountNoteId {
         write!(f, "{} {{ id: {:?} }}", "AccountNoteId", self.value)
     }
 }
-impl crate::spacetimedsl::Wrapper<u64, AccountNoteId> for AccountNoteId {
+impl crate::spacetimedsl::Wrapper<u64> for AccountNoteId {
     fn new(value: u64) -> Self {
         Self { value }
     }

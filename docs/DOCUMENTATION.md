@@ -830,7 +830,7 @@ Default name: `{SingularTableNamePascalCase}{ColumnNamePascalCase}`
 All wrappers implement:
 
 ```rust
-pub trait Wrapper<WrappedType: Clone, WrapperType>:
+pub trait Wrapper<WrappedType: Clone>:
     Clone + PartialEq + PartialOrd + spacetimedb::SpacetimeType + Display
 {
     fn new(value: WrappedType) -> Self;
@@ -2024,7 +2024,7 @@ pub struct ConfigId {
     id: i32,
 }
 
-impl spacetimedsl::Wrapper<i32, ConfigId> for ConfigId {
+impl spacetimedsl::Wrapper<i32> for ConfigId {
     fn new(value: i32) -> ConfigId { ConfigId { id: value } }
     fn value(&self) -> i32 { self.id.clone() }
 }
