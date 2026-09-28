@@ -3,9 +3,9 @@ use std::collections::BTreeSet;
 use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::{SingletonKind, SpacetimeDSLTable};
-use crate::internal::DSLData;
 use crate::internal::dsl::hook::DeclaredHooks;
 use crate::internal::error;
+use crate::internal::{DSLData, DSLTableKind};
 use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::table::ColumnArgs;
 
@@ -21,6 +21,7 @@ impl SpacetimeDSLTable {
         column_args: &ColumnArgs<'_>,
         mut spacetimedb_table: SpacetimeDBTable,
     ) -> syn::Result<(SpacetimeDBTable, SpacetimeDSLTable)> {
+        let singleton = dsl_data.kind.singleton();
         let unique_indices = dsl_data.unique_indices;
 
         for unique_index_name in unique_indices {
@@ -35,7 +36,7 @@ impl SpacetimeDSLTable {
 
         let hooks = super::hook::build(
             &spacetimedb_table.singular_name,
-            dsl_data.singleton,
+            singleton,
             DeclaredHooks {
                 before_insert: dsl_data.before_insert_hook,
                 before_update: dsl_data.before_update_hook,
@@ -73,7 +74,7 @@ impl SpacetimeDSLTable {
 
         let soft_delete_marker = super::soft_delete::try_parse(
             dsl_data.soft_delete_method.as_ref(),
-            dsl_data.singleton,
+            singleton,
             column_args,
         )?;
 
@@ -106,8 +107,7 @@ impl SpacetimeDSLTable {
             let timestamp_role = get_timestamp_role(field)?;
             let field_type = field.ty.to_token_stream().to_string();
 
-            if dsl_data.singleton == Some(SingletonKind::WithDefault)
-                && is_bare_timestamp_type(&field_type)
+            if singleton == Some(SingletonKind::WithDefault) && is_bare_timestamp_type(&field_type)
             {
                 return Err(error::bare_timestamp_on_singleton_with_default(field.ty));
             }
@@ -118,14 +118,13 @@ impl SpacetimeDSLTable {
                         field.ident.expect("a named field has an identifier"),
                     ));
                 };
-                let set_on_create_type_is_valid = match dsl_data.singleton {
+                let set_on_create_type_is_valid = match singleton {
                     Some(SingletonKind::WithDefault) => is_optional_timestamp_type(&field_type),
                     _ => is_bare_timestamp_type(&field_type),
                 };
                 if !set_on_create_type_is_valid {
                     return Err(error::set_on_create_column_type_mismatch(
-                        field.ty,
-                        dsl_data.singleton,
+                        field.ty, singleton,
                     ));
                 }
 
@@ -171,11 +170,18 @@ impl SpacetimeDSLTable {
             ));
         }
 
+        // A singleton has no `plural_name`; the methods named after it are not generated
+        // for a singleton, so the accessor stands in.
+        let plural_name = match dsl_data.kind {
+            DSLTableKind::Singleton(_) => spacetimedb_table.singular_name.clone(),
+            DSLTableKind::Table { plural_name } => plural_name,
+        };
+
         Ok((
             spacetimedb_table,
             SpacetimeDSLTable {
-                singleton: dsl_data.singleton,
-                plural_name: dsl_data.plural_name,
+                singleton,
+                plural_name,
                 has_update_method,
                 has_delete_method: has_delete_method.unwrap_or(true),
                 soft_delete_marker,

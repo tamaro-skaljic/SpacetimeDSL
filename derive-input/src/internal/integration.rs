@@ -1,25 +1,27 @@
 use crate::api::attribute::is_table_attribute;
-use crate::internal::error;
+use crate::internal::{DSLTableKind, error};
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::DeriveInput;
 
 pub fn spacetime_bindings_macro_input<'a>(
     item: &'a DeriveInput,
-    plural_name: &syn::Ident,
-    is_singleton: bool,
+    kind: &DSLTableKind,
 ) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
-    if is_singleton {
-        let all_tables = get_all_table_attributes(item)?;
+    let plural_name = match kind {
+        DSLTableKind::Singleton(_) => {
+            let all_tables = get_all_table_attributes(item)?;
 
-        if all_tables.len() != 1 {
-            return Err(error::singleton_without_exactly_one_table_attribute(
-                &item.ident,
-                all_tables.len(),
-            ));
+            if all_tables.len() != 1 {
+                return Err(error::singleton_without_exactly_one_table_attribute(
+                    &item.ident,
+                    all_tables.len(),
+                ));
+            }
+
+            return Ok(all_tables.into_iter().next().unwrap());
         }
-
-        return Ok(all_tables.into_iter().next().unwrap());
-    }
+        DSLTableKind::Table { plural_name } => plural_name,
+    };
 
     select_table_with_heuristics(item, plural_name)
 }

@@ -8,7 +8,6 @@ use proc_macro2::Span;
 use spacetime_bindings_macro_input::{match_meta, sym, table::TableArgs, util::check_duplicate};
 use syn::{
     Ident,
-    ext::IdentExt,
     meta::{ParseNestedMeta, parser},
     parse::Parser,
     spanned::Spanned,
@@ -32,27 +31,15 @@ pub fn try_parse(
     args: proc_macro2::TokenStream,
     input: &syn::DeriveInput,
 ) -> syn::Result<crate::api::Table> {
-    // Parse DSL attribute arguments
-    let mut dsl_data = try_parse_dsl(&args)?;
+    let dsl_data = try_parse_dsl(&args)?;
 
-    // Pass plural_name to integration for intelligent table selection
-    let (table_args, column_args) = integration::spacetime_bindings_macro_input(
-        input,
-        &dsl_data.plural_name,
-        dsl_data.singleton.is_some(),
-    )?;
+    let (table_args, column_args) =
+        integration::spacetime_bindings_macro_input(input, &dsl_data.kind)?;
 
-    if dsl_data.singleton.is_some() {
+    if let DSLTableKind::Singleton(_) = dsl_data.kind {
         reject_unique_index_on_singleton(&dsl_data.unique_indices, &table_args)?;
     }
 
-    // For singletons, set plural_name to the singular name from the table accessor
-    // (it's only used for get_all/count_of_all which won't be generated)
-    if dsl_data.singleton.is_some() {
-        dsl_data.plural_name = table_args.accessor.unraw();
-    }
-
-    // Pass the parsed plural_name to avoid re-parsing
     table::try_parse(input, dsl_data, &table_args, &column_args)
 }
 
@@ -281,24 +268,19 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
         return Err(error::plural_name_on_singleton(name_plural));
     }
 
-    // For singletons, plural_name will be set later from the table accessor.
-    // Use a placeholder for now.
-    let parsed_plural_name = if is_singleton {
-        syn::Ident::new("__singleton_placeholder", proc_macro2::Span::call_site())
+    let kind = if is_singleton {
+        DSLTableKind::Singleton(match singleton_with_default {
+            None => SingletonKind::WithoutDefault,
+            Some(_) => SingletonKind::WithDefault,
+        })
     } else {
-        name_plural.ok_or_else(|| error::missing_plural_name(args))?
+        DSLTableKind::Table {
+            plural_name: name_plural.ok_or_else(|| error::missing_plural_name(args))?,
+        }
     };
 
-    // `singleton` itself is the attribute symbol in this scope, so the parsed kind needs a
-    // name of its own.
-    let singleton_kind = is_singleton.then_some(match singleton_with_default {
-        None => SingletonKind::WithoutDefault,
-        Some(_) => SingletonKind::WithDefault,
-    });
-
     Ok(DSLData {
-        singleton: singleton_kind,
-        plural_name: parsed_plural_name,
+        kind,
         unique_indices,
         before_insert_hook: before_insert_hook.is_some(),
         before_update_hook: before_update_hook.is_some(),
@@ -314,9 +296,24 @@ fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {
     })
 }
 
+/// Whether `#[dsl]` declares a singleton, which has no `plural_name`, or a table, which
+/// must have one.
+pub enum DSLTableKind {
+    Singleton(SingletonKind),
+    Table { plural_name: Ident },
+}
+
+impl DSLTableKind {
+    pub fn singleton(&self) -> Option<SingletonKind> {
+        match self {
+            DSLTableKind::Singleton(singleton_kind) => Some(*singleton_kind),
+            DSLTableKind::Table { .. } => None,
+        }
+    }
+}
+
 pub struct DSLData {
-    singleton: Option<SingletonKind>,
-    plural_name: Ident,
+    kind: DSLTableKind,
     unique_indices: Vec<Ident>,
     before_insert_hook: bool,
     before_update_hook: bool,
