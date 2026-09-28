@@ -559,13 +559,26 @@ pub struct Entity {
 
 ### Pairing with #[spacetimedb::table]
 
-The `#[spacetimedsl::dsl]` attribute must appear directly above the `#[spacetimedb::table]` attribute:
+Every `#[spacetimedsl::dsl]` attribute belongs to one `#[spacetimedb::table]` attribute on the same struct. Write it above that table; on a struct with several tables, name the table with [`table = <accessor>`](#table):
 
 ```rust
 #[spacetimedsl::dsl(plural_name = entities, method(update = true, delete = true))]
 #[spacetimedb::table(accessor = entity, public)]
 pub struct Entity { ... }
 ```
+
+### Column Type Spellings
+
+Where **SpacetimeDSL** checks or treats a column's type specially, it accepts every spelling of that type:
+
+| Type                  | Accepted spellings                                                            |
+| --------------------- | ----------------------------------------------------------------------------- |
+| `String`              | `String`, `std::string::String`, `alloc::string::String`                      |
+| `Option<T>`           | `Option<T>`, `std::option::Option<T>`, `core::option::Option<T>`              |
+| `u8`–`u128`, `bool`   | bare, `core::primitive::u64`, `std::primitive::u64` (likewise for the others) |
+| `Timestamp`, `Uuid`   | bare, `spacetimedb::Timestamp`, `spacetimedb::Uuid`                           |
+
+Each rooted spelling may also start with `::`, such as `::spacetimedb::Timestamp`. A path to a type of your own crate with the same last name, such as `my_crate::String`, is a different type.
 
 ### Singleton Tables
 

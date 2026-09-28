@@ -1,0 +1,75 @@
+---
+source: derive/src/characterization_tests.rs
+---
+pub trait this_compilation_error_occurs_because_the_draft_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_revision_table {}
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct DraftId {
+    value: u64,
+}
+impl Default for DraftId {
+    fn default() -> DraftId {
+        DraftId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for DraftId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "DraftId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for DraftId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Draft> for DraftId {
+    fn from(value: &Draft) -> Self {
+        DraftId { value: value.id.clone() }
+    }
+}
+impl From<&Draft> for Option<DraftId> {
+    fn from(value: &Draft) -> Option<DraftId> {
+        Some(DraftId { value: value.id.clone() })
+    }
+}
+impl From<&DraftId> for Option<DraftId> {
+    fn from(value: &DraftId) -> Option<DraftId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(DraftId::new(value.value()))
+    }
+}
+impl From<&DraftId> for DraftId {
+    fn from(value: &DraftId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        DraftId::new(value.value())
+    }
+}
+impl Draft {
+    ///
+    pub fn get_id(&self) -> DraftId {
+        use crate::spacetimedsl::Wrapper;
+        DraftId::new(self.id.clone())
+    }
+}
+
+// Generated DSL methods:
+// count_of_all_drafts
+// create_draft
+// delete_draft_by_id
+// execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_draft_table_were_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_draft_table_was_deleted
+// get_all_drafts
+// get_draft_by_id

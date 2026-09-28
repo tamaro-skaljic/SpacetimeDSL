@@ -50,7 +50,11 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 
 - `unique_index(name = …)` must name an index of the table, and each index only once. A misspelled name used to be accepted without effect; now it is rejected with *No index of this table has the accessor `…`! Its indices: …*. A repeated name is rejected with *`unique_index(name = …)` is given twice!* Fix the name, or remove the repetition. A name of a hash or single-column index is still accepted without effect.
 
+- On a `singleton(with_default)` table, a `Timestamp` column is rejected in every spelling. Before, a qualified spelling such as `::spacetimedb::Timestamp` slipped past the check. Use `Option<Timestamp>`, as the diagnostic says.
+
 ### Changed messages and generated code
+
+- Qualified spellings of the types SpacetimeDSL checks are accepted where they used to be rejected: `::spacetimedb::Timestamp` and `std::option::Option<spacetimedb::Timestamp>` for `#[set_on_create]` / `#[set_on_update]`, and `core::primitive::u64` / `std::primitive::u64` count as unsigned integers (so a foreign key spelled that way skips its reference-integrity check for `0`, like `u64`). See *Column Type Spellings* in the documentation. This is not breaking.
 
 - The diagnostic for a missing `method(update = …)` on a table with only private columns names `#[set_on_update]` next to the conventional `modified_at` / `updated_at` as a way to make the table mutable.
 

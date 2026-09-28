@@ -8,8 +8,9 @@
 //! them, so a change to the injected key has one place to reach in each crate.
 
 use proc_macro2::{Literal, Span};
-use quote::ToTokens;
 use syn::{Ident, Path};
+
+use crate::internal::column::canonical_type;
 
 /// The name of the injected column.
 pub const PRIMARY_KEY_NAME: &str = "id";
@@ -49,5 +50,5 @@ pub fn rendered_primary_key() -> String {
 /// The caller has already established that the table is a singleton; this answers which
 /// of its columns the injection added.
 pub fn is_primary_key_column(name: &Ident, type_name_or_path: &Path) -> bool {
-    name == PRIMARY_KEY_NAME && type_name_or_path.to_token_stream().to_string() == PRIMARY_KEY_TYPE
+    name == PRIMARY_KEY_NAME && canonical_type(type_name_or_path) == PRIMARY_KEY_TYPE
 }

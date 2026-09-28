@@ -3,10 +3,12 @@ use std::collections::BTreeSet;
 use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::{SingletonKind, SpacetimeDSLTable};
+use crate::internal::column::ColumnTypeKind;
 use crate::internal::error;
 use crate::internal::{DSLData, DSLTableKind};
-use quote::{ToTokens, format_ident};
+use quote::format_ident;
 use spacetime_bindings_macro_input::table::ColumnArgs;
+use syn::Type;
 
 #[derive(Clone, Copy)]
 enum TimestampRole {
@@ -95,10 +97,9 @@ impl SpacetimeDSLTable {
 
             let column_name = field.name.as_ref().expect("should have a name");
             let timestamp_role = get_timestamp_role(field)?;
-            let field_type = field.ty.to_token_stream().to_string();
+            let field_type = field.ty;
 
-            if singleton == Some(SingletonKind::WithDefault) && is_bare_timestamp_type(&field_type)
-            {
+            if singleton == Some(SingletonKind::WithDefault) && is_bare_timestamp_type(field_type) {
                 return Err(error::bare_timestamp_on_singleton_with_default(field.ty));
             }
 
@@ -109,8 +110,8 @@ impl SpacetimeDSLTable {
                     ));
                 };
                 let set_on_create_type_is_valid = match singleton {
-                    Some(SingletonKind::WithDefault) => is_optional_timestamp_type(&field_type),
-                    _ => is_bare_timestamp_type(&field_type),
+                    Some(SingletonKind::WithDefault) => is_optional_timestamp_type(field_type),
+                    _ => is_bare_timestamp_type(field_type),
                 };
                 if !set_on_create_type_is_valid {
                     return Err(error::set_on_create_column_type_mismatch(
@@ -136,11 +137,7 @@ impl SpacetimeDSLTable {
                     ));
                 }
 
-                if !field_type.eq("Timestamp")
-                    && !field_type.eq("spacetimedb :: Timestamp")
-                    && !field_type.eq("Option < Timestamp >")
-                    && !field_type.eq("Option < spacetimedb :: Timestamp >")
-                {
+                if !is_bare_timestamp_type(field_type) && !is_optional_timestamp_type(field_type) {
                     return Err(error::set_on_update_column_type_mismatch(field.ty));
                 }
 
@@ -221,10 +218,10 @@ fn get_timestamp_role(
     })
 }
 
-fn is_bare_timestamp_type(field_type: &str) -> bool {
-    field_type.eq("Timestamp") || field_type.eq("spacetimedb :: Timestamp")
+fn is_bare_timestamp_type(field_type: &Type) -> bool {
+    ColumnTypeKind::of_type(field_type) == ColumnTypeKind::Timestamp
 }
 
-fn is_optional_timestamp_type(field_type: &str) -> bool {
-    field_type.eq("Option < Timestamp >") || field_type.eq("Option < spacetimedb :: Timestamp >")
+fn is_optional_timestamp_type(field_type: &Type) -> bool {
+    ColumnTypeKind::of_option_argument_of_type(field_type) == Some(ColumnTypeKind::Timestamp)
 }
