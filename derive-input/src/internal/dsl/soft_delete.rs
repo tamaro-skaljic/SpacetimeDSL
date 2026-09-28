@@ -16,9 +16,7 @@ use spacetime_bindings_macro_input::{sats::SatsField, table::ColumnArgs};
 use syn::{LitBool, Path, Type};
 
 use crate::internal::column::ColumnTypeKind;
-
-const FLAG_COLUMN_NAMES: [&str; 2] = ["deleted", "removed"];
-const TIMESTAMP_COLUMN_NAMES: [&str; 2] = ["deleted_at", "removed_at"];
+use crate::internal::dsl::column_role;
 
 /// `soft_delete = <bool>` exactly as written in `#[dsl(method(..))]`, kept whole so a
 /// diagnostic can underline all of it rather than the struct it sits on.
@@ -150,8 +148,11 @@ fn claimed_kind(field: &SatsField<'_>) -> syn::Result<Option<SoftDeleteMarkerKin
         .iter()
         .any(|attribute| attribute.path() == super::set_on_soft_delete);
 
-    let claims_flag = FLAG_COLUMN_NAMES.contains(&column_name.as_ref());
-    let claims_timestamp = TIMESTAMP_COLUMN_NAMES.contains(&column_name.as_ref());
+    let claims_flag = column_role::claims(&column_role::SOFT_DELETE_FLAG_COLUMN_NAMES, column_name);
+    let claims_timestamp = column_role::claims(
+        &column_role::SOFT_DELETE_TIMESTAMP_COLUMN_NAMES,
+        column_name,
+    );
 
     if claims_flag {
         return Ok(Some(SoftDeleteMarkerKind::Flag));

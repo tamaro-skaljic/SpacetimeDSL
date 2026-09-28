@@ -8,6 +8,7 @@
 //! The `compile-tests` pin every message together with the span it underlines.
 
 use crate::api::dsl::{soft_delete::SoftDeleteMarkerKind, table::SingletonKind};
+use crate::internal::dsl::column_role;
 use proc_macro2::Span;
 use quote::ToTokens;
 use syn::{Error, Ident, Type, Visibility, meta::ParseNestedMeta};
@@ -175,7 +176,10 @@ pub fn missing_update_method_with_non_private_column(struct_name: &Ident) -> Err
 pub fn missing_update_method_with_only_private_columns(struct_name: &Ident) -> Error {
     Error::new_spanned(
         struct_name,
-        "HasUpdateMethod must be set in `#[dsl(method(update = HasUpdateMethod))]`, e.g. `update = false`.\nBecause all your columns are private, you should set `#[dsl(method(update = false))]`.\nIf, instead, you want mutable rows in this table which have setters and can be updated, at least one column must be non-private, carry `#[set_on_update]` or be named `modified_at`/`updated_at`, and you must specify `#[dsl(method(update = true))]`.",
+        format!(
+            "HasUpdateMethod must be set in `#[dsl(method(update = HasUpdateMethod))]`, e.g. `update = false`.\nBecause all your columns are private, you should set `#[dsl(method(update = false))]`.\nIf, instead, you want mutable rows in this table which have setters and can be updated, at least one column must be non-private, carry `#[set_on_update]` or be named {}, and you must specify `#[dsl(method(update = true))]`.",
+            column_role::slash_separated(&column_role::SET_ON_UPDATE_COLUMN_NAMES),
+        ),
     )
 }
 
@@ -190,9 +194,14 @@ pub fn non_private_column_without_update_method(visibility: &Visibility) -> Erro
 }
 
 pub fn update_method_disabled_with_set_on_update_column(struct_name: &Ident) -> Error {
+    let set_on_update_column_names =
+        column_role::slash_separated(&column_role::SET_ON_UPDATE_COLUMN_NAMES);
+
     Error::new_spanned(
         struct_name,
-        "Because you have a column named `modified_at`/`updated_at`, you must specify `#[dsl(method(update = true))]`\nIf, instead, you want immutable rows in this table which don't have setters and can't be updated, all columns must be private, you must remove the `modified_at`/`updated_at` column and you must specify `#[dsl(method(update = false))]`.",
+        format!(
+            "Because you have a column named {set_on_update_column_names}, you must specify `#[dsl(method(update = true))]`\nIf, instead, you want immutable rows in this table which don't have setters and can't be updated, all columns must be private, you must remove the {set_on_update_column_names} column and you must specify `#[dsl(method(update = false))]`."
+        ),
     )
 }
 
@@ -477,7 +486,11 @@ pub fn soft_delete_method_without_marker_column(
 ) -> Error {
     Error::new_spanned(
         soft_delete_method_argument,
-        "`#[dsl(method(soft_delete = true))]` requires a column which the soft deletion writes!\nName a column `deleted` or `removed` and give it the type `bool`, name a column `deleted_at` or `removed_at` and give it the type `Option<spacetimedb::Timestamp>`, or put `#[set_on_soft_delete]` on a column of either type.",
+        format!(
+            "`#[dsl(method(soft_delete = true))]` requires a column which the soft deletion writes!\nName a column {} and give it the type `bool`, name a column {} and give it the type `Option<spacetimedb::Timestamp>`, or put `#[set_on_soft_delete]` on a column of either type.",
+            column_role::or_separated(&column_role::SOFT_DELETE_FLAG_COLUMN_NAMES),
+            column_role::or_separated(&column_role::SOFT_DELETE_TIMESTAMP_COLUMN_NAMES),
+        ),
     )
 }
 

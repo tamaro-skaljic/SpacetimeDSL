@@ -4,6 +4,7 @@ use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::{SingletonKind, SpacetimeDSLTable};
 use crate::internal::column::ColumnTypeKind;
+use crate::internal::dsl::column_role;
 use crate::internal::error;
 use crate::internal::{DSLData, DSLTableKind};
 use quote::format_ident;
@@ -197,24 +198,20 @@ fn get_timestamp_role(
         .original_attrs
         .iter()
         .any(|attribute| attribute.path() == super::set_on_update);
-    let is_set_on_create = column_name.eq("created_at")
-        || column_name.eq("inserted_at")
-        || has_set_on_create_attribute;
-    let is_set_on_update = column_name.eq("modified_at")
-        || column_name.eq("updated_at")
-        || has_set_on_update_attribute;
-
-    if is_set_on_create && is_set_on_update {
-        return Err(error::set_on_create_and_set_on_update(
-            field.ident.expect("a named field has an identifier"),
-        ));
-    }
+    let is_set_on_create = has_set_on_create_attribute
+        || column_role::claims(&column_role::SET_ON_CREATE_COLUMN_NAMES, column_name);
+    let is_set_on_update = has_set_on_update_attribute
+        || column_role::claims(&column_role::SET_ON_UPDATE_COLUMN_NAMES, column_name);
 
     Ok(match (is_set_on_create, is_set_on_update) {
+        (true, true) => {
+            return Err(error::set_on_create_and_set_on_update(
+                field.ident.expect("a named field has an identifier"),
+            ));
+        }
         (true, false) => Some(TimestampRole::CreatedAt),
         (false, true) => Some(TimestampRole::UpdatedAt),
         (false, false) => None,
-        (true, true) => unreachable!(),
     })
 }
 
