@@ -1,10 +1,6 @@
 pub use itertools;
 pub use spacetimedsl_derive::{SpacetimeDSL, dsl, hook};
 use std::fmt::Display;
-pub use {
-    delete::{DeletionResult, DeletionResultEntry, OnDeleteStrategy},
-    error::{ReferenceIntegrityViolationError, SpacetimeDSLError},
-};
 
 pub mod as_anonymous_view_context;
 pub mod as_reducer_context;
@@ -23,19 +19,31 @@ pub mod new_uuid;
 pub mod delete;
 pub mod error;
 
-use as_anonymous_view_context::AsAnonymousViewContext;
-use as_reducer_context::AsReducerContext;
-use as_view_context::AsViewContext;
-use get_auth::GetAuth;
-use get_connection_id::GetConnectionId;
-use get_immutable_database::GetImmutableDatabase;
-use get_module_identity::GetModuleIdentity;
-use get_mutable_database::GetMutableDatabase;
-use get_random::GetRandom;
-use get_random_number_generator::GetRandomNumberGenerator;
-use get_sender::GetSender;
-use get_timestamp::GetTimestamp;
-use new_uuid::NewUUID;
+/// Every runtime item a module or its generated code uses, listed once. The crate root and the
+/// module `spacetimedsl!()` generates re-export it, and so does the prelude of that module.
+pub mod prelude {
+    pub use crate::as_anonymous_view_context::AsAnonymousViewContext;
+    pub use crate::as_reducer_context::AsReducerContext;
+    pub use crate::as_view_context::AsViewContext;
+    pub use crate::delete::{
+        DeletionResult, DeletionResultEntry, OnDeleteStrategy, OnDeleteStrategyFailure,
+    };
+    pub use crate::error::{ReferenceIntegrityViolationError, SpacetimeDSLError};
+    pub use crate::get_auth::GetAuth;
+    pub use crate::get_connection_id::GetConnectionId;
+    pub use crate::get_immutable_database::GetImmutableDatabase;
+    pub use crate::get_module_identity::GetModuleIdentity;
+    pub use crate::get_mutable_database::GetMutableDatabase;
+    pub use crate::get_random::GetRandom;
+    pub use crate::get_random_number_generator::GetRandomNumberGenerator;
+    pub use crate::get_sender::GetSender;
+    pub use crate::get_timestamp::GetTimestamp;
+    pub use crate::itertools::Itertools;
+    pub use crate::new_uuid::NewUUID;
+    pub use crate::{Context, ReadContext, Wrapper, WriteContext};
+}
+
+pub use prelude::*;
 
 pub(crate) enum ContextType {
     AnonymousView,
@@ -196,58 +204,17 @@ macro_rules! spacetimedsl {
                 pub struct DSLInternals;
             }
 
-            // Re-export key extern-crate items directly so that proc-macro–generated code
-            // can reach them via `crate::spacetimedsl::X` without needing `::spacetimedsl::X`.
-            pub use ::spacetimedsl::Context;
-            pub use ::spacetimedsl::ReadContext;
-            pub use ::spacetimedsl::SpacetimeDSL;
-            pub use ::spacetimedsl::Wrapper;
-            pub use ::spacetimedsl::WriteContext;
-            pub use ::spacetimedsl::delete;
-            pub use ::spacetimedsl::error;
-            pub use ::spacetimedsl::itertools;
-            pub use ::spacetimedsl::new_uuid::NewUUID;
-            // Flat re-exports so that `spacetimedsl::X` paths (which in user crates resolve to
-            // `crate::spacetimedsl::X`) work without needing the sub-module prefix.
-            pub use ::spacetimedsl::delete::{
-                DeletionResult, DeletionResultEntry, OnDeleteStrategy, OnDeleteStrategyFailure,
-            };
-            pub use ::spacetimedsl::error::{ReferenceIntegrityViolationError, SpacetimeDSLError};
+            // The runtime items, reachable as `crate::spacetimedsl::X`, which is how
+            // proc-macro–generated code names them.
+            pub use ::spacetimedsl::prelude::*;
+            pub use ::spacetimedsl::{SpacetimeDSL, delete, error, itertools};
 
             pub mod prelude {
+                pub use ::spacetimedsl::prelude::*;
+
                 pub use super::{
                     DSL, DSLMethodHooks, DefaultSingleton, ReadOnlyDSL, dsl, read_only_dsl,
                 };
-                pub use ::spacetimedsl::Context;
-                pub use ::spacetimedsl::ReadContext;
-                pub use ::spacetimedsl::WriteContext;
-
-                pub use ::spacetimedsl::delete::{
-                    DeletionResult, DeletionResultEntry, OnDeleteStrategy, OnDeleteStrategyFailure,
-                };
-
-                pub use ::spacetimedsl::error::{
-                    ReferenceIntegrityViolationError, SpacetimeDSLError,
-                };
-
-                pub use ::spacetimedsl::Wrapper;
-
-                pub use ::spacetimedsl::get_auth::GetAuth;
-                pub use ::spacetimedsl::get_connection_id::GetConnectionId;
-                pub use ::spacetimedsl::get_immutable_database::GetImmutableDatabase;
-                pub use ::spacetimedsl::get_module_identity::GetModuleIdentity;
-                pub use ::spacetimedsl::get_mutable_database::GetMutableDatabase;
-                pub use ::spacetimedsl::get_random::GetRandom;
-                pub use ::spacetimedsl::get_random_number_generator::GetRandomNumberGenerator;
-                pub use ::spacetimedsl::get_sender::GetSender;
-                pub use ::spacetimedsl::get_timestamp::GetTimestamp;
-                pub use ::spacetimedsl::new_uuid::NewUUID;
-
-                pub use ::spacetimedsl::as_anonymous_view_context::AsAnonymousViewContext;
-                pub use ::spacetimedsl::as_reducer_context::AsReducerContext;
-                pub use ::spacetimedsl::as_view_context::AsViewContext;
-
-                pub use ::spacetimedsl::itertools::Itertools;
 
                 pub use spacetimedb::{
                     AnonymousViewContext, Identity, ProcedureContext, ReducerContext, ScheduleAt,

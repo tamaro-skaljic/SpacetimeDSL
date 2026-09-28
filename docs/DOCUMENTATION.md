@@ -85,14 +85,15 @@ use crate::spacetimedsl::prelude::*;
 `crate::spacetimedsl::prelude` provides these types and functions:
 
 - `DSL`, `ReadOnlyDSL` — DSL context structs (generated into your crate)
-- `Wrapper` — trait for wrapper types
-- `DeletionResult`, `DeletionResultEntry`, `OnDeleteStrategyFailure` — deletion audit types
 - `dsl`, `read_only_dsl` — constructor functions
-- `SpacetimeDSLError`, `ReferenceIntegrityViolationError` — error types
-- `hook` — hook attribute macro
-- `WriteContext`, `ReadContext` — context traits
-- `GetAuth`, `GetSender`, `GetTimestamp`, `NewUUID`, `GetConnectionId`, `GetModuleIdentity`, `GetRandom`, `GetRandomNumberGenerator`, `GetImmutableDatabase`, `GetMutableDatabase`, `AsReducerContext`, `AsViewContext`, `AsAnonymousViewContext` — context accessor traits
-- `Itertools` — re-exported from `itertools` crate
+- `DSLMethodHooks`, `DefaultSingleton` — what hooks and `singleton(with_default)` tables implement
+- Everything in `spacetimedsl::prelude`, the one list of the runtime's items, which the crate root of `spacetimedsl` re-exports as well:
+  - `Context`, `ReadContext`, `WriteContext` — context traits
+  - `Wrapper` — trait for wrapper types
+  - `DeletionResult`, `DeletionResultEntry`, `OnDeleteStrategy`, `OnDeleteStrategyFailure` — deletion types
+  - `SpacetimeDSLError`, `ReferenceIntegrityViolationError` — error types
+  - `GetAuth`, `GetSender`, `GetTimestamp`, `NewUUID`, `GetConnectionId`, `GetModuleIdentity`, `GetRandom`, `GetRandomNumberGenerator`, `GetImmutableDatabase`, `GetMutableDatabase`, `AsReducerContext`, `AsViewContext`, `AsAnonymousViewContext` — context accessor traits
+  - `Itertools` — re-exported from `itertools` crate
 - `AnonymousViewContext`, `Identity`, `ProcedureContext`, `ReducerContext`, `ScheduleAt`, `SpacetimeType`, `Table`, `TimeDuration`, `Timestamp`, `ViewContext`, `rand::Rng` — re-exported from `spacetimedb`
 
 ### Cross-Module Imports
