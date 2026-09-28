@@ -157,7 +157,6 @@ pub fn reference_integrity_checks_on_update(
         let referencing_table_name = &spacetimedb_table.singular_name;
         let referencing_table_name_as_string = referencing_table_name.to_string();
         let referencing_table_column_name = &column.rust_field_name;
-        let _referencing_table_column_name_as_string = referencing_table_column_name.to_string();
         let primary_key_column_name_of_referencing_table = &primary_key_column.rust_field_name;
         let referencing_table_column_getter_name =
             naming::getter_name(referencing_table_column_name);
@@ -237,7 +236,6 @@ pub fn multi_column_index_checks(
     primary_key_column_name: &Ident,
 ) -> Vec<TokenStream> {
     let mut multi_column_index_checks = vec![];
-    let singular_table_name_as_string = singular_table_name.to_string();
 
     for multi_column_index in &spacetimedb_table.multi_column_indices {
         let index_column_names: &[Ident] = match &multi_column_index.index_type {
@@ -279,16 +277,11 @@ pub fn multi_column_index_checks(
 
         let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
 
-        let action_as_ident = format_ident!("{action}");
-
-        let multiple = OneOrMultiple::Multiple;
-
-        let unique_constraint_violation_error = runtime::unique_constraint_violation(
-            &singular_table_name_as_string,
-            &action_as_ident,
-            &quote! { SpacetimeDSL },
-            &multiple,
-            &message::column_names_and_row_values(index_column_names, &row_value_getters),
+        let unique_constraint_violation_error = unique_multi_column_index_violation(
+            &action,
+            singular_table_name,
+            index_column_names,
+            &row_value_getters,
         );
 
         let return_unique_constraint_violation_error = quote! {
@@ -342,18 +335,11 @@ pub fn unique_multi_column_index_check(
 ) -> TokenStream {
     let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
 
-    let singular_table_name_as_string = singular_table_name.to_string();
-
-    let action = format_ident!("{action}");
-
-    let multiple = OneOrMultiple::Multiple;
-
-    let unique_constraint_violation_error = runtime::unique_constraint_violation(
-        &singular_table_name_as_string,
-        &action,
-        &quote! { SpacetimeDSL },
-        &multiple,
-        &message::column_names_and_row_values(index_column_names, row_value_getters),
+    let unique_constraint_violation_error = unique_multi_column_index_violation(
+        action,
+        singular_table_name,
+        index_column_names,
+        row_value_getters,
     );
 
     quote! {
@@ -362,4 +348,21 @@ pub fn unique_multi_column_index_check(
             Err(_) => return Err(#unique_constraint_violation_error),
         };
     }
+}
+
+/// The unique-constraint violation of a unique multi-column index that already holds a row
+/// with these values, which SpacetimeDSL rather than SpacetimeDB detects.
+fn unique_multi_column_index_violation(
+    action: &Action,
+    singular_table_name: &Ident,
+    index_column_names: &[Ident],
+    row_value_getters: &[TokenStream],
+) -> TokenStream {
+    runtime::unique_constraint_violation(
+        &singular_table_name.to_string(),
+        &format_ident!("{action}"),
+        &quote! { SpacetimeDSL },
+        &OneOrMultiple::Multiple,
+        &message::column_names_and_row_values(index_column_names, row_value_getters),
+    )
 }
