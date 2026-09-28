@@ -15,6 +15,7 @@ use crate::api::{
     },
     runtime,
 };
+use crate::internal::dsl::method::naming;
 
 /// What the `before_insert` hook of a table receives.
 ///
@@ -77,6 +78,7 @@ fn build_one(
         return_type: get_return_type(
             &timing,
             &operation,
+            singular_table_name,
             &singular_table_name_pascal_case,
             inserted_value,
         ),
@@ -113,8 +115,7 @@ fn get_function_args(
     match (timing, operation) {
         (Timing::Before, Operation::Insert) => match inserted_value {
             InsertedValue::CreateRequest => {
-                // FIXME: Single Source of Truth Violation for arg type name
-                let arg_type = format_ident!("Create{singular_table_name_pascal_case}");
+                let arg_type = naming::create_request_struct_name(singular_table_name);
 
                 vec![
                     build_dsl_function_arg(),
@@ -176,6 +177,7 @@ fn get_function_args(
 fn get_return_type(
     timing: &Timing,
     operation: &Operation,
+    singular_table_name: &syn::Ident,
     singular_table_name_pascal_case: &syn::Ident,
     inserted_value: InsertedValue,
 ) -> TokenStream {
@@ -185,7 +187,7 @@ fn get_return_type(
         (Timing::Before, Operation::Insert) => {
             let returned_type = match inserted_value {
                 InsertedValue::CreateRequest => {
-                    format_ident!("Create{singular_table_name_pascal_case}")
+                    naming::create_request_struct_name(singular_table_name)
                 }
                 InsertedValue::WholeRow => singular_table_name_pascal_case.clone(),
             };

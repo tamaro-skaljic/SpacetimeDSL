@@ -16,8 +16,18 @@
 
 use super::removal::Removal;
 use crate::internal::dsl::one_or_multiple::OneOrMultiple;
+use ident_case::RenameRule;
 use quote::format_ident;
 use syn::Ident;
+
+/// `Create<Table>`, the struct `create_<table>` takes and the `before_insert` hook of the
+/// table receives and returns.
+pub fn create_request_struct_name(singular_table_name: &Ident) -> Ident {
+    format_ident!(
+        "Create{}",
+        RenameRule::PascalCase.apply_to_field(singular_table_name.to_string())
+    )
+}
 
 pub fn referenced_table_compile_error_check_for_deletions(
     referenced_table_name: &Ident,

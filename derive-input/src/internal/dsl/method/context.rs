@@ -14,7 +14,6 @@ use crate::{
     },
     internal::column::InternalColumn,
 };
-use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::format_ident;
 use std::collections::BTreeSet;
@@ -37,7 +36,6 @@ pub struct MethodGenerationContext<'a> {
     pub struct_name: Ident,
     pub singular_table_name: Ident,
     pub singular_table_name_as_string: String,
-    pub singular_table_name_pascal_case: String,
     pub plural_table_name: Ident,
     pub primary_key_column_name: Ident,
     pub primary_key_column_name_as_string: String,
@@ -64,8 +62,6 @@ impl<'a> MethodGenerationContext<'a> {
 
             struct_name: rust_struct.name.clone(),
             singular_table_name_as_string: singular_table_name.to_string(),
-            singular_table_name_pascal_case: RenameRule::PascalCase
-                .apply_to_field(singular_table_name.to_string()),
             plural_table_name: spacetimedsl_table.plural_name.clone(),
             primary_key_column_name_as_string: primary_key_column_name.to_string(),
             field_name_for_found_value: format_ident!("the_same_or_another_{singular_table_name}"),

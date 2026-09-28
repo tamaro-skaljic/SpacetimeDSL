@@ -2,6 +2,7 @@ use super::context::TableContributions;
 use super::{
     context::MethodGenerationContext,
     hook_call::hook_tokens,
+    naming,
     reference_integrity::{
         Action, multi_column_index_checks, reference_integrity_checks_on_create,
     },
@@ -232,7 +233,6 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
         struct_name,
         singular_table_name,
         singular_table_name_as_string,
-        singular_table_name_pascal_case,
         primary_key_column_name,
         field_name_for_found_value,
         ..
@@ -271,7 +271,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
     }
 
     if !method_arg_members.is_empty() {
-        let method_arg_name = format_ident!("Create{singular_table_name_pascal_case}");
+        let method_arg_name = naming::create_request_struct_name(singular_table_name);
 
         method_args.push(SpacetimeDSLArg {
             is_option: false,

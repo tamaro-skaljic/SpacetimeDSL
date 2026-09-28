@@ -28,7 +28,7 @@ mod foreign_key;
 mod get;
 mod hook_call;
 mod index;
-mod naming;
+pub(crate) mod naming;
 mod on_delete_strategy;
 mod reference_integrity;
 mod referenced_by;
