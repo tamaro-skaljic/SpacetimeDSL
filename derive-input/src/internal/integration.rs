@@ -1,29 +1,47 @@
 use crate::api::attribute::is_table_attribute;
-use crate::internal::{DSLTableKind, error};
+use crate::internal::error;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
-use syn::DeriveInput;
+use syn::{DeriveInput, Ident};
 
-pub fn spacetime_bindings_macro_input<'a>(
+/// The `#[table]` attribute a `#[dsl]` attribute belongs to.
+///
+/// With several `#[table]` attributes on the struct, `#[dsl(table = <accessor>)]` has to
+/// name it. With one, the selector is optional, but has to name that one when given. A
+/// singleton has to have exactly one.
+pub fn select_table_attribute<'a>(
     item: &'a DeriveInput,
-    kind: &DSLTableKind,
+    table_selector: Option<&Ident>,
+    is_singleton: bool,
 ) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
-    let plural_name = match kind {
-        DSLTableKind::Singleton(_) => {
-            let all_tables = get_all_table_attributes(item)?;
+    let all_tables = get_all_table_attributes(item)?;
 
-            if all_tables.len() != 1 {
-                return Err(error::singleton_without_exactly_one_table_attribute(
-                    &item.ident,
-                    all_tables.len(),
-                ));
-            }
+    if is_singleton && all_tables.len() != 1 {
+        return Err(error::singleton_without_exactly_one_table_attribute(
+            &item.ident,
+            all_tables.len(),
+        ));
+    }
 
-            return Ok(all_tables.into_iter().next().unwrap());
-        }
-        DSLTableKind::Table { plural_name } => plural_name,
+    let accessors = || -> Vec<&Ident> {
+        all_tables
+            .iter()
+            .map(|(table_args, _)| &table_args.accessor)
+            .collect()
     };
 
-    select_table_with_heuristics(item, plural_name)
+    let position = match table_selector {
+        Some(table_selector) => all_tables
+            .iter()
+            .position(|(table_args, _)| table_args.accessor == *table_selector)
+            .ok_or_else(|| error::table_selector_names_no_table(table_selector, &accessors()))?,
+        None if all_tables.len() == 1 => 0,
+        None => return Err(error::table_selector_missing(&item.ident, &accessors())),
+    };
+
+    Ok(all_tables
+        .into_iter()
+        .nth(position)
+        .expect("the position of the selected table was just found"))
 }
 
 fn get_all_table_attributes<'a>(
@@ -49,113 +67,4 @@ fn get_all_table_attributes<'a>(
     }
 
     Ok(results)
-}
-
-// Select table using heuristics or index-based fallback
-fn select_table_with_heuristics<'a>(
-    input: &'a DeriveInput,
-    plural_name: &syn::Ident,
-) -> syn::Result<(TableArgs, ColumnArgs<'a>)> {
-    let all_tables = get_all_table_attributes(input)?;
-
-    if all_tables.is_empty() {
-        return Err(error::no_table_attribute_found(&input.ident));
-    }
-
-    if all_tables.len() == 1 {
-        return Ok(all_tables.into_iter().next().unwrap());
-    }
-
-    let plural_str = plural_name.to_string();
-
-    // Try exact match first
-    for (i, table_entry) in all_tables.iter().enumerate() {
-        let (table_args, _) = table_entry;
-        let table_name = table_args.accessor.to_string();
-        if table_name == plural_str {
-            return Ok(all_tables.into_iter().nth(i).unwrap());
-        }
-    }
-
-    // Try intelligent matching: find table name that is most similar
-    // This handles cases like test_tables1 -> test_table1
-    for (i, table_entry) in all_tables.iter().enumerate() {
-        let (table_args, _) = table_entry;
-        let table_name = table_args.accessor.to_string();
-
-        // Check if the plural name matches the table name with some smart heuristics
-        if is_plural_match(&plural_str, &table_name) {
-            return Ok(all_tables.into_iter().nth(i).unwrap());
-        }
-    }
-
-    // Fallback: use deterministic selection based on plural_name
-    let selection_index =
-        deterministic_selection_by_name(&plural_name.to_string(), all_tables.len());
-
-    Ok(all_tables.into_iter().nth(selection_index).unwrap())
-}
-
-// Check if a plural name matches a table name using intelligent heuristics
-fn is_plural_match(plural_name: &str, table_name: &str) -> bool {
-    let plural_base = remove_trailing_digits(plural_name);
-    let table_base = remove_trailing_digits(table_name);
-
-    // Check if the suffixes (digits) match
-    let plural_suffix = &plural_name[plural_base.len()..];
-    let table_suffix = &table_name[table_base.len()..];
-
-    if plural_suffix != table_suffix {
-        return false;
-    }
-
-    // Now try different pluralization rules
-    // 1. Direct conversion: tables -> table
-    if plural_base == "tables" && table_base == "table" {
-        return true;
-    }
-
-    // 2. Standard pluralization rules
-    let singular = plural_to_singular(&plural_base);
-    if singular == table_base {
-        return true;
-    }
-
-    // 3. Check if table is a substring of plural (e.g., "table" in "test_tables")
-    if plural_base.contains(&table_base) {
-        return true;
-    }
-
-    false
-}
-
-// Convert plural name to singular (simple heuristic)
-fn plural_to_singular(plural: &str) -> String {
-    if let Some(stripped) = plural.strip_suffix("ies") {
-        format!("{stripped}y")
-    } else if plural.ends_with("es") && plural.len() > 2 {
-        plural[..plural.len() - 2].to_string()
-    } else if plural.ends_with("s") && plural.len() > 1 {
-        plural[..plural.len() - 1].to_string()
-    } else {
-        plural.to_string()
-    }
-}
-
-fn remove_trailing_digits(s: &str) -> String {
-    let mut result = s.to_string();
-    while let Some(last_char) = result.chars().last() {
-        if last_char.is_ascii_digit() {
-            result.pop();
-        } else {
-            break;
-        }
-    }
-    result
-}
-
-// Deterministic selection based on hash of plural name
-fn deterministic_selection_by_name(name: &str, table_count: usize) -> usize {
-    let hash: usize = name.chars().map(|c| c as usize).sum();
-    hash % table_count
 }

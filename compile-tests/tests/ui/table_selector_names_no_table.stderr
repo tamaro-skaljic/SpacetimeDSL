@@ -1,0 +1,11 @@
+error: No `#[table]` attribute of this struct has the accessor `gizmo`! Found: `gadget1`, `gadget2`.
+ --> tests/ui/table_selector_names_no_table.rs:7:56
+  |
+7 |     #[spacetimedsl::dsl(plural_name = gadgets, table = gizmo, method(update = false))]
+  |                                                        ^^^^^
+
+error: No `#[table]` attribute of this struct has the accessor `gizmo`! Found: `widget`.
+  --> tests/ui/table_selector_names_no_table.rs:19:56
+   |
+19 |     #[spacetimedsl::dsl(plural_name = widgets, table = gizmo, method(update = false))]
+   |                                                        ^^^^^

@@ -36,8 +36,11 @@ pub fn try_parse(
 ) -> syn::Result<crate::api::Table> {
     let dsl_data = try_parse_dsl(&args)?;
 
-    let (table_args, column_args) =
-        integration::spacetime_bindings_macro_input(input, &dsl_data.kind)?;
+    let (table_args, column_args) = integration::select_table_attribute(
+        input,
+        dsl_data.table_selector.as_ref(),
+        dsl_data.kind.singleton().is_some(),
+    )?;
 
     if let DSLTableKind::Singleton(_) = dsl_data.kind {
         reject_unique_index_on_singleton(&dsl_data.unique_indices, &table_args)?;
@@ -80,6 +83,7 @@ struct ParsedDSLArguments {
     is_singleton: bool,
     singleton_with_default: Option<Span>,
     plural_name: Option<Ident>,
+    table_selector: Option<Ident>,
     unique_indices: Vec<Ident>,
     declared_hook_spans: BTreeMap<HookKind, Span>,
     update_method: Option<bool>,
@@ -92,6 +96,7 @@ struct ParsedDSLArguments {
 /// to [`validate`].
 fn parse_dsl_arguments(args: &proc_macro2::TokenStream) -> syn::Result<ParsedDSLArguments> {
     let mut name_plural: Option<Ident> = None;
+    let mut table_selector: Option<Ident> = None;
     let mut is_singleton: Option<()> = None;
     let mut singleton_with_default: Option<Span> = None;
 
@@ -130,6 +135,10 @@ fn parse_dsl_arguments(args: &proc_macro2::TokenStream) -> syn::Result<ParsedDSL
                 check_duplicate(&name_plural, &meta)?;
                 let value = meta.value()?;
                 name_plural = Some(value.parse()?);
+            }
+            dsl::table => {
+                check_duplicate(&table_selector, &meta)?;
+                table_selector = Some(meta.value()?.parse()?);
             }
             unique_index => unique_indices.push(try_parse_unique_index(meta)?),
             hook => {
@@ -185,6 +194,7 @@ fn parse_dsl_arguments(args: &proc_macro2::TokenStream) -> syn::Result<ParsedDSL
         is_singleton: is_singleton.is_some(),
         singleton_with_default,
         plural_name: name_plural,
+        table_selector,
         unique_indices,
         declared_hook_spans,
         update_method,
@@ -222,6 +232,7 @@ fn validate(parsed: ParsedDSLArguments, args: &proc_macro2::TokenStream) -> syn:
         is_singleton,
         singleton_with_default,
         plural_name: name_plural,
+        table_selector,
         unique_indices,
         declared_hook_spans,
         update_method,
@@ -300,6 +311,7 @@ fn validate(parsed: ParsedDSLArguments, args: &proc_macro2::TokenStream) -> syn:
 
     Ok(DSLData {
         kind,
+        table_selector,
         unique_indices,
         declared_hooks: declared_hook_spans.into_keys().collect(),
         update_method,
@@ -326,6 +338,8 @@ impl DSLTableKind {
 
 pub struct DSLData {
     kind: DSLTableKind,
+    /// `table = <accessor>`: the `#[table]` attribute this `#[dsl]` belongs to.
+    table_selector: Option<Ident>,
     unique_indices: Vec<Ident>,
     declared_hooks: BTreeSet<HookKind>,
     update_method: Option<bool>,

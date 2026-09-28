@@ -134,6 +134,7 @@ pub struct SpaceShipObject {
 
 #[spacetimedsl::dsl(
     plural_name = modules1,
+    table = module1,
     method(update = true),
     unique_index(name = database_and_parent_id_and_name),
 )]
@@ -144,6 +145,7 @@ pub struct SpaceShipObject {
 )]
 #[spacetimedsl::dsl(
     plural_name = modules2,
+    table = module2,
     method(update = true),
     unique_index(name = database_and_name_and_parent_id),
 )]

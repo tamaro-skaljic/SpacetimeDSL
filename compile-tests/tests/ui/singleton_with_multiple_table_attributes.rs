@@ -1,6 +1,6 @@
-//! With more than one `#[table]` attribute the generator picks one by heuristics, using
-//! the `plural_name` as the hint. A singleton has no `plural_name`, so there is nothing to
-//! decide with and the ambiguity is rejected instead of guessed.
+//! A singleton is its one table: a second `#[table]` attribute would declare a second
+//! singleton on the same struct, so a singleton must have exactly one, even with a
+//! `table = <accessor>` selector.
 
 ::spacetimedsl::spacetimedsl!();
 

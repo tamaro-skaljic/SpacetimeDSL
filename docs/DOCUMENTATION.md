@@ -25,7 +25,7 @@ When transforming a **SpacetimeDB** module to use **SpacetimeDSL**, follow these
 2. Add `::spacetimedsl::spacetimedsl!();` at the top of `lib.rs` (before table definitions - the starting `::` is required to avoid macro expansion context issues!)
 3. Add `use crate::spacetimedsl::prelude::*;` at the top of every file that uses DSL features
 4. Add `#[spacetimedsl::dsl]` attribute above each `#[spacetimedb::table]`
-5. Define `plural_name`, `method(update = ..., delete = ...)`
+5. Define `plural_name`, `method(update = ..., delete = ...)`, and `table = <accessor>` on a struct with several `#[spacetimedb::table]` attributes
 6. Add `#[create_wrapper]` / `#[use_wrapper]` on `#[primary_key]`, `#[unique]`, and `#[index]` columns
 7. Add `#[foreign_key]` + `#[referenced_by]` for relationships
 8. Replace all `ctx.db.table_name()` calls with DSL methods
@@ -749,13 +749,24 @@ The `plural_name` parameter is required (except on singleton tables) and control
 - `count_of_all_{plural_name}()` — e.g., `count_of_all_entities()`
 - `delete_{plural_name}_by_{column}()` — e.g., `delete_entities_by_status()`
 
+### `table`
+
+`#[dsl(table = <accessor>)]` names the `#[spacetimedb::table]` attribute the `#[dsl]` attribute belongs to, by its `accessor`:
+
+- With **several** `#[table]` attributes on the struct, `table` is required on every `#[dsl]`.
+- With **one** `#[table]` attribute it is optional; when given, it must name that table's accessor.
+- A singleton must have exactly one `#[table]` attribute; it may name it with `table` as well.
+
+A `table` which names no `#[table]` attribute of the struct is rejected, and so is a missing `table` where it is required.
+
 ### Multiple #[spacetimedsl::dsl] + #[spacetimedb::table] on Same Struct
 
-A single struct can have multiple `#[spacetimedsl::dsl]` + `#[spacetimedb::table]` pairs, each generating a separate table with its own accessor but sharing the same struct definition:
+A single struct can have multiple `#[spacetimedsl::dsl]` + `#[spacetimedb::table]` pairs, each generating a separate table with its own accessor but sharing the same struct definition. Each `#[dsl]` names its table with [`table = <accessor>`](#table); their order on the struct does not matter:
 
 ```rust
 #[spacetimedsl::dsl(
     plural_name = offline_players,
+    table = offline_player,
     method(update = true, delete = true),
 )]
 #[spacetimedb::table(
@@ -764,6 +775,7 @@ A single struct can have multiple `#[spacetimedsl::dsl]` + `#[spacetimedb::table
 )]
 #[spacetimedsl::dsl(
     plural_name = online_players,
+    table = online_player,
     method(update = true, delete = true),
 )]
 #[spacetimedb::table(

@@ -28,15 +28,38 @@ fn visibility_variant_name(visibility: &Visibility) -> &'static str {
 pub fn missing_table_attribute(struct_name: &Ident) -> Error {
     Error::new_spanned(
         struct_name,
-        "Haven't found `#[table]`/`#[spacetimedb::table]` attribute macro! Make sure `#[dsl]`/`#[spacetimedsl::dsl]` is directly above one.",
+        "Haven't found a `#[table]`/`#[spacetimedb::table]` attribute on this struct! `#[dsl]`/`#[spacetimedsl::dsl]` builds on the table it declares.",
     )
 }
 
-pub fn no_table_attribute_found(struct_name: &Ident) -> Error {
+pub fn table_selector_missing(struct_name: &Ident, accessors: &[&Ident]) -> Error {
     Error::new_spanned(
         struct_name,
-        "No `#[table]`/`#[spacetimedb::table]` attribute macro found",
+        format!(
+            "This struct has {} `#[table]` attributes ({}), so `#[dsl]` has to name the one it belongs to! Add `table = <accessor>`, such as `#[dsl(table = {}, ...)]`.",
+            accessors.len(),
+            quoted_list(accessors),
+            accessors[0],
+        ),
     )
+}
+
+pub fn table_selector_names_no_table(table_selector: &Ident, accessors: &[&Ident]) -> Error {
+    Error::new_spanned(
+        table_selector,
+        format!(
+            "No `#[table]` attribute of this struct has the accessor `{table_selector}`! Found: {}.",
+            quoted_list(accessors),
+        ),
+    )
+}
+
+fn quoted_list(idents: &[&Ident]) -> String {
+    idents
+        .iter()
+        .map(|ident| format!("`{ident}`"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 pub fn singleton_without_exactly_one_table_attribute(

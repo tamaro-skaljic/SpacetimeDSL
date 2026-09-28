@@ -28,7 +28,29 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 
 ### Newly rejected inputs
 
+- A struct with several `#[table]` attributes needs `table = <accessor>` on each `#[dsl]`, naming the table it belongs to. Before, the `plural_name` was used to guess one, and an arbitrary table was used when the guess failed.
+
+  ```rust
+  // 0.23
+  #[spacetimedsl::dsl(plural_name = offline_players, method(update = true))]
+  #[spacetimedb::table(accessor = offline_player, public)]
+  #[spacetimedsl::dsl(plural_name = online_players, method(update = true))]
+  #[spacetimedb::table(accessor = online_player, public)]
+  pub struct Player { /* … */ }
+
+  // 0.24
+  #[spacetimedsl::dsl(plural_name = offline_players, table = offline_player, method(update = true))]
+  #[spacetimedb::table(accessor = offline_player, public)]
+  #[spacetimedsl::dsl(plural_name = online_players, table = online_player, method(update = true))]
+  #[spacetimedb::table(accessor = online_player, public)]
+  pub struct Player { /* … */ }
+  ```
+
+  Without it: *This struct has 2 `#[table]` attributes (`offline_player`, `online_player`), so `#[dsl]` has to name the one it belongs to!* A `table` that names no `#[table]` of the struct is rejected with *No `#[table]` attribute of this struct has the accessor `…`!*, also on a struct with a single `#[table]`.
+
 ### Changed messages and generated code
+
+- A struct without a `#[table]` attribute is rejected with *Haven't found a `#[table]`/`#[spacetimedb::table]` attribute on this struct! `#[dsl]`/`#[spacetimedsl::dsl]` builds on the table it declares.* It used to ask for `#[dsl]` to be directly above a `#[table]`, which was never the rule.
 
 - The root of the `spacetimedsl` crate re-exports everything in the new `spacetimedsl::prelude`, which adds the context accessor traits, `OnDeleteStrategyFailure`, `NewUUID` and `Itertools` to what `spacetimedsl::X` reaches. This is additive.
 - `#[::spacetimedsl::dsl(…)]` and `#[::spacetimedb::table(…)]`, spelled with a leading `::`, are recognised like `#[spacetimedsl::dsl(…)]` and `#[spacetimedb::table(…)]`. Before, a `::spacetimedb::table` attribute was not found, so the struct was rejected for missing a table attribute.
