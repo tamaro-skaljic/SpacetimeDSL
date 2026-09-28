@@ -1,3 +1,4 @@
+pub use context::{MethodGenerationContext, TableContributions};
 use {
     crate::{
         api::{
@@ -19,8 +20,21 @@ use {
         },
         internal::dsl::one_or_multiple::OneOrMultiple,
     },
+    create::for_create,
+    delete::{for_delete_many, for_delete_one},
+    foreign_key::for_foreign_key,
+    get::{for_get_all, for_get_count, for_get_many, for_get_one},
+    index::IndexShape,
     itertools::Itertools,
+    on_delete_strategy::ReferencingTables,
+    referenced_by::for_referenced_by,
+    removal::Removal,
+    singleton_table::{for_singleton_delete, for_singleton_get},
+    soft_delete::{for_soft_delete_many, for_soft_delete_one},
     std::collections::BTreeMap,
+    update::for_update,
+    upsert::for_singleton_upsert,
+    wrapper_method::for_wrapper_methods,
 };
 
 mod context;
@@ -41,23 +55,6 @@ mod soft_delete;
 mod update;
 mod upsert;
 mod wrapper_method;
-
-pub use context::{MethodGenerationContext, TableContributions};
-use {
-    create::for_create,
-    delete::{for_delete_many, for_delete_one},
-    foreign_key::for_foreign_key,
-    get::{for_get_all, for_get_count, for_get_many, for_get_one},
-    index::IndexShape,
-    on_delete_strategy::ReferencingTables,
-    referenced_by::for_referenced_by,
-    removal::Removal,
-    singleton_table::{for_singleton_delete, for_singleton_get},
-    soft_delete::{for_soft_delete_many, for_soft_delete_one},
-    update::for_update,
-    upsert::for_singleton_upsert,
-    wrapper_method::for_wrapper_methods,
-};
 
 /// The update method an index earns, if any.
 ///

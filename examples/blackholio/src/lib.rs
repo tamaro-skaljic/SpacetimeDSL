@@ -1,7 +1,5 @@
 ::spacetimedsl::spacetimedsl!();
 
-pub mod math;
-
 use {
     crate::spacetimedsl::prelude::*,
     math::DbVector2,
@@ -11,6 +9,8 @@ use {
     },
     std::{collections::HashMap, time::Duration},
 };
+
+pub mod math;
 
 // TODO:
 // - [x] Remove players when they are eaten on the client + death + respawn screen

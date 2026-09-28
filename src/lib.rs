@@ -1,6 +1,7 @@
 use std::fmt::Display;
 pub use {
     itertools,
+    prelude::*,
     spacetimedsl_derive::{SpacetimeDSL, dsl, hook},
 };
 
@@ -44,8 +45,6 @@ pub mod prelude {
         new_uuid::NewUUID,
     };
 }
-
-pub use prelude::*;
 
 pub(crate) enum ContextType {
     AnonymousView,
