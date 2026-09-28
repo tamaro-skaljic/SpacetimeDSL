@@ -11,7 +11,7 @@ use crate::{
     api::{
         db::{index::IndexType, table::SpacetimeDBTable},
         dsl::foreign_key::ForeignKey,
-        runtime,
+        runtime, spacetimedb,
     },
     internal::{
         column::{ColumnTypeKind, InternalColumn},
@@ -71,10 +71,18 @@ fn reference_integrity_checks(
                     #check
                 }
             },
+            ColumnTypeKind::UUID => {
+                let nil = spacetimedb::uuid_nil();
+
+                quote! {
+                    if #referencing_table_column_name.ne(&#nil) {
+                        #check
+                    }
+                }
+            }
             ColumnTypeKind::String
             | ColumnTypeKind::Bool
             | ColumnTypeKind::Timestamp
-            | ColumnTypeKind::UUID
             | ColumnTypeKind::Other => quote! {
                 #check
             },

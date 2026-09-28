@@ -3,32 +3,27 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `session_token` table.
-    pub fn create_session_token<'a>(
+    ///Create a row in the `book` table.
+    pub fn create_book<'a>(
         &'a self,
-        session_token: CreateSessionToken,
-    ) -> Result<SessionToken, crate::spacetimedsl::error::SpacetimeDSLError> {
+        book: CreateBook,
+    ) -> Result<Book, crate::spacetimedsl::error::SpacetimeDSLError> {
         use crate::spacetimedsl::Wrapper;
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let id = u64::default();
-        let token = SessionTokenToken::v4(self)?.value();
-        let account_id = session_token.account_id.value();
-        let session_token = SessionToken {
-            id,
-            token,
-            account_id,
-        };
-        let mut the_same_or_another_session_token: Option<SessionToken> = None;
-        if account_id.ne(&::spacetimedb::Uuid::NIL) {
-            match self.get_account_by_id(session_token.get_account_id()) {
+        let author_id = book.author_id.value();
+        let book = Book { id, author_id };
+        let mut the_same_or_another_book: Option<Book> = None;
+        if author_id.ne(&::spacetimedb::Uuid::NIL) {
+            match self.get_author_by_id(book.get_author_id()) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(
                         crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
-                            table_name: "session_token".into(),
+                            table_name: "book".into(),
                             create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
-                                "{{ {} : {} }}", account_id, session_token.get_account_id()
+                                "{{ {} : {} }}", author_id, book.get_author_id()
                             )
                                 .into(),
                         }),
@@ -36,25 +31,25 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 }
             };
         }
-        match self.db().session_token().try_insert(session_token.clone()) {
+        match self.db().book().try_insert(book.clone()) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
                     ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
                         Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
-                            table_name: "session_token".into(),
+                            table_name: "book".into(),
                             action: crate::spacetimedsl::error::Action::Create,
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ session_token : {:?} }}", session_token
+                                "{{ book : {:?} }}", book
                             )
                                 .into(),
                         })
                     }
                     ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
                         Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
-                            table_name: "session_token".into(),
+                            table_name: "book".into(),
                         })
                     }
                 }

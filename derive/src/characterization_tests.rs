@@ -134,6 +134,11 @@ fn on_delete_set_zero() {
 }
 
 #[test]
+fn on_delete_set_zero_uuid() {
+    snapshot_fixture("on_delete_set_zero_uuid");
+}
+
+#[test]
 fn on_delete_set_zero_with_update_hooks_and_set_on_update() {
     snapshot_fixture("on_delete_set_zero_with_update_hooks_and_set_on_update");
 }

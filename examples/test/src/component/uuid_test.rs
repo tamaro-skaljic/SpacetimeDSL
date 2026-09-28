@@ -17,6 +17,7 @@ pub struct UUIDPrimaryKeyRecord {
     #[create_wrapper]
     #[auto_gen(v7)]
     #[referenced_by(path = crate::component::uuid_reference_test, table = uuid_reference)]
+    #[referenced_by(path = crate::component::uuid_reference_test, table = uuid_set_zero_reference)]
     id: Uuid,
 
     pub name: String,

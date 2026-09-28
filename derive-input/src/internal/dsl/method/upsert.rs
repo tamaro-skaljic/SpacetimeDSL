@@ -72,7 +72,7 @@ impl ForeignKeyColumnScope {
             ),
             ForeignKeyColumnScope::CheckedOnCreate => matches!(
                 internal_column.rust_field_type_kind,
-                ColumnTypeKind::UnsignedInteger | ColumnTypeKind::Optional
+                ColumnTypeKind::UnsignedInteger | ColumnTypeKind::UUID | ColumnTypeKind::Optional
             ),
         }
     }

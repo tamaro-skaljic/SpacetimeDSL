@@ -1508,9 +1508,10 @@ unresolved import crate::entity_relationship::this_compilation_error_occurs_beca
 - Rows already retired are skipped, so the cascade is idempotent
 - Cascades further, through the soft entry points of the retired rows' own referencing tables
 
-**`SetZero`** — Set foreign key column to `0`:
+**`SetZero`** — Set foreign key column to the value that references no row:
 
-- Numeric types only
+- Unsigned integers (`u8`–`u128`) are set to `0`, `Uuid` to `Uuid::NIL`; any other column type is rejected
+- Create and update treat `0` and `Uuid::NIL` as referencing no row, so a row holding either passes the reference integrity check
 - Requires `method(update = true)` on the referencing table's `#[spacetimedsl::dsl]`
 - Requires the foreign key column to be `pub` (so a setter exists)
 - Clearing the column is an update of the referencing row: its [`before_update` and `after_update` hooks](#during-a-cascading-delete) run around the write, and its `#[set_on_update]` column is set, as in `update_<table>_by_<key>`

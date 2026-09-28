@@ -680,6 +680,16 @@ pub fn set_zero_strategy_on_private_column(foreign_key_meta: &impl ToTokens) -> 
     )
 }
 
+pub fn set_zero_strategy_on_unsupported_type(column_type: &Type) -> Error {
+    Error::new_spanned(
+        column_type,
+        format!(
+            "`OnDeleteStrategy::SetZero` is only allowed on unsigned integer and `Uuid` columns, which it sets to `0` or `Uuid::NIL`, the values that reference no row! Found: {}",
+            column_type.to_token_stream()
+        ),
+    )
+}
+
 pub fn delete_strategy_without_delete_method(foreign_key_meta: &impl ToTokens) -> Error {
     Error::new_spanned(
         foreign_key_meta,

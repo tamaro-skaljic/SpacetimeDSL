@@ -14,6 +14,8 @@ use super::{
     upsert::{rebind_row_as_mutable_after_hook, set_updated_at_on_update},
 };
 use crate::api::dsl::hook::HookKind;
+use crate::api::spacetimedb;
+use crate::internal::column::ColumnTypeKind;
 use crate::{
     api::{
         Column,
@@ -602,6 +604,8 @@ pub fn on_delete_strategy_implementation(
                 };
             }
             OnDeleteStrategy::SetZero => {
+                let value_referencing_no_row =
+                    value_referencing_no_row(&column.rust_field.type_name_or_path);
                 let row = format_ident!("row");
 
                 // Clearing the column is an update of the row, so the update hooks run around
@@ -649,7 +653,7 @@ pub fn on_delete_strategy_implementation(
                     quote! {
                         #clone_old_row
 
-                        row.#column_name = 0;
+                        row.#column_name = #value_referencing_no_row;
 
                         let child_entries = vec![];
                         let #primary_key_column_name = &row.#primary_key_column_name;
@@ -834,5 +838,14 @@ fn referenced_table_function_call_for_strategy_implementation(
                 }
             }
         };
+    }
+}
+
+/// What `SetZero` writes into a foreign key column: `Uuid::NIL` for a `Uuid`, `0` for an
+/// unsigned integer - the value create and update treat as referencing no row.
+fn value_referencing_no_row(column_type: &syn::Path) -> TokenStream {
+    match ColumnTypeKind::of(column_type) {
+        ColumnTypeKind::UUID => spacetimedb::uuid_nil(),
+        _ => quote! { 0 },
     }
 }

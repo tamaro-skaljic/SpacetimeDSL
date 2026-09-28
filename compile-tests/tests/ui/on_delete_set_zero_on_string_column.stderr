@@ -1,0 +1,35 @@
+error: `OnDeleteStrategy::SetZero` is only allowed on unsigned integer and `Uuid` columns, which it sets to `0` or `Uuid::NIL`, the values that reference no row! Found: String
+  --> tests/ui/on_delete_set_zero_on_string_column.rs:31:25
+   |
+31 |         pub owner_name: String,
+   |                         ^^^^^^
+
+error[E0432]: unresolved import `crate::gadget::this_compilation_error_occurs_because_the_gadget_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_owner_table`
+ --> tests/ui/on_delete_set_zero_on_string_column.rs:7:5
+  |
+7 |     #[spacetimedsl::dsl(plural_name = owners, method(update = true))]
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `this_compilation_error_occurs_because_the_gadget_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_owner_table` in `gadget`
+  |
+  = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no function or associated item named `execute_on_delete_strategies_of_the_gadget_table_after_one_row_of_the_owner_table_was_deleted` found for struct `DSLInternals` in the current scope
+ --> tests/ui/on_delete_set_zero_on_string_column.rs:7:5
+  |
+4 | ::spacetimedsl::spacetimedsl!();
+  | ------------------------------- function or associated item `execute_on_delete_strategies_of_the_gadget_table_after_one_row_of_the_owner_table_was_deleted` not found for this struct
+...
+7 |     #[spacetimedsl::dsl(plural_name = owners, method(update = true))]
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `DSLInternals`
+  |
+  = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no function or associated item named `execute_on_delete_strategies_of_the_gadget_table_after_multiple_rows_of_the_owner_table_were_deleted` found for struct `DSLInternals` in the current scope
+ --> tests/ui/on_delete_set_zero_on_string_column.rs:7:5
+  |
+4 | ::spacetimedsl::spacetimedsl!();
+  | ------------------------------- function or associated item `execute_on_delete_strategies_of_the_gadget_table_after_multiple_rows_of_the_owner_table_were_deleted` not found for this struct
+...
+7 |     #[spacetimedsl::dsl(plural_name = owners, method(update = true))]
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `DSLInternals`
+  |
+  = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

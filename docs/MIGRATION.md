@@ -56,7 +56,12 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 
 - A column with two single-column indices — for example `#[index(btree)]` on the field and `index(accessor = by_name, hash(columns = [name]))` in `#[table]` — is rejected with *The column `name` has two single-column indices, `by_name` and `name`!* Before, the second index generated no methods and nothing said so. Remove one of them.
 
+- `on_delete = SetZero` is rejected on a foreign key column that is neither an unsigned integer nor a `Uuid`, at the column's type: *`OnDeleteStrategy::SetZero` is only allowed on unsigned integer and `Uuid` columns, …* Before, it failed inside the expanded code. Choose another strategy for such a column.
+
 ### Changed messages and generated code
+
+- `on_delete = SetZero` is available on `Uuid` foreign keys and sets them to `Uuid::NIL`. Create, update and upsert treat a `Uuid` foreign key equal to `Uuid::NIL` as referencing no row, as they treat `0` for an unsigned integer: they no longer report a reference integrity violation for it. The generated create and update methods gain that guard.
+- A foreign key column counts as indexed through every single-column index on it, including one declared as `index(…)` in `#[table]`; before, only `#[primary_key]`, `#[unique]` and `#[index]` on the field counted.
 
 - Qualified spellings of the types SpacetimeDSL checks are accepted where they used to be rejected: `::spacetimedb::Timestamp` and `std::option::Option<spacetimedb::Timestamp>` for `#[set_on_create]` / `#[set_on_update]`, and `core::primitive::u64` / `std::primitive::u64` count as unsigned integers (so a foreign key spelled that way skips its reference-integrity check for `0`, like `u64`). See *Column Type Spellings* in the documentation. This is not breaking.
 

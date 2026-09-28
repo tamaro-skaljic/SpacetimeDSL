@@ -5,51 +5,51 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to update a `Gadget` row of the `gadget` table whose value matches the value from the unique single-column btree index on the `id` column.*/
-    pub fn update_gadget_by_id<'a>(
+Try to update a `Book` row of the `book` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_book_by_id<'a>(
         &'a self,
-        gadget: Gadget,
-    ) -> Result<Gadget, crate::spacetimedsl::error::SpacetimeDSLError> {
+        book: Book,
+    ) -> Result<Book, crate::spacetimedsl::error::SpacetimeDSLError> {
         use crate::spacetimedsl::Wrapper;
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        let mut gadget = gadget;
-        let mut the_same_or_another_gadget: Option<Gadget> = None;
-        let owner_id = gadget.get_owner_id().value();
-        if owner_id.ne(&::spacetimedb::Uuid::NIL) {
-            if the_same_or_another_gadget.is_none() {
-                the_same_or_another_gadget = match self
+        let mut book = book;
+        let mut the_same_or_another_book: Option<Book> = None;
+        let author_id = book.get_author_id().value();
+        if author_id.ne(&::spacetimedb::Uuid::NIL) {
+            if the_same_or_another_book.is_none() {
+                the_same_or_another_book = match self
                     .db()
-                    .gadget()
+                    .book()
                     .id()
-                    .find(gadget.get_id().value())
+                    .find(book.get_id().value())
                 {
-                    Some(gadget) => Some(gadget),
+                    Some(book) => Some(book),
                     None => {
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
-                            table_name: "gadget".into(),
+                            table_name: "book".into(),
                             column_names_and_row_values: format!(
-                                "{{ id : {} }}", owner_id
+                                "{{ id : {} }}", author_id
                             )
                                 .into(),
                         });
                     }
                 };
             }
-            if the_same_or_another_gadget
+            if the_same_or_another_book
                 .as_ref()
                 .expect("field_name_for_found_value should be Some(_)")
-                .get_owner_id()
-                .ne(&gadget.get_owner_id())
+                .get_author_id()
+                .ne(&book.get_author_id())
             {
-                match self.get_owner_by_id(gadget.get_owner_id()) {
+                match self.get_author_by_id(book.get_author_id()) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(
                             crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
-                                table_name: "gadget".into(),
+                                table_name: "book".into(),
                                 create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", "owner_id", owner_id
+                                    "{{ {} : {} }}", "author_id", author_id
                                 )
                                     .into(),
                             }),
@@ -58,11 +58,7 @@ Try to update a `Gadget` row of the `gadget` table whose value matches the value
                 };
             }
         }
-        gadget
-            .modified_at = Some(
-            self.ctx().timestamp().expect("a `WriteContext` always has a timestamp"),
-        );
-        let gadget = self.db().gadget().id().update(gadget);
-        Ok(gadget)
+        let book = self.db().book().id().update(book);
+        Ok(book)
     }
 }

@@ -26,21 +26,23 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             retired_at,
         };
         let mut the_same_or_another_gadget: Option<Gadget> = None;
-        match self.get_owner_by_id(gadget.get_owner_id()) {
-            Ok(_) => {}
-            Err(_) => {
-                return Err(
-                    crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
-                        table_name: "gadget".into(),
-                        create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
-                        column_names_and_row_values: format!(
-                            "{{ {} : {} }}", owner_id, gadget.get_owner_id()
-                        )
-                            .into(),
-                    }),
-                );
-            }
-        };
+        if owner_id.ne(&::spacetimedb::Uuid::NIL) {
+            match self.get_owner_by_id(gadget.get_owner_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "gadget".into(),
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                            column_names_and_row_values: format!(
+                                "{{ {} : {} }}", owner_id, gadget.get_owner_id()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
         match self.db().gadget().try_insert(gadget.clone()) {
             Ok(entity) => Ok(entity),
             Err(error) => {

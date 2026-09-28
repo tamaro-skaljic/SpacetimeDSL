@@ -43,9 +43,10 @@ pub enum OnDeleteStrategy {
     // If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
     // ... the value of the foreign key column is set to `None`.
     //SetNone,
-    /// Available only for columns with a numeric type.
+    /// Available only for columns with an unsigned integer type (`u8` to `u128`) or the type `Uuid`.
     /// If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...
-    /// ... the value of the foreign key column is set to `0`.
+    /// ... the value of the foreign key column is set to `0`, or to `Uuid::NIL` for a `Uuid`.
+    /// Create and update treat both values as referencing no row, so they skip the reference integrity check.
     SetZero,
     /// Available independent from the column type.
     /// If a row of a table should be deleted whose primary key value is referenced in foreign keys of other tables ...

@@ -38,10 +38,12 @@ impl SpacetimeDSLColumn {
         }
 
         let foreign_key = ForeignKey::try_parse(
-            &spacetimedsl_table.has_delete_method,
+            spacetimedsl_table.has_delete_method,
             spacetimedsl_table.is_soft_deletable(),
             is_singleton,
             field,
+            spacetimedb_column,
+            ColumnTypeKind::of(&rust_field.type_name_or_path),
         )?;
 
         if foreign_key.is_some() {
