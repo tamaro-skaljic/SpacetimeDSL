@@ -54,6 +54,18 @@ pub enum OnDeleteStrategy {
     Ignore,
 }
 
+impl Display for OnDeleteStrategy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OnDeleteStrategy::Error => write!(f, "Error"),
+            OnDeleteStrategy::Delete => write!(f, "Delete"),
+            OnDeleteStrategy::SoftDelete => write!(f, "SoftDelete"),
+            OnDeleteStrategy::SetZero => write!(f, "SetZero"),
+            OnDeleteStrategy::Ignore => write!(f, "Ignore"),
+        }
+    }
+}
+
 /// What a cascade returns when it refused: the entries it built before it stopped, and the
 /// error a delete hook raised, if one did.
 ///
