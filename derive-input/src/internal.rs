@@ -26,7 +26,7 @@ mod rust;
 
 mod db;
 
-mod dsl;
+pub(crate) mod dsl;
 
 mod error;
 

@@ -102,17 +102,15 @@ fn expand_dsl_attribute_parts(
 
 fn derive_table_helper_attr() -> syn::Attribute {
     let spacetimedsl_derive = runtime::spacetimedsl_derive();
-    let source = quote!(#[derive(Clone, Debug, PartialEq, #spacetimedsl_derive)]); // TODO: Add PartialOrd if ScheduledAt has implemented it
 
-    syn::parse::Parser::parse2(syn::Attribute::parse_outer, source)
-        .unwrap()
-        .into_iter()
-        .next()
-        .unwrap()
+    syn::parse_quote!(#[derive(Clone, Debug, PartialEq, #spacetimedsl_derive)])
 }
 
-/// Provides helper attributes for `#[dsl]` because proc_macro_attribute's currently don't support them.
-// TODO: Remove if https://github.com/rust-lang/rust/issues/65823 is implemented.
+/// Declares the field attributes `#[dsl]` reads as helper attributes, so the compiler accepts
+/// them on the fields: an attribute macro cannot declare helper attributes, a derive can.
+///
+/// The list has to be literal identifiers, so it cannot be generated from
+/// `FIELD_ATTRIBUTE_NAMES`; `helper_attributes_match_field_attributes` keeps both equal.
 #[proc_macro_derive(
     SpacetimeDSL,
     attributes(

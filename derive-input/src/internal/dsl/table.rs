@@ -195,11 +195,11 @@ fn get_timestamp_role(
     let has_set_on_create_attribute = field
         .original_attrs
         .iter()
-        .any(|attribute| attribute.path().is_ident("set_on_create"));
+        .any(|attribute| attribute.path() == super::set_on_create);
     let has_set_on_update_attribute = field
         .original_attrs
         .iter()
-        .any(|attribute| attribute.path().is_ident("set_on_update"));
+        .any(|attribute| attribute.path() == super::set_on_update);
     let is_set_on_create = column_name.eq("created_at")
         || column_name.eq("inserted_at")
         || has_set_on_create_attribute;

@@ -148,7 +148,7 @@ fn claimed_kind(field: &SatsField<'_>) -> syn::Result<Option<SoftDeleteMarkerKin
     let has_attribute = field
         .original_attrs
         .iter()
-        .any(|attribute| attribute.path().is_ident("set_on_soft_delete"));
+        .any(|attribute| attribute.path() == super::set_on_soft_delete);
 
     let claims_flag = FLAG_COLUMN_NAMES.contains(&column_name.as_ref());
     let claims_timestamp = TIMESTAMP_COLUMN_NAMES.contains(&column_name.as_ref());

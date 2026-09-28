@@ -24,7 +24,7 @@ use quote::ToTokens;
 use rust_format::{Formatter, PrettyPlease};
 use syn::{Attribute, DeriveInput, Expr, ExprLit, Item, Lit, Stmt};
 
-use spacetimedsl_derive_input::api::attribute::is_dsl_attribute;
+use spacetimedsl_derive_input::api::attribute::{FIELD_ATTRIBUTE_NAMES, is_dsl_attribute};
 
 use crate::{ExpandedDSLAttribute, expand_dsl_attribute_parts, output::GeneratedOutput};
 
@@ -236,6 +236,65 @@ fn restricted_accessor_visibility() {
 #[test]
 fn absolute_attribute_paths() {
     snapshot_fixture("absolute_attribute_paths");
+}
+
+#[test]
+fn every_field_attribute() {
+    snapshot_fixture("every_field_attribute");
+}
+
+/// `proc_macro_derive(attributes(...))` needs literal identifiers, so the helper
+/// attributes of the `SpacetimeDSL` derive cannot be generated from
+/// `FIELD_ATTRIBUTE_NAMES`. A name missing from the helper list surfaces only as an
+/// unknown-attribute error in user code, which no snapshot notices, so the two lists are
+/// compared here.
+#[test]
+fn helper_attributes_match_field_attributes() {
+    let lib_rs: syn::File =
+        syn::parse_str(include_str!("lib.rs")).expect("`lib.rs` should be parsable Rust");
+
+    let proc_macro_derive = lib_rs
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Fn(function) => Some(&function.attrs),
+            _ => None,
+        })
+        .flatten()
+        .find(|attribute| attribute.path().is_ident("proc_macro_derive"))
+        .expect("`lib.rs` should declare the `SpacetimeDSL` derive");
+
+    let mut helper_attributes = vec![];
+
+    proc_macro_derive
+        .parse_nested_meta(|meta| {
+            if meta.path.is_ident("attributes") {
+                meta.parse_nested_meta(|meta| {
+                    helper_attributes.push(
+                        meta.path
+                            .get_ident()
+                            .expect("a helper attribute is a plain identifier")
+                            .to_string(),
+                    );
+                    Ok(())
+                })?;
+            }
+            Ok(())
+        })
+        .expect("the `proc_macro_derive` arguments should be parsable");
+
+    let mut field_attributes: Vec<String> = FIELD_ATTRIBUTE_NAMES
+        .iter()
+        .map(ToString::to_string)
+        .collect();
+
+    helper_attributes.sort();
+    field_attributes.sort();
+
+    assert_eq!(
+        helper_attributes, field_attributes,
+        "the helper attributes of `#[proc_macro_derive(SpacetimeDSL, attributes(...))]` should be exactly `FIELD_ATTRIBUTE_NAMES`"
+    );
 }
 
 /// Expanding the same fixture twice must produce byte-identical output, otherwise the
