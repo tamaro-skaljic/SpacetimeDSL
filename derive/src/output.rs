@@ -6,6 +6,7 @@ use {
         dsl::{
             column::SpacetimeDSLColumnMethods,
             method::{SpacetimeDSLArg, SpacetimeDSLMethod},
+            table::OnDeleteStrategiesOfTheReferencedTable,
             wrapper::WrapperType,
         },
     },
@@ -95,10 +96,7 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
         .spacetimedsl_methods
         .on_delete_strategies_of_referencing_tables
     {
-        for entry_points in [&strategies.on_deletion, &strategies.on_soft_deletion]
-            .into_iter()
-            .flatten()
-        {
+        for entry_points in strategies.entry_points() {
             dsl_methods.push(build_internal_dsl_method(&entry_points.after_one_row)?);
             dsl_methods.push(build_internal_dsl_method(
                 &entry_points.after_multiple_rows,
@@ -108,30 +106,22 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
 
     // Two loops, not one: every one-row method is emitted before any many-row method, and a
     // single loop over the pairs would interleave them.
-    for strategies in &input
-        .spacetimedsl_methods
-        .on_delete_strategies_of_this_table
-    {
-        for entry_points in [&strategies.on_deletion, &strategies.on_soft_deletion]
-            .into_iter()
-            .flatten()
-        {
-            dsl_methods.push(build_internal_dsl_method(&entry_points.after_one_row)?);
-        }
+    let entry_points_of_this_table = || {
+        input
+            .spacetimedsl_methods
+            .on_delete_strategies_of_this_table
+            .iter()
+            .flat_map(OnDeleteStrategiesOfTheReferencedTable::entry_points)
+    };
+
+    for entry_points in entry_points_of_this_table() {
+        dsl_methods.push(build_internal_dsl_method(&entry_points.after_one_row)?);
     }
 
-    for strategies in &input
-        .spacetimedsl_methods
-        .on_delete_strategies_of_this_table
-    {
-        for entry_points in [&strategies.on_deletion, &strategies.on_soft_deletion]
-            .into_iter()
-            .flatten()
-        {
-            dsl_methods.push(build_internal_dsl_method(
-                &entry_points.after_multiple_rows,
-            )?);
-        }
+    for entry_points in entry_points_of_this_table() {
+        dsl_methods.push(build_internal_dsl_method(
+            &entry_points.after_multiple_rows,
+        )?);
     }
 
     for multi_column_index in &input.spacetimedsl_methods.multi_column_indices {

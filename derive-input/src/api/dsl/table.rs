@@ -112,6 +112,16 @@ pub struct OnDeleteStrategiesOfReferencingTables {
     pub on_soft_deletion: Option<CascadeEntryPoints>,
 }
 
+impl OnDeleteStrategiesOfReferencingTables {
+    /// The entry points the table holds: those for deletion first, then those for soft
+    /// deletion.
+    pub fn entry_points(&self) -> impl Iterator<Item = &CascadeEntryPoints> {
+        [&self.on_deletion, &self.on_soft_deletion]
+            .into_iter()
+            .flatten()
+    }
+}
+
 /// The strategy implementations a table earns for one table it references.
 ///
 /// One of these per referenced table, which is why `SpacetimeDSLTableMethods` holds a
@@ -123,6 +133,16 @@ pub struct OnDeleteStrategiesOfTheReferencedTable {
     pub on_deletion: Option<CascadeEntryPoints>,
     /// `Some` when the foreign keys declare an `on_soft_delete` strategy.
     pub on_soft_deletion: Option<CascadeEntryPoints>,
+}
+
+impl OnDeleteStrategiesOfTheReferencedTable {
+    /// The entry points held for the referenced table: those for deletion first, then those
+    /// for soft deletion.
+    pub fn entry_points(&self) -> impl Iterator<Item = &CascadeEntryPoints> {
+        [&self.on_deletion, &self.on_soft_deletion]
+            .into_iter()
+            .flatten()
+    }
 }
 
 /// The DSL methods of a table which belong to no single column.
