@@ -116,14 +116,8 @@ impl Document {
     ) -> Option<DocumentBareNote> {
         use crate::spacetimedsl::Wrapper;
         let bare_note = bare_note.into();
-        let mut bare_note_option = None;
-        if bare_note.is_some() {
-            bare_note_option = Some(
-                Into::<DocumentBareNote>::into(bare_note.expect("value should exist"))
-                    .value(),
-            );
-        }
-        let bare_note = bare_note_option;
+        let bare_note = bare_note
+            .map(|value| Into::<DocumentBareNote>::into(value).value());
         let old_value = std::mem::replace(&mut self.bare_note, bare_note);
         match old_value {
             Some(old_value) => Some(DocumentBareNote::new(old_value)),
@@ -145,16 +139,8 @@ impl Document {
     ) -> Option<DocumentQualifiedNote> {
         use crate::spacetimedsl::Wrapper;
         let qualified_note = qualified_note.into();
-        let mut qualified_note_option = None;
-        if qualified_note.is_some() {
-            qualified_note_option = Some(
-                Into::<
-                    DocumentQualifiedNote,
-                >::into(qualified_note.expect("value should exist"))
-                    .value(),
-            );
-        }
-        let qualified_note = qualified_note_option;
+        let qualified_note = qualified_note
+            .map(|value| Into::<DocumentQualifiedNote>::into(value).value());
         let old_value = std::mem::replace(&mut self.qualified_note, qualified_note);
         match old_value {
             Some(old_value) => Some(DocumentQualifiedNote::new(old_value)),

@@ -13,13 +13,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         let id = u64::default();
         let acknowledged_at = reminder.acknowledged_at;
         let due_at = reminder.due_at;
-        let mut due_at_option = None;
-        if due_at.is_some() {
-            due_at_option = Some(
-                Into::<ReminderDueAt>::into(due_at.expect("value should exist")).value(),
-            );
-        }
-        let due_at = due_at_option;
+        let due_at = due_at.map(|value| Into::<ReminderDueAt>::into(value).value());
         let reminder = Reminder {
             id,
             acknowledged_at,

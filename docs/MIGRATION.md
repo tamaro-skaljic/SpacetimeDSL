@@ -70,6 +70,8 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 - `#[::spacetimedsl::dsl(…)]` and `#[::spacetimedb::table(…)]`, spelled with a leading `::`, are recognised like `#[spacetimedsl::dsl(…)]` and `#[spacetimedb::table(…)]`. Before, a `::spacetimedb::table` attribute was not found, so the struct was rejected for missing a table attribute.
 - Generated code reaches the runtime only through `crate::spacetimedsl`, the module `spacetimedsl!()` generates, and SpacetimeDB only through `::spacetimedb`. A `#[create_wrapper]` table declared at the crate root with `#[::spacetimedsl::dsl]`, next to `spacetimedsl!()`, therefore compiles: before, the generated `use spacetimedsl::Wrapper;` was ambiguous there.
 
+- Where a create method or setter takes an optional used wrapper, the generated code converts it with one `Option::map` (`let due_at = due_at.map(|value| Into::<ReminderDueAt>::into(value).value());`) instead of a mutable `None`, an `is_some()` test and an `expect`. Only the code rustdoc shows under *Implementation* changes.
+
 ### For crates building on `spacetimedsl_derive-input`
 
 - The crate documents what you may rely on: `api::Table::try_parse` is the one entry point, and every public field of every `api` type is part of the semver contract. A test in `spacetimedsl_derive` destructures the whole structure without `..`, so a change to it cannot land unnoticed. The generated token streams (`method_impl`, `wrapper_impl`, `struct_impl`, …) are opaque output to splice into your expansion, not to inspect.
