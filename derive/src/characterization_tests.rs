@@ -118,6 +118,11 @@ fn foreign_key_and_referenced_by() {
 }
 
 #[test]
+fn foreign_keys_with_equivalent_spellings() {
+    snapshot_fixture("foreign_keys_with_equivalent_spellings");
+}
+
+#[test]
 fn on_delete_error() {
     snapshot_fixture("on_delete_error");
 }

@@ -753,7 +753,7 @@ pub fn foreign_key_columns_type_mismatch(column_name: &Ident) -> Error {
 pub fn foreign_key_columns_path_mismatch(column_name: &Ident) -> Error {
     Error::new_spanned(
         column_name,
-        "All foreign key columns which reference the same primary key of another table should have the same path",
+        "All foreign key columns which reference the same primary key of another table should have the same path! Spell both paths the same way; a leading `::` makes no difference.",
     )
 }
 

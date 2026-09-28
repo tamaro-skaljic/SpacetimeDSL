@@ -1,0 +1,26 @@
+//! Covers two foreign keys to the same table which spell the same type and the same path
+//! differently: `u64` and `core::primitive::u64`, `::other_crate::tables` and
+//! `other_crate::tables`. They are grouped into one cascade function, so the generator
+//! checks that the grouped columns agree on the type and the path, and has to accept
+//! spellings of the same one.
+//!
+//! The fixture is only expanded, never compiled, so `other_crate` does not have to exist.
+
+#[spacetimedsl::dsl(plural_name = shipments, method(update = true))]
+#[spacetimedb::table(accessor = shipment, public)]
+pub struct Shipment {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    #[index(btree)]
+    #[use_wrapper(::other_crate::tables::WarehouseId)]
+    #[foreign_key(path = ::other_crate::tables, table = warehouse, column = id, on_delete = Delete)]
+    pub origin_warehouse_id: u64,
+
+    #[index(btree)]
+    #[use_wrapper(other_crate::tables::WarehouseId)]
+    #[foreign_key(path = other_crate::tables, table = warehouse, column = id, on_delete = Delete)]
+    pub destination_warehouse_id: core::primitive::u64,
+}
