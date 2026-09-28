@@ -11,11 +11,12 @@ use {
         api::{
             db::{index::IndexType, table::SpacetimeDBTable},
             dsl::foreign_key::ForeignKey,
-            runtime, spacetimedb,
+            runtime,
         },
         internal::{
             column::{ColumnTypeKind, InternalColumn},
             dsl::{one_or_multiple::OneOrMultiple, singleton},
+            spacetimedb,
         },
     },
     itertools::Itertools,

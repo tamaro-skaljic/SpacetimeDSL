@@ -21,11 +21,12 @@ use {
                 foreign_key::OnDeleteStrategy,
                 hook::{HookKind, SpacetimeDSLMethodHook},
             },
-            runtime, spacetimedb,
+            runtime,
         },
         internal::{
             column::ColumnTypeKind,
             dsl::{one_or_multiple::OneOrMultiple, singleton},
+            spacetimedb,
         },
     },
     proc_macro2::TokenStream,

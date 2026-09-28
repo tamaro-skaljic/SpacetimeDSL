@@ -8,6 +8,10 @@ use {
 
 /// Whether `attribute` is `#[spacetimedsl::dsl]`, spelled `dsl`, `spacetimedsl::dsl` or
 /// `::spacetimedsl::dsl`.
+///
+/// Public because `spacetimedsl_derive` recognises the `#[dsl]` attributes still on a struct
+/// with it: `is_last_dsl_attribute`, and the characterization tests, which expand a fixture
+/// one `#[dsl]` at a time.
 pub fn is_dsl_attribute(attribute: &Attribute) -> bool {
     is_spelling_of(attribute.path(), "spacetimedsl", "dsl")
 }
@@ -15,9 +19,9 @@ pub fn is_dsl_attribute(attribute: &Attribute) -> bool {
 /// Every field attribute `#[spacetimedsl::dsl]` reads, built from the symbols its parsers
 /// match against.
 ///
-/// The `SpacetimeDSL` derive declares the same names as its helper attributes, so the
-/// compiler accepts them on the fields; a test in `spacetimedsl_derive` keeps the two lists
-/// equal.
+/// Public because the `SpacetimeDSL` derive of `spacetimedsl_derive` declares the same names
+/// as its helper attributes, so the compiler accepts them on the fields. Its test
+/// `helper_attributes_match_field_attributes` keeps the two lists equal.
 pub const FIELD_ATTRIBUTE_NAMES: [&str; 8] = [
     dsl::create_wrapper.0,
     dsl::use_wrapper.0,

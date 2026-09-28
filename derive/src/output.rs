@@ -6,7 +6,7 @@ use {
         dsl::{
             column::SpacetimeDSLColumnMethods,
             method::{SpacetimeDSLArg, SpacetimeDSLMethod},
-            table::OnDeleteStrategiesOfTheReferencedTable,
+            table::CascadeEntryPoints,
             wrapper::WrapperType,
         },
     },
@@ -96,7 +96,8 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
         .spacetimedsl_methods
         .on_delete_strategies_of_referencing_tables
     {
-        for entry_points in strategies.entry_points() {
+        for entry_points in held_entry_points(&strategies.on_deletion, &strategies.on_soft_deletion)
+        {
             dsl_methods.push(build_internal_dsl_method(&entry_points.after_one_row)?);
             dsl_methods.push(build_internal_dsl_method(
                 &entry_points.after_multiple_rows,
@@ -111,7 +112,9 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
             .spacetimedsl_methods
             .on_delete_strategies_of_this_table
             .iter()
-            .flat_map(OnDeleteStrategiesOfTheReferencedTable::entry_points)
+            .flat_map(|strategies| {
+                held_entry_points(&strategies.on_deletion, &strategies.on_soft_deletion)
+            })
     };
 
     for entry_points in entry_points_of_this_table() {
@@ -196,6 +199,15 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
         dsl_methods,
         wrapper_methods,
     })
+}
+
+/// The cascade entry points one side of a foreign key relationship holds, those for deletion
+/// before those for soft deletion.
+fn held_entry_points<'a>(
+    on_deletion: &'a Option<CascadeEntryPoints>,
+    on_soft_deletion: &'a Option<CascadeEntryPoints>,
+) -> impl Iterator<Item = &'a CascadeEntryPoints> {
+    [on_deletion, on_soft_deletion].into_iter().flatten()
 }
 
 fn build_public_dsl_method(method: &SpacetimeDSLMethod) -> syn::Result<GeneratedDSLMethod> {

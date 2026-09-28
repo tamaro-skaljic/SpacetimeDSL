@@ -51,6 +51,9 @@ pub enum SpacetimeDSLArgType {
 
 impl SpacetimeDSLArgType {
     /// The type of the parameter as written, whether or not its column has a wrapper type.
+    ///
+    /// Public because `spacetimedsl_derive` writes every parameter of a generated method and
+    /// of a hook function with it, in `map_args`.
     pub fn actual_type(&self) -> &TokenStream {
         match self {
             Self::Normal(actual_type) | Self::Wrapped { actual_type, .. } => actual_type,

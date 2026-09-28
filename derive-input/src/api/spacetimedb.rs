@@ -1,45 +1,19 @@
-//! The contract between the code SpacetimeDSL generates and the `spacetimedb` crate it runs
-//! against, the counterpart of [`crate::api::runtime`].
+//! The `::spacetimedb::…` path a crate rendering the DSL methods emits around their bodies,
+//! the counterpart of [`crate::api::runtime`] for the `spacetimedb` crate.
 //!
-//! Every `::spacetimedb::…` path any generator emits is written here exactly once, so a
-//! renamed or relocated SpacetimeDB item is a change to this file rather than a text hunt
-//! through `quote!` bodies that no compiler checks. The leading `::` names the crate even
-//! where a module of the user's crate is called `spacetimedb`.
-//!
-//! These are plain token constructors: they splice already-built token streams and take no
-//! decisions. They must not grow branching, or they become a second generator.
+//! The leading `::` names the crate even where a module of the user's crate is called
+//! `spacetimedb`. The paths the generators emit inside the bodies are not public.
 
-use {
-    proc_macro2::TokenStream,
-    quote::{ToTokens, quote},
-};
-
-/// `TryInsertError::#variant`, the error a failed `try_insert` returns.
-pub fn try_insert_error(variant: &impl ToTokens) -> TokenStream {
-    quote! {
-        ::spacetimedb::TryInsertError::#variant
-    }
-}
-
-/// `SpacetimeType`, the derive a generated wrapper type is given so that it can be a column
-/// type.
-pub fn spacetimetype_derive() -> TokenStream {
-    quote! {
-        ::spacetimedb::SpacetimeType
-    }
-}
+use {proc_macro2::TokenStream, quote::quote};
 
 /// `use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};`, the import every method body
 /// opens with, so it can reach the tables of the database.
+///
+/// Public because the body in `SpacetimeDSLMethod::method_impl` relies on it without
+/// containing it: `spacetimedsl_derive` puts it at the top of every method it renders, and a
+/// crate rendering the methods itself has to do the same.
 pub fn table_traits_import() -> TokenStream {
     quote! {
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-    }
-}
-
-/// `Uuid::NIL`, the UUID which references no row.
-pub fn uuid_nil() -> TokenStream {
-    quote! {
-        ::spacetimedb::Uuid::NIL
     }
 }

@@ -1,6 +1,6 @@
 use {
-    crate::api::dsl::method::SpacetimeDSLArg, ident_case::RenameRule, proc_macro2::TokenStream,
-    quote::format_ident, std::collections::BTreeMap, syn::Ident,
+    crate::api::dsl::method::SpacetimeDSLArg, proc_macro2::TokenStream, std::collections::BTreeMap,
+    syn::Ident,
 };
 
 /// When a hook runs: before or after the write it hooks into.
@@ -30,14 +30,38 @@ pub struct HookKind {
 }
 
 impl HookKind {
-    pub const BEFORE_INSERT: HookKind = HookKind::new(Timing::Before, Operation::Insert);
-    pub const BEFORE_UPDATE: HookKind = HookKind::new(Timing::Before, Operation::Update);
-    pub const BEFORE_DELETE: HookKind = HookKind::new(Timing::Before, Operation::Delete);
-    pub const BEFORE_SOFT_DELETE: HookKind = HookKind::new(Timing::Before, Operation::SoftDelete);
-    pub const AFTER_INSERT: HookKind = HookKind::new(Timing::After, Operation::Insert);
-    pub const AFTER_UPDATE: HookKind = HookKind::new(Timing::After, Operation::Update);
-    pub const AFTER_DELETE: HookKind = HookKind::new(Timing::After, Operation::Delete);
-    pub const AFTER_SOFT_DELETE: HookKind = HookKind::new(Timing::After, Operation::SoftDelete);
+    pub const BEFORE_INSERT: HookKind = HookKind {
+        timing: Timing::Before,
+        operation: Operation::Insert,
+    };
+    pub const BEFORE_UPDATE: HookKind = HookKind {
+        timing: Timing::Before,
+        operation: Operation::Update,
+    };
+    pub const BEFORE_DELETE: HookKind = HookKind {
+        timing: Timing::Before,
+        operation: Operation::Delete,
+    };
+    pub const BEFORE_SOFT_DELETE: HookKind = HookKind {
+        timing: Timing::Before,
+        operation: Operation::SoftDelete,
+    };
+    pub const AFTER_INSERT: HookKind = HookKind {
+        timing: Timing::After,
+        operation: Operation::Insert,
+    };
+    pub const AFTER_UPDATE: HookKind = HookKind {
+        timing: Timing::After,
+        operation: Operation::Update,
+    };
+    pub const AFTER_DELETE: HookKind = HookKind {
+        timing: Timing::After,
+        operation: Operation::Delete,
+    };
+    pub const AFTER_SOFT_DELETE: HookKind = HookKind {
+        timing: Timing::After,
+        operation: Operation::SoftDelete,
+    };
 
     /// Every kind, in their order.
     pub const ALL: [HookKind; 8] = [
@@ -50,10 +74,6 @@ impl HookKind {
         HookKind::AFTER_DELETE,
         HookKind::AFTER_SOFT_DELETE,
     ];
-
-    pub const fn new(timing: Timing, operation: Operation) -> HookKind {
-        HookKind { timing, operation }
-    }
 }
 
 /// The hooks `#[dsl(hook(before(...), after(...)))]` declares.
@@ -91,14 +111,6 @@ pub struct SpacetimeDSLMethodHook {
     pub return_type: TokenStream,
 }
 
-/// The trait a hook function implements: the PascalCase form of `hook_function_name`
-/// followed by `Hook`, such as `BeforeEntityInsertHook` for `before_entity_insert`.
-///
-/// The generator declares the trait under this name and `#[spacetimedsl::hook]` implements
-/// it under this name, so both have to call this one function.
-pub fn hook_trait_name(hook_function_name: &Ident) -> Ident {
-    format_ident!(
-        "{}Hook",
-        RenameRule::PascalCase.apply_to_field(hook_function_name.to_string())
-    )
-}
+/// Public because `#[spacetimedsl::hook]` lives in another crate, `spacetimedsl_derive`, and
+/// knows only the name of the function it is applied to.
+pub use crate::internal::dsl::method::naming::hook_trait_name;

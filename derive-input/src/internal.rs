@@ -42,6 +42,8 @@ pub mod dsl;
 
 mod error;
 
+mod spacetimedb;
+
 pub fn try_parse(
     args: proc_macro2::TokenStream,
     input: &syn::DeriveInput,

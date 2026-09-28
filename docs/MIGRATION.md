@@ -162,6 +162,22 @@ match &table.spacetimedsl_table.kind {
 }
 ```
 
+#### `is_singleton`, `is_soft_deletable` and `singleton_has_default` are no longer public
+
+`SpacetimeDSLTable::is_singleton()`, `is_soft_deletable()` and `singleton_has_default()` are no longer public. Read the fields they read:
+
+```rust
+// 0.23
+table.spacetimedsl_table.is_singleton()
+table.spacetimedsl_table.is_soft_deletable()
+table.spacetimedsl_table.singleton_has_default()
+
+// 0.24
+matches!(table.spacetimedsl_table.kind, SpacetimeDSLTableKind::Singleton(_))
+table.spacetimedsl_table.soft_delete_marker.is_some()
+matches!(table.spacetimedsl_table.kind, SpacetimeDSLTableKind::Singleton(SingletonKind::WithDefault))
+```
+
 #### `SpacetimeDSLMethodHooks` is a map keyed by `HookKind`
 
 `SpacetimeDSLMethodHooks` is a map keyed by the new `api::dsl::hook::HookKind` (a `Timing` and an `Operation`) instead of eight fields:
@@ -184,10 +200,6 @@ if let Some(hook) = table.spacetimedsl_table.hooks.get(HookKind::BEFORE_INSERT) 
 
 `ScheduledReducer::reducer_name: Ident` became `ScheduledReducer::reducer_path: syn::Path`, the reducer or procedure exactly as `scheduled(...)` names it. A qualified path such as `scheduled(crate::timers::tick)` used to make the macro panic. Use `reducer_path.get_ident()` where you need a bare name.
 
-#### The cascade entry-point types yield the entry points they hold
-
-`OnDeleteStrategiesOfReferencingTables::entry_points()` and `OnDeleteStrategiesOfTheReferencedTable::entry_points()` yield the `CascadeEntryPoints` each holds, those for deletion before those for soft deletion, so you need not name `on_deletion` and `on_soft_deletion` yourself.
-
 #### Changed `api::runtime` constructors, and the new `api::spacetimedb`
 
 Several `api::runtime` token constructors changed with the generated code they emit, which now reaches the runtime through `crate::spacetimedsl` only:
@@ -208,7 +220,7 @@ runtime::reference_integrity_violation_on_create_or_update(&table, &quote! { Cre
 runtime::error_from_hook_declaration(&quote! { error_from_hook }) // the binding to declare
 ```
 
-`api::spacetimedb` is new: the `::spacetimedb::…` paths the generated code uses (`try_insert_error`, `spacetimetype_derive`, `table_traits_import`, `uuid_nil`).
+`api::spacetimedb` is new. Its `table_traits_import()` is the `use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};` which every `method_impl` relies on without containing it: put it at the top of each method you render, as `spacetimedsl_derive` does.
 
 #### `SpacetimeDBTable::multi_column_indices` holds only indices over several columns
 

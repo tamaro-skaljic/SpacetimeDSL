@@ -4,7 +4,6 @@ use {
             dsl::{
                 hook::{
                     HookKind, Operation, SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks, Timing,
-                    hook_trait_name,
                 },
                 method::{SpacetimeDSLArg, SpacetimeDSLArgType},
                 table::SingletonKind,
@@ -68,7 +67,7 @@ fn build_one(
     let function_name = get_function_name(&timing, singular_table_name, &operation);
 
     SpacetimeDSLMethodHook {
-        trait_name: hook_trait_name(&function_name),
+        trait_name: naming::hook_trait_name(&function_name),
         function_name,
         function_args: get_function_args(
             &timing,

@@ -29,6 +29,19 @@ impl SpacetimeDSLTableKind {
 }
 
 impl SpacetimeDSLTable {
+    pub(crate) fn is_singleton(&self) -> bool {
+        self.kind.singleton().is_some()
+    }
+
+    pub(crate) fn is_soft_deletable(&self) -> bool {
+        self.soft_delete_marker.is_some()
+    }
+
+    /// Whether `get_<table>` falls back to `DefaultSingleton::get_default` instead of failing.
+    pub(crate) fn singleton_has_default(&self) -> bool {
+        self.kind.singleton() == Some(SingletonKind::WithDefault)
+    }
+
     pub(crate) fn try_parse(
         dsl_data: DSLData,
         column_args: &ColumnArgs<'_>,

@@ -1,6 +1,7 @@
 //! The identifiers that generated code and the code calling it agree on by name: the
-//! accessors of a column, which user code calls and other generated methods call too, and
-//! the identifiers two tables in a foreign key relationship share.
+//! accessors of a column, which user code calls and other generated methods call too, the
+//! trait a hook function implements, and the identifiers two tables in a foreign key
+//! relationship share.
 //!
 //! A referencing table calls a function it does not see the definition of, and imports a
 //! trait the other table defines, so both sides have to build the same identifier from the
@@ -48,6 +49,18 @@ pub fn create_request_struct_name(singular_table_name: &Ident) -> Ident {
     format_ident!(
         "Create{}",
         RenameRule::PascalCase.apply_to_field(singular_table_name.to_string())
+    )
+}
+
+/// The trait a hook function implements: the PascalCase form of `hook_function_name`
+/// followed by `Hook`, such as `BeforeEntityInsertHook` for `before_entity_insert`.
+///
+/// The generator declares the trait under this name and `#[spacetimedsl::hook]` implements
+/// it under this name, so both have to call this one function.
+pub fn hook_trait_name(hook_function_name: &Ident) -> Ident {
+    format_ident!(
+        "{}Hook",
+        RenameRule::PascalCase.apply_to_field(hook_function_name.to_string())
     )
 }
 

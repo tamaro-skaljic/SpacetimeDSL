@@ -17,7 +17,7 @@ use {
                 table::{CreateDSLMethodArg, SpacetimeDSLTable},
                 wrapper::WrapperType,
             },
-            runtime, spacetimedb,
+            runtime,
         },
         internal::{
             column::{ColumnTypeKind, InternalColumn},
@@ -25,6 +25,7 @@ use {
                 one_or_multiple::OneOrMultiple, singleton,
                 wrapper::map_wrapper_type_option_to_wrapped_type_option,
             },
+            spacetimedb,
         },
     },
     itertools::Itertools,
