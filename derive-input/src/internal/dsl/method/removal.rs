@@ -11,6 +11,7 @@ use {
         context::{self, MethodGenerationContext},
         hook_call::hook_tokens,
         index::{IndexColumnArguments, IndexShape, index_accessor, index_column_arguments},
+        message,
         reference_integrity::{Action, unique_multi_column_index_check},
         referenced_by::referenced_table_function_call_for_dsl_method,
         soft_delete,
@@ -476,7 +477,6 @@ pub fn for_removal_one(
 
     let index_name = &shape.index_name;
     let described_as = &shape.described_as;
-    let column_names_and_row_values = &shape.column_names_and_row_values;
     let unique_multi_column_index_hint = shape.unique_multi_column_hint;
 
     let IndexColumnArguments {
@@ -550,7 +550,7 @@ pub fn for_removal_one(
                 &Action::Delete,
                 singular_table_name,
                 index_name,
-                column_names_and_row_values,
+                &shape.index_columns,
                 &row_value_getters,
             );
 
@@ -564,9 +564,7 @@ pub fn for_removal_one(
 
             let not_found_error = runtime::not_found_error(
                 singular_table_name_as_string,
-                &quote! {
-                    format!(#column_names_and_row_values, #(#row_value_getters),*)
-                },
+                &message::column_names_and_row_values(&shape.index_columns, &row_value_getters),
             );
 
             return_error_on_is_none = quote! {
@@ -600,7 +598,10 @@ pub fn for_removal_one(
 
             let not_found_error = runtime::not_found_error(
                 singular_table_name_as_string,
-                &quote! { format!(#column_names_and_row_values, &#index_name) },
+                &message::column_names_and_row_values(
+                    &shape.index_columns,
+                    &[quote! { &#index_name }],
+                ),
             );
 
             return_error_on_is_none = quote! {

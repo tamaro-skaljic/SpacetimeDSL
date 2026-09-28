@@ -49,7 +49,7 @@ Try to update a `Revision` row of the `revision` table whose value matches the v
                                 table_name: "revision".into(),
                                 create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", "draft_id", draft_id
+                                    "{{ draft_id : {} }}", draft_id
                                 )
                                     .into(),
                             }),

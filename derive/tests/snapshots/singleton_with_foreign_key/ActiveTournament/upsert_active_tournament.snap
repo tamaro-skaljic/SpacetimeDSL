@@ -53,7 +53,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                     table_name: "active_tournament".into(),
                                     create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                     column_names_and_row_values: format!(
-                                        "{{ {} : {} }}", "region_id", region_id
+                                        "{{ region_id : {} }}", region_id
                                     )
                                         .into(),
                                 }),

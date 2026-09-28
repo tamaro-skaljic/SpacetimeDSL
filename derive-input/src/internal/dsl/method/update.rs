@@ -87,7 +87,6 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
     let reference_integrity_checks = reference_integrity_checks_on_update(
         spacetimedb_table,
         internal_columns,
-        &shape.column_names_and_row_values,
         &shape.index_columns,
         &one_or_multiple,
         primary_key_column,

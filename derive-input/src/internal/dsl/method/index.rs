@@ -18,7 +18,6 @@ use {
         },
         internal::{column::ColumnTypeKind, dsl::one_or_multiple::OneOrMultiple},
     },
-    itertools::Itertools,
     proc_macro2::TokenStream,
     quote::{ToTokens, quote},
     std::collections::VecDeque,
@@ -55,8 +54,6 @@ pub struct IndexShape {
     /// updating it is the ordinary update with one statement added, so splitting it would
     /// copy the whole body to change three lines.
     pub is_singleton_primary_key: bool,
-    /// `{{ a : {}, b : {} }}`, with one placeholder per index column.
-    pub column_names_and_row_values: String,
     /// "whose value matches the value from the unique single-column btree index on the
     /// `x` column", the tail every generated doc comment ends with.
     pub described_as: String,
@@ -114,7 +111,6 @@ impl IndexShape {
         IndexShape {
             is_primary_key,
             is_singleton_primary_key: context.spacetimedsl_table.is_singleton() && is_primary_key,
-            column_names_and_row_values: column_names_and_row_values(&index_columns),
             described_as: format!(
                 "whose {value_matches} the {unique}{single_or_multi}-column {index_documentation} on the {on_the_columns}"
             ),
@@ -326,21 +322,6 @@ fn documentation_on_columns(columns: &[Ident]) -> String {
     documentation.push_str(&format!(" and `{last_column}`"));
 
     documentation
-}
-
-/// The format string behind every "these columns had these values" message:
-/// `{{ id : {} }}` for one column, `{{ a : {}, b : {} }}` for several.
-///
-/// One placeholder per column, in the order given, so a caller that builds its row-value
-/// getters from the same list cannot get the two out of step.
-pub fn column_names_and_row_values(column_names: &[Ident]) -> String {
-    let placeholders = column_names
-        .iter()
-        .map(|column_name| format!("{column_name} : {{}}"))
-        .collect_vec()
-        .join(", ");
-
-    format!("{{{{ {placeholders} }}}}")
 }
 
 /// The kind of index, as the doc comments of the generated methods name it.

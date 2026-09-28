@@ -1,5 +1,5 @@
 use {
-    super::{context::MethodGenerationContext, hook_call::hook_tokens, upsert},
+    super::{context::MethodGenerationContext, hook_call::hook_tokens, message, upsert},
     crate::{
         api::{
             dsl::{hook::HookKind, method::SpacetimeDSLMethod},
@@ -32,7 +32,7 @@ pub fn for_singleton_get(context: &MethodGenerationContext) -> SpacetimeDSLMetho
 
     let not_found_error = runtime::not_found_error(
         singular_table_name_as_string,
-        &singleton::rendered_primary_key(),
+        &message::singleton_primary_key(),
     );
 
     let doc_comment = match spacetimedsl_table.singleton_has_default() {
@@ -123,7 +123,7 @@ pub fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMe
 
     let not_found_error = runtime::not_found_error(
         singular_table_name_as_string,
-        &singleton::rendered_primary_key(),
+        &message::singleton_primary_key(),
     );
 
     let deletion_result_entry = runtime::deletion_result_entry(

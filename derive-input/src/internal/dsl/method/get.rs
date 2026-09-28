@@ -2,6 +2,7 @@ use {
     super::{
         context::MethodGenerationContext,
         index::{IndexColumnArguments, IndexShape, index_accessor, index_column_arguments},
+        message,
         reference_integrity::{Action, unique_multi_column_index_check},
     },
     crate::{
@@ -127,7 +128,6 @@ pub fn for_get_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spa
 
     let index_name = &shape.index_name;
     let described_as = &shape.described_as;
-    let column_names_and_row_values = &shape.column_names_and_row_values;
     let unique_multi_column_index_hint = shape.unique_multi_column_hint;
 
     let IndexColumnArguments {
@@ -145,15 +145,13 @@ pub fn for_get_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spa
                 &Action::Get,
                 singular_table_name,
                 index_name,
-                column_names_and_row_values,
+                &shape.index_columns,
                 &row_value_getters,
             );
 
             let not_found_error = runtime::not_found_error(
                 singular_table_name_as_string,
-                &quote! {
-                    format!(#column_names_and_row_values, #(#row_value_getters),*)
-                },
+                &message::column_names_and_row_values(&shape.index_columns, &row_value_getters),
             );
 
             let itertools_import = runtime::itertools_import();
@@ -178,9 +176,7 @@ pub fn for_get_one(shape: &IndexShape, context: &MethodGenerationContext) -> Spa
         false => {
             let not_found_error = runtime::not_found_error(
                 singular_table_name_as_string,
-                &quote! {
-                    format!(#column_names_and_row_values, #(#row_value_getters),*)
-                },
+                &message::column_names_and_row_values(&shape.index_columns, &row_value_getters),
             );
 
             quote! {

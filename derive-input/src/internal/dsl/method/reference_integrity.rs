@@ -6,7 +6,7 @@
 //! on create and on update because the delete side is handled by the on-delete strategies.
 
 use {
-    super::{index::column_names_and_row_values, naming},
+    super::{message, naming},
     crate::{
         api::{
             db::{index::IndexType, table::SpacetimeDBTable},
@@ -115,6 +115,9 @@ pub fn reference_integrity_checks_on_create(
             runtime::reference_integrity_violation_on_create_or_update(
                 &referencing_table_name_as_string,
                 &quote! { Create },
+                // Names the column by its value rather than its name; kept as it is until
+                // https://github.com/tamaro-skaljic/SpacetimeDSL/issues/173 is fixed, which
+                // then uses `message::single_column_and_value` like the update side.
                 &quote! {
                     format!("{{ {} : {} }}", #referencing_table_column_name, #referencing_table_name.#referencing_table_column_getter_name())
                 },
@@ -138,7 +141,6 @@ pub fn reference_integrity_checks_on_create(
 pub fn reference_integrity_checks_on_update(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &[InternalColumn],
-    column_names_and_row_values: &str,
     index_columns: &[Ident],
     one_or_multiple: &OneOrMultiple,
     primary_key_column: &InternalColumn,
@@ -155,7 +157,7 @@ pub fn reference_integrity_checks_on_update(
         let referencing_table_name = &spacetimedb_table.singular_name;
         let referencing_table_name_as_string = referencing_table_name.to_string();
         let referencing_table_column_name = &column.rust_field_name;
-        let referencing_table_column_name_as_string = referencing_table_column_name.to_string();
+        let _referencing_table_column_name_as_string = referencing_table_column_name.to_string();
         let primary_key_column_name_of_referencing_table = &primary_key_column.rust_field_name;
         let referencing_table_column_getter_name =
             naming::getter_name(referencing_table_column_name);
@@ -173,12 +175,13 @@ pub fn reference_integrity_checks_on_update(
             .collect_vec();
 
         let format_for_not_found_error = match one_or_multiple {
-            OneOrMultiple::One => quote! {
-                format!(#column_names_and_row_values, #referencing_table_column_name)
-            },
-            OneOrMultiple::Multiple => quote! {
-                format!(#column_names_and_row_values, #(#row_value_getters),*)
-            },
+            OneOrMultiple::One => message::column_names_and_row_values(
+                index_columns,
+                &[referencing_table_column_name],
+            ),
+            OneOrMultiple::Multiple => {
+                message::column_names_and_row_values(index_columns, &row_value_getters)
+            }
         };
 
         let primary_key_value_of_referencing_table = match is_singleton {
@@ -201,9 +204,10 @@ pub fn reference_integrity_checks_on_update(
             runtime::reference_integrity_violation_on_create_or_update(
                 &referencing_table_name_as_string,
                 &quote! { Update },
-                &quote! {
-                    format!("{{ {} : {} }}", #referencing_table_column_name_as_string, #referencing_table_column_name)
-                },
+                &message::single_column_and_value(
+                    referencing_table_column_name,
+                    referencing_table_column_name,
+                ),
             );
 
         quote! {
@@ -256,9 +260,8 @@ pub fn multi_column_index_checks(
 
         let index_name = &multi_column_index.name;
 
-        // Built from the same ordered column list, so the placeholder count and the
-        // getter count cannot drift apart.
-        let column_names_and_row_values = column_names_and_row_values(index_column_names);
+        // Built from the same ordered column list as the message, so the placeholder count
+        // and the getter count cannot drift apart.
         let row_value_getters = index_column_names
             .iter()
             .map(|column_name| {
@@ -270,7 +273,7 @@ pub fn multi_column_index_checks(
             &action,
             singular_table_name,
             index_name,
-            &column_names_and_row_values,
+            index_column_names,
             &row_value_getters,
         );
 
@@ -285,7 +288,7 @@ pub fn multi_column_index_checks(
             &action_as_ident,
             &quote! { SpacetimeDSL },
             &multiple,
-            &quote! { format!(#column_names_and_row_values, #(#row_value_getters),*) },
+            &message::column_names_and_row_values(index_column_names, &row_value_getters),
         );
 
         let return_unique_constraint_violation_error = quote! {
@@ -334,7 +337,7 @@ pub fn unique_multi_column_index_check(
     action: &Action,
     singular_table_name: &Ident,
     index_name: &Ident,
-    column_names_and_row_values: &str,
+    index_column_names: &[Ident],
     row_value_getters: &[TokenStream],
 ) -> TokenStream {
     let field_name_for_found_value = format_ident!("the_same_or_another_{singular_table_name}");
@@ -350,7 +353,7 @@ pub fn unique_multi_column_index_check(
         &action,
         &quote! { SpacetimeDSL },
         &multiple,
-        &quote! { format!(#column_names_and_row_values, #(#row_value_getters),*) },
+        &message::column_names_and_row_values(index_column_names, row_value_getters),
     );
 
     quote! {

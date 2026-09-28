@@ -49,7 +49,7 @@ Try to update a `ChildMarker` row of the `child_marker` table whose value matche
                                 table_name: "child_marker".into(),
                                 create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", "parent_id", parent_id
+                                    "{{ parent_id : {} }}", parent_id
                                 )
                                     .into(),
                             }),

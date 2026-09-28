@@ -40,15 +40,6 @@ pub fn rendered_primary_key_value() -> String {
     PRIMARY_KEY_VALUE.to_string()
 }
 
-/// The injected column and its value, as a not-found error renders them: `{ id : 0 }`.
-///
-/// The surrounding braces and the spacing match what
-/// `internal::dsl::method::index::column_names_and_row_values` produces for any other index, so
-/// a singleton's not-found message reads like every other table's.
-pub fn rendered_primary_key() -> String {
-    format!("{{ {PRIMARY_KEY_NAME} : {PRIMARY_KEY_VALUE} }}")
-}
-
 /// Whether this column is the injected primary key rather than one the user wrote.
 ///
 /// The caller has already established that the table is a singleton; this answers which

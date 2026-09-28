@@ -49,7 +49,7 @@ Try to update a `SessionToken` row of the `session_token` table whose value matc
                                 table_name: "session_token".into(),
                                 create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", "account_id", account_id
+                                    "{{ account_id : {} }}", account_id
                                 )
                                     .into(),
                             }),

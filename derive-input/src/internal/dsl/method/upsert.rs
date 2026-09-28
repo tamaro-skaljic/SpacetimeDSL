@@ -16,8 +16,7 @@ use {
     super::{
         context::MethodGenerationContext,
         hook_call::{hook_tokens, hook_use_and_call},
-        index::column_names_and_row_values,
-        naming,
+        message, naming,
         reference_integrity::{
             reference_integrity_checks_on_create, reference_integrity_checks_on_update,
         },
@@ -354,7 +353,6 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
     let checks_on_update = reference_integrity_checks_on_update(
         spacetimedb_table,
         internal_columns,
-        &column_names_and_row_values(&index_columns),
         &index_columns,
         &OneOrMultiple::One,
         primary_key_column,
@@ -448,15 +446,13 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
 
     // The row does not exist yet, so the message renders the whole struct rather than naming
     // the columns a lookup was made on.
-    let column_names_and_row_values = format!("{{{{ {singular_table_name} : {{:?}} }}}}");
-
     // FIXME: Only show unique columns here
     let unique_constraint_violation_error = runtime::unique_constraint_violation(
         singular_table_name_as_string,
         &quote! { Create },
         &quote! { SpacetimeDB },
         &OneOrMultiple::One,
-        &quote! { format!(#column_names_and_row_values, #singular_table_name) },
+        &message::whole_row(singular_table_name),
     );
     let auto_inc_overflow_error = runtime::auto_inc_overflow(singular_table_name_as_string);
     let unique_constraint_violation =

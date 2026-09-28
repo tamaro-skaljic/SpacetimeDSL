@@ -2,7 +2,7 @@ use {
     super::{
         context::{MethodGenerationContext, TableContributions},
         hook_call::hook_tokens,
-        naming,
+        message, naming,
         reference_integrity::{
             Action, multi_column_index_checks, reference_integrity_checks_on_create,
         },
@@ -301,10 +301,6 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
         });
     }
 
-    // The row does not exist yet, so the message renders the whole struct rather than
-    // naming the columns a lookup was made on.
-    let column_names_and_row_values = format!("{{{{ {singular_table_name} : {{:?}} }}}}");
-
     let multi_column_index_checks = multi_column_index_checks(
         Action::Create,
         singular_table_name,
@@ -357,13 +353,15 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
         },
     );
 
+    // The row does not exist yet, so the message renders the whole struct rather than
+    // naming the columns a lookup was made on.
     // FIXME: Only show unique columns here
     let unique_constraint_violation_error = runtime::unique_constraint_violation(
         singular_table_name_as_string,
         &quote! { Create },
         &quote! { SpacetimeDB },
         &OneOrMultiple::One,
-        &quote! { format!(#column_names_and_row_values, #singular_table_name) },
+        &message::whole_row(singular_table_name),
     );
     let auto_inc_overflow_error = runtime::auto_inc_overflow(singular_table_name_as_string);
     let unique_constraint_violation =
