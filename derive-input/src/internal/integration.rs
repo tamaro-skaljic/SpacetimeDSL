@@ -1,5 +1,5 @@
+use crate::api::attribute::is_table_attribute;
 use crate::internal::error;
-use quote::ToTokens;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::DeriveInput;
 
@@ -27,26 +27,18 @@ pub fn spacetime_bindings_macro_input<'a>(
 fn get_all_table_attributes<'a>(
     input: &'a DeriveInput,
 ) -> syn::Result<Vec<(TableArgs, ColumnArgs<'a>)>> {
-    // Find all table attributes
-    let mut table_attrs = Vec::new();
-    for attr in &input.attrs {
-        if let Ok(list) = attr.meta.require_list()
-            && (list.path.to_token_stream().to_string().eq("table")
-                || list
-                    .path
-                    .to_token_stream()
-                    .to_string()
-                    .eq("spacetimedb :: table"))
-        {
-            table_attrs.push(list.tokens.clone());
-        }
-    }
+    let table_attrs: Vec<_> = input
+        .attrs
+        .iter()
+        .filter(|attr| is_table_attribute(attr))
+        .filter_map(|attr| attr.meta.require_list().ok())
+        .map(|list| list.tokens.clone())
+        .collect();
 
     if table_attrs.is_empty() {
         return Err(error::missing_table_attribute(&input.ident));
     }
 
-    // Parse all table attributes and return them
     let mut results = vec![];
     for table_attr in table_attrs {
         let table_args = TableArgs::parse(table_attr, input)?;
@@ -68,12 +60,10 @@ fn select_table_with_heuristics<'a>(
         return Err(error::no_table_attribute_found(&input.ident));
     }
 
-    // If only one table, return it
     if all_tables.len() == 1 {
         return Ok(all_tables.into_iter().next().unwrap());
     }
 
-    // Use heuristics since plural_name is provided
     let plural_str = plural_name.to_string();
 
     // Try exact match first
@@ -106,7 +96,6 @@ fn select_table_with_heuristics<'a>(
 
 // Check if a plural name matches a table name using intelligent heuristics
 fn is_plural_match(plural_name: &str, table_name: &str) -> bool {
-    // Remove trailing digits/numbers from both
     let plural_base = remove_trailing_digits(plural_name);
     let table_base = remove_trailing_digits(table_name);
 
@@ -151,7 +140,6 @@ fn plural_to_singular(plural: &str) -> String {
     }
 }
 
-// Remove trailing digits from a string
 fn remove_trailing_digits(s: &str) -> String {
     let mut result = s.to_string();
     while let Some(last_char) = result.chars().last() {

@@ -13,6 +13,8 @@
 //! changes what SpacetimeDSL generates.
 
 pub mod api {
+    pub mod attribute;
+
     pub mod rust;
 
     pub mod db;

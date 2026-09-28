@@ -24,6 +24,8 @@ use quote::ToTokens;
 use rust_format::{Formatter, PrettyPlease};
 use syn::{Attribute, DeriveInput, Expr, ExprLit, Item, Lit, Stmt};
 
+use spacetimedsl_derive_input::api::attribute::is_dsl_attribute;
+
 use crate::{ExpandedDSLAttribute, expand_dsl_attribute_parts, output::GeneratedOutput};
 
 #[test]
@@ -229,6 +231,11 @@ fn self_referencing_cascade() {
 #[test]
 fn restricted_accessor_visibility() {
     snapshot_fixture("restricted_accessor_visibility");
+}
+
+#[test]
+fn absolute_attribute_paths() {
+    snapshot_fixture("absolute_attribute_paths");
 }
 
 /// Expanding the same fixture twice must produce byte-identical output, otherwise the
@@ -586,16 +593,6 @@ fn take_first_dsl_attribute_args(attributes: &mut Vec<Attribute>) -> Option<Toke
             .tokens
             .clone(),
     )
-}
-
-fn is_dsl_attribute(attribute: &Attribute) -> bool {
-    let Ok(list) = attribute.meta.require_list() else {
-        return false;
-    };
-
-    let path = list.path.to_token_stream().to_string();
-
-    path == "dsl" || path == "spacetimedsl :: dsl"
 }
 
 fn read_fixture(fixture_name: &str) -> String {

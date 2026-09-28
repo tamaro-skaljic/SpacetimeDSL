@@ -1,7 +1,7 @@
 use ident_case::RenameRule;
 use proc_macro::TokenStream;
-use quote::{ToTokens, format_ident, quote};
-use spacetimedsl_derive_input::api::{Table, runtime};
+use quote::{format_ident, quote};
+use spacetimedsl_derive_input::api::{Table, attribute::is_dsl_attribute, runtime};
 
 #[cfg(test)]
 mod characterization_tests;
@@ -142,21 +142,7 @@ fn ok_or_compile_error<Res: Into<proc_macro::TokenStream>>(
 /// Each attribute removes itself before the macro function runs, so the last one
 /// will see 0 remaining DSL attributes in the attributes list.
 fn is_last_dsl_attribute(derive_input: &syn::DeriveInput) -> bool {
-    // Find all remaining dsl attributes similar to how integration.rs finds table attributes
-    let mut dsl_attr_count = 0;
-
-    for attr in &derive_input.attrs {
-        // Check for #[dsl(...)] attributes with require_list()
-        if let Ok(list) = attr.meta.require_list() {
-            let path_string = list.path.to_token_stream().to_string();
-            if path_string == "dsl" || path_string == "spacetimedsl :: dsl" {
-                dsl_attr_count += 1;
-            }
-        }
-    }
-
-    // If there are 0 dsl attributes left, this is the last one being processed
-    dsl_attr_count == 0
+    !derive_input.attrs.iter().any(is_dsl_attribute)
 }
 
 // TODO: Temporarily disabled to allow public primary key columns
