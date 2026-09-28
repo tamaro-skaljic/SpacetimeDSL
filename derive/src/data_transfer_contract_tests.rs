@@ -25,7 +25,7 @@ use spacetimedsl_derive_input::api::{
         },
         foreign_key::{ForeignKey, OnDeleteStrategy},
         getter::Getter,
-        hook::{SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks},
+        hook::{HookKind, Operation, SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks, Timing},
         method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
         mut_getter::MutGetter,
         reference::ReferencingTable,
@@ -154,11 +154,15 @@ fn the_model_holds_what_a_table_declares() {
     );
     let before_insert = spacetimedsl_table
         .hooks
-        .before_insert
-        .as_ref()
+        .get(HookKind::BEFORE_INSERT)
         .expect("`before(insert)` is declared");
     assert_eq!(before_insert.function_name, "before_gadget_insert");
-    assert!(spacetimedsl_table.hooks.after_insert.is_none());
+    assert!(
+        spacetimedsl_table
+            .hooks
+            .get(HookKind::AFTER_INSERT)
+            .is_none()
+    );
 
     let id = column(&gadget, "id");
     assert!(id.spacetimedb_column.is_primary_key);
@@ -437,30 +441,13 @@ fn visit_spacetimedsl_table(spacetimedsl_table: &SpacetimeDSLTable) {
 }
 
 fn visit_hooks(hooks: &SpacetimeDSLMethodHooks) {
-    let SpacetimeDSLMethodHooks {
-        before_insert,
-        before_update,
-        before_delete,
-        before_soft_delete,
-        after_insert,
-        after_update,
-        after_delete,
-        after_soft_delete,
-    } = hooks;
+    let SpacetimeDSLMethodHooks { declared } = hooks;
 
-    [
-        before_insert,
-        before_update,
-        before_delete,
-        before_soft_delete,
-        after_insert,
-        after_update,
-        after_delete,
-        after_soft_delete,
-    ]
-    .into_iter()
-    .flatten()
-    .for_each(visit_hook);
+    for (kind, hook) in declared {
+        let HookKind { timing, operation } = kind;
+        let _: (&Timing, &Operation) = (timing, operation);
+        visit_hook(hook);
+    }
 }
 
 fn visit_hook(hook: &SpacetimeDSLMethodHook) {

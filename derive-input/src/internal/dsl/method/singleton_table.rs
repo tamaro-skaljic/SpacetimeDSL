@@ -1,4 +1,5 @@
 use super::{context::MethodGenerationContext, hook_call::hook_tokens, upsert};
+use crate::api::dsl::hook::HookKind;
 use crate::{
     api::{dsl::method::SpacetimeDSLMethod, runtime},
     internal::dsl::{one_or_multiple::OneOrMultiple, singleton},
@@ -89,7 +90,7 @@ pub fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMe
     let primary_key_value = singleton::primary_key_value();
 
     let before_delete_hook = hook_tokens(
-        &spacetimedsl_table.hooks.before_delete,
+        spacetimedsl_table.hooks.get(HookKind::BEFORE_DELETE),
         |hook_function_name| {
             let hook_call = runtime::dsl_method_hooks_call(
                 hook_function_name,
@@ -103,7 +104,7 @@ pub fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMe
     );
 
     let after_delete_hook = hook_tokens(
-        &spacetimedsl_table.hooks.after_delete,
+        spacetimedsl_table.hooks.get(HookKind::AFTER_DELETE),
         |hook_function_name| {
             let hook_call = runtime::dsl_method_hooks_call(
                 hook_function_name,

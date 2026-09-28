@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::api::dsl::hook::{HookKind, Operation, Timing};
 use crate::api::dsl::table::SingletonKind;
@@ -229,11 +229,7 @@ fn validate(parsed: ParsedDSLArguments, args: &proc_macro2::TokenStream) -> syn:
         soft_delete_method,
     } = parsed;
 
-    let declared_hook_span = |timing, operation| {
-        declared_hook_spans
-            .get(&HookKind { timing, operation })
-            .copied()
-    };
+    let declared_hook_span = |kind| declared_hook_spans.get(&kind).copied();
 
     if let Some(soft_delete_method) = &soft_delete_method
         && delete_method.is_none()
@@ -244,20 +240,20 @@ fn validate(parsed: ParsedDSLArguments, args: &proc_macro2::TokenStream) -> syn:
     }
 
     if !update_method.unwrap_or(true) {
-        if let Some(span) = declared_hook_span(Timing::Before, Operation::Update) {
+        if let Some(span) = declared_hook_span(HookKind::BEFORE_UPDATE) {
             return Err(error::before_update_hook_without_update_method(span));
         }
-        if let Some(span) = declared_hook_span(Timing::After, Operation::Update) {
+        if let Some(span) = declared_hook_span(HookKind::AFTER_UPDATE) {
             return Err(error::after_update_hook_without_update_method(span));
         }
     }
 
     if !delete_method.unwrap_or(true) {
-        if let Some(span) = declared_hook_span(Timing::Before, Operation::Delete) {
+        if let Some(span) = declared_hook_span(HookKind::BEFORE_DELETE) {
             return Err(error::before_delete_hook_without_delete_method(span));
         }
 
-        if let Some(span) = declared_hook_span(Timing::After, Operation::Delete) {
+        if let Some(span) = declared_hook_span(HookKind::AFTER_DELETE) {
             return Err(error::after_delete_hook_without_delete_method(span));
         }
     }
@@ -266,13 +262,13 @@ fn validate(parsed: ParsedDSLArguments, args: &proc_macro2::TokenStream) -> syn:
         .as_ref()
         .is_some_and(SoftDeleteMethodArgument::is_enabled)
     {
-        if let Some(span) = declared_hook_span(Timing::Before, Operation::SoftDelete) {
+        if let Some(span) = declared_hook_span(HookKind::BEFORE_SOFT_DELETE) {
             return Err(error::before_soft_delete_hook_on_table_not_soft_deletable(
                 span,
             ));
         }
 
-        if let Some(span) = declared_hook_span(Timing::After, Operation::SoftDelete) {
+        if let Some(span) = declared_hook_span(HookKind::AFTER_SOFT_DELETE) {
             return Err(error::after_soft_delete_hook_on_table_not_soft_deletable(
                 span,
             ));
@@ -302,19 +298,10 @@ fn validate(parsed: ParsedDSLArguments, args: &proc_macro2::TokenStream) -> syn:
         }
     };
 
-    let is_declared = |timing, operation| declared_hook_span(timing, operation).is_some();
-
     Ok(DSLData {
         kind,
         unique_indices,
-        before_insert_hook: is_declared(Timing::Before, Operation::Insert),
-        before_update_hook: is_declared(Timing::Before, Operation::Update),
-        before_delete_hook: is_declared(Timing::Before, Operation::Delete),
-        before_soft_delete_hook: is_declared(Timing::Before, Operation::SoftDelete),
-        after_insert_hook: is_declared(Timing::After, Operation::Insert),
-        after_update_hook: is_declared(Timing::After, Operation::Update),
-        after_delete_hook: is_declared(Timing::After, Operation::Delete),
-        after_soft_delete_hook: is_declared(Timing::After, Operation::SoftDelete),
+        declared_hooks: declared_hook_spans.into_keys().collect(),
         update_method,
         delete_method,
         soft_delete_method,
@@ -340,14 +327,7 @@ impl DSLTableKind {
 pub struct DSLData {
     kind: DSLTableKind,
     unique_indices: Vec<Ident>,
-    before_insert_hook: bool,
-    before_update_hook: bool,
-    before_delete_hook: bool,
-    before_soft_delete_hook: bool,
-    after_insert_hook: bool,
-    after_update_hook: bool,
-    after_delete_hook: bool,
-    after_soft_delete_hook: bool,
+    declared_hooks: BTreeSet<HookKind>,
     update_method: Option<bool>,
     delete_method: Option<bool>,
     soft_delete_method: Option<SoftDeleteMethodArgument>,

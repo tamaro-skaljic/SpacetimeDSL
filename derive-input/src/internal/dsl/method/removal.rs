@@ -15,6 +15,7 @@ use super::{
     soft_delete,
     upsert::rebind_row_as_mutable_after_hook,
 };
+use crate::api::dsl::hook::HookKind;
 use crate::{
     api::{
         dsl::{
@@ -89,7 +90,7 @@ fn retire_row_named_old_row(
         soft_delete::set_marker(marker_of(spacetimedsl_table), &quote! { self }, &new_row);
 
     let before_hook = hook_tokens(
-        &spacetimedsl_table.hooks.before_soft_delete,
+        spacetimedsl_table.hooks.get(HookKind::BEFORE_SOFT_DELETE),
         |hook_function_name| {
             let hook_call = runtime::dsl_method_hooks_call(
                 hook_function_name,
@@ -103,7 +104,7 @@ fn retire_row_named_old_row(
     );
 
     let after_hook = hook_tokens(
-        &spacetimedsl_table.hooks.after_soft_delete,
+        spacetimedsl_table.hooks.get(HookKind::AFTER_SOFT_DELETE),
         |hook_function_name| {
             let hook_call = runtime::dsl_method_hooks_call(
                 hook_function_name,
@@ -260,7 +261,7 @@ pub fn for_removal_many(
     // outer slots are then empty and the loop below carries the calls.
     let before_delete_hook = match removal {
         Removal::Hard => hook_tokens(
-            &spacetimedsl_table.hooks.before_delete,
+            spacetimedsl_table.hooks.get(HookKind::BEFORE_DELETE),
             |hook_function_name| {
                 let hook_call = runtime::dsl_method_hooks_call(
                     hook_function_name,
@@ -279,7 +280,7 @@ pub fn for_removal_many(
 
     let after_delete_hook = match removal {
         Removal::Hard => hook_tokens(
-            &spacetimedsl_table.hooks.after_delete,
+            spacetimedsl_table.hooks.get(HookKind::AFTER_DELETE),
             |hook_function_name| {
                 let hook_call = runtime::dsl_method_hooks_call(
                     hook_function_name,
@@ -489,7 +490,7 @@ pub fn for_removal_one(
     // inside the write, for the reason given in `for_removal_many`.
     let before_delete_hook = match removal {
         Removal::Hard => hook_tokens(
-            &spacetimedsl_table.hooks.before_delete,
+            spacetimedsl_table.hooks.get(HookKind::BEFORE_DELETE),
             |hook_function_name| {
                 let hook_call = runtime::dsl_method_hooks_call(
                     hook_function_name,
@@ -506,7 +507,7 @@ pub fn for_removal_one(
 
     let after_delete_hook = match removal {
         Removal::Hard => hook_tokens(
-            &spacetimedsl_table.hooks.after_delete,
+            spacetimedsl_table.hooks.get(HookKind::AFTER_DELETE),
             |hook_function_name| {
                 let hook_call = runtime::dsl_method_hooks_call(
                     hook_function_name,

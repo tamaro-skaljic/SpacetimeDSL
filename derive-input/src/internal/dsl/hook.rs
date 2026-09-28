@@ -1,10 +1,12 @@
+use std::collections::BTreeSet;
+
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
 use crate::api::{
     dsl::{
-        hook::{Operation, SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks, Timing},
+        hook::{HookKind, Operation, SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks, Timing},
         method::{SpacetimeDSLArg, SpacetimeDSLArgType},
         table::SingletonKind,
     },
@@ -32,116 +34,32 @@ impl InsertedValue {
     }
 }
 
-/// Which hooks the table declared in `#[dsl(hook(...))]`.
-///
-/// Eight flags of the same type, so they travel under their names rather than in a row of
-/// positional arguments no compiler can tell apart.
-#[derive(Clone, Copy)]
-pub struct DeclaredHooks {
-    pub before_insert: bool,
-    pub before_update: bool,
-    pub before_delete: bool,
-    pub before_soft_delete: bool,
-    pub after_insert: bool,
-    pub after_update: bool,
-    pub after_delete: bool,
-    pub after_soft_delete: bool,
-}
-
 pub fn build(
     singular_table_name: &syn::Ident,
     singleton: Option<SingletonKind>,
-    declared: DeclaredHooks,
+    declared: &BTreeSet<HookKind>,
 ) -> SpacetimeDSLMethodHooks {
     let inserted_value = InsertedValue::of(singleton);
 
-    let before_insert = build_any(
-        declared.before_insert,
-        Timing::Before,
-        singular_table_name,
-        Operation::Insert,
-        inserted_value,
-    );
-    let before_update = build_any(
-        declared.before_update,
-        Timing::Before,
-        singular_table_name,
-        Operation::Update,
-        inserted_value,
-    );
-    let before_delete = build_any(
-        declared.before_delete,
-        Timing::Before,
-        singular_table_name,
-        Operation::Delete,
-        inserted_value,
-    );
-    let before_soft_delete = build_any(
-        declared.before_soft_delete,
-        Timing::Before,
-        singular_table_name,
-        Operation::SoftDelete,
-        inserted_value,
-    );
-    let after_insert = build_any(
-        declared.after_insert,
-        Timing::After,
-        singular_table_name,
-        Operation::Insert,
-        inserted_value,
-    );
-    let after_update = build_any(
-        declared.after_update,
-        Timing::After,
-        singular_table_name,
-        Operation::Update,
-        inserted_value,
-    );
-    let after_delete = build_any(
-        declared.after_delete,
-        Timing::After,
-        singular_table_name,
-        Operation::Delete,
-        inserted_value,
-    );
-
-    let after_soft_delete = build_any(
-        declared.after_soft_delete,
-        Timing::After,
-        singular_table_name,
-        Operation::SoftDelete,
-        inserted_value,
-    );
-
     SpacetimeDSLMethodHooks {
-        before_insert,
-        before_delete,
-        before_soft_delete,
-        before_update,
-        after_insert,
-        after_update,
-        after_delete,
-        after_soft_delete,
+        declared: declared
+            .iter()
+            .map(|&kind| (kind, build_one(kind, singular_table_name, inserted_value)))
+            .collect(),
     }
 }
 
-fn build_any(
-    should_exist: bool,
-    timing: Timing,
+fn build_one(
+    HookKind { timing, operation }: HookKind,
     singular_table_name: &syn::Ident,
-    operation: Operation,
     inserted_value: InsertedValue,
-) -> Option<SpacetimeDSLMethodHook> {
-    if !should_exist {
-        return None;
-    }
-
+) -> SpacetimeDSLMethodHook {
     let singular_table_name_pascal_case = format_ident!(
         "{}",
         RenameRule::PascalCase.apply_to_field(singular_table_name.to_string())
     );
 
-    Some(SpacetimeDSLMethodHook {
+    SpacetimeDSLMethodHook {
         trait_name: get_trait_name(&timing, &singular_table_name_pascal_case, &operation),
         function_name: get_function_name(&timing, singular_table_name, &operation),
         function_args: get_function_args(
@@ -157,7 +75,7 @@ fn build_any(
             &singular_table_name_pascal_case,
             inserted_value,
         ),
-    })
+    }
 }
 
 fn get_trait_name(

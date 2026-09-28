@@ -10,6 +10,7 @@ use super::{
         set_singleton_primary_key, set_updated_at_on_update,
     },
 };
+use crate::api::dsl::hook::HookKind;
 use crate::{
     api::{
         dsl::method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
@@ -91,8 +92,14 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
 
     let let_field_name_for_found_value = if multi_column_index_checks.is_empty()
         && reference_integrity_checks.is_empty()
-        && spacetimedsl_table.hooks.before_update.is_none()
-        && spacetimedsl_table.hooks.after_update.is_none()
+        && spacetimedsl_table
+            .hooks
+            .get(HookKind::BEFORE_UPDATE)
+            .is_none()
+        && spacetimedsl_table
+            .hooks
+            .get(HookKind::AFTER_UPDATE)
+            .is_none()
     {
         TokenStream::default()
     } else {

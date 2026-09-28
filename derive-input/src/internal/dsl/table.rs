@@ -3,7 +3,6 @@ use std::collections::BTreeSet;
 use crate::api::db::{index::IndexType, table::SpacetimeDBTable};
 use crate::api::dsl::reference::ReferencingTable;
 use crate::api::dsl::table::{SingletonKind, SpacetimeDSLTable};
-use crate::internal::dsl::hook::DeclaredHooks;
 use crate::internal::error;
 use crate::internal::{DSLData, DSLTableKind};
 use quote::{ToTokens, format_ident};
@@ -37,16 +36,7 @@ impl SpacetimeDSLTable {
         let hooks = super::hook::build(
             &spacetimedb_table.singular_name,
             singleton,
-            DeclaredHooks {
-                before_insert: dsl_data.before_insert_hook,
-                before_update: dsl_data.before_update_hook,
-                before_delete: dsl_data.before_delete_hook,
-                before_soft_delete: dsl_data.before_soft_delete_hook,
-                after_insert: dsl_data.after_insert_hook,
-                after_update: dsl_data.after_update_hook,
-                after_delete: dsl_data.after_delete_hook,
-                after_soft_delete: dsl_data.after_soft_delete_hook,
-            },
+            &dsl_data.declared_hooks,
         );
 
         let has_update_method = &dsl_data.update_method;

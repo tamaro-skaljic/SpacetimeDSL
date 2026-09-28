@@ -6,6 +6,7 @@ use super::{
         Action, multi_column_index_checks, reference_integrity_checks_on_create,
     },
 };
+use crate::api::dsl::hook::HookKind;
 use crate::{
     api::{
         dsl::{
@@ -333,7 +334,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
         };
 
     let before_insert_hook = hook_tokens(
-        &spacetimedsl_table.hooks.before_insert,
+        spacetimedsl_table.hooks.get(HookKind::BEFORE_INSERT),
         |hook_function_name| {
             let hook_call = runtime::dsl_method_hooks_call(
                 hook_function_name,
@@ -347,7 +348,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
     );
 
     let after_insert_hook = hook_tokens(
-        &spacetimedsl_table.hooks.after_insert,
+        spacetimedsl_table.hooks.get(HookKind::AFTER_INSERT),
         |hook_function_name| {
             let hook_call =
                 runtime::dsl_method_hooks_call(hook_function_name, &quote! { self, &entity });

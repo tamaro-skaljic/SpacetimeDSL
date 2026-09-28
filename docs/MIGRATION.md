@@ -40,4 +40,15 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 - The functions `derive-input` used to build the model — among them `RustField::map`, `RustVisibility::map`, `SpacetimeDBColumn::map`, `SpacetimeDBTable::map`, `SpacetimeDSLColumn::try_parse`, `SpacetimeDSLTable::try_parse`, `WrapperType::try_parse`, `ForeignKey::try_parse`, `ReferencingTable::try_parse`, `UUIDVersion::try_parse`, `Getter::map`, `MutGetter::map`, `Setter::map` and `SpacetimeDSLColumnMethods::map` — are no longer public. `api::Table::try_parse` is the one entry point.
 - `RustVisibility` no longer implements `Display`; it implements `quote::ToTokens`, which renders `pub`, `pub(crate)`, `pub(super)`, `pub(in path)` or nothing. Compare it with `matches!` rather than as text.
 - `api::attribute::is_dsl_attribute(&Attribute)` tells whether an attribute is `#[spacetimedsl::dsl]` in any spelling: `dsl`, `spacetimedsl::dsl` or `::spacetimedsl::dsl`. Use it instead of comparing the stringified path.
+- `SpacetimeDSLMethodHooks` is a map keyed by the new `api::dsl::hook::HookKind` (a `Timing` and an `Operation`) instead of eight fields:
+
+  ```rust
+  // 0.23
+  if let Some(hook) = &table.spacetimedsl_table.hooks.before_insert { /* … */ }
+
+  // 0.24
+  if let Some(hook) = table.spacetimedsl_table.hooks.get(HookKind::BEFORE_INSERT) { /* … */ }
+  ```
+
+  `hooks.iter()` yields the declared hooks in emission order, and `hooks.declared` is the `BTreeMap<HookKind, SpacetimeDSLMethodHook>` itself. `HookKind::ALL` lists all eight kinds.
 - `SpacetimeDSLArgType::actual_type()` returns the type of a parameter as written, for both variants.

@@ -13,6 +13,7 @@ use super::{
     soft_delete,
     upsert::{rebind_row_as_mutable_after_hook, set_updated_at_on_update},
 };
+use crate::api::dsl::hook::HookKind;
 use crate::{
     api::{
         Column,
@@ -181,7 +182,7 @@ pub fn on_delete_strategy_implementation(
                 // so they are hoisted into strategy_for_before_hook / _after_hook instead
                 // of being emitted next to the call.
                 let (use_before_delete_hook_trait, before_delete_hook) = hook_use_and_call(
-                    &spacetimedsl_table.hooks.before_delete,
+                    spacetimedsl_table.hooks.get(HookKind::BEFORE_DELETE),
                     |hook_function_name| {
                         let hook_call = runtime::dsl_method_hooks_call(
                             hook_function_name,
@@ -200,7 +201,7 @@ pub fn on_delete_strategy_implementation(
                 strategy_for_before_hook = use_before_delete_hook_trait;
 
                 let (use_after_delete_hook_trait, after_delete_hook) = hook_use_and_call(
-                    &spacetimedsl_table.hooks.after_delete,
+                    spacetimedsl_table.hooks.get(HookKind::AFTER_DELETE),
                     |hook_function_name| {
                         let hook_call = runtime::dsl_method_hooks_call(
                             hook_function_name,
@@ -387,8 +388,8 @@ pub fn on_delete_strategy_implementation(
                 // they are hoisted the way the `Delete` arm hoists its own.
                 let build_hooks = |old_row: TokenStream| {
                     hooks_around_the_write(
-                        &spacetimedsl_table.hooks.before_soft_delete,
-                        &spacetimedsl_table.hooks.after_soft_delete,
+                        spacetimedsl_table.hooks.get(HookKind::BEFORE_SOFT_DELETE),
+                        spacetimedsl_table.hooks.get(HookKind::AFTER_SOFT_DELETE),
                         &old_row,
                     )
                 };
@@ -610,8 +611,8 @@ pub fn on_delete_strategy_implementation(
                     (use_before_update_hook_trait, before_update_hook),
                     (use_after_update_hook_trait, after_update_hook),
                 ) = hooks_around_the_write(
-                    &spacetimedsl_table.hooks.before_update,
-                    &spacetimedsl_table.hooks.after_update,
+                    spacetimedsl_table.hooks.get(HookKind::BEFORE_UPDATE),
+                    spacetimedsl_table.hooks.get(HookKind::AFTER_UPDATE),
                     &quote! { &old_row },
                 );
                 strategy_for_before_hook = use_before_update_hook_trait;
@@ -747,8 +748,8 @@ fn strategy_by_row(
 /// latter back, the after hook reads what was stored. An error from either stops the
 /// cascade and is carried on the `DeletionResult`.
 fn hooks_around_the_write(
-    before_hook: &Option<SpacetimeDSLMethodHook>,
-    after_hook: &Option<SpacetimeDSLMethodHook>,
+    before_hook: Option<&SpacetimeDSLMethodHook>,
+    after_hook: Option<&SpacetimeDSLMethodHook>,
     old_row: &TokenStream,
 ) -> ((TokenStream, TokenStream), (TokenStream, TokenStream)) {
     let before = hook_use_and_call(before_hook, |hook_function_name| {

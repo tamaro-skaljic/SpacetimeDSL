@@ -4,11 +4,7 @@ use spacetimedsl_derive_input::api::{dsl::hook::SpacetimeDSLMethodHook, runtime}
 
 use crate::output::map_args;
 
-pub fn build(hook: Option<&SpacetimeDSLMethodHook>) -> TokenStream {
-    let Some(hook) = hook else {
-        return TokenStream::default();
-    };
-
+pub fn build(hook: &SpacetimeDSLMethodHook) -> TokenStream {
     let trait_name = &hook.trait_name;
     let function_name = &hook.function_name;
     let function_args = map_args(&hook.function_args);

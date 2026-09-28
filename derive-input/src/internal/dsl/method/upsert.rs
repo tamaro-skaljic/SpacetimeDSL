@@ -20,6 +20,7 @@ use super::{
         reference_integrity_checks_on_create, reference_integrity_checks_on_update,
     },
 };
+use crate::api::dsl::hook::HookKind;
 use crate::{
     api::{
         dsl::{
@@ -190,7 +191,7 @@ pub fn before_update_hook_use_and_call(
     found_row: &Ident,
 ) -> (TokenStream, TokenStream) {
     hook_use_and_call(
-        &spacetimedsl_table.hooks.before_update,
+        spacetimedsl_table.hooks.get(HookKind::BEFORE_UPDATE),
         |hook_function_name| {
             let hook_call = runtime::dsl_method_hooks_call(
                 hook_function_name,
@@ -237,7 +238,7 @@ pub fn after_update_hook(
     found_row: &Ident,
 ) -> TokenStream {
     hook_tokens(
-        &spacetimedsl_table.hooks.after_update,
+        spacetimedsl_table.hooks.get(HookKind::AFTER_UPDATE),
         |hook_function_name| {
             let hook_call = runtime::dsl_method_hooks_call(
                 hook_function_name,
@@ -412,7 +413,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
     );
 
     let before_insert_hook = hook_tokens(
-        &spacetimedsl_table.hooks.before_insert,
+        spacetimedsl_table.hooks.get(HookKind::BEFORE_INSERT),
         |hook_function_name| {
             let hook_call = runtime::dsl_method_hooks_call(
                 hook_function_name,
@@ -431,7 +432,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
     );
 
     let after_insert_hook = hook_tokens(
-        &spacetimedsl_table.hooks.after_insert,
+        spacetimedsl_table.hooks.get(HookKind::AFTER_INSERT),
         |hook_function_name| {
             let hook_call =
                 runtime::dsl_method_hooks_call(hook_function_name, &quote! { self, &entity });
