@@ -1,0 +1,5 @@
+error: No index of this table has the accessor `databse_and_name`! Its indices: `database_and_name`, `by_name`, `id`.
+  --> tests/ui/unique_index_with_unknown_name.rs:10:29
+   |
+10 |         unique_index(name = databse_and_name)
+   |                             ^^^^^^^^^^^^^^^^

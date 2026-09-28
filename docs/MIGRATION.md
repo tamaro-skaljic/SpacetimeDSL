@@ -48,6 +48,8 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 
   Without it: *This struct has 2 `#[table]` attributes (`offline_player`, `online_player`), so `#[dsl]` has to name the one it belongs to!* A `table` that names no `#[table]` of the struct is rejected with *No `#[table]` attribute of this struct has the accessor `…`!*, also on a struct with a single `#[table]`.
 
+- `unique_index(name = …)` must name an index of the table, and each index only once. A misspelled name used to be accepted without effect; now it is rejected with *No index of this table has the accessor `…`! Its indices: …*. A repeated name is rejected with *`unique_index(name = …)` is given twice!* Fix the name, or remove the repetition. A name of a hash or single-column index is still accepted without effect.
+
 ### Changed messages and generated code
 
 - A struct without a `#[table]` attribute is rejected with *Haven't found a `#[table]`/`#[spacetimedb::table]` attribute on this struct! `#[dsl]`/`#[spacetimedsl::dsl]` builds on the table it declares.* It used to ask for `#[dsl]` to be directly above a `#[table]`, which was never the rule.

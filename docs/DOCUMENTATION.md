@@ -1648,7 +1648,7 @@ You MUST return the error from the reducer or procedure, otherwise deletions whi
 
 ### Declaration
 
-The `unique_index(name = ...)` in `#[spacetimedsl::dsl]` must match a **SpacetimeDB** `index(accessor = ...)` on the same table. Use `name` (not `accessor`) in the DSL attribute:
+The `unique_index(name = ...)` in `#[spacetimedsl::dsl]` must match a **SpacetimeDB** `index(accessor = ...)` on the same table. Use `name` (not `accessor`) in the DSL attribute. A name no index of the table has is rejected with a list of the table's indices, and so is naming the same index twice:
 
 ```rust
 #[spacetimedsl::dsl(

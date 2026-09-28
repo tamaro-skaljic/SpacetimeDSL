@@ -46,6 +46,8 @@ pub fn try_parse(
         reject_unique_index_on_singleton(&dsl_data.unique_indices, &table_args)?;
     }
 
+    reject_unknown_or_repeated_unique_indices(&dsl_data.unique_indices, &table_args)?;
+
     table::try_parse(input, dsl_data, &table_args, &column_args)
 }
 
@@ -72,6 +74,34 @@ fn reject_unique_index_on_singleton(
         unique_index_name,
         names_a_declared_index,
     ))
+}
+
+/// `unique_index(name = …)` makes an index declared in `#[table]` unique, so it has to
+/// name one of those, and each only once.
+fn reject_unknown_or_repeated_unique_indices(
+    unique_indices: &[Ident],
+    table_args: &TableArgs,
+) -> syn::Result<()> {
+    let declared_indices: Vec<&Ident> = table_args
+        .indices
+        .iter()
+        .map(|index| &index.accessor)
+        .collect();
+
+    for (position, unique_index_name) in unique_indices.iter().enumerate() {
+        if !declared_indices.contains(&unique_index_name) {
+            return Err(error::unknown_unique_index(
+                unique_index_name,
+                &declared_indices,
+            ));
+        }
+
+        if unique_indices[..position].contains(unique_index_name) {
+            return Err(error::repeated_unique_index(unique_index_name));
+        }
+    }
+
+    Ok(())
 }
 
 fn try_parse_dsl(args: &proc_macro2::TokenStream) -> syn::Result<DSLData> {

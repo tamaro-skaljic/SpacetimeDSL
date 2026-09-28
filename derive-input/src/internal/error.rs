@@ -127,6 +127,29 @@ pub fn unique_index_on_singleton(unique_index_name: &Ident, names_a_declared_ind
     )
 }
 
+pub fn unknown_unique_index(unique_index_name: &Ident, declared_indices: &[&Ident]) -> Error {
+    let declared = match declared_indices.is_empty() {
+        true => "none".to_string(),
+        false => quoted_list(declared_indices),
+    };
+
+    Error::new_spanned(
+        unique_index_name,
+        format!(
+            "No index of this table has the accessor `{unique_index_name}`! Its indices: {declared}."
+        ),
+    )
+}
+
+pub fn repeated_unique_index(unique_index_name: &Ident) -> Error {
+    Error::new_spanned(
+        unique_index_name,
+        format!(
+            "`unique_index(name = {unique_index_name})` is given twice! Remove this one, or name another index."
+        ),
+    )
+}
+
 // `#[dsl(method(..))]`
 
 pub fn missing_update_method_with_non_private_column(struct_name: &Ident) -> Error {
