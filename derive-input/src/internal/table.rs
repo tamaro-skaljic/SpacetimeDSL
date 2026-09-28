@@ -6,7 +6,6 @@ use crate::{
     },
     internal::{DSLData, dsl::method::MethodGenerationContext},
 };
-use quote::format_ident;
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::DeriveInput;
 
@@ -57,13 +56,4 @@ pub fn try_parse(
         primary_key_column,
         spacetimedsl_methods,
     })
-}
-
-pub fn rm_rsharp(ident: syn::Ident) -> syn::Ident {
-    let mut ident_as_str = ident.to_string();
-    if ident_as_str.starts_with("r#") {
-        format_ident!("{}", ident_as_str.split_off(2))
-    } else {
-        ident
-    }
 }

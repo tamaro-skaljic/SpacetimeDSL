@@ -8,6 +8,7 @@ use proc_macro2::Span;
 use spacetime_bindings_macro_input::{match_meta, sym, table::TableArgs, util::check_duplicate};
 use syn::{
     Ident,
+    ext::IdentExt,
     meta::{ParseNestedMeta, parser},
     parse::Parser,
     spanned::Spanned,
@@ -48,7 +49,7 @@ pub fn try_parse(
     // For singletons, set plural_name to the singular name from the table accessor
     // (it's only used for get_all/count_of_all which won't be generated)
     if dsl_data.singleton.is_some() {
-        dsl_data.plural_name = crate::internal::table::rm_rsharp(table_args.accessor.clone());
+        dsl_data.plural_name = table_args.accessor.unraw();
     }
 
     // Pass the parsed plural_name to avoid re-parsing
