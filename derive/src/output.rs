@@ -174,14 +174,14 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
     };
 
     let hooks = vec![
-        hook::build(&input.spacetimedsl_table.hooks.before_insert)?,
-        hook::build(&input.spacetimedsl_table.hooks.before_update)?,
-        hook::build(&input.spacetimedsl_table.hooks.before_delete)?,
-        hook::build(&input.spacetimedsl_table.hooks.before_soft_delete)?,
-        hook::build(&input.spacetimedsl_table.hooks.after_insert)?,
-        hook::build(&input.spacetimedsl_table.hooks.after_update)?,
-        hook::build(&input.spacetimedsl_table.hooks.after_delete)?,
-        hook::build(&input.spacetimedsl_table.hooks.after_soft_delete)?,
+        hook::build(input.spacetimedsl_table.hooks.before_insert.as_ref()),
+        hook::build(input.spacetimedsl_table.hooks.before_update.as_ref()),
+        hook::build(input.spacetimedsl_table.hooks.before_delete.as_ref()),
+        hook::build(input.spacetimedsl_table.hooks.before_soft_delete.as_ref()),
+        hook::build(input.spacetimedsl_table.hooks.after_insert.as_ref()),
+        hook::build(input.spacetimedsl_table.hooks.after_update.as_ref()),
+        hook::build(input.spacetimedsl_table.hooks.after_delete.as_ref()),
+        hook::build(input.spacetimedsl_table.hooks.after_soft_delete.as_ref()),
     ];
 
     let wrapper_methods = input
