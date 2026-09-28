@@ -44,6 +44,10 @@ const TEST_GROUPS: &[(&str, TestGroup)] = &[
     ),
     ("hash_index_test", hash_index_test::run_tests),
     (
+        "primary_key_foreign_key_cascade_test",
+        primary_key_foreign_key_cascade_test::run_tests,
+    ),
+    (
         "cascade_hook_error_test",
         cascade_hook_error_test::run_tests,
     ),
