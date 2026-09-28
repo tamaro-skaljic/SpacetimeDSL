@@ -14,10 +14,12 @@ use {
                     OnDeleteStrategiesOfTheReferencedTable, SingletonKind,
                     SpacetimeDSLTableMethods,
                 },
+                wrapper::WrapperMethod,
             },
         },
         internal::dsl::one_or_multiple::OneOrMultiple,
     },
+    itertools::Itertools,
     std::collections::BTreeMap,
 };
 
@@ -176,141 +178,183 @@ impl SpacetimeDSLTableMethods {
         context: &MethodGenerationContext,
         columns: &[Column],
     ) -> syn::Result<(SpacetimeDSLTableMethods, TableContributions)> {
-        let MethodGenerationContext {
-            spacetimedb_table,
-            spacetimedsl_table,
-            primary_key_column,
-            ..
-        } = context;
-
-        let is_singleton = spacetimedsl_table.is_singleton();
-
         let mut contributions = TableContributions::default();
 
-        // A table with a default has no create method, and skipping the generator is also
-        // what withholds the `Create<Table>` argument struct: the generator is its only
-        // source.
-        let create = match spacetimedsl_table.singleton_has_default() {
-            true => None,
-            false => {
-                let (create, create_contributions) = for_create(context);
-                contributions.merge(create_contributions);
+        let (create, get_all, get_count) = table_level_methods(context, &mut contributions);
 
-                Some(create)
-            }
-        };
-
-        // A singleton holds one row, so iterating and counting have nothing to say.
-        let get_all = match is_singleton {
-            true => None,
-            false => Some(for_get_all(context)),
-        };
-
-        let get_count = match is_singleton {
-            true => None,
-            false => Some(for_get_count(context)),
-        };
-
-        // A referenced table earns one pair of entry points per kind of removal it can
-        // perform, because the cascade a referencing table runs depends on which of the
-        // two reached it.
         let on_delete_strategies_of_referencing_tables =
-            match spacetimedsl_table.referencing_tables.is_empty() {
-                true => None,
-                false => {
-                    let mut on_deletion = None;
-                    let mut on_soft_deletion = None;
+            referenced_side_entry_points(context, &mut contributions)?;
 
-                    for (removal, this_table_can_perform_it) in [
-                        (Removal::Hard, spacetimedsl_table.has_delete_method),
-                        (Removal::Soft, spacetimedsl_table.is_soft_deletable()),
-                    ] {
-                        if !this_table_can_perform_it {
-                            continue;
-                        }
+        let foreign_key_columns_by_referenced_table =
+            foreign_key_columns_by_referenced_table(columns);
 
-                        let (after_one_row, after_one_row_contributions) = for_referenced_by(
-                            removal,
-                            &OneOrMultiple::One,
-                            spacetimedb_table,
-                            spacetimedsl_table,
-                            primary_key_column,
-                        );
-                        contributions.merge(after_one_row_contributions);
+        let on_delete_strategies_of_this_table = referencing_side_entry_points(
+            context,
+            &foreign_key_columns_by_referenced_table,
+            &mut contributions,
+        )?;
 
-                        let (after_multiple_rows, after_multiple_rows_contributions) =
-                            for_referenced_by(
-                                removal,
-                                &OneOrMultiple::Multiple,
-                                spacetimedb_table,
-                                spacetimedsl_table,
-                                primary_key_column,
-                            );
-                        contributions.merge(after_multiple_rows_contributions);
+        let methods = SpacetimeDSLTableMethods {
+            create,
+            get_all,
+            get_count,
+            on_delete_strategies_of_referencing_tables,
+            on_delete_strategies_of_this_table,
+            multi_column_indices: multi_column_index_methods(context),
+            wrapper_methods: wrapper_methods(context, &foreign_key_columns_by_referenced_table),
+        };
 
-                        let entry_points = Some(CascadeEntryPoints {
-                            after_one_row,
-                            after_multiple_rows,
-                        });
+        Ok((methods, contributions))
+    }
+}
 
-                        match removal {
-                            Removal::Hard => on_deletion = entry_points,
-                            Removal::Soft => on_soft_deletion = entry_points,
-                        }
-                    }
+/// `create_<table>`, `get_all_<tables>` and `count_of_all_<tables>`.
+fn table_level_methods(
+    context: &MethodGenerationContext,
+    contributions: &mut TableContributions,
+) -> (
+    Option<SpacetimeDSLMethod>,
+    Option<SpacetimeDSLMethod>,
+    Option<SpacetimeDSLMethod>,
+) {
+    let spacetimedsl_table = context.spacetimedsl_table;
+    let is_singleton = spacetimedsl_table.is_singleton();
 
-                    Some(OnDeleteStrategiesOfReferencingTables {
-                        on_deletion,
-                        on_soft_deletion,
-                    })
-                }
-            };
+    // A table with a default has no create method, and skipping the generator is also what
+    // withholds the `Create<Table>` argument struct: the generator is its only source.
+    let create = match spacetimedsl_table.singleton_has_default() {
+        true => None,
+        false => {
+            let (create, create_contributions) = for_create(context);
+            contributions.merge(create_contributions);
 
-        let mut on_delete_strategies_of_this_table = vec![];
-        let mut wrapper_methods = vec![];
+            Some(create)
+        }
+    };
 
-        let columns_with_foreign_keys: Vec<&Column> = columns
-            .iter()
-            .filter(|c| c.spacetimedsl_column.foreign_key.is_some())
-            .collect();
+    // A singleton holds one row, so iterating and counting have nothing to say.
+    let get_all = (!is_singleton).then(|| for_get_all(context));
+    let get_count = (!is_singleton).then(|| for_get_count(context));
 
-        if !columns_with_foreign_keys.is_empty() {
-            let mut columns_with_foreign_keys_by_table = BTreeMap::new();
+    (create, get_all, get_count)
+}
 
-            columns_with_foreign_keys.iter().for_each(|c| {
-                let name_of_another_table = &c
-                    .spacetimedsl_column
-                    .foreign_key
-                    .as_ref()
-                    .expect("The columns were just filtered to those that have a foreign key")
-                    .table_name;
+/// The one-row and the many-row entry point for each kind of removal in `removal_kinds`,
+/// as `(on_deletion, on_soft_deletion)`. `build` generates one entry point.
+fn entry_points_per_removal(
+    removal_kinds: impl IntoIterator<Item = Removal>,
+    contributions: &mut TableContributions,
+    mut build: impl FnMut(
+        Removal,
+        &OneOrMultiple,
+    ) -> syn::Result<(SpacetimeDSLMethod, TableContributions)>,
+) -> syn::Result<(Option<CascadeEntryPoints>, Option<CascadeEntryPoints>)> {
+    let mut on_deletion = None;
+    let mut on_soft_deletion = None;
 
-                if !columns_with_foreign_keys_by_table.contains_key(name_of_another_table) {
-                    columns_with_foreign_keys_by_table.insert(name_of_another_table, vec![]);
-                }
+    for removal in removal_kinds {
+        let (after_one_row, after_one_row_contributions) = build(removal, &OneOrMultiple::One)?;
+        contributions.merge(after_one_row_contributions);
 
-                columns_with_foreign_keys_by_table
-                    .get_mut(name_of_another_table)
-                    .expect("The entry was inserted above when it was missing")
-                    .push(*c);
-            });
+        let (after_multiple_rows, after_multiple_rows_contributions) =
+            build(removal, &OneOrMultiple::Multiple)?;
+        contributions.merge(after_multiple_rows_contributions);
 
-            for (referenced_table_name, columns_with_foreign_key) in
-                columns_with_foreign_keys_by_table
-            {
-                let referencing_tables = match spacetimedsl_table.referencing_tables.is_empty() {
-                    true => ReferencingTables::Absent,
-                    false => ReferencingTables::Present,
-                };
+        let entry_points = Some(CascadeEntryPoints {
+            after_one_row,
+            after_multiple_rows,
+        });
 
-                let mut on_deletion = None;
-                let mut on_soft_deletion = None;
+        match removal {
+            Removal::Hard => on_deletion = entry_points,
+            Removal::Soft => on_soft_deletion = entry_points,
+        }
+    }
 
-                // One pair per kind of removal these foreign keys declare a strategy for.
-                // A key that sets only `on_soft_delete` contributes nothing to the
-                // deletion pair, and the other way round.
-                for removal in [Removal::Hard, Removal::Soft] {
-                    let declares_a_strategy = columns_with_foreign_key.iter().any(|column| {
+    Ok((on_deletion, on_soft_deletion))
+}
+
+/// The entry points a referenced table offers its referencing tables: one pair per kind of
+/// removal it can perform, because the cascade a referencing table runs depends on which of
+/// the two reached it.
+fn referenced_side_entry_points(
+    context: &MethodGenerationContext,
+    contributions: &mut TableContributions,
+) -> syn::Result<Option<OnDeleteStrategiesOfReferencingTables>> {
+    let MethodGenerationContext {
+        spacetimedb_table,
+        spacetimedsl_table,
+        primary_key_column,
+        ..
+    } = context;
+
+    if spacetimedsl_table.referencing_tables.is_empty() {
+        return Ok(None);
+    }
+
+    let removal_kinds = [
+        (Removal::Hard, spacetimedsl_table.has_delete_method),
+        (Removal::Soft, spacetimedsl_table.is_soft_deletable()),
+    ]
+    .into_iter()
+    .filter(|(_, this_table_can_perform_it)| *this_table_can_perform_it)
+    .map(|(removal, _)| removal);
+
+    let (on_deletion, on_soft_deletion) =
+        entry_points_per_removal(removal_kinds, contributions, |removal, one_or_multiple| {
+            Ok(for_referenced_by(
+                removal,
+                one_or_multiple,
+                spacetimedb_table,
+                spacetimedsl_table,
+                primary_key_column,
+            ))
+        })?;
+
+    Ok(Some(OnDeleteStrategiesOfReferencingTables {
+        on_deletion,
+        on_soft_deletion,
+    }))
+}
+
+/// The columns with a foreign key, grouped by the table the foreign key names.
+fn foreign_key_columns_by_referenced_table(
+    columns: &[Column],
+) -> BTreeMap<&syn::Ident, Vec<&Column>> {
+    let mut columns_by_referenced_table: BTreeMap<&syn::Ident, Vec<&Column>> = BTreeMap::new();
+
+    for column in columns {
+        if let Some(foreign_key) = &column.spacetimedsl_column.foreign_key {
+            columns_by_referenced_table
+                .entry(&foreign_key.table_name)
+                .or_default()
+                .push(column);
+        }
+    }
+
+    columns_by_referenced_table
+}
+
+/// The entry points this table offers each table it references: one pair per kind of
+/// removal its foreign keys to that table declare a strategy for. A key that sets only
+/// `on_soft_delete` contributes nothing to the deletion pair, and the other way round.
+fn referencing_side_entry_points(
+    context: &MethodGenerationContext,
+    foreign_key_columns_by_referenced_table: &BTreeMap<&syn::Ident, Vec<&Column>>,
+    contributions: &mut TableContributions,
+) -> syn::Result<Vec<OnDeleteStrategiesOfTheReferencedTable>> {
+    let referencing_tables = match context.spacetimedsl_table.referencing_tables.is_empty() {
+        true => ReferencingTables::Absent,
+        false => ReferencingTables::Present,
+    };
+
+    foreign_key_columns_by_referenced_table
+        .iter()
+        .map(|(referenced_table_name, columns_with_foreign_key)| {
+            let removal_kinds = [Removal::Hard, Removal::Soft]
+                .into_iter()
+                .filter(|removal| {
+                    columns_with_foreign_key.iter().any(|column| {
                         let foreign_key = column
                             .spacetimedsl_column
                             .foreign_key
@@ -321,72 +365,52 @@ impl SpacetimeDSLTableMethods {
                             Removal::Hard => foreign_key.on_delete_strategy.is_some(),
                             Removal::Soft => foreign_key.on_soft_delete_strategy.is_some(),
                         }
-                    });
+                    })
+                })
+                .collect_vec();
 
-                    if !declares_a_strategy {
-                        continue;
-                    }
-
-                    let (after_one_row, after_one_row_contributions) = for_foreign_key(
+            let (on_deletion, on_soft_deletion) = entry_points_per_removal(
+                removal_kinds,
+                contributions,
+                |removal, one_or_multiple| {
+                    for_foreign_key(
                         removal,
-                        &OneOrMultiple::One,
+                        one_or_multiple,
                         referencing_tables,
                         context,
                         referenced_table_name,
-                        &columns_with_foreign_key,
-                    )?;
-                    contributions.merge(after_one_row_contributions);
+                        columns_with_foreign_key,
+                    )
+                },
+            )?;
 
-                    let (after_multiple_rows, after_multiple_rows_contributions) = for_foreign_key(
-                        removal,
-                        &OneOrMultiple::Multiple,
-                        referencing_tables,
-                        context,
-                        referenced_table_name,
-                        &columns_with_foreign_key,
-                    )?;
-                    contributions.merge(after_multiple_rows_contributions);
+            Ok(OnDeleteStrategiesOfTheReferencedTable {
+                on_deletion,
+                on_soft_deletion,
+            })
+        })
+        .collect()
+}
 
-                    let entry_points = Some(CascadeEntryPoints {
-                        after_one_row,
-                        after_multiple_rows,
-                    });
+/// The lookup methods each foreign key adds to its wrapper type.
+fn wrapper_methods(
+    context: &MethodGenerationContext,
+    foreign_key_columns_by_referenced_table: &BTreeMap<&syn::Ident, Vec<&Column>>,
+) -> Vec<WrapperMethod> {
+    foreign_key_columns_by_referenced_table
+        .iter()
+        .flat_map(|(referenced_table_name, columns_with_foreign_key)| {
+            for_wrapper_methods(referenced_table_name, columns_with_foreign_key, context)
+        })
+        .collect()
+}
 
-                    match removal {
-                        Removal::Hard => on_deletion = entry_points,
-                        Removal::Soft => on_soft_deletion = entry_points,
-                    }
-                }
-
-                on_delete_strategies_of_this_table.push(OnDeleteStrategiesOfTheReferencedTable {
-                    on_deletion,
-                    on_soft_deletion,
-                });
-
-                wrapper_methods.extend(for_wrapper_methods(
-                    referenced_table_name,
-                    &columns_with_foreign_key,
-                    context,
-                ));
-            }
-        }
-
-        let multi_column_indices = spacetimedb_table
-            .multi_column_indices
-            .iter()
-            .map(|multi_column_index| column_methods_for(multi_column_index, context))
-            .collect();
-
-        let methods = SpacetimeDSLTableMethods {
-            create,
-            get_all,
-            get_count,
-            on_delete_strategies_of_referencing_tables,
-            on_delete_strategies_of_this_table,
-            multi_column_indices,
-            wrapper_methods,
-        };
-
-        Ok((methods, contributions))
-    }
+/// The methods of every multi-column index.
+fn multi_column_index_methods(context: &MethodGenerationContext) -> Vec<SpacetimeDSLColumnMethods> {
+    context
+        .spacetimedb_table
+        .multi_column_indices
+        .iter()
+        .map(|multi_column_index| column_methods_for(multi_column_index, context))
+        .collect()
 }

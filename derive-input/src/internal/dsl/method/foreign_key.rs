@@ -76,7 +76,7 @@ pub fn for_foreign_key(
 
     let referenced_table_path = referenced_table_path.to_token_stream();
 
-    let mut columns_by_on_delete_strategies = BTreeMap::new();
+    let mut columns_by_on_delete_strategies: BTreeMap<_, Vec<&Column>> = BTreeMap::new();
 
     for column_with_foreign_key in columns_with_foreign_key {
         let foreign_key = foreign_key_of(column_with_foreign_key);
@@ -109,13 +109,9 @@ pub fn for_foreign_key(
             Some(on_delete_strategy) => on_delete_strategy,
         };
 
-        if !columns_by_on_delete_strategies.contains_key(on_delete_strategy) {
-            columns_by_on_delete_strategies.insert(on_delete_strategy, vec![]);
-        }
-
         columns_by_on_delete_strategies
-            .get_mut(on_delete_strategy)
-            .expect("The entry was inserted above when it was missing")
+            .entry(on_delete_strategy)
+            .or_default()
             .push(*column_with_foreign_key);
     }
 
