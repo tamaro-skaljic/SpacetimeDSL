@@ -1,6 +1,8 @@
-use proc_macro2::TokenStream;
-use quote::quote;
-use spacetimedsl_derive_input::api::{dsl::wrapper::WrapperMethod, runtime};
+use {
+    proc_macro2::TokenStream,
+    quote::quote,
+    spacetimedsl_derive_input::api::{dsl::wrapper::WrapperMethod, runtime},
+};
 
 /// One `impl` block per method, because two tables can add methods to the same wrapper type
 /// without knowing each other.

@@ -1,21 +1,23 @@
-use std::collections::BTreeSet;
-
-use ident_case::RenameRule;
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-
-use crate::api::{
-    dsl::{
-        hook::{
-            HookKind, Operation, SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks, Timing,
-            hook_trait_name,
+use {
+    crate::{
+        api::{
+            dsl::{
+                hook::{
+                    HookKind, Operation, SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks, Timing,
+                    hook_trait_name,
+                },
+                method::{SpacetimeDSLArg, SpacetimeDSLArgType},
+                table::SingletonKind,
+            },
+            runtime,
         },
-        method::{SpacetimeDSLArg, SpacetimeDSLArgType},
-        table::SingletonKind,
+        internal::dsl::method::naming,
     },
-    runtime,
+    ident_case::RenameRule,
+    proc_macro2::TokenStream,
+    quote::{format_ident, quote},
+    std::collections::BTreeSet,
 };
-use crate::internal::dsl::method::naming;
 
 /// What the `before_insert` hook of a table receives.
 ///

@@ -4,21 +4,23 @@
 //! The body they produce is [`super::removal`]'s, with `Removal::Soft`. Removing rows
 //! instead of retiring them is [`super::delete`].
 
-use super::{
-    context::MethodGenerationContext,
-    index::IndexShape,
-    removal::{Removal, for_removal_many, for_removal_one},
-};
-use crate::api::{
-    dsl::{
-        method::SpacetimeDSLMethod,
-        soft_delete::{SoftDeleteMarker, SoftDeleteMarkerKind},
+use {
+    super::{
+        context::MethodGenerationContext,
+        index::IndexShape,
+        removal::{Removal, for_removal_many, for_removal_one},
     },
-    runtime,
+    crate::api::{
+        dsl::{
+            method::SpacetimeDSLMethod,
+            soft_delete::{SoftDeleteMarker, SoftDeleteMarkerKind},
+        },
+        runtime,
+    },
+    proc_macro2::TokenStream,
+    quote::quote,
+    syn::Ident,
 };
-use proc_macro2::TokenStream;
-use quote::quote;
-use syn::Ident;
 
 /// `soft_delete_<tables>_by_<index>`: retire every row an index matches.
 pub fn for_soft_delete_many(

@@ -1,9 +1,13 @@
 //! References an auto-generated `Uuid` primary key from another module, where the private
 //! field of its wrapper is out of reach.
 
-use crate::component::uuid_test::{CreateUuidPrimaryKeyRecord, UUIDPrimaryKeyRecordId};
-use crate::spacetimedsl::prelude::*;
-use spacetimedb::Uuid;
+use {
+    crate::{
+        component::uuid_test::{CreateUuidPrimaryKeyRecord, UUIDPrimaryKeyRecordId},
+        spacetimedsl::prelude::*,
+    },
+    spacetimedb::Uuid,
+};
 
 #[spacetimedsl::dsl(
     plural_name = uuid_references,

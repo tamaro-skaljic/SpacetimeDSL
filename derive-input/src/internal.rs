@@ -1,19 +1,23 @@
-use std::collections::{BTreeMap, BTreeSet};
-
-use crate::api::dsl::hook::{HookKind, Operation, Timing};
-use crate::api::dsl::table::SingletonKind;
-use crate::internal::dsl::soft_delete::SoftDeleteMethodArgument;
-use crate::internal::dsl::{
-    after, before, delete, hook, insert, method, plural_name, singleton, soft_delete, unique_index,
-    update, with_default,
-};
-use proc_macro2::Span;
-use spacetime_bindings_macro_input::{match_meta, sym, table::TableArgs, util::check_duplicate};
-use syn::{
-    Ident,
-    meta::{ParseNestedMeta, parser},
-    parse::Parser,
-    spanned::Spanned,
+use {
+    crate::{
+        api::dsl::{
+            hook::{HookKind, Operation, Timing},
+            table::SingletonKind,
+        },
+        internal::dsl::{
+            after, before, delete, hook, insert, method, plural_name, singleton,
+            soft_delete::SoftDeleteMethodArgument, unique_index, update, with_default,
+        },
+    },
+    proc_macro2::Span,
+    spacetime_bindings_macro_input::{match_meta, sym, table::TableArgs, util::check_duplicate},
+    std::collections::{BTreeMap, BTreeSet},
+    syn::{
+        Ident,
+        meta::{ParseNestedMeta, parser},
+        parse::Parser,
+        spanned::Spanned,
+    },
 };
 
 mod integration;
@@ -195,6 +199,8 @@ fn parse_dsl_arguments(args: &proc_macro2::TokenStream) -> syn::Result<ParsedDSL
                 check_duplicate(&methods, &meta)?;
                 methods = Some(());
 
+                use dsl::soft_delete;
+
                 meta.parse_nested_meta(|meta| {
                     match_meta!(match meta {
                         update => {
@@ -240,6 +246,7 @@ fn parse_hooks_of_timing(
     declared_hook_spans: &mut BTreeMap<HookKind, Span>,
 ) -> syn::Result<()> {
     meta.parse_nested_meta(|meta| {
+        use dsl::soft_delete;
         let operation = match_meta!(match meta {
             insert => Operation::Insert,
             update => Operation::Update,

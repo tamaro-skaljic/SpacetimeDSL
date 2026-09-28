@@ -18,15 +18,19 @@
 //!         ...
 //!     }
 
-use colored::Colorize;
-use std::borrow::Cow;
-use std::env;
-use std::ffi::OsStr;
-use std::fmt::{self, Display};
-use std::fs;
-use std::io::{self, Write};
-use std::path::{Path, PathBuf};
-use std::process;
+use {
+    colored::Colorize,
+    std::{
+        borrow::Cow,
+        env,
+        ffi::OsStr,
+        fmt::{self, Display},
+        fs,
+        io::{self, Write},
+        path::{Path, PathBuf},
+        process,
+    },
+};
 
 enum Error {
     IncorrectUsage,

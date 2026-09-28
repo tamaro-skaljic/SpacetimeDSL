@@ -1,14 +1,15 @@
-use std::collections::BTreeSet;
-
-use crate::api::db::{
-    index::{Index, IndexType},
-    reducer::ScheduledReducer,
-    table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
+use {
+    crate::api::db::{
+        index::{Index, IndexType},
+        reducer::ScheduledReducer,
+        table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
+    },
+    spacetime_bindings_macro_input::table::{
+        IndexArg, IndexType as SpacetimeIndexType, ScheduledArg, TableAccess, TableArgs,
+    },
+    std::collections::BTreeSet,
+    syn::{Ident, ext::IdentExt},
 };
-use spacetime_bindings_macro_input::table::{
-    IndexArg, IndexType as SpacetimeIndexType, ScheduledArg, TableAccess, TableArgs,
-};
-use syn::{Ident, ext::IdentExt};
 
 impl SpacetimeDBTable {
     /// Assembles the table from what `#[table]` declares and the index assignment

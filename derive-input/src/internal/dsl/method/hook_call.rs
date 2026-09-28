@@ -4,10 +4,10 @@
 //! keeps them apart for the two sites that have to place the import themselves — before a
 //! prelude that has to run first, or outside the loop the call sits in.
 
-use crate::api::dsl::hook::SpacetimeDSLMethodHook;
-use proc_macro2::TokenStream;
-use quote::quote;
-use syn::Ident;
+use {
+    crate::api::dsl::hook::SpacetimeDSLMethodHook, proc_macro2::TokenStream, quote::quote,
+    syn::Ident,
+};
 
 /// The `use self::<trait>;` import and the call `build_call` produces, kept apart so a
 /// caller can place the import itself - before a prelude that has to run first, or outside

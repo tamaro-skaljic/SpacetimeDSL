@@ -1,14 +1,16 @@
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-use spacetimedsl_derive_input::api::{
-    Table,
-    dsl::{
-        column::SpacetimeDSLColumnMethods,
-        method::{SpacetimeDSLArg, SpacetimeDSLMethod},
-        wrapper::WrapperType,
+use {
+    proc_macro2::TokenStream,
+    quote::{format_ident, quote},
+    spacetimedsl_derive_input::api::{
+        Table,
+        dsl::{
+            column::SpacetimeDSLColumnMethods,
+            method::{SpacetimeDSLArg, SpacetimeDSLMethod},
+            wrapper::WrapperType,
+        },
     },
+    syn::Ident,
 };
-use syn::Ident;
 
 mod accessor;
 mod create_method_arg;

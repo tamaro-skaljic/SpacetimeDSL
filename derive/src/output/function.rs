@@ -1,8 +1,9 @@
-use proc_macro2::TokenStream;
-use quote::quote;
-use spacetimedsl_derive_input::api::{dsl::method::SpacetimeDSLMethod, runtime, spacetimedb};
-
-use crate::output::{doc_comment, map_args};
+use {
+    crate::output::{doc_comment, map_args},
+    proc_macro2::TokenStream,
+    quote::quote,
+    spacetimedsl_derive_input::api::{dsl::method::SpacetimeDSLMethod, runtime, spacetimedb},
+};
 
 // DSL Methods
 pub fn build_public(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {

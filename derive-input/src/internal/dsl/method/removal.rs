@@ -6,29 +6,30 @@
 //! building the entries, refusing before writing, running the remaining strategy passes —
 //! is stated once here, because two copies of that order would drift.
 
-use super::referenced_by::referenced_table_function_call_for_dsl_method;
-use super::{
-    context::{self, MethodGenerationContext},
-    hook_call::hook_tokens,
-    index::{IndexColumnArguments, IndexShape, index_accessor, index_column_arguments},
-    reference_integrity::{Action, unique_multi_column_index_check},
-    soft_delete,
-    upsert::rebind_row_as_mutable_after_hook,
-};
-use crate::api::dsl::hook::HookKind;
-use crate::{
-    api::{
-        dsl::{
-            foreign_key::OnDeleteStrategy, method::SpacetimeDSLMethod,
-            soft_delete::SoftDeleteMarker, table::SpacetimeDSLTable,
-        },
-        runtime,
+use {
+    super::{
+        context::{self, MethodGenerationContext},
+        hook_call::hook_tokens,
+        index::{IndexColumnArguments, IndexShape, index_accessor, index_column_arguments},
+        reference_integrity::{Action, unique_multi_column_index_check},
+        referenced_by::referenced_table_function_call_for_dsl_method,
+        soft_delete,
+        upsert::rebind_row_as_mutable_after_hook,
     },
-    internal::{column::ColumnTypeKind, dsl::one_or_multiple::OneOrMultiple},
+    crate::{
+        api::{
+            dsl::{
+                foreign_key::OnDeleteStrategy, hook::HookKind, method::SpacetimeDSLMethod,
+                soft_delete::SoftDeleteMarker, table::SpacetimeDSLTable,
+            },
+            runtime,
+        },
+        internal::{column::ColumnTypeKind, dsl::one_or_multiple::OneOrMultiple},
+    },
+    itertools::Itertools,
+    proc_macro2::TokenStream,
+    quote::{format_ident, quote},
 };
-use itertools::Itertools;
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
 
 /// Whether a generated method removes the rows it matched or retires them.
 #[derive(Clone, Copy, PartialEq)]

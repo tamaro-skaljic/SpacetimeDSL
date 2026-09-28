@@ -1,6 +1,7 @@
-use crate::spacetimedsl::error::CreateOrUpdate;
-use crate::spacetimedsl::prelude::*;
-use spacetimedb::Timestamp;
+use {
+    crate::spacetimedsl::{error::CreateOrUpdate, prelude::*},
+    spacetimedb::Timestamp,
+};
 
 /// A Entity is a unique machine-readable identifier - it contains no data other than that and has no behavior.
 #[spacetimedsl::dsl(

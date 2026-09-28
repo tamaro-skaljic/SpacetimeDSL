@@ -4,33 +4,36 @@
 //! One function per referenced table, holding a match arm per on-delete strategy. The
 //! referenced side is [`super::referenced_by`].
 
-use super::{
-    context::{MethodGenerationContext, TableContributions},
-    naming::{
-        referenced_table_compile_error_check_for_deletions,
-        referenced_table_compile_error_check_for_soft_deletions,
-        referencing_table_compile_error_check_for_deletions,
-        referencing_table_compile_error_check_for_soft_deletions, referencing_table_function_name,
-    },
-    on_delete_strategy::{ReferencingTables, on_delete_strategy_implementation},
-    removal::Removal,
-};
-use crate::{
-    api::{
-        Column,
-        dsl::{
-            foreign_key::OnDeleteStrategy,
-            method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
+use {
+    super::{
+        context::{MethodGenerationContext, TableContributions},
+        naming::{
+            referenced_table_compile_error_check_for_deletions,
+            referenced_table_compile_error_check_for_soft_deletions,
+            referencing_table_compile_error_check_for_deletions,
+            referencing_table_compile_error_check_for_soft_deletions,
+            referencing_table_function_name,
         },
-        runtime,
+        on_delete_strategy::{ReferencingTables, on_delete_strategy_implementation},
+        removal::Removal,
     },
-    internal::{dsl::one_or_multiple::OneOrMultiple, error},
+    crate::{
+        api::{
+            Column,
+            dsl::{
+                foreign_key::OnDeleteStrategy,
+                method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
+            },
+            runtime,
+        },
+        internal::{dsl::one_or_multiple::OneOrMultiple, error},
+    },
+    itertools::Itertools,
+    proc_macro2::TokenStream,
+    quote::{ToTokens, format_ident, quote},
+    std::collections::BTreeMap,
+    strum::IntoEnumIterator,
 };
-use itertools::Itertools;
-use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote};
-use std::collections::BTreeMap;
-use strum::IntoEnumIterator;
 
 pub fn for_foreign_key(
     removal: Removal,

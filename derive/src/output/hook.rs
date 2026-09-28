@@ -1,8 +1,9 @@
-use proc_macro2::TokenStream;
-use quote::quote;
-use spacetimedsl_derive_input::api::{dsl::hook::SpacetimeDSLMethodHook, runtime};
-
-use crate::output::map_args;
+use {
+    crate::output::map_args,
+    proc_macro2::TokenStream,
+    quote::quote,
+    spacetimedsl_derive_input::api::{dsl::hook::SpacetimeDSLMethodHook, runtime},
+};
 
 pub fn build(hook: &SpacetimeDSLMethodHook) -> TokenStream {
     let trait_name = &hook.trait_name;

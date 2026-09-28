@@ -1,20 +1,21 @@
-use std::collections::{BTreeMap, BTreeSet};
-
-use crate::{
-    api::{
-        Table,
-        db::{
-            index::{Index, IndexType},
-            table::SpacetimeDBTable,
+use {
+    crate::{
+        api::{
+            Table,
+            db::{
+                index::{Index, IndexType},
+                table::SpacetimeDBTable,
+            },
+            dsl::table::{SpacetimeDSLTable, SpacetimeDSLTableMethods},
         },
-        dsl::table::{SpacetimeDSLTable, SpacetimeDSLTableMethods},
+        internal::{
+            DSLData, dsl::method::MethodGenerationContext, error, rust::column::column_type_path,
+        },
     },
-    internal::{DSLData, dsl::method::MethodGenerationContext, error},
+    spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs},
+    std::collections::{BTreeMap, BTreeSet},
+    syn::{DeriveInput, Ident, ext::IdentExt},
 };
-use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
-use syn::{DeriveInput, Ident, ext::IdentExt};
-
-use crate::internal::rust::column::column_type_path;
 
 pub fn try_parse(
     input: &DeriveInput,

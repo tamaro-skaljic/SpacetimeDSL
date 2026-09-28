@@ -2,12 +2,15 @@
 
 pub mod math;
 
-use crate::spacetimedsl::prelude::*;
-use math::DbVector2;
-use spacetimedb::SpacetimeType;
-use spacetimedb::rand::Rng;
-use spacetimedb::{ReducerContext, TimeDuration, Timestamp, spacetimedb_lib::ScheduleAt};
-use std::{collections::HashMap, time::Duration};
+use {
+    crate::spacetimedsl::prelude::*,
+    math::DbVector2,
+    spacetimedb::{
+        ReducerContext, SpacetimeType, TimeDuration, Timestamp, rand::Rng,
+        spacetimedb_lib::ScheduleAt,
+    },
+    std::{collections::HashMap, time::Duration},
+};
 
 // TODO:
 // - [x] Remove players when they are eaten on the client + death + respawn screen
@@ -38,10 +41,14 @@ pub enum LoginStatus {
 }
 
 pub mod tables {
-    use super::LoginStatus;
-    use super::{circle_decay, circle_recombine, consume_entity, move_all_players, spawn_food};
-    use crate::math::DbVector2;
-    use spacetimedb::{Identity, Timestamp};
+    use {
+        super::{
+            LoginStatus, circle_decay, circle_recombine, consume_entity, move_all_players,
+            spawn_food,
+        },
+        crate::math::DbVector2,
+        spacetimedb::{Identity, Timestamp},
+    };
 
     #[spacetimedsl::dsl(plural_name = config, method(update = false))]
     #[spacetimedb::table(accessor = config, public)]

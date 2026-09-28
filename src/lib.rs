@@ -1,6 +1,8 @@
-pub use itertools;
-pub use spacetimedsl_derive::{SpacetimeDSL, dsl, hook};
 use std::fmt::Display;
+pub use {
+    itertools,
+    spacetimedsl_derive::{SpacetimeDSL, dsl, hook},
+};
 
 pub mod as_anonymous_view_context;
 pub mod as_reducer_context;
@@ -22,25 +24,25 @@ pub mod error;
 /// Every runtime item a module or its generated code uses, listed once. The crate root and the
 /// module `spacetimedsl!()` generates re-export it, and so does the prelude of that module.
 pub mod prelude {
-    pub use crate::as_anonymous_view_context::AsAnonymousViewContext;
-    pub use crate::as_reducer_context::AsReducerContext;
-    pub use crate::as_view_context::AsViewContext;
-    pub use crate::delete::{
-        DeletionResult, DeletionResultEntry, OnDeleteStrategy, OnDeleteStrategyFailure,
+    pub use crate::{
+        Context, ReadContext, Wrapper, WriteContext,
+        as_anonymous_view_context::AsAnonymousViewContext,
+        as_reducer_context::AsReducerContext,
+        as_view_context::AsViewContext,
+        delete::{DeletionResult, DeletionResultEntry, OnDeleteStrategy, OnDeleteStrategyFailure},
+        error::{ReferenceIntegrityViolationError, SpacetimeDSLError},
+        get_auth::GetAuth,
+        get_connection_id::GetConnectionId,
+        get_immutable_database::GetImmutableDatabase,
+        get_module_identity::GetModuleIdentity,
+        get_mutable_database::GetMutableDatabase,
+        get_random::GetRandom,
+        get_random_number_generator::GetRandomNumberGenerator,
+        get_sender::GetSender,
+        get_timestamp::GetTimestamp,
+        itertools::Itertools,
+        new_uuid::NewUUID,
     };
-    pub use crate::error::{ReferenceIntegrityViolationError, SpacetimeDSLError};
-    pub use crate::get_auth::GetAuth;
-    pub use crate::get_connection_id::GetConnectionId;
-    pub use crate::get_immutable_database::GetImmutableDatabase;
-    pub use crate::get_module_identity::GetModuleIdentity;
-    pub use crate::get_mutable_database::GetMutableDatabase;
-    pub use crate::get_random::GetRandom;
-    pub use crate::get_random_number_generator::GetRandomNumberGenerator;
-    pub use crate::get_sender::GetSender;
-    pub use crate::get_timestamp::GetTimestamp;
-    pub use crate::itertools::Itertools;
-    pub use crate::new_uuid::NewUUID;
-    pub use crate::{Context, ReadContext, Wrapper, WriteContext};
 }
 
 pub use prelude::*;
@@ -206,19 +208,19 @@ macro_rules! spacetimedsl {
 
             // The runtime items, reachable as `crate::spacetimedsl::X`, which is how
             // proc-macro–generated code names them.
-            pub use ::spacetimedsl::prelude::*;
-            pub use ::spacetimedsl::{SpacetimeDSL, delete, error, itertools};
+            pub use ::spacetimedsl::{SpacetimeDSL, delete, error, itertools, prelude::*};
 
             pub mod prelude {
-                pub use ::spacetimedsl::prelude::*;
-
-                pub use super::{
-                    DSL, DSLMethodHooks, DefaultSingleton, ReadOnlyDSL, dsl, read_only_dsl,
-                };
-
-                pub use spacetimedb::{
-                    AnonymousViewContext, Identity, ProcedureContext, ReducerContext, ScheduleAt,
-                    SpacetimeType, Table, TimeDuration, Timestamp, ViewContext, rand::Rng,
+                pub use {
+                    super::{
+                        DSL, DSLMethodHooks, DefaultSingleton, ReadOnlyDSL, dsl, read_only_dsl,
+                    },
+                    ::spacetimedsl::prelude::*,
+                    spacetimedb::{
+                        AnonymousViewContext, Identity, ProcedureContext, ReducerContext,
+                        ScheduleAt, SpacetimeType, Table, TimeDuration, Timestamp, ViewContext,
+                        rand::Rng,
+                    },
                 };
             }
         }

@@ -16,11 +16,10 @@
 //! `on_soft_delete` fail as two different unresolved imports, each naming the field to
 //! add.
 
-use super::removal::Removal;
-use crate::internal::dsl::one_or_multiple::OneOrMultiple;
-use ident_case::RenameRule;
-use quote::format_ident;
-use syn::Ident;
+use {
+    super::removal::Removal, crate::internal::dsl::one_or_multiple::OneOrMultiple,
+    ident_case::RenameRule, quote::format_ident, syn::Ident,
+};
 
 /// `get_<column>`, the getter of a column.
 pub(crate) fn getter_name(column_name: &Ident) -> Ident {

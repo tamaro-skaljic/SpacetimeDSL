@@ -1,13 +1,14 @@
-use crate::internal::dsl::method::naming;
-use crate::{
-    api::{
-        dsl::{setter::Setter, wrapper::WrapperType},
-        rust::{column::RustField, visibility::RustVisibility},
+use {
+    crate::{
+        api::{
+            dsl::{setter::Setter, wrapper::WrapperType},
+            rust::{column::RustField, visibility::RustVisibility},
+        },
+        internal::dsl::{method::naming, wrapper::map_wrapper_type_option_to_wrapped_type_option},
     },
-    internal::dsl::wrapper::map_wrapper_type_option_to_wrapped_type_option,
+    proc_macro2::TokenStream,
+    quote::quote,
 };
-use proc_macro2::TokenStream;
-use quote::quote;
 
 /// The parts of a setter that depend on the column's wrapper, built together per shape.
 struct SetterParts {

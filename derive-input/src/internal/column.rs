@@ -1,25 +1,32 @@
-use std::collections::BTreeMap;
-
-use crate::api::{
-    Column,
-    db::{column::SpacetimeDBColumn, index::Index, table::SpacetimeDBTable},
-    dsl::{
-        auto_gen::UUIDVersion,
-        column::{SpacetimeDSLColumn, SpacetimeDSLColumnMethods},
-        foreign_key::ForeignKey,
-        table::SpacetimeDSLTable,
-        wrapper::WrapperType,
+use {
+    crate::{
+        api::{
+            Column,
+            db::{column::SpacetimeDBColumn, index::Index, table::SpacetimeDBTable},
+            dsl::{
+                auto_gen::UUIDVersion,
+                column::{SpacetimeDSLColumn, SpacetimeDSLColumnMethods},
+                foreign_key::ForeignKey,
+                table::SpacetimeDSLTable,
+                wrapper::WrapperType,
+            },
+            rust::{column::RustField, table::RustStruct, visibility::RustVisibility},
+        },
+        internal::{
+            dsl::{
+                column::reject_primary_key_prefixed_with_table_name,
+                method::MethodGenerationContext, singleton,
+            },
+            error,
+            rust::column::column_type_path,
+        },
     },
-    rust::{column::RustField, table::RustStruct, visibility::RustVisibility},
+    itertools::izip,
+    quote::ToTokens,
+    spacetime_bindings_macro_input::table::ColumnArgs,
+    std::collections::BTreeMap,
+    syn::{GenericArgument, Ident, Path, PathArguments, Type},
 };
-use crate::internal::dsl::method::MethodGenerationContext;
-use crate::internal::dsl::{column::reject_primary_key_prefixed_with_table_name, singleton};
-use crate::internal::error;
-use crate::internal::rust::column::column_type_path;
-use itertools::izip;
-use quote::ToTokens;
-use spacetime_bindings_macro_input::table::ColumnArgs;
-use syn::{GenericArgument, Ident, Path, PathArguments, Type};
 
 /// Every column of a table, in the shape the public API exposes and in the shape the
 /// generators work with, each with its primary key picked out.

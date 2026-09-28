@@ -80,13 +80,13 @@ case "${1:-}" in
         ;;
 
     format)
-        cargo fmt --all
+        cargo +nightly fmt --all -- --config imports_granularity=One,group_imports=One
 
         cargo clippy --workspace --all-targets --all-features --fix --allow-dirty
         ;;
 
     lint)
-        cargo fmt --all -- --check
+        cargo +nightly fmt --all -- --config imports_granularity=One,group_imports=One --check
 
         cargo clippy --workspace --all-targets --all-features -- -D warnings
         ;;

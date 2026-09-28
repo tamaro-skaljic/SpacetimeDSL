@@ -4,12 +4,14 @@
 //! The body they produce is [`super::removal`]'s, with `Removal::Hard`. Retiring rows
 //! instead of removing them is [`super::soft_delete`].
 
-use super::{
-    context::MethodGenerationContext,
-    index::IndexShape,
-    removal::{Removal, for_removal_many, for_removal_one},
+use {
+    super::{
+        context::MethodGenerationContext,
+        index::IndexShape,
+        removal::{Removal, for_removal_many, for_removal_one},
+    },
+    crate::api::dsl::method::SpacetimeDSLMethod,
 };
-use crate::api::dsl::method::SpacetimeDSLMethod;
 
 /// `delete_<tables>_by_<index>`: delete every row an index matches.
 pub fn for_delete_many(

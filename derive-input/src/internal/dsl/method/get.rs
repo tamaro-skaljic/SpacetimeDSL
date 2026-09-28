@@ -1,14 +1,15 @@
-use super::reference_integrity::Action;
-use super::{
-    context::MethodGenerationContext,
-    index::{IndexColumnArguments, IndexShape, index_accessor, index_column_arguments},
-    reference_integrity::unique_multi_column_index_check,
+use {
+    super::{
+        context::MethodGenerationContext,
+        index::{IndexColumnArguments, IndexShape, index_accessor, index_column_arguments},
+        reference_integrity::{Action, unique_multi_column_index_check},
+    },
+    crate::{
+        api::{dsl::method::SpacetimeDSLMethod, runtime},
+        internal::dsl::one_or_multiple::OneOrMultiple,
+    },
+    quote::{format_ident, quote},
 };
-use crate::{
-    api::{dsl::method::SpacetimeDSLMethod, runtime},
-    internal::dsl::one_or_multiple::OneOrMultiple,
-};
-use quote::{format_ident, quote};
 
 /// `get_all_<tables>`: iterate every row of the table.
 pub fn for_get_all(context: &MethodGenerationContext) -> SpacetimeDSLMethod {

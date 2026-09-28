@@ -6,18 +6,20 @@
 //! table, returned rather than written, so reordering two generator calls cannot change the
 //! table.
 
-use crate::{
-    api::{
-        db::table::SpacetimeDBTable,
-        dsl::table::{CreateDSLMethodArg, SpacetimeDSLTable},
-        rust::table::RustStruct,
+use {
+    crate::{
+        api::{
+            db::table::SpacetimeDBTable,
+            dsl::table::{CreateDSLMethodArg, SpacetimeDSLTable},
+            rust::table::RustStruct,
+        },
+        internal::column::InternalColumn,
     },
-    internal::column::InternalColumn,
+    proc_macro2::TokenStream,
+    quote::{ToTokens, format_ident},
+    std::collections::BTreeSet,
+    syn::Ident,
 };
-use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident};
-use std::collections::BTreeSet;
-use syn::Ident;
 
 /// Everything every method generator needs, under one name.
 ///

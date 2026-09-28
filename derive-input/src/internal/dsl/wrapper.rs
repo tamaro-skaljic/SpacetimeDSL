@@ -1,15 +1,20 @@
-use super::{create_wrapper, use_wrapper};
-use crate::api::dsl::wrapper::{CreatedWrapper, UsedWrapper, WrapperType};
-use crate::api::rust::{column::RustField, table::RustStruct};
-use crate::api::{runtime, spacetimedb};
-use crate::internal::column::ColumnTypeKind;
-use crate::internal::error;
-use ident_case::RenameRule;
-use proc_macro2::TokenStream;
-use quote::format_ident;
-use quote::quote;
-use spacetime_bindings_macro_input::sats::SatsField;
-use syn::{Ident, Path};
+use {
+    super::{create_wrapper, use_wrapper},
+    crate::{
+        api::{
+            dsl::wrapper::{CreatedWrapper, UsedWrapper, WrapperType},
+            runtime,
+            rust::{column::RustField, table::RustStruct},
+            spacetimedb,
+        },
+        internal::{column::ColumnTypeKind, error},
+    },
+    ident_case::RenameRule,
+    proc_macro2::TokenStream,
+    quote::{format_ident, quote},
+    spacetime_bindings_macro_input::sats::SatsField,
+    syn::{Ident, Path},
+};
 
 /// What `#[create_wrapper]` or `#[use_wrapper(...)]` on a column says, before anything is
 /// generated from it.

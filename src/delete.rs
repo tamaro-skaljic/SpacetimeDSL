@@ -1,6 +1,7 @@
-use std::fmt::Display;
-
-use crate::error::{OneOrMultiple, SpacetimeDSLError};
+use {
+    crate::error::{OneOrMultiple, SpacetimeDSLError},
+    std::fmt::Display,
+};
 
 // Don't forget to copy + paste this enum into `derive_input::api::dsl::foreign_key` if you change it
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]

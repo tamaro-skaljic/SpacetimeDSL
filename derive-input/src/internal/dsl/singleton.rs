@@ -7,12 +7,14 @@
 //! field, its type and its single legal value by hand. This module is where it names
 //! them, so a change to the injected key has one place to reach in each crate.
 
-use proc_macro2::{Literal, Span};
-use syn::{Ident, Path};
-
-use crate::api::db::index::{Index, IndexType};
-use crate::internal::column::canonical_type;
-use crate::internal::error;
+use {
+    crate::{
+        api::db::index::{Index, IndexType},
+        internal::{column::canonical_type, error},
+    },
+    proc_macro2::{Literal, Span},
+    syn::{Ident, Path},
+};
 
 /// The name of the injected column.
 pub const PRIMARY_KEY_NAME: &str = "id";

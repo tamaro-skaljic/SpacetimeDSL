@@ -1,12 +1,13 @@
-use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
-use spacetimedsl_derive_input::api::{
-    dsl::{getter::Getter, mut_getter::MutGetter, setter::Setter},
-    runtime,
+use {
+    crate::output::doc_comment,
+    proc_macro2::TokenStream,
+    quote::{ToTokens, quote},
+    spacetimedsl_derive_input::api::{
+        dsl::{getter::Getter, mut_getter::MutGetter, setter::Setter},
+        runtime,
+    },
+    syn::Ident,
 };
-use syn::Ident;
-
-use crate::output::doc_comment;
 
 pub enum Accessor<'a> {
     Getter(&'a Getter),

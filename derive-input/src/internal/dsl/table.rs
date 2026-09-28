@@ -1,14 +1,16 @@
-use std::collections::BTreeSet;
-
-use crate::api::dsl::reference::ReferencingTable;
-use crate::api::dsl::table::{SingletonKind, SpacetimeDSLTable};
-use crate::internal::column::ColumnTypeKind;
-use crate::internal::dsl::column_role;
-use crate::internal::error;
-use crate::internal::{DSLData, DSLTableKind};
-use quote::format_ident;
-use spacetime_bindings_macro_input::table::ColumnArgs;
-use syn::{Ident, Type};
+use {
+    crate::{
+        api::dsl::{
+            reference::ReferencingTable,
+            table::{SingletonKind, SpacetimeDSLTable},
+        },
+        internal::{DSLData, DSLTableKind, column::ColumnTypeKind, dsl::column_role, error},
+    },
+    quote::format_ident,
+    spacetime_bindings_macro_input::table::ColumnArgs,
+    std::collections::BTreeSet,
+    syn::{Ident, Type},
+};
 
 #[derive(Clone, Copy)]
 enum TimestampRole {

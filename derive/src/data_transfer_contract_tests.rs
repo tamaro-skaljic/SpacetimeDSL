@@ -7,38 +7,40 @@
 //! a change of this structure is a breaking change. The assertions read a few values of two
 //! parsed fixture tables, so the test also checks what the structure holds.
 
-use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
-use spacetimedsl_derive_input::api::{
-    Column, Table,
-    db::{
-        column::SpacetimeDBColumn,
-        index::{Index, IndexType},
-        reducer::ScheduledReducer,
-        table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
-    },
-    dsl::{
-        auto_gen::UUIDVersion,
-        column::{
-            SpacetimeDSLColumn, SpacetimeDSLColumnMethods, SpacetimeDSLColumnMethodsForIndex,
-            SpacetimeDSLColumnMethodsForUniqueIndex,
+use {
+    proc_macro2::TokenStream,
+    quote::{ToTokens, quote},
+    spacetimedsl_derive_input::api::{
+        Column, Table,
+        db::{
+            column::SpacetimeDBColumn,
+            index::{Index, IndexType},
+            reducer::ScheduledReducer,
+            table::{SpacetimeDBTable, SpacetimeDBTableVisibility},
         },
-        foreign_key::{ForeignKey, OnDeleteStrategy},
-        getter::Getter,
-        hook::{HookKind, Operation, SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks, Timing},
-        method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
-        mut_getter::MutGetter,
-        reference::ReferencingTable,
-        setter::Setter,
-        soft_delete::{SoftDeleteMarker, SoftDeleteMarkerKind},
-        table::{
-            CascadeEntryPoints, CreateDSLMethodArg, OnDeleteStrategiesOfReferencingTables,
-            OnDeleteStrategiesOfTheReferencedTable, SingletonKind, SpacetimeDSLTable,
-            SpacetimeDSLTableMethods,
+        dsl::{
+            auto_gen::UUIDVersion,
+            column::{
+                SpacetimeDSLColumn, SpacetimeDSLColumnMethods, SpacetimeDSLColumnMethodsForIndex,
+                SpacetimeDSLColumnMethodsForUniqueIndex,
+            },
+            foreign_key::{ForeignKey, OnDeleteStrategy},
+            getter::Getter,
+            hook::{HookKind, Operation, SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks, Timing},
+            method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
+            mut_getter::MutGetter,
+            reference::ReferencingTable,
+            setter::Setter,
+            soft_delete::{SoftDeleteMarker, SoftDeleteMarkerKind},
+            table::{
+                CascadeEntryPoints, CreateDSLMethodArg, OnDeleteStrategiesOfReferencingTables,
+                OnDeleteStrategiesOfTheReferencedTable, SingletonKind, SpacetimeDSLTable,
+                SpacetimeDSLTableMethods,
+            },
+            wrapper::{CreatedWrapper, UsedWrapper, WrapperMethod, WrapperType},
         },
-        wrapper::{CreatedWrapper, UsedWrapper, WrapperMethod, WrapperType},
+        rust::{column::RustField, table::RustStruct, visibility::RustVisibility},
     },
-    rust::{column::RustField, table::RustStruct, visibility::RustVisibility},
 };
 
 #[test]

@@ -1,34 +1,35 @@
-use super::context::TableContributions;
-use super::{
-    context::MethodGenerationContext,
-    hook_call::hook_tokens,
-    naming,
-    reference_integrity::{
-        Action, multi_column_index_checks, reference_integrity_checks_on_create,
-    },
-};
-use crate::api::dsl::hook::HookKind;
-use crate::{
-    api::{
-        dsl::{
-            method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
-            soft_delete::SoftDeleteMarkerKind,
-            table::{CreateDSLMethodArg, SpacetimeDSLTable},
-            wrapper::WrapperType,
-        },
-        runtime, spacetimedb,
-    },
-    internal::{
-        column::{ColumnTypeKind, InternalColumn},
-        dsl::{
-            one_or_multiple::OneOrMultiple, singleton,
-            wrapper::map_wrapper_type_option_to_wrapped_type_option,
+use {
+    super::{
+        context::{MethodGenerationContext, TableContributions},
+        hook_call::hook_tokens,
+        naming,
+        reference_integrity::{
+            Action, multi_column_index_checks, reference_integrity_checks_on_create,
         },
     },
+    crate::{
+        api::{
+            dsl::{
+                hook::HookKind,
+                method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
+                soft_delete::SoftDeleteMarkerKind,
+                table::{CreateDSLMethodArg, SpacetimeDSLTable},
+                wrapper::WrapperType,
+            },
+            runtime, spacetimedb,
+        },
+        internal::{
+            column::{ColumnTypeKind, InternalColumn},
+            dsl::{
+                one_or_multiple::OneOrMultiple, singleton,
+                wrapper::map_wrapper_type_option_to_wrapped_type_option,
+            },
+        },
+    },
+    itertools::Itertools,
+    proc_macro2::TokenStream,
+    quote::{ToTokens, format_ident, quote},
 };
-use itertools::Itertools;
-use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote};
 
 /// The pieces the Create method needs from one column: the argument it contributes to the
 /// `Create<Table>` struct, the mapper that unwraps an optional wrapper, the `let` binding

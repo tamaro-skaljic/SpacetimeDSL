@@ -1,9 +1,10 @@
-use super::{
-    auto_gen::UUIDVersion, foreign_key::ForeignKey, getter::Getter, setter::Setter,
-    wrapper::WrapperType,
+use {
+    super::{
+        auto_gen::UUIDVersion, foreign_key::ForeignKey, getter::Getter, setter::Setter,
+        wrapper::WrapperType,
+    },
+    crate::api::dsl::{method::SpacetimeDSLMethod, mut_getter::MutGetter},
 };
-
-use crate::api::dsl::{method::SpacetimeDSLMethod, mut_getter::MutGetter};
 
 /// What `#[spacetimedsl::dsl]` declares for one field of the struct.
 #[derive(Clone)]

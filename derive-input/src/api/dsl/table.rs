@@ -1,15 +1,15 @@
-use std::collections::BTreeSet;
-
-use proc_macro2::TokenStream;
-use syn::Ident;
-
-use super::reference::ReferencingTable;
-use crate::api::dsl::{
-    column::SpacetimeDSLColumnMethods,
-    hook::SpacetimeDSLMethodHooks,
-    method::{SpacetimeDSLArg, SpacetimeDSLMethod},
-    soft_delete::SoftDeleteMarker,
-    wrapper::WrapperMethod,
+use {
+    super::reference::ReferencingTable,
+    crate::api::dsl::{
+        column::SpacetimeDSLColumnMethods,
+        hook::SpacetimeDSLMethodHooks,
+        method::{SpacetimeDSLArg, SpacetimeDSLMethod},
+        soft_delete::SoftDeleteMarker,
+        wrapper::WrapperMethod,
+    },
+    proc_macro2::TokenStream,
+    std::collections::BTreeSet,
+    syn::Ident,
 };
 
 /// How many rows a singleton table holds, which decides which methods it earns.

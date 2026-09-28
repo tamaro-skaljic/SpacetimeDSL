@@ -5,18 +5,19 @@
 //! so this module rejects either one without the other and every generator afterwards
 //! reads one `Option`.
 
-use crate::api::dsl::{
-    soft_delete::{SoftDeleteMarker, SoftDeleteMarkerKind},
-    table::SingletonKind,
+use {
+    crate::{
+        api::dsl::{
+            soft_delete::{SoftDeleteMarker, SoftDeleteMarkerKind},
+            table::SingletonKind,
+        },
+        internal::{column::ColumnTypeKind, dsl::column_role, error},
+    },
+    proc_macro2::TokenStream,
+    quote::{ToTokens, format_ident, quote},
+    spacetime_bindings_macro_input::{sats::SatsField, table::ColumnArgs},
+    syn::{LitBool, Path, Type},
 };
-use crate::internal::error;
-use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote};
-use spacetime_bindings_macro_input::{sats::SatsField, table::ColumnArgs};
-use syn::{LitBool, Path, Type};
-
-use crate::internal::column::ColumnTypeKind;
-use crate::internal::dsl::column_role;
 
 /// `soft_delete = <bool>` exactly as written in `#[dsl(method(..))]`, kept whole so a
 /// diagnostic can underline all of it rather than the struct it sits on.

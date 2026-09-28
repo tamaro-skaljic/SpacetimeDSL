@@ -1,10 +1,14 @@
-use super::{context::MethodGenerationContext, hook_call::hook_tokens, upsert};
-use crate::api::dsl::hook::HookKind;
-use crate::{
-    api::{dsl::method::SpacetimeDSLMethod, runtime},
-    internal::dsl::{one_or_multiple::OneOrMultiple, singleton},
+use {
+    super::{context::MethodGenerationContext, hook_call::hook_tokens, upsert},
+    crate::{
+        api::{
+            dsl::{hook::HookKind, method::SpacetimeDSLMethod},
+            runtime,
+        },
+        internal::dsl::{one_or_multiple::OneOrMultiple, singleton},
+    },
+    quote::{format_ident, quote},
 };
-use quote::{format_ident, quote};
 
 /// `get_<table>`: the one row of a singleton table.
 ///

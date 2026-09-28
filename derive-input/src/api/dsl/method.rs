@@ -1,5 +1,4 @@
-use proc_macro2::TokenStream;
-use syn::Ident;
+use {proc_macro2::TokenStream, syn::Ident};
 
 /// A generated DSL method, such as `create_entity` or `get_entity_by_obj_id`.
 #[derive(Clone)]

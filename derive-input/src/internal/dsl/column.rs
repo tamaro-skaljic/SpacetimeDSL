@@ -1,16 +1,19 @@
-use crate::api::dsl::table::SpacetimeDSLTable;
-use crate::api::{
-    db::column::SpacetimeDBColumn,
-    dsl::{
-        auto_gen::UUIDVersion, column::SpacetimeDSLColumn, foreign_key::ForeignKey, getter::Getter,
-        mut_getter::MutGetter, setter::Setter, wrapper::WrapperType,
+use {
+    crate::{
+        api::{
+            db::column::SpacetimeDBColumn,
+            dsl::{
+                auto_gen::UUIDVersion, column::SpacetimeDSLColumn, foreign_key::ForeignKey,
+                getter::Getter, mut_getter::MutGetter, setter::Setter, table::SpacetimeDSLTable,
+                wrapper::WrapperType,
+            },
+            rust::{column::RustField, table::RustStruct},
+        },
+        internal::{column::ColumnTypeKind, error},
     },
-    rust::{column::RustField, table::RustStruct},
+    spacetime_bindings_macro_input::sats::SatsField,
+    syn::Ident,
 };
-use crate::internal::column::ColumnTypeKind;
-use crate::internal::error;
-use spacetime_bindings_macro_input::sats::SatsField;
-use syn::Ident;
 
 impl SpacetimeDSLColumn {
     pub(crate) fn try_parse(

@@ -1,5 +1,4 @@
-use crate::spacetimedsl::prelude::*;
-use spacetimedb::Timestamp;
+use {crate::spacetimedsl::prelude::*, spacetimedb::Timestamp};
 
 /// A retired `Archive` keeps its row, so a reducer can still read what was retired.
 #[spacetimedsl::dsl(

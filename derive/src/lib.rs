@@ -1,7 +1,9 @@
-use proc_macro::TokenStream;
-use quote::quote;
-use spacetimedsl_derive_input::api::{
-    Table, attribute::is_dsl_attribute, dsl::hook::hook_trait_name, runtime,
+use {
+    proc_macro::TokenStream,
+    quote::quote,
+    spacetimedsl_derive_input::api::{
+        Table, attribute::is_dsl_attribute, dsl::hook::hook_trait_name, runtime,
+    },
 };
 
 #[cfg(test)]

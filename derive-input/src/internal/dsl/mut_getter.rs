@@ -1,9 +1,13 @@
-use crate::api::{
-    dsl::{mut_getter::MutGetter, wrapper::WrapperType},
-    rust::{column::RustField, visibility::RustVisibility},
+use {
+    crate::{
+        api::{
+            dsl::{mut_getter::MutGetter, wrapper::WrapperType},
+            rust::{column::RustField, visibility::RustVisibility},
+        },
+        internal::dsl::method::naming,
+    },
+    quote::quote,
 };
-use crate::internal::dsl::method::naming;
-use quote::quote;
 
 impl MutGetter {
     pub(crate) fn map(

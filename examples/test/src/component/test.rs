@@ -1,6 +1,7 @@
-use crate::entity::EntityId;
-use crate::spacetimedsl::prelude::*;
-use spacetimedb::{ScheduleAt, Timestamp};
+use {
+    crate::{entity::EntityId, spacetimedsl::prelude::*},
+    spacetimedb::{ScheduleAt, Timestamp},
+};
 
 /// A Position in the World.
 #[spacetimedsl::dsl(

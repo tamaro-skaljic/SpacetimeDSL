@@ -1,11 +1,7 @@
-use std::collections::BTreeMap;
-
-use ident_case::RenameRule;
-use proc_macro2::TokenStream;
-use quote::format_ident;
-use syn::Ident;
-
-use crate::api::dsl::method::SpacetimeDSLArg;
+use {
+    crate::api::dsl::method::SpacetimeDSLArg, ident_case::RenameRule, proc_macro2::TokenStream,
+    quote::format_ident, std::collections::BTreeMap, syn::Ident,
+};
 
 /// When a hook runs: before or after the write it hooks into.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

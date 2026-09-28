@@ -1,6 +1,7 @@
-use std::{error::Error, fmt::Display};
-
-use crate::DeletionResult;
+use {
+    crate::DeletionResult,
+    std::{error::Error, fmt::Display},
+};
 
 #[derive(Debug)]
 pub enum SpacetimeDSLError {

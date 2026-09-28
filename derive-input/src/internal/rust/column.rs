@@ -1,7 +1,11 @@
-use crate::api::rust::{column::RustField, visibility::RustVisibility};
-use crate::internal::error;
-use spacetime_bindings_macro_input::sats::SatsField;
-use syn::{Path, Type};
+use {
+    crate::{
+        api::rust::{column::RustField, visibility::RustVisibility},
+        internal::error,
+    },
+    spacetime_bindings_macro_input::sats::SatsField,
+    syn::{Path, Type},
+};
 
 impl RustField {
     pub(crate) fn map(field: &SatsField<'_>) -> syn::Result<RustField> {

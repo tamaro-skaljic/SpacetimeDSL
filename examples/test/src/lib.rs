@@ -1,8 +1,10 @@
 ::spacetimedsl::spacetimedsl!();
 
-use crate::spacetimedsl::{DSL, Wrapper, dsl};
-use log::info;
-use spacetimedb::ReducerContext;
+use {
+    crate::spacetimedsl::{DSL, Wrapper, dsl},
+    log::info,
+    spacetimedb::ReducerContext,
+};
 
 pub mod cascade_hook_error_test;
 pub mod component;

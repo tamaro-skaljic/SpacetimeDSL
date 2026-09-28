@@ -1,8 +1,10 @@
-use crate::api::{
-    db::{column::SpacetimeDBColumn, index::Index},
-    rust::column::RustField,
+use {
+    crate::api::{
+        db::{column::SpacetimeDBColumn, index::Index},
+        rust::column::RustField,
+    },
+    syn::Ident,
 };
-use syn::Ident;
 
 impl SpacetimeDBColumn {
     /// `single_column_index` is the index `internal::table` assigned to this column, if any.

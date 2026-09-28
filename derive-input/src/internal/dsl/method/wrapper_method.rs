@@ -3,18 +3,20 @@
 //! Each one looks rows up through the DSL method of the column's index, so the lookup, its
 //! name and its return type stay defined once, in `get.rs`.
 
-use super::context::MethodGenerationContext;
-use crate::api::{
-    Column,
-    dsl::{
-        column::SpacetimeDSLColumnMethods,
-        wrapper::{WrapperMethod, WrapperType},
+use {
+    super::context::MethodGenerationContext,
+    crate::api::{
+        Column,
+        dsl::{
+            column::SpacetimeDSLColumnMethods,
+            wrapper::{WrapperMethod, WrapperType},
+        },
     },
+    ident_case::RenameRule,
+    proc_macro2::TokenStream,
+    quote::{format_ident, quote},
+    syn::Type,
 };
-use ident_case::RenameRule;
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-use syn::Type;
 
 /// One method per column of `columns_with_foreign_key`, which all reference
 /// `referenced_table_name`.

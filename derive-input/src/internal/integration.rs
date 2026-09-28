@@ -1,7 +1,8 @@
-use crate::api::attribute::is_table_attribute;
-use crate::internal::error;
-use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
-use syn::{DeriveInput, Ident};
+use {
+    crate::{api::attribute::is_table_attribute, internal::error},
+    spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs},
+    syn::{DeriveInput, Ident},
+};
 
 /// The `#[table]` attribute a `#[dsl]` attribute belongs to.
 ///

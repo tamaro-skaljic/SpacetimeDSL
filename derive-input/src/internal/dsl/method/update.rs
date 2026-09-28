@@ -1,25 +1,29 @@
-use super::{
-    context::MethodGenerationContext,
-    index::IndexShape,
-    reference_integrity::{
-        Action, multi_column_index_checks, reference_integrity_checks_on_update,
+use {
+    super::{
+        context::MethodGenerationContext,
+        index::IndexShape,
+        reference_integrity::{
+            Action, multi_column_index_checks, reference_integrity_checks_on_update,
+        },
+        upsert::{
+            ForeignKeyColumnScope, after_update_hook, before_update_hook_use_and_call,
+            rebind_row_as_mutable_after_hook, row_value_getters_for_foreign_key_columns,
+            set_singleton_primary_key, set_updated_at_on_update,
+        },
     },
-    upsert::{
-        ForeignKeyColumnScope, after_update_hook, before_update_hook_use_and_call,
-        rebind_row_as_mutable_after_hook, row_value_getters_for_foreign_key_columns,
-        set_singleton_primary_key, set_updated_at_on_update,
+    crate::{
+        api::{
+            dsl::{
+                hook::HookKind,
+                method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
+            },
+            runtime,
+        },
+        internal::dsl::one_or_multiple::OneOrMultiple,
     },
+    proc_macro2::TokenStream,
+    quote::{format_ident, quote},
 };
-use crate::api::dsl::hook::HookKind;
-use crate::{
-    api::{
-        dsl::method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
-        runtime,
-    },
-    internal::dsl::one_or_multiple::OneOrMultiple,
-};
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
 
 /// `update_<table>_by_<index>`: write a row back over the one the index finds.
 ///

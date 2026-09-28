@@ -5,28 +5,33 @@
 //! row, `Ignore` does nothing. Each is generated into one arm of the match in
 //! [`super::foreign_key`].
 
-use super::{
-    context::{self, MethodGenerationContext},
-    hook_call::hook_use_and_call,
-    naming::referenced_table_function_name,
-    removal::Removal,
-    soft_delete,
-    upsert::{rebind_row_as_mutable_after_hook, set_updated_at_on_update},
-};
-use crate::api::dsl::hook::HookKind;
-use crate::api::spacetimedb;
-use crate::internal::column::ColumnTypeKind;
-use crate::{
-    api::{
-        Column,
-        dsl::{foreign_key::OnDeleteStrategy, hook::SpacetimeDSLMethodHook},
-        runtime,
+use {
+    super::{
+        context::{self, MethodGenerationContext},
+        hook_call::hook_use_and_call,
+        naming::referenced_table_function_name,
+        removal::Removal,
+        soft_delete,
+        upsert::{rebind_row_as_mutable_after_hook, set_updated_at_on_update},
     },
-    internal::dsl::{one_or_multiple::OneOrMultiple, singleton},
+    crate::{
+        api::{
+            Column,
+            dsl::{
+                foreign_key::OnDeleteStrategy,
+                hook::{HookKind, SpacetimeDSLMethodHook},
+            },
+            runtime, spacetimedb,
+        },
+        internal::{
+            column::ColumnTypeKind,
+            dsl::{one_or_multiple::OneOrMultiple, singleton},
+        },
+    },
+    proc_macro2::TokenStream,
+    quote::{TokenStreamExt, format_ident, quote},
+    syn::Ident,
 };
-use proc_macro2::TokenStream;
-use quote::{TokenStreamExt, format_ident, quote};
-use syn::Ident;
 
 /// How the generated code binds the row it iterates over or matches on.
 #[derive(Clone, Copy)]

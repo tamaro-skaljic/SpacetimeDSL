@@ -5,31 +5,34 @@
 //! These fan out to every referencing table. The referencing side is
 //! [`super::foreign_key`].
 
-use super::{
-    context::TableContributions,
-    naming::{
-        referenced_table_compile_error_check_for_deletions,
-        referenced_table_compile_error_check_for_soft_deletions, referenced_table_function_name,
-        referencing_table_compile_error_check_for_deletions,
-        referencing_table_compile_error_check_for_soft_deletions, referencing_table_function_name,
-    },
-    removal::Removal,
-};
-use crate::{
-    api::{
-        db::table::SpacetimeDBTable,
-        dsl::{
-            foreign_key::OnDeleteStrategy,
-            method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
-            table::SpacetimeDSLTable,
+use {
+    super::{
+        context::TableContributions,
+        naming::{
+            referenced_table_compile_error_check_for_deletions,
+            referenced_table_compile_error_check_for_soft_deletions,
+            referenced_table_function_name, referencing_table_compile_error_check_for_deletions,
+            referencing_table_compile_error_check_for_soft_deletions,
+            referencing_table_function_name,
         },
-        runtime,
+        removal::Removal,
     },
-    internal::{column::InternalColumn, dsl::one_or_multiple::OneOrMultiple},
+    crate::{
+        api::{
+            db::table::SpacetimeDBTable,
+            dsl::{
+                foreign_key::OnDeleteStrategy,
+                method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
+                table::SpacetimeDSLTable,
+            },
+            runtime,
+        },
+        internal::{column::InternalColumn, dsl::one_or_multiple::OneOrMultiple},
+    },
+    proc_macro2::TokenStream,
+    quote::{format_ident, quote},
+    syn::Ident,
 };
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-use syn::Ident;
 
 pub fn referenced_table_function_call_for_dsl_method(
     removal: Removal,

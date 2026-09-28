@@ -1,7 +1,4 @@
-use proc_macro2::TokenStream;
-use syn::Ident;
-
-use crate::api::rust::visibility::RustVisibility;
+use {crate::api::rust::visibility::RustVisibility, proc_macro2::TokenStream, syn::Ident};
 
 /// The setter `set_<column>` a column gets when its field is not private.
 #[derive(Clone)]

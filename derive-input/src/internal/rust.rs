@@ -1,6 +1,8 @@
-use crate::api::rust::visibility::RustVisibility;
-use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
+use {
+    crate::api::rust::visibility::RustVisibility,
+    proc_macro2::TokenStream,
+    quote::{ToTokens, quote},
+};
 
 pub mod table;
 

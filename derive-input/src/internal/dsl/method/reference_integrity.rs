@@ -5,23 +5,24 @@
 //! all, so its uniqueness is checked in generated code, and referential integrity is checked
 //! on create and on update because the delete side is handled by the on-delete strategies.
 
-use super::index::column_names_and_row_values;
-use super::naming;
-use crate::{
-    api::{
-        db::{index::IndexType, table::SpacetimeDBTable},
-        dsl::foreign_key::ForeignKey,
-        runtime, spacetimedb,
+use {
+    super::{index::column_names_and_row_values, naming},
+    crate::{
+        api::{
+            db::{index::IndexType, table::SpacetimeDBTable},
+            dsl::foreign_key::ForeignKey,
+            runtime, spacetimedb,
+        },
+        internal::{
+            column::{ColumnTypeKind, InternalColumn},
+            dsl::{one_or_multiple::OneOrMultiple, singleton},
+        },
     },
-    internal::{
-        column::{ColumnTypeKind, InternalColumn},
-        dsl::{one_or_multiple::OneOrMultiple, singleton},
-    },
+    itertools::Itertools,
+    proc_macro2::TokenStream,
+    quote::{TokenStreamExt, format_ident, quote},
+    syn::Ident,
 };
-use itertools::Itertools;
-use proc_macro2::TokenStream;
-use quote::{TokenStreamExt, format_ident, quote};
-use syn::Ident;
 
 #[derive(PartialEq, strum::Display)]
 pub enum Action {

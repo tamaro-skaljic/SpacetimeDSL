@@ -12,35 +12,37 @@
 //! framework has the last word on a timestamp. `create_<table>`, `update_<table>_by_<key>`
 //! and `soft_delete_<table>_by_<index>` order the two the same way.
 
-use super::naming;
-use super::{
-    context::MethodGenerationContext,
-    hook_call::{hook_tokens, hook_use_and_call},
-    index::column_names_and_row_values,
-    reference_integrity::{
-        reference_integrity_checks_on_create, reference_integrity_checks_on_update,
-    },
-};
-use crate::api::dsl::hook::HookKind;
-use crate::{
-    api::{
-        dsl::{
-            method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
-            table::SpacetimeDSLTable,
-            wrapper::WrapperType,
+use {
+    super::{
+        context::MethodGenerationContext,
+        hook_call::{hook_tokens, hook_use_and_call},
+        index::column_names_and_row_values,
+        naming,
+        reference_integrity::{
+            reference_integrity_checks_on_create, reference_integrity_checks_on_update,
         },
-        runtime,
-        rust::visibility::RustVisibility,
-        spacetimedb,
     },
-    internal::{
-        column::{ColumnTypeKind, InternalColumn},
-        dsl::{one_or_multiple::OneOrMultiple, singleton},
+    crate::{
+        api::{
+            dsl::{
+                hook::HookKind,
+                method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
+                table::SpacetimeDSLTable,
+                wrapper::WrapperType,
+            },
+            runtime,
+            rust::visibility::RustVisibility,
+            spacetimedb,
+        },
+        internal::{
+            column::{ColumnTypeKind, InternalColumn},
+            dsl::{one_or_multiple::OneOrMultiple, singleton},
+        },
     },
+    proc_macro2::TokenStream,
+    quote::{format_ident, quote},
+    syn::Ident,
 };
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-use syn::Ident;
 
 //region Pieces shared with `update.rs`
 

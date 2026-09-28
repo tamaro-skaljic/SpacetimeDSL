@@ -1,5 +1,4 @@
-use proc_macro2::TokenStream;
-use syn::Ident;
+use {proc_macro2::TokenStream, syn::Ident};
 
 /// The getter `get_<column>`, which every column gets except the primary key SpacetimeDSL
 /// injects into a singleton.

@@ -9,8 +9,10 @@
 //! These are plain token constructors: they splice already-built token streams and take no
 //! decisions. They must not grow branching, or they become a second generator.
 
-use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
+use {
+    proc_macro2::TokenStream,
+    quote::{ToTokens, quote},
+};
 
 /// `TryInsertError::#variant`, the error a failed `try_insert` returns.
 pub fn try_insert_error(variant: &impl ToTokens) -> TokenStream {

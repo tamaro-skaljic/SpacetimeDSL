@@ -13,20 +13,19 @@
 //!
 //! Run `cargo insta review` to inspect and accept changed snapshots.
 
-use std::{
-    collections::BTreeSet,
-    fs,
-    path::{Path, PathBuf},
+use {
+    crate::{ExpandedDSLAttribute, expand_dsl_attribute_parts, output::GeneratedOutput},
+    proc_macro2::TokenStream,
+    quote::ToTokens,
+    rust_format::{Formatter, PrettyPlease},
+    spacetimedsl_derive_input::api::attribute::{FIELD_ATTRIBUTE_NAMES, is_dsl_attribute},
+    std::{
+        collections::BTreeSet,
+        fs,
+        path::{Path, PathBuf},
+    },
+    syn::{Attribute, DeriveInput, Expr, ExprLit, Item, Lit, Stmt},
 };
-
-use proc_macro2::TokenStream;
-use quote::ToTokens;
-use rust_format::{Formatter, PrettyPlease};
-use syn::{Attribute, DeriveInput, Expr, ExprLit, Item, Lit, Stmt};
-
-use spacetimedsl_derive_input::api::attribute::{FIELD_ATTRIBUTE_NAMES, is_dsl_attribute};
-
-use crate::{ExpandedDSLAttribute, expand_dsl_attribute_parts, output::GeneratedOutput};
 
 #[test]
 fn plain_table() {

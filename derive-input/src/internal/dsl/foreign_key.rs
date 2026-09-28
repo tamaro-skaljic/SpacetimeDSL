@@ -1,15 +1,21 @@
-use super::foreign_key;
-use crate::api::db::column::SpacetimeDBColumn;
-use crate::api::dsl::foreign_key::{ForeignKey, OnDeleteStrategy};
-use crate::internal::column::ColumnTypeKind;
-use crate::internal::dsl::{on_delete, on_soft_delete, path, table};
-use crate::internal::error;
-use spacetime_bindings_macro_input::match_meta;
-use spacetime_bindings_macro_input::sats::SatsField;
-use spacetime_bindings_macro_input::sym::column;
-use spacetime_bindings_macro_input::util::check_duplicate;
-use syn::meta::ParseNestedMeta;
-use syn::{Ident, Meta, Path};
+use {
+    super::foreign_key,
+    crate::{
+        api::{
+            db::column::SpacetimeDBColumn,
+            dsl::foreign_key::{ForeignKey, OnDeleteStrategy},
+        },
+        internal::{
+            column::ColumnTypeKind,
+            dsl::{on_delete, on_soft_delete, path, table},
+            error,
+        },
+    },
+    spacetime_bindings_macro_input::{
+        match_meta, sats::SatsField, sym::column, util::check_duplicate,
+    },
+    syn::{Ident, Meta, Path, meta::ParseNestedMeta},
+};
 
 impl ForeignKey {
     pub(crate) fn try_parse(

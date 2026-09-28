@@ -291,7 +291,7 @@ generate_format() {
     local shell="$1"
 
     switch_case "$shell" "format"
-    cmd_native "$shell" "cargo fmt --all"
+    cmd_native "$shell" "cargo +nightly fmt --all -- --config imports_granularity=One,group_imports=One"
     echo
     cmd_native "$shell" "cargo clippy --workspace --all-targets --all-features --fix --allow-dirty"
     switch_case_end "$shell"
@@ -304,7 +304,7 @@ generate_lint() {
     local shell="$1"
 
     switch_case "$shell" "lint"
-    cmd_native "$shell" "cargo fmt --all -- --check"
+    cmd_native "$shell" "cargo +nightly fmt --all -- --config imports_granularity=One,group_imports=One --check"
     echo
     cmd_native "$shell" "cargo clippy --workspace --all-targets --all-features -- -D warnings"
     switch_case_end "$shell"

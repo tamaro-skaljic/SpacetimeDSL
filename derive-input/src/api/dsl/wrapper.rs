@@ -1,5 +1,7 @@
-use proc_macro2::TokenStream;
-use syn::{Ident, Path, Type};
+use {
+    proc_macro2::TokenStream,
+    syn::{Ident, Path, Type},
+};
 
 /// The wrapper type of a column, which the DSL uses instead of the column type.
 #[derive(Clone)]

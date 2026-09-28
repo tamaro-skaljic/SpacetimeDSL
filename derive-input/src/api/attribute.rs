@@ -2,9 +2,10 @@
 //! it: the bare name a `use` brings into scope, the name prefixed by its crate, or that path
 //! with a leading `::`.
 
-use syn::{Attribute, Path};
-
-use crate::internal::dsl;
+use {
+    crate::internal::dsl,
+    syn::{Attribute, Path},
+};
 
 /// Whether `attribute` is `#[spacetimedsl::dsl]`, spelled `dsl`, `spacetimedsl::dsl` or
 /// `::spacetimedsl::dsl`.

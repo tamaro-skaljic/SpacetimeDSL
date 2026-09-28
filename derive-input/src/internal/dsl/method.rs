@@ -1,22 +1,25 @@
-use crate::{
-    api::{
-        Column,
-        db::{column::SpacetimeDBColumn, index::Index},
-        dsl::{
-            column::{
-                SpacetimeDSLColumnMethods, SpacetimeDSLColumnMethodsForIndex,
-                SpacetimeDSLColumnMethodsForUniqueIndex,
-            },
-            method::SpacetimeDSLMethod,
-            table::{
-                CascadeEntryPoints, OnDeleteStrategiesOfReferencingTables,
-                OnDeleteStrategiesOfTheReferencedTable, SingletonKind, SpacetimeDSLTableMethods,
+use {
+    crate::{
+        api::{
+            Column,
+            db::{column::SpacetimeDBColumn, index::Index},
+            dsl::{
+                column::{
+                    SpacetimeDSLColumnMethods, SpacetimeDSLColumnMethodsForIndex,
+                    SpacetimeDSLColumnMethodsForUniqueIndex,
+                },
+                method::SpacetimeDSLMethod,
+                table::{
+                    CascadeEntryPoints, OnDeleteStrategiesOfReferencingTables,
+                    OnDeleteStrategiesOfTheReferencedTable, SingletonKind,
+                    SpacetimeDSLTableMethods,
+                },
             },
         },
+        internal::dsl::one_or_multiple::OneOrMultiple,
     },
-    internal::dsl::one_or_multiple::OneOrMultiple,
+    std::collections::BTreeMap,
 };
-use std::collections::BTreeMap;
 
 mod context;
 mod create;
@@ -37,20 +40,21 @@ mod upsert;
 mod wrapper_method;
 
 pub use context::{MethodGenerationContext, TableContributions};
-
-use create::for_create;
-use delete::{for_delete_many, for_delete_one};
-use foreign_key::for_foreign_key;
-use get::{for_get_all, for_get_count, for_get_many, for_get_one};
-use index::IndexShape;
-use on_delete_strategy::ReferencingTables;
-use referenced_by::for_referenced_by;
-use removal::Removal;
-use singleton_table::{for_singleton_delete, for_singleton_get};
-use soft_delete::{for_soft_delete_many, for_soft_delete_one};
-use update::for_update;
-use upsert::for_singleton_upsert;
-use wrapper_method::for_wrapper_methods;
+use {
+    create::for_create,
+    delete::{for_delete_many, for_delete_one},
+    foreign_key::for_foreign_key,
+    get::{for_get_all, for_get_count, for_get_many, for_get_one},
+    index::IndexShape,
+    on_delete_strategy::ReferencingTables,
+    referenced_by::for_referenced_by,
+    removal::Removal,
+    singleton_table::{for_singleton_delete, for_singleton_get},
+    soft_delete::{for_soft_delete_many, for_soft_delete_one},
+    update::for_update,
+    upsert::for_singleton_upsert,
+    wrapper_method::for_wrapper_methods,
+};
 
 /// The update method an index earns, if any.
 ///

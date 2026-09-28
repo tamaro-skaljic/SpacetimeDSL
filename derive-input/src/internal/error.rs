@@ -7,11 +7,15 @@
 //!
 //! The `compile-tests` pin every message together with the span it underlines.
 
-use crate::api::dsl::{soft_delete::SoftDeleteMarkerKind, table::SingletonKind};
-use crate::internal::dsl::column_role;
-use proc_macro2::Span;
-use quote::ToTokens;
-use syn::{Error, Ident, Type, Visibility, meta::ParseNestedMeta};
+use {
+    crate::{
+        api::dsl::{soft_delete::SoftDeleteMarkerKind, table::SingletonKind},
+        internal::dsl::column_role,
+    },
+    proc_macro2::Span,
+    quote::ToTokens,
+    syn::{Error, Ident, Type, Visibility, meta::ParseNestedMeta},
+};
 
 /// Why a singleton is never soft-deletable, shared by the three shapes it is rejected in.
 const SINGLETON_IS_NEVER_SOFT_DELETABLE: &str = "A singleton holds one row which the DSL looks up by its injected primary key, so retiring that row would leave the table with a row no method can reach.";

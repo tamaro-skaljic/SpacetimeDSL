@@ -6,22 +6,24 @@
 //! getter and the wrapper unwrapping for each column, built from one walk so the n-th of
 //! each belongs to the same column.
 
-use super::context::MethodGenerationContext;
-use crate::{
-    api::{
-        db::index::{Index, IndexType},
-        dsl::{
-            method::{SpacetimeDSLArg, SpacetimeDSLArgType},
-            wrapper::WrapperType,
+use {
+    super::context::MethodGenerationContext,
+    crate::{
+        api::{
+            db::index::{Index, IndexType},
+            dsl::{
+                method::{SpacetimeDSLArg, SpacetimeDSLArgType},
+                wrapper::WrapperType,
+            },
         },
+        internal::{column::ColumnTypeKind, dsl::one_or_multiple::OneOrMultiple},
     },
-    internal::{column::ColumnTypeKind, dsl::one_or_multiple::OneOrMultiple},
+    itertools::Itertools,
+    proc_macro2::TokenStream,
+    quote::{ToTokens, quote},
+    std::collections::VecDeque,
+    syn::{Ident, parse_str},
 };
-use itertools::Itertools;
-use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
-use std::collections::VecDeque;
-use syn::{Ident, parse_str};
 
 /// `self.db().<table>().<index>()`, where every index-based body starts.
 pub fn index_accessor(singular_table_name: &Ident, index_name: &Ident) -> TokenStream {

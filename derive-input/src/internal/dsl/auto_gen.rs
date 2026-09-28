@@ -1,13 +1,16 @@
-use super::auto_gen;
-use crate::api::{
-    dsl::{auto_gen::UUIDVersion, wrapper::WrapperType},
-    rust::{column::RustField, visibility::RustVisibility},
+use {
+    super::auto_gen,
+    crate::{
+        api::{
+            dsl::{auto_gen::UUIDVersion, wrapper::WrapperType},
+            rust::{column::RustField, visibility::RustVisibility},
+        },
+        internal::{column::ColumnTypeKind, error},
+    },
+    quote::format_ident,
+    spacetime_bindings_macro_input::sats::SatsField,
+    syn::{Attribute, Ident},
 };
-use crate::internal::column::ColumnTypeKind;
-use crate::internal::error;
-use quote::format_ident;
-use spacetime_bindings_macro_input::sats::SatsField;
-use syn::{Attribute, Ident};
 
 impl UUIDVersion {
     /// Reads `#[auto_gen(v4)]` or `#[auto_gen(v7)]` from a column, and rejects the column

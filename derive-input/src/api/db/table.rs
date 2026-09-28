@@ -1,6 +1,7 @@
-use crate::api::db::{index::Index, reducer::ScheduledReducer};
-
-use syn::Ident;
+use {
+    crate::api::db::{index::Index, reducer::ScheduledReducer},
+    syn::Ident,
+};
 
 /// What `#[spacetimedb::table]` declares for the struct.
 #[derive(Clone)]

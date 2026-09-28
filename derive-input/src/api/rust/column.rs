@@ -1,6 +1,7 @@
-use syn::{Ident, Path};
-
-use crate::api::rust::visibility::RustVisibility;
+use {
+    crate::api::rust::visibility::RustVisibility,
+    syn::{Ident, Path},
+};
 
 /// A field of the struct carrying `#[spacetimedb::table]`, as Rust sees it.
 #[derive(Clone)]

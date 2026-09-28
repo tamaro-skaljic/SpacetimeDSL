@@ -1,9 +1,13 @@
-use crate::api::{
-    dsl::{getter::Getter, wrapper::WrapperType},
-    rust::column::RustField,
+use {
+    crate::{
+        api::{
+            dsl::{getter::Getter, wrapper::WrapperType},
+            rust::column::RustField,
+        },
+        internal::dsl::method::naming,
+    },
+    quote::quote,
 };
-use crate::internal::dsl::method::naming;
-use quote::quote;
 
 impl Getter {
     pub(crate) fn map(
