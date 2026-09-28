@@ -26,6 +26,8 @@ use {
     },
 };
 
+pub mod attribute;
+
 mod integration;
 
 mod table;

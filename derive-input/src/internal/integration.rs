@@ -1,5 +1,5 @@
 use {
-    crate::{api::attribute::is_table_attribute, internal::error},
+    crate::internal::{attribute::is_table_attribute, error},
     spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs},
     syn::{DeriveInput, Ident},
 };
