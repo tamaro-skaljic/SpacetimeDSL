@@ -1,10 +1,7 @@
 use crate::{
     api::{
         Column,
-        db::{
-            column::SpacetimeDBColumn,
-            index::{Index, IndexType},
-        },
+        db::{column::SpacetimeDBColumn, index::Index},
         dsl::{
             column::{
                 SpacetimeDSLColumnMethods, SpacetimeDSLColumnMethodsForIndex,
@@ -369,22 +366,11 @@ impl SpacetimeDSLTableMethods {
             }
         }
 
-        let mut multi_column_indices = vec![];
-
-        for multi_column_index in &spacetimedb_table.multi_column_indices {
-            // `internal/db/column.rs` moves every single-column index onto its column, so
-            // only genuinely multi-column indices reach here. It stops at the first index
-            // per column, though, so a column carrying two single-column indices would
-            // leak one into this list. Skip it rather than generate it from the wrong path.
-            if !matches!(
-                multi_column_index.index_type,
-                IndexType::BTreeMultiColumn { .. } | IndexType::HashMultiColumn { .. }
-            ) {
-                continue;
-            }
-
-            multi_column_indices.push(column_methods_for(multi_column_index, context));
-        }
+        let multi_column_indices = spacetimedb_table
+            .multi_column_indices
+            .iter()
+            .map(|multi_column_index| column_methods_for(multi_column_index, context))
+            .collect();
 
         let methods = SpacetimeDSLTableMethods {
             create,

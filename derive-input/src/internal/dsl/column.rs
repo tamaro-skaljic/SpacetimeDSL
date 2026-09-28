@@ -10,6 +10,7 @@ use crate::api::{
 use crate::internal::column::ColumnTypeKind;
 use crate::internal::error;
 use spacetime_bindings_macro_input::sats::SatsField;
+use syn::Ident;
 
 impl SpacetimeDSLColumn {
     pub(crate) fn try_parse(
@@ -80,4 +81,25 @@ impl SpacetimeDSLColumn {
             setter,
         })
     }
+}
+
+/// A primary key named `<table>_<name>` repeats the table's name in every method generated
+/// for it, such as `get_entity_by_entity_id`.
+pub(crate) fn reject_primary_key_prefixed_with_table_name(
+    column_name: &Ident,
+    is_primary_key: bool,
+    singular_table_name: &Ident,
+) -> syn::Result<()> {
+    if is_primary_key
+        && column_name
+            .to_string()
+            .starts_with(&singular_table_name.to_string())
+    {
+        return Err(error::primary_key_prefixed_with_table_name(
+            column_name,
+            singular_table_name,
+        ));
+    }
+
+    Ok(())
 }

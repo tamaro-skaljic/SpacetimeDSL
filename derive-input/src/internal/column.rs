@@ -13,6 +13,7 @@ use crate::api::{
     rust::{column::RustField, table::RustStruct, visibility::RustVisibility},
 };
 use crate::internal::dsl::method::MethodGenerationContext;
+use crate::internal::dsl::{column::reject_primary_key_prefixed_with_table_name, singleton};
 use crate::internal::error;
 use crate::internal::rust::column::column_type_path;
 use itertools::izip;
@@ -60,14 +61,29 @@ pub fn try_parse(
     for field in &column_args.fields {
         let rust_field = RustField::map(field)?;
 
+        let is_primary_key = rust_field.name == primary_key_column_name;
+        let single_column_index = single_column_index_by_column.remove(&rust_field.name);
+
+        reject_primary_key_prefixed_with_table_name(
+            &rust_field.name,
+            is_primary_key,
+            &spacetimedb_table.singular_name,
+        )?;
+
+        if spacetimedsl_table.is_singleton() {
+            singleton::reject_single_column_index(
+                &rust_field.name,
+                is_primary_key,
+                single_column_index.is_some(),
+            )?;
+        }
+
         let spacetimedb_column = SpacetimeDBColumn::map(
             &rust_field,
-            single_column_index_by_column.remove(&rust_field.name),
-            &spacetimedb_table.singular_name,
+            single_column_index,
             &auto_inc_column_names,
             &primary_key_column_name,
-            spacetimedsl_table.is_singleton(),
-        )?;
+        );
 
         let spacetimedsl_column = SpacetimeDSLColumn::try_parse(
             spacetimedsl_table,

@@ -68,3 +68,17 @@ pub fn reject_multi_column_indices(multi_column_indices: &[Index]) -> syn::Resul
 
     Ok(())
 }
+
+/// The injected primary key is a singleton's only index; `#[index]`, `#[unique]` or a
+/// single-column `index(...)` on another column would find the same one row.
+pub fn reject_single_column_index(
+    column_name: &Ident,
+    is_primary_key: bool,
+    has_single_column_index: bool,
+) -> syn::Result<()> {
+    if !is_primary_key && has_single_column_index {
+        return Err(error::single_column_index_on_singleton(column_name));
+    }
+
+    Ok(())
+}

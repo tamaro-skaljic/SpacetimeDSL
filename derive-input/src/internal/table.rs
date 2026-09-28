@@ -9,7 +9,7 @@ use crate::{
         },
         dsl::table::{SpacetimeDSLTable, SpacetimeDSLTableMethods},
     },
-    internal::{DSLData, dsl::method::MethodGenerationContext},
+    internal::{DSLData, dsl::method::MethodGenerationContext, error},
 };
 use spacetime_bindings_macro_input::table::{ColumnArgs, TableArgs};
 use syn::{DeriveInput, Ident, ext::IdentExt};
@@ -39,7 +39,7 @@ pub fn try_parse(
     let IndexAssignment {
         single_column_index_by_column,
         multi_column_indices,
-    } = assign_indices(table_args, &column_names);
+    } = assign_indices(table_args, &column_names)?;
 
     let dsl_unique_index_names = dsl_unique_index_names(&dsl_data, &multi_column_indices);
 
@@ -91,16 +91,17 @@ pub fn try_parse(
 
 /// Which index of `#[table]` belongs to which column.
 struct IndexAssignment {
-    /// The first single-column index declared on each column: its `#[primary_key]`,
+    /// The single-column index declared on each column: its `#[primary_key]`,
     /// `#[unique]` or `#[index]`, or a one-column `index(...)` in `#[table]`.
     single_column_index_by_column: BTreeMap<Ident, Index>,
     /// Every index no column claimed, in declaration order.
     multi_column_indices: Vec<Index>,
 }
 
-/// Assigns each column, in field order, the first single-column index declared on it; every
-/// other index stays in declaration order.
-fn assign_indices(table_args: &TableArgs, column_names: &[&Ident]) -> IndexAssignment {
+/// Assigns each column, in field order, the single-column index declared on it; every other
+/// index stays in declaration order. A column with a second single-column index is rejected:
+/// its lookup methods come from one index, so the second would generate nothing.
+fn assign_indices(table_args: &TableArgs, column_names: &[&Ident]) -> syn::Result<IndexAssignment> {
     let mut unassigned: Vec<Option<Index>> = table_args
         .indices
         .iter()
@@ -110,26 +111,39 @@ fn assign_indices(table_args: &TableArgs, column_names: &[&Ident]) -> IndexAssig
     let mut single_column_index_by_column = BTreeMap::new();
 
     for &column_name in column_names {
-        let position = unassigned.iter().position(|index| {
-            index
-                .as_ref()
-                .and_then(single_column_of)
-                .is_some_and(|column| column == column_name)
-        });
+        let is_on_this_column = |index: &Index| single_column_of(index) == Some(column_name);
 
-        if let Some(position) = position {
-            let index = unassigned[position]
-                .take()
-                .expect("the position of an unassigned index was just found");
+        let position = unassigned
+            .iter()
+            .position(|index| index.as_ref().is_some_and(is_on_this_column));
 
-            single_column_index_by_column.insert(column_name.clone(), index);
+        let Some(position) = position else {
+            continue;
+        };
+
+        let index = unassigned[position]
+            .take()
+            .expect("the position of an unassigned index was just found");
+
+        if let Some(second_index) = unassigned
+            .iter()
+            .flatten()
+            .find(|index| is_on_this_column(index))
+        {
+            return Err(error::multiple_single_column_indices_on_column(
+                column_name,
+                &index.name,
+                &second_index.name,
+            ));
         }
+
+        single_column_index_by_column.insert(column_name.clone(), index);
     }
 
-    IndexAssignment {
+    Ok(IndexAssignment {
         single_column_index_by_column,
         multi_column_indices: unassigned.into_iter().flatten().collect(),
-    }
+    })
 }
 
 /// The column of a single-column index, `None` for an index over several columns.

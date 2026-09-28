@@ -325,6 +325,19 @@ pub fn single_column_index_on_singleton(column_name: &Ident) -> Error {
     )
 }
 
+pub fn multiple_single_column_indices_on_column(
+    column_name: &Ident,
+    first_index_name: &Ident,
+    second_index_name: &Ident,
+) -> Error {
+    Error::new_spanned(
+        second_index_name,
+        format!(
+            "The column `{column_name}` has two single-column indices, `{first_index_name}` and `{second_index_name}`! Its lookup methods come from one of them, so the other would generate nothing. Remove one."
+        ),
+    )
+}
+
 // `#[create_wrapper]` and `#[use_wrapper]`
 
 pub fn primary_key_without_wrapper(column_name: &Ident) -> Error {
