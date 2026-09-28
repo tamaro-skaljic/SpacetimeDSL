@@ -4,17 +4,17 @@ source: derive/src/characterization_tests.rs
 impl Configuration {
     ///
     pub fn get_maximum_player_count(&self) -> &u32 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.maximum_player_count
     }
     ///
     pub fn get_maximum_player_count_mut(&mut self) -> &mut u32 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.maximum_player_count
     }
     ///
     pub fn set_maximum_player_count(&mut self, maximum_player_count: u32) -> u32 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(
             &mut self.maximum_player_count,
             maximum_player_count,
@@ -23,17 +23,17 @@ impl Configuration {
     }
     ///
     pub fn get_world_name(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.world_name
     }
     ///
     pub fn get_world_name_mut(&mut self) -> &mut String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.world_name
     }
     ///
     pub fn set_world_name(&mut self, world_name: String) -> String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.world_name, world_name);
         old_value
     }

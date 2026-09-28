@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct AuditedEntryId {
     value: u64,
 }
@@ -41,41 +50,41 @@ impl From<&AuditedEntry> for Option<AuditedEntryId> {
 }
 impl From<&AuditedEntryId> for Option<AuditedEntryId> {
     fn from(value: &AuditedEntryId) -> Option<AuditedEntryId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(AuditedEntryId::new(value.value()))
     }
 }
 impl From<&AuditedEntryId> for AuditedEntryId {
     fn from(value: &AuditedEntryId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AuditedEntryId::new(value.value())
     }
 }
 impl AuditedEntry {
     ///
     pub fn get_id(&self) -> AuditedEntryId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AuditedEntryId::new(self.id.clone())
     }
     ///
     pub fn get_label(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.label
     }
     ///
     pub fn get_label_mut(&mut self) -> &mut String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.label
     }
     ///
     pub fn set_label(&mut self, label: String) -> String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.label, label);
         old_value
     }
     ///
     pub fn get_modified_at(&self) -> &Option<spacetimedb::Timestamp> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.modified_at
     }
 }

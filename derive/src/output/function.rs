@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use spacetimedsl_derive_input::api::{dsl::method::SpacetimeDSLMethod, runtime};
+use spacetimedsl_derive_input::api::{dsl::method::SpacetimeDSLMethod, runtime, spacetimedb};
 
 use crate::output::{doc_comment, map_args};
 
@@ -121,11 +121,12 @@ fn render_impl(
     let method_args = &parts.method_args;
     let return_type = &parts.method.return_type;
     let method_impl = &parts.method.method_impl;
-    let wrapper_trait_path = runtime::wrapper_trait_path();
+    let wrapper_trait_import = runtime::wrapper_trait_import();
+    let table_traits_import = spacetimedb::table_traits_import();
     // FIXME: We should probably only import one of CtxDbRead or CtxDbWrite per method implementation.
     let method_impl = quote! {
-        use #wrapper_trait_path;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        #wrapper_trait_import
+        #table_traits_import
         #method_impl
     };
     let doc_comment = doc_comment.map(|doc_comment| quote! { #[doc = #doc_comment] });

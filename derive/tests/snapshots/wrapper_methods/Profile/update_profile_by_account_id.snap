@@ -10,8 +10,8 @@ Try to update a `Profile` row of the `profile` table whose value matches the val
         &'a self,
         profile: Profile,
     ) -> Result<Profile, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut profile = profile;
         let profile = self.db().profile().account_id().update(profile);
         Ok(profile)

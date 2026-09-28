@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct CleanupTimerScheduledId {
     value: u64,
 }
@@ -42,25 +51,25 @@ impl From<&CleanupTimer> for Option<CleanupTimerScheduledId> {
 }
 impl From<&CleanupTimerScheduledId> for Option<CleanupTimerScheduledId> {
     fn from(value: &CleanupTimerScheduledId) -> Option<CleanupTimerScheduledId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(CleanupTimerScheduledId::new(value.value()))
     }
 }
 impl From<&CleanupTimerScheduledId> for CleanupTimerScheduledId {
     fn from(value: &CleanupTimerScheduledId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         CleanupTimerScheduledId::new(value.value())
     }
 }
 impl CleanupTimer {
     ///
     pub fn get_scheduled_id(&self) -> CleanupTimerScheduledId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         CleanupTimerScheduledId::new(self.scheduled_id.clone())
     }
     ///
     pub fn get_scheduled_at(&self) -> &spacetimedb::ScheduleAt {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.scheduled_at
     }
 }

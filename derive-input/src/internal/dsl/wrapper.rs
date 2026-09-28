@@ -1,7 +1,7 @@
 use super::{create_wrapper, use_wrapper};
 use crate::api::dsl::wrapper::{CreatedWrapper, UsedWrapper, WrapperType};
-use crate::api::runtime;
 use crate::api::rust::{column::RustField, table::RustStruct};
+use crate::api::{runtime, spacetimedb};
 use crate::internal::column::ColumnTypeKind;
 use crate::internal::error;
 use ident_case::RenameRule;
@@ -118,6 +118,8 @@ fn get_wrapper_impl(
     let wrapper_struct_name_as_str = wrapper_struct_name.to_string();
 
     let wrapper_trait = runtime::wrapper_trait(&wrapped_type, wrapper_struct_name);
+    let wrapper_trait_import = runtime::wrapper_trait_import();
+    let spacetimetype_derive = spacetimedb::spacetimetype_derive();
 
     // `Uuid` has no `Default`, so its wrapper generates a fresh value instead.
     let constructors = if wraps_uuid {
@@ -133,7 +135,7 @@ fn get_wrapper_impl(
     };
 
     quote! {
-        #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+        #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, #spacetimetype_derive)]
         pub struct #wrapper_struct_name {
             value: #wrapped_type,
         }
@@ -169,14 +171,14 @@ fn get_wrapper_impl(
 
         impl From<&#wrapper_struct_name> for Option<#wrapper_struct_name> {
             fn from(value: &#wrapper_struct_name) -> Option<#wrapper_struct_name> {
-                use spacetimedsl::Wrapper;
+                #wrapper_trait_import
                 Some(#wrapper_struct_name::new(value.value()))
             }
         }
 
         impl From<&#wrapper_struct_name> for #wrapper_struct_name {
             fn from(value: &#wrapper_struct_name) -> Self {
-                use spacetimedsl::Wrapper;
+                #wrapper_trait_import
                 #wrapper_struct_name::new(value.value())
             }
         }

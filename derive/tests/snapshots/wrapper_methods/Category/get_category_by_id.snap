@@ -10,8 +10,8 @@ Try to get a `Category` from the `category` table whose value matches the value 
         &'a self,
         id: impl Into<CategoryId> + Clone,
     ) -> Result<Category, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().category().id().find(id.clone().into().value()) {
             Some(category) => Ok(category),
             None => {
@@ -35,8 +35,8 @@ Try to get a `Category` from the `category` table whose value matches the value 
         &'a self,
         id: impl Into<CategoryId> + Clone,
     ) -> Result<Category, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().category().id().find(id.clone().into().value()) {
             Some(category) => Ok(category),
             None => {

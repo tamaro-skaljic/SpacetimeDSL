@@ -10,8 +10,8 @@ Try to get a `Module` from the `module1` table whose value matches the value fro
         &'a self,
         id: impl Into<ModuleId> + Clone,
     ) -> Result<Module, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().module1().id().find(id.clone().into().value()) {
             Some(module1) => Ok(module1),
             None => {
@@ -35,8 +35,8 @@ Try to get a `Module` from the `module1` table whose value matches the value fro
         &'a self,
         id: impl Into<ModuleId> + Clone,
     ) -> Result<Module, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().module1().id().find(id.clone().into().value()) {
             Some(module1) => Ok(module1),
             None => {

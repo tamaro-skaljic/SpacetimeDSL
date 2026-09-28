@@ -238,7 +238,7 @@ pub fn for_removal_many(
         &quote! {
             format!("{}", #wrapper_type_struct_name_or_path::new(row_to_delete.#primary_key_column_name.clone()))
         },
-        &quote! { child_entries: vec![], },
+        &quote! { vec![] },
     );
 
     let map_rows_to_delete_to_deletion_result_entries = quote! {
@@ -662,7 +662,7 @@ pub fn for_removal_one(
         &quote! {
             format!("{}", #wrapper_type_struct_name_or_path::new(row_to_delete.#primary_key_column_name.clone()))
         },
-        &quote! { child_entries: vec![], },
+        &quote! { vec![] },
     );
 
     let map_row_to_delete_to_deletion_result_entry = quote! {

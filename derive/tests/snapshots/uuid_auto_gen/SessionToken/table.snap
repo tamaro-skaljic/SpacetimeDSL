@@ -2,7 +2,16 @@
 source: derive/src/characterization_tests.rs
 ---
 pub trait this_compilation_error_occurs_because_the_session_token_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_account_table {}
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct SessionTokenId {
     value: u64,
 }
@@ -42,17 +51,26 @@ impl From<&SessionToken> for Option<SessionTokenId> {
 }
 impl From<&SessionTokenId> for Option<SessionTokenId> {
     fn from(value: &SessionTokenId) -> Option<SessionTokenId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(SessionTokenId::new(value.value()))
     }
 }
 impl From<&SessionTokenId> for SessionTokenId {
     fn from(value: &SessionTokenId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SessionTokenId::new(value.value())
     }
 }
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct SessionTokenToken {
     value: spacetimedb::Uuid,
 }
@@ -104,35 +122,35 @@ impl From<&SessionToken> for Option<SessionTokenToken> {
 }
 impl From<&SessionTokenToken> for Option<SessionTokenToken> {
     fn from(value: &SessionTokenToken) -> Option<SessionTokenToken> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(SessionTokenToken::new(value.value()))
     }
 }
 impl From<&SessionTokenToken> for SessionTokenToken {
     fn from(value: &SessionTokenToken) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SessionTokenToken::new(value.value())
     }
 }
 impl SessionToken {
     ///
     pub fn get_id(&self) -> SessionTokenId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SessionTokenId::new(self.id.clone())
     }
     ///
     pub fn get_token(&self) -> SessionTokenToken {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SessionTokenToken::new(self.token.clone())
     }
     ///
     pub fn get_account_id(&self) -> AccountId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AccountId::new(self.account_id.clone())
     }
     ///
     pub fn set_account_id(&mut self, account_id: impl Into<AccountId>) -> AccountId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(
             &mut self.account_id,
             account_id.into().value(),

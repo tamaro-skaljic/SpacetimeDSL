@@ -10,8 +10,8 @@ Try to update a `Potion` row of the `potion` table whose value matches the value
         &'a self,
         potion: Potion,
     ) -> Result<Potion, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut potion = potion;
         let mut the_same_or_another_potion: Option<Potion> = None;
         if the_same_or_another_potion.is_none() {

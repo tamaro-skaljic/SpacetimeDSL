@@ -10,8 +10,8 @@ Try to get a `Membership` from the `membership` table whose value matches the va
         &'a self,
         id: impl Into<MembershipId> + Clone,
     ) -> Result<Membership, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().membership().id().find(id.clone().into().value()) {
             Some(membership) => Ok(membership),
             None => {
@@ -35,8 +35,8 @@ Try to get a `Membership` from the `membership` table whose value matches the va
         &'a self,
         id: impl Into<MembershipId> + Clone,
     ) -> Result<Membership, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().membership().id().find(id.clone().into().value()) {
             Some(membership) => Ok(membership),
             None => {

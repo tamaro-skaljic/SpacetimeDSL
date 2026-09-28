@@ -3,7 +3,16 @@ source: derive/src/characterization_tests.rs
 ---
 pub trait this_compilation_error_occurs_because_the_region_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_active_tournament_table {}
 pub trait this_compilation_error_occurs_because_the_region_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_server_binding_table {}
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct RegionId {
     value: u64,
 }
@@ -43,35 +52,35 @@ impl From<&Region> for Option<RegionId> {
 }
 impl From<&RegionId> for Option<RegionId> {
     fn from(value: &RegionId) -> Option<RegionId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(RegionId::new(value.value()))
     }
 }
 impl From<&RegionId> for RegionId {
     fn from(value: &RegionId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         RegionId::new(value.value())
     }
 }
 impl Region {
     ///
     pub fn get_id(&self) -> RegionId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         RegionId::new(self.id.clone())
     }
     ///
     pub fn get_name(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.name
     }
     ///
     pub fn get_name_mut(&mut self) -> &mut String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.name
     }
     ///
     pub fn set_name(&mut self, name: String) -> String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.name, name);
         old_value
     }

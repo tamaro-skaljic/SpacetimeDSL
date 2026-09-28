@@ -10,8 +10,8 @@ Try to get a `Ticket` from the `ticket` table whose value matches the value from
         &'a self,
         reference: &str,
     ) -> Result<Ticket, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().ticket().reference().find(reference.to_string()) {
             Some(ticket) => Ok(ticket),
             None => {
@@ -35,8 +35,8 @@ Try to get a `Ticket` from the `ticket` table whose value matches the value from
         &'a self,
         reference: &str,
     ) -> Result<Ticket, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().ticket().reference().find(reference.to_string()) {
             Some(ticket) => Ok(ticket),
             None => {

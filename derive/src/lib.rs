@@ -100,7 +100,8 @@ fn expand_dsl_attribute_parts(
 }
 
 fn derive_table_helper_attr() -> syn::Attribute {
-    let source = quote!(#[derive(Clone, Debug, PartialEq, ::spacetimedsl::SpacetimeDSL)]); // TODO: Add PartialOrd if ScheduledAt has implemented it
+    let spacetimedsl_derive = runtime::spacetimedsl_derive();
+    let source = quote!(#[derive(Clone, Debug, PartialEq, #spacetimedsl_derive)]); // TODO: Add PartialOrd if ScheduledAt has implemented it
 
     syn::parse::Parser::parse2(syn::Attribute::parse_outer, source)
         .unwrap()

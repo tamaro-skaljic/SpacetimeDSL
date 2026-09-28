@@ -14,7 +14,7 @@ use crate::{
             table::{CreateDSLMethodArg, SpacetimeDSLTable},
             wrapper::WrapperType,
         },
-        runtime,
+        runtime, spacetimedb,
     },
     internal::{
         column::{ColumnTypeKind, InternalColumn},
@@ -367,6 +367,9 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
         &quote! { format!(#column_names_and_row_values, #singular_table_name) },
     );
     let auto_inc_overflow_error = runtime::auto_inc_overflow(singular_table_name_as_string);
+    let unique_constraint_violation =
+        spacetimedb::try_insert_error(&quote! { UniqueConstraintViolation });
+    let auto_inc_overflow = spacetimedb::try_insert_error(&quote! { AutoIncOverflow });
 
     let method = SpacetimeDSLMethod {
         doc_comment: format!("Create a row in the `{singular_table_name}` table."),
@@ -400,10 +403,10 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
                     Ok(entity)
                 },
                 Err(error) => match error {
-                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                    #unique_constraint_violation(_) => {
                         Err(#unique_constraint_violation_error)
                     }
-                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                    #auto_inc_overflow(_) => {
                         Err(#auto_inc_overflow_error)
                     }
                 },

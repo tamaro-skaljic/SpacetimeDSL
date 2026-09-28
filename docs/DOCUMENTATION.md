@@ -72,7 +72,7 @@ Add this call once at the top of your crate root (`lib.rs`), before any table de
 ::spacetimedsl::spacetimedsl!();
 ```
 
-This generates a `crate::spacetimedsl` module containing the `DSL` and `ReadOnlyDSL` structs, their constructor functions, and the prelude.
+This generates a `crate::spacetimedsl` module containing the `DSL` and `ReadOnlyDSL` structs, their constructor functions, and the prelude. The code `#[spacetimedsl::dsl]` generates reaches the runtime only through this module, so it works in any module of your crate, the crate root included — there, spell the attribute `#[::spacetimedsl::dsl]`, because `spacetimedsl` alone names both the crate and this module. A hand-written `impl spacetimedsl::Wrapper<…>` outside the crate root keeps naming the runtime crate directly and stays valid.
 
 Then add this import at the top of every file that uses DSL features, alongside your `use spacetimedb::...` imports:
 

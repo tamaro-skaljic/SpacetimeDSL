@@ -1,6 +1,9 @@
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
-use spacetimedsl_derive_input::api::dsl::{getter::Getter, mut_getter::MutGetter, setter::Setter};
+use spacetimedsl_derive_input::api::{
+    dsl::{getter::Getter, mut_getter::MutGetter, setter::Setter},
+    runtime,
+};
 use syn::Ident;
 
 use crate::output::doc_comment;
@@ -65,10 +68,11 @@ impl AccessorDefinition<'_> {
         let method_args = &self.method_args;
         let return_type = self.return_type;
         let method_impl = self.method_impl;
+        let wrapper_trait_import = runtime::wrapper_trait_import();
 
         quote! {
             #method_visibility fn #method_name(#(#method_args),*) -> #return_type {
-                use spacetimedsl::Wrapper;
+                #wrapper_trait_import
                 #method_impl
             }
         }

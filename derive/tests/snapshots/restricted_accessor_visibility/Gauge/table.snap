@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct GaugeId {
     value: u64,
 }
@@ -37,67 +46,67 @@ impl From<&Gauge> for Option<GaugeId> {
 }
 impl From<&GaugeId> for Option<GaugeId> {
     fn from(value: &GaugeId) -> Option<GaugeId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(GaugeId::new(value.value()))
     }
 }
 impl From<&GaugeId> for GaugeId {
     fn from(value: &GaugeId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         GaugeId::new(value.value())
     }
 }
 impl Gauge {
     ///
     pub fn get_id(&self) -> GaugeId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         GaugeId::new(self.id.clone())
     }
     ///
     pub fn get_label(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.label
     }
     ///
     pub(crate) fn get_label_mut(&mut self) -> &mut String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.label
     }
     ///
     pub(crate) fn set_label(&mut self, label: String) -> String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.label, label);
         old_value
     }
     ///
     pub fn get_reading(&self) -> &u32 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.reading
     }
     ///
     pub(super) fn get_reading_mut(&mut self) -> &mut u32 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.reading
     }
     ///
     pub(super) fn set_reading(&mut self, reading: u32) -> u32 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.reading, reading);
         old_value
     }
     ///
     pub fn get_unit(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.unit
     }
     ///
     pub(in crate::instruments) fn get_unit_mut(&mut self) -> &mut String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.unit
     }
     ///
     pub(in crate::instruments) fn set_unit(&mut self, unit: String) -> String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.unit, unit);
         old_value
     }

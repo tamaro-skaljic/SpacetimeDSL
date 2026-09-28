@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct PotionId {
     value: u64,
 }
@@ -41,35 +50,35 @@ impl From<&Potion> for Option<PotionId> {
 }
 impl From<&PotionId> for Option<PotionId> {
     fn from(value: &PotionId) -> Option<PotionId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(PotionId::new(value.value()))
     }
 }
 impl From<&PotionId> for PotionId {
     fn from(value: &PotionId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         PotionId::new(value.value())
     }
 }
 impl Potion {
     ///
     pub fn get_id(&self) -> PotionId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         PotionId::new(self.id.clone())
     }
     ///
     pub fn get_name(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.name
     }
     ///
     pub fn get_name_mut(&mut self) -> &mut String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.name
     }
     ///
     pub fn set_name(&mut self, name: String) -> String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.name, name);
         old_value
     }

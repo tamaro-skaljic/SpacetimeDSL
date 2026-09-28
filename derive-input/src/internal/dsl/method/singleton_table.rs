@@ -126,7 +126,7 @@ pub fn for_singleton_delete(context: &MethodGenerationContext) -> SpacetimeDSLMe
         &singleton::PRIMARY_KEY_NAME,
         &runtime::on_delete_strategy(&quote! { Delete }),
         &singleton::rendered_primary_key_value(),
-        &quote! { child_entries: vec![], },
+        &quote! { vec![] },
     );
 
     let count_mismatch_error = runtime::generic_error(&quote! {

@@ -4,12 +4,12 @@ source: derive/src/characterization_tests.rs
 impl Shipment {
     ///
     pub fn get_id(&self) -> OrderId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         OrderId::new(self.id.clone())
     }
     ///
     pub fn get_warehouse_id(&self) -> crate::warehouse::WarehouseId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         crate::warehouse::WarehouseId::new(self.warehouse_id.clone())
     }
     ///
@@ -17,7 +17,7 @@ impl Shipment {
         &mut self,
         warehouse_id: impl Into<crate::warehouse::WarehouseId>,
     ) -> crate::warehouse::WarehouseId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(
             &mut self.warehouse_id,
             warehouse_id.into().value(),

@@ -10,8 +10,8 @@ Try to get a `AccountNote` from the `account_note` table whose value matches the
         &'a self,
         id: impl Into<AccountNoteId> + Clone,
     ) -> Result<AccountNote, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().account_note().id().find(id.clone().into().value()) {
             Some(account_note) => Ok(account_note),
             None => {
@@ -35,8 +35,8 @@ Try to get a `AccountNote` from the `account_note` table whose value matches the
         &'a self,
         id: impl Into<AccountNoteId> + Clone,
     ) -> Result<AccountNote, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().account_note().id().find(id.clone().into().value()) {
             Some(account_note) => Ok(account_note),
             None => {

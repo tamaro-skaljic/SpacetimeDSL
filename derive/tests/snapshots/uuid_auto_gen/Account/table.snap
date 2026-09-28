@@ -2,7 +2,16 @@
 source: derive/src/characterization_tests.rs
 ---
 pub trait this_compilation_error_occurs_because_the_account_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_session_token_table {}
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct AccountId {
     value: Uuid,
 }
@@ -53,35 +62,35 @@ impl From<&Account> for Option<AccountId> {
 }
 impl From<&AccountId> for Option<AccountId> {
     fn from(value: &AccountId) -> Option<AccountId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(AccountId::new(value.value()))
     }
 }
 impl From<&AccountId> for AccountId {
     fn from(value: &AccountId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AccountId::new(value.value())
     }
 }
 impl Account {
     ///
     pub fn get_id(&self) -> AccountId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AccountId::new(self.id.clone())
     }
     ///
     pub fn get_name(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.name
     }
     ///
     pub fn get_name_mut(&mut self) -> &mut String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.name
     }
     ///
     pub fn set_name(&mut self, name: String) -> String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.name, name);
         old_value
     }

@@ -9,8 +9,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         day: &'a u32,
         room_id: &'a u64,
     ) -> impl Iterator<Item = Booking> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         self.db().booking().day_and_room().filter((day, room_id))
     }
 }
@@ -22,8 +22,8 @@ impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T
         day: &'a u32,
         room_id: &'a u64,
     ) -> impl Iterator<Item = Booking> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         self.db().booking().day_and_room().filter((day, room_id))
     }
 }

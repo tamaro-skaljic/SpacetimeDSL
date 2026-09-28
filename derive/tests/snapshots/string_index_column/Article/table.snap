@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct ArticleId {
     value: u64,
 }
@@ -41,17 +50,26 @@ impl From<&Article> for Option<ArticleId> {
 }
 impl From<&ArticleId> for Option<ArticleId> {
     fn from(value: &ArticleId) -> Option<ArticleId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(ArticleId::new(value.value()))
     }
 }
 impl From<&ArticleId> for ArticleId {
     fn from(value: &ArticleId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ArticleId::new(value.value())
     }
 }
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct ArticleSlug {
     value: String,
 }
@@ -91,17 +109,26 @@ impl From<&Article> for Option<ArticleSlug> {
 }
 impl From<&ArticleSlug> for Option<ArticleSlug> {
     fn from(value: &ArticleSlug) -> Option<ArticleSlug> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(ArticleSlug::new(value.value()))
     }
 }
 impl From<&ArticleSlug> for ArticleSlug {
     fn from(value: &ArticleSlug) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ArticleSlug::new(value.value())
     }
 }
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct ArticleTags {
     value: Option<String>,
 }
@@ -141,52 +168,52 @@ impl From<&Article> for Option<ArticleTags> {
 }
 impl From<&ArticleTags> for Option<ArticleTags> {
     fn from(value: &ArticleTags) -> Option<ArticleTags> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(ArticleTags::new(value.value()))
     }
 }
 impl From<&ArticleTags> for ArticleTags {
     fn from(value: &ArticleTags) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ArticleTags::new(value.value())
     }
 }
 impl Article {
     ///
     pub fn get_id(&self) -> ArticleId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ArticleId::new(self.id.clone())
     }
     ///
     pub fn get_slug(&self) -> ArticleSlug {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ArticleSlug::new(self.slug.clone())
     }
     ///
     pub fn set_slug(&mut self, slug: String) -> ArticleSlug {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.slug, slug);
         ArticleSlug::new(old_value)
     }
     ///
     pub fn get_category(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.category
     }
     ///
     pub fn get_category_mut(&mut self) -> &mut String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.category
     }
     ///
     pub fn set_category(&mut self, category: String) -> String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.category, category);
         old_value
     }
     ///
     pub fn get_tags(&self) -> Option<ArticleTags> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         match &self.tags {
             None => None,
             Some(value) => Some(ArticleTags::new(Some(value.clone()))),
@@ -194,7 +221,7 @@ impl Article {
     }
     ///
     pub fn set_tags(&mut self, tags: Option<String>) -> ArticleTags {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.tags, tags);
         ArticleTags::new(old_value)
     }

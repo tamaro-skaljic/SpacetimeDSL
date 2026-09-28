@@ -10,8 +10,8 @@ Try to update a `Membership` row of the `expired_membership` table whose value m
         &'a self,
         expired_membership: Membership,
     ) -> Result<Membership, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut expired_membership = expired_membership;
         let mut the_same_or_another_expired_membership: Option<Membership> = None;
         let account_id = expired_membership.get_account_id().value();

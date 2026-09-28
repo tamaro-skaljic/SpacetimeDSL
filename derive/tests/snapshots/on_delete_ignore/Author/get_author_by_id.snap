@@ -10,8 +10,8 @@ Try to get a `Author` from the `author` table whose value matches the value from
         &'a self,
         id: impl Into<AuthorId> + Clone,
     ) -> Result<Author, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().author().id().find(id.clone().into().value()) {
             Some(author) => Ok(author),
             None => {
@@ -35,8 +35,8 @@ Try to get a `Author` from the `author` table whose value matches the value from
         &'a self,
         id: impl Into<AuthorId> + Clone,
     ) -> Result<Author, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().author().id().find(id.clone().into().value()) {
             Some(author) => Ok(author),
             None => {

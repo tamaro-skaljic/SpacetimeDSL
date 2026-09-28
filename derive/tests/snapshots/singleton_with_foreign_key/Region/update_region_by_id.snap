@@ -10,8 +10,8 @@ Try to update a `Region` row of the `region` table whose value matches the value
         &'a self,
         region: Region,
     ) -> Result<Region, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut region = region;
         let region = self.db().region().id().update(region);
         Ok(region)

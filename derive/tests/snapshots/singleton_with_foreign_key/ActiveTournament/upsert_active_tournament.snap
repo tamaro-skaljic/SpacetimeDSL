@@ -8,8 +8,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         &'a self,
         active_tournament: ActiveTournament,
     ) -> Result<ActiveTournament, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut active_tournament = active_tournament;
         active_tournament.id = 0u8;
         let mut the_same_or_another_active_tournament: Option<ActiveTournament> = self
@@ -114,7 +114,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 Ok(entity) => Ok(entity),
                 Err(error) => {
                     match error {
-                        spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
                             Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
                                 table_name: "active_tournament".into(),
                                 action: crate::spacetimedsl::error::Action::Create,
@@ -126,7 +126,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                     .into(),
                             })
                         }
-                        spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
                             Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
                                 table_name: "active_tournament".into(),
                             })

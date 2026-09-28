@@ -10,8 +10,8 @@ Try to update a `AuditedEntry` row of the `audited_entry` table whose value matc
         &'a self,
         audited_entry: AuditedEntry,
     ) -> Result<AuditedEntry, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut audited_entry = audited_entry;
         let mut the_same_or_another_audited_entry: Option<AuditedEntry> = None;
         if the_same_or_another_audited_entry.is_none() {

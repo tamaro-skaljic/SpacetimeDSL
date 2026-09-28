@@ -13,9 +13,9 @@ Try to delete a `Thing` row in the `thing` table whose value matches the value f
         crate::spacetimedsl::delete::DeletionResult,
         crate::spacetimedsl::error::SpacetimeDSLError,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::itertools::Itertools;
         let id = id.clone().into().value();
         let row_to_delete = self.db().thing().id().find(id);
         let row_to_delete = match row_to_delete {

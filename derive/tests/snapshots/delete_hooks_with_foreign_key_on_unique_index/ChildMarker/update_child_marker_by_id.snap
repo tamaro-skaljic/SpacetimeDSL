@@ -10,8 +10,8 @@ Try to update a `ChildMarker` row of the `child_marker` table whose value matche
         &'a self,
         child_marker: ChildMarker,
     ) -> Result<ChildMarker, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut child_marker = child_marker;
         let mut the_same_or_another_child_marker: Option<ChildMarker> = None;
         let parent_id = child_marker.get_parent_id().value();

@@ -10,8 +10,8 @@ Try to update a `SessionToken` row of the `session_token` table whose value matc
         &'a self,
         session_token: SessionToken,
     ) -> Result<SessionToken, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut session_token = session_token;
         let mut the_same_or_another_session_token: Option<SessionToken> = None;
         let account_id = session_token.get_account_id().value();

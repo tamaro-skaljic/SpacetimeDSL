@@ -10,8 +10,8 @@ Try to get a `Folder` from the `folder` table whose value matches the value from
         &'a self,
         id: impl Into<FolderId> + Clone,
     ) -> Result<Folder, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().folder().id().find(id.clone().into().value()) {
             Some(folder) => Ok(folder),
             None => {
@@ -35,8 +35,8 @@ Try to get a `Folder` from the `folder` table whose value matches the value from
         &'a self,
         id: impl Into<FolderId> + Clone,
     ) -> Result<Folder, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().folder().id().find(id.clone().into().value()) {
             Some(folder) => Ok(folder),
             None => {

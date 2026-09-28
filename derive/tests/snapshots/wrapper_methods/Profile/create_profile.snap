@@ -8,8 +8,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         &'a self,
         profile: CreateProfile,
     ) -> Result<Profile, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let account_id = profile.account_id.value();
         let display_name = profile.display_name;
         let profile = Profile {
@@ -38,7 +38,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
-                    spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
                         Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
                             table_name: "profile".into(),
                             action: crate::spacetimedsl::error::Action::Create,
@@ -50,7 +50,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 .into(),
                         })
                     }
-                    spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
                         Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
                             table_name: "profile".into(),
                         })

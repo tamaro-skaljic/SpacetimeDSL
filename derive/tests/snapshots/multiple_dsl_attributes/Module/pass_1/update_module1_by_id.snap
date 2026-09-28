@@ -10,9 +10,9 @@ Try to update a `Module` row of the `module1` table whose value matches the valu
         &'a self,
         module1: Module,
     ) -> Result<Module, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::itertools::Itertools;
         let mut module1 = module1;
         let mut the_same_or_another_module1: Option<Module> = None;
         the_same_or_another_module1 = match self

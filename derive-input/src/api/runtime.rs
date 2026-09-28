@@ -7,6 +7,10 @@
 //! [`crate::api::Table`] emits the same paths by calling these, instead of spelling them
 //! out and drifting from them.
 //!
+//! Generated code reaches the runtime only through `crate::spacetimedsl`, the module
+//! `spacetimedsl!()` generates at the crate root: a bare `spacetimedsl::…` is ambiguous at
+//! the crate root, where it names both that module and the runtime crate.
+//!
 //! These are plain token constructors: they splice already-built token streams and take no
 //! decisions. They must not grow branching, or they become a second generator.
 
@@ -184,15 +188,13 @@ pub fn error_from_hook_declaration() -> TokenStream {
     }
 }
 
-/// `delete::DeletionResultEntry { .. }`. `child_entries_field` is spliced in as the whole
-/// final field, trailing comma included, because one call site emits it in shorthand form
-/// (`child_entries,`) and the others give it a value (`child_entries: vec![],`).
+/// `delete::DeletionResultEntry { .. }`
 pub fn deletion_result_entry(
     table_name: &impl ToTokens,
     column_name: &impl ToTokens,
     strategy: &impl ToTokens,
     row_value: &impl ToTokens,
-    child_entries_field: &impl ToTokens,
+    child_entries: &impl ToTokens,
 ) -> TokenStream {
     quote! {
         crate::spacetimedsl::delete::DeletionResultEntry {
@@ -200,7 +202,7 @@ pub fn deletion_result_entry(
             column_name: #column_name.into(),
             strategy: #strategy,
             row_value: #row_value.into(),
-            #child_entries_field
+            child_entries: #child_entries,
         }
     }
 }
@@ -331,17 +333,26 @@ pub fn wrapper_trait(wrapped_type: &impl ToTokens, wrapper_type: &impl ToTokens)
     }
 }
 
-/// `::spacetimedsl::Wrapper`, the `use` every method body opens with.
-pub fn wrapper_trait_path() -> TokenStream {
+/// `use crate::spacetimedsl::Wrapper;`, the import every method body and every accessor
+/// opens with.
+pub fn wrapper_trait_import() -> TokenStream {
     quote! {
-        ::spacetimedsl::Wrapper
+        use crate::spacetimedsl::Wrapper;
     }
 }
 
-/// `use ::spacetimedsl::itertools::Itertools;`, the import every body that calls
+/// `use crate::spacetimedsl::itertools::Itertools;`, the import every body that calls
 /// `at_most_one`, `collect_vec` or `into_values().collect_vec()` opens with.
 pub fn itertools_import() -> TokenStream {
     quote! {
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::itertools::Itertools;
+    }
+}
+
+/// `SpacetimeDSL`, the derive every table struct is given so that the compiler accepts the
+/// field attributes of SpacetimeDSL.
+pub fn spacetimedsl_derive() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::SpacetimeDSL
     }
 }

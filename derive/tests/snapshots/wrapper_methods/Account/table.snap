@@ -5,7 +5,16 @@ pub trait this_compilation_error_occurs_because_the_account_table_is_not_deletab
 pub trait this_compilation_error_occurs_because_the_account_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_active_membership_table {}
 pub trait this_compilation_error_occurs_because_the_account_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_expired_membership_table {}
 pub trait this_compilation_error_occurs_because_the_account_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_profile_table {}
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct AccountId {
     value: u64,
 }
@@ -45,20 +54,20 @@ impl From<&Account> for Option<AccountId> {
 }
 impl From<&AccountId> for Option<AccountId> {
     fn from(value: &AccountId) -> Option<AccountId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(AccountId::new(value.value()))
     }
 }
 impl From<&AccountId> for AccountId {
     fn from(value: &AccountId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AccountId::new(value.value())
     }
 }
 impl Account {
     ///
     pub fn get_id(&self) -> AccountId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AccountId::new(self.id.clone())
     }
 }

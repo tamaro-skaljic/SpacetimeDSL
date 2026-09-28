@@ -10,8 +10,8 @@ Try to update a `Category` row of the `category` table whose value matches the v
         &'a self,
         category: Category,
     ) -> Result<Category, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut category = category;
         let mut the_same_or_another_category: Option<Category> = None;
         let parent_category_id = category.get_parent_category_id().value();

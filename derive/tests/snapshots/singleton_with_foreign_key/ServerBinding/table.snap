@@ -5,12 +5,12 @@ pub trait this_compilation_error_occurs_because_the_server_binding_table_has_no_
 impl ServerBinding {
     ///
     pub fn get_region_id(&self) -> RegionId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         RegionId::new(self.region_id.clone())
     }
     ///
     pub fn set_region_id(&mut self, region_id: impl Into<RegionId>) -> RegionId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.region_id, region_id.into().value());
         RegionId::new(old_value)
     }

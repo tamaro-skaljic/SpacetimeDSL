@@ -10,8 +10,8 @@ Try to update a `Signature` row of the `signature` table whose value matches the
         &'a self,
         signature: Signature,
     ) -> Result<Signature, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut signature = signature;
         signature
             .modified_at = self

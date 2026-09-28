@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct LabelId {
     value: u64,
 }
@@ -37,17 +46,26 @@ impl From<&Label> for Option<LabelId> {
 }
 impl From<&LabelId> for Option<LabelId> {
     fn from(value: &LabelId) -> Option<LabelId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(LabelId::new(value.value()))
     }
 }
 impl From<&LabelId> for LabelId {
     fn from(value: &LabelId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         LabelId::new(value.value())
     }
 }
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct LabelCaption {
     value: String,
 }
@@ -87,17 +105,26 @@ impl From<&Label> for Option<LabelCaption> {
 }
 impl From<&LabelCaption> for Option<LabelCaption> {
     fn from(value: &LabelCaption) -> Option<LabelCaption> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(LabelCaption::new(value.value()))
     }
 }
 impl From<&LabelCaption> for LabelCaption {
     fn from(value: &LabelCaption) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         LabelCaption::new(value.value())
     }
 }
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct LabelCode {
     value: u64,
 }
@@ -137,41 +164,41 @@ impl From<&Label> for Option<LabelCode> {
 }
 impl From<&LabelCode> for Option<LabelCode> {
     fn from(value: &LabelCode) -> Option<LabelCode> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(LabelCode::new(value.value()))
     }
 }
 impl From<&LabelCode> for LabelCode {
     fn from(value: &LabelCode) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         LabelCode::new(value.value())
     }
 }
 impl Label {
     ///
     pub fn get_id(&self) -> LabelId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         LabelId::new(self.id.clone())
     }
     ///
     pub fn get_caption(&self) -> LabelCaption {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         LabelCaption::new(self.caption.clone())
     }
     ///
     pub fn set_caption(&mut self, caption: String) -> LabelCaption {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.caption, caption);
         LabelCaption::new(old_value)
     }
     ///
     pub fn get_code(&self) -> LabelCode {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         LabelCode::new(self.code.clone())
     }
     ///
     pub fn set_code(&mut self, code: u64) -> LabelCode {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.code, code);
         LabelCode::new(old_value)
     }

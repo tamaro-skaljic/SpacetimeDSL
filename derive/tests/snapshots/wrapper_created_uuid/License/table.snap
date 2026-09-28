@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct LicenseId {
     value: Uuid,
 }
@@ -52,17 +61,26 @@ impl From<&License> for Option<LicenseId> {
 }
 impl From<&LicenseId> for Option<LicenseId> {
     fn from(value: &LicenseId) -> Option<LicenseId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(LicenseId::new(value.value()))
     }
 }
 impl From<&LicenseId> for LicenseId {
     fn from(value: &LicenseId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         LicenseId::new(value.value())
     }
 }
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct ExternalReference {
     value: spacetimedb::Uuid,
 }
@@ -114,25 +132,25 @@ impl From<&License> for Option<ExternalReference> {
 }
 impl From<&ExternalReference> for Option<ExternalReference> {
     fn from(value: &ExternalReference) -> Option<ExternalReference> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(ExternalReference::new(value.value()))
     }
 }
 impl From<&ExternalReference> for ExternalReference {
     fn from(value: &ExternalReference) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ExternalReference::new(value.value())
     }
 }
 impl License {
     ///
     pub fn get_id(&self) -> LicenseId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         LicenseId::new(self.id.clone())
     }
     ///
     pub fn get_external_reference(&self) -> ExternalReference {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ExternalReference::new(self.external_reference.clone())
     }
     ///
@@ -140,7 +158,7 @@ impl License {
         &mut self,
         external_reference: spacetimedb::Uuid,
     ) -> ExternalReference {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(
             &mut self.external_reference,
             external_reference,

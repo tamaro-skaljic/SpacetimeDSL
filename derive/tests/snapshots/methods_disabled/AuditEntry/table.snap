@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct AuditEntryId {
     value: u64,
 }
@@ -41,30 +50,30 @@ impl From<&AuditEntry> for Option<AuditEntryId> {
 }
 impl From<&AuditEntryId> for Option<AuditEntryId> {
     fn from(value: &AuditEntryId) -> Option<AuditEntryId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(AuditEntryId::new(value.value()))
     }
 }
 impl From<&AuditEntryId> for AuditEntryId {
     fn from(value: &AuditEntryId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AuditEntryId::new(value.value())
     }
 }
 impl AuditEntry {
     ///
     pub fn get_id(&self) -> AuditEntryId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AuditEntryId::new(self.id.clone())
     }
     ///
     pub fn get_actor_id(&self) -> &u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.actor_id
     }
     ///
     pub fn get_message(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.message
     }
 }

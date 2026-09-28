@@ -13,9 +13,9 @@ Try to delete a `CleanupTimer` row in the `cleanup_timer` table whose value matc
         crate::spacetimedsl::delete::DeletionResult,
         crate::spacetimedsl::error::SpacetimeDSLError,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::itertools::Itertools;
         let scheduled_id = scheduled_id.clone().into().value();
         let row_to_delete = self.db().cleanup_timer().scheduled_id().find(scheduled_id);
         let row_to_delete = match row_to_delete {

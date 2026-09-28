@@ -10,8 +10,8 @@ Try to update a `Slot` row of the `slot` table whose value matches the value fro
         &'a self,
         slot: Slot,
     ) -> Result<Slot, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut slot = slot;
         let slot = self.db().slot().id().update(slot);
         Ok(slot)

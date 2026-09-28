@@ -2,7 +2,16 @@
 source: derive/src/characterization_tests.rs
 ---
 pub trait this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_warehouse_table {}
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct ShipmentId {
     value: u64,
 }
@@ -42,25 +51,25 @@ impl From<&Shipment> for Option<ShipmentId> {
 }
 impl From<&ShipmentId> for Option<ShipmentId> {
     fn from(value: &ShipmentId) -> Option<ShipmentId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(ShipmentId::new(value.value()))
     }
 }
 impl From<&ShipmentId> for ShipmentId {
     fn from(value: &ShipmentId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ShipmentId::new(value.value())
     }
 }
 impl Shipment {
     ///
     pub fn get_id(&self) -> ShipmentId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ShipmentId::new(self.id.clone())
     }
     ///
     pub fn get_origin_warehouse_id(&self) -> WarehouseId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         WarehouseId::new(self.origin_warehouse_id.clone())
     }
     ///
@@ -68,7 +77,7 @@ impl Shipment {
         &mut self,
         origin_warehouse_id: impl Into<WarehouseId>,
     ) -> WarehouseId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(
             &mut self.origin_warehouse_id,
             origin_warehouse_id.into().value(),
@@ -77,7 +86,7 @@ impl Shipment {
     }
     ///
     pub fn get_destination_warehouse_id(&self) -> WarehouseId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         WarehouseId::new(self.destination_warehouse_id.clone())
     }
     ///
@@ -85,7 +94,7 @@ impl Shipment {
         &mut self,
         destination_warehouse_id: impl Into<WarehouseId>,
     ) -> WarehouseId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(
             &mut self.destination_warehouse_id,
             destination_warehouse_id.into().value(),

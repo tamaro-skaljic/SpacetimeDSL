@@ -200,6 +200,7 @@ macro_rules! spacetimedsl {
             // can reach them via `crate::spacetimedsl::X` without needing `::spacetimedsl::X`.
             pub use ::spacetimedsl::Context;
             pub use ::spacetimedsl::ReadContext;
+            pub use ::spacetimedsl::SpacetimeDSL;
             pub use ::spacetimedsl::Wrapper;
             pub use ::spacetimedsl::WriteContext;
             pub use ::spacetimedsl::delete;

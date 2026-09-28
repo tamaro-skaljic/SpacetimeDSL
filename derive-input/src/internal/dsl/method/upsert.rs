@@ -29,6 +29,7 @@ use crate::{
         },
         runtime,
         rust::visibility::RustVisibility,
+        spacetimedb,
     },
     internal::{
         column::{ColumnTypeKind, InternalColumn},
@@ -454,6 +455,9 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
         &quote! { format!(#column_names_and_row_values, #singular_table_name) },
     );
     let auto_inc_overflow_error = runtime::auto_inc_overflow(singular_table_name_as_string);
+    let unique_constraint_violation =
+        spacetimedb::try_insert_error(&quote! { UniqueConstraintViolation });
+    let auto_inc_overflow = spacetimedb::try_insert_error(&quote! { AutoIncOverflow });
 
     SpacetimeDSLMethod {
         doc_comment: format!(
@@ -512,10 +516,10 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
                         Ok(entity)
                     },
                     Err(error) => match error {
-                        spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        #unique_constraint_violation(_) => {
                             Err(#unique_constraint_violation_error)
                         }
-                        spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        #auto_inc_overflow(_) => {
                             Err(#auto_inc_overflow_error)
                         }
                     },

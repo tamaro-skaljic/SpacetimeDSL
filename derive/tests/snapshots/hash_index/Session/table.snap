@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct SessionId {
     value: u64,
 }
@@ -41,83 +50,83 @@ impl From<&Session> for Option<SessionId> {
 }
 impl From<&SessionId> for Option<SessionId> {
     fn from(value: &SessionId) -> Option<SessionId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(SessionId::new(value.value()))
     }
 }
 impl From<&SessionId> for SessionId {
     fn from(value: &SessionId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SessionId::new(value.value())
     }
 }
 impl Session {
     ///
     pub fn get_id(&self) -> SessionId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SessionId::new(self.id.clone())
     }
     ///
     pub fn get_token(&self) -> &String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.token
     }
     ///
     pub fn get_token_mut(&mut self) -> &mut String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.token
     }
     ///
     pub fn set_token(&mut self, token: String) -> String {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.token, token);
         old_value
     }
     ///
     pub fn get_device_id(&self) -> &u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.device_id
     }
     ///
     pub fn get_device_id_mut(&mut self) -> &mut u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.device_id
     }
     ///
     pub fn set_device_id(&mut self, device_id: u64) -> u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.device_id, device_id);
         old_value
     }
     ///
     pub fn get_region_id(&self) -> &u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.region_id
     }
     ///
     pub fn get_region_id_mut(&mut self) -> &mut u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.region_id
     }
     ///
     pub fn set_region_id(&mut self, region_id: u64) -> u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.region_id, region_id);
         old_value
     }
     ///
     pub fn get_shard_id(&self) -> &u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.shard_id
     }
     ///
     pub fn get_shard_id_mut(&mut self) -> &mut u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.shard_id
     }
     ///
     pub fn set_shard_id(&mut self, shard_id: u64) -> u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.shard_id, shard_id);
         old_value
     }

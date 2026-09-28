@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct BookingId {
     value: u64,
 }
@@ -41,51 +50,51 @@ impl From<&Booking> for Option<BookingId> {
 }
 impl From<&BookingId> for Option<BookingId> {
     fn from(value: &BookingId) -> Option<BookingId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(BookingId::new(value.value()))
     }
 }
 impl From<&BookingId> for BookingId {
     fn from(value: &BookingId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         BookingId::new(value.value())
     }
 }
 impl Booking {
     ///
     pub fn get_id(&self) -> BookingId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         BookingId::new(self.id.clone())
     }
     ///
     pub fn get_day(&self) -> &u32 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.day
     }
     ///
     pub fn get_day_mut(&mut self) -> &mut u32 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.day
     }
     ///
     pub fn set_day(&mut self, day: u32) -> u32 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.day, day);
         old_value
     }
     ///
     pub fn get_room_id(&self) -> &u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.room_id
     }
     ///
     pub fn get_room_id_mut(&mut self) -> &mut u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.room_id
     }
     ///
     pub fn set_room_id(&mut self, room_id: u64) -> u64 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.room_id, room_id);
         old_value
     }

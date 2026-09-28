@@ -10,8 +10,8 @@ Try to get a `Shipment` from the `shipment` table whose value matches the value 
         &'a self,
         id: impl Into<ShipmentId> + Clone,
     ) -> Result<Shipment, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().shipment().id().find(id.clone().into().value()) {
             Some(shipment) => Ok(shipment),
             None => {
@@ -35,8 +35,8 @@ Try to get a `Shipment` from the `shipment` table whose value matches the value 
         &'a self,
         id: impl Into<ShipmentId> + Clone,
     ) -> Result<Shipment, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().shipment().id().find(id.clone().into().value()) {
             Some(shipment) => Ok(shipment),
             None => {

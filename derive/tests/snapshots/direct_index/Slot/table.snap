@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct SlotId {
     value: u64,
 }
@@ -37,35 +46,35 @@ impl From<&Slot> for Option<SlotId> {
 }
 impl From<&SlotId> for Option<SlotId> {
     fn from(value: &SlotId) -> Option<SlotId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(SlotId::new(value.value()))
     }
 }
 impl From<&SlotId> for SlotId {
     fn from(value: &SlotId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SlotId::new(value.value())
     }
 }
 impl Slot {
     ///
     pub fn get_id(&self) -> SlotId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         SlotId::new(self.id.clone())
     }
     ///
     pub fn get_position(&self) -> &u8 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.position
     }
     ///
     pub fn get_position_mut(&mut self) -> &mut u8 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &mut self.position
     }
     ///
     pub fn set_position(&mut self, position: u8) -> u8 {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.position, position);
         old_value
     }

@@ -143,7 +143,7 @@ pub fn on_delete_strategy_implementation(
             &column_name_as_string,
             on_delete_strategy,
             &row_value_format,
-            &quote! { child_entries, },
+            &quote! { child_entries },
         );
 
         let create_entry_and_add_it_to_entries = match one_or_multiple {

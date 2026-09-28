@@ -10,8 +10,8 @@ Try to update a `Inspection` row of the `inspection` table whose value matches t
         &'a self,
         inspection: Inspection,
     ) -> Result<Inspection, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut inspection = inspection;
         let mut the_same_or_another_inspection: Option<Inspection> = None;
         let warehouse_id = inspection.get_warehouse_id().value();

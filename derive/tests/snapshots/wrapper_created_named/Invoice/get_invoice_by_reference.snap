@@ -10,8 +10,8 @@ Try to get a `Invoice` from the `invoice` table whose value matches the value fr
         &'a self,
         reference: &str,
     ) -> Result<Invoice, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().invoice().reference().find(reference.to_string()) {
             Some(invoice) => Ok(invoice),
             None => {
@@ -35,8 +35,8 @@ Try to get a `Invoice` from the `invoice` table whose value matches the value fr
         &'a self,
         reference: &str,
     ) -> Result<Invoice, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().invoice().reference().find(reference.to_string()) {
             Some(invoice) => Ok(invoice),
             None => {

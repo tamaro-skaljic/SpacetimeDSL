@@ -10,8 +10,8 @@ Try to update a `SignedDocument` row of the `signed_document` table whose value 
         &'a self,
         signed_document: SignedDocument,
     ) -> Result<SignedDocument, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut signed_document = signed_document;
         signed_document
             .modified_at = Some(

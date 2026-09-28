@@ -10,8 +10,8 @@ Try to update a `Folder` row of the `folder` table whose value matches the value
         &'a self,
         folder: Folder,
     ) -> Result<Folder, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut folder = folder;
         let mut the_same_or_another_folder: Option<Folder> = None;
         let parent_folder_id = folder.get_parent_folder_id().value();

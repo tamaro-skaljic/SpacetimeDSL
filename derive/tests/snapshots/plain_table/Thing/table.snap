@@ -1,7 +1,16 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct ThingId {
     value: u64,
 }
@@ -37,20 +46,20 @@ impl From<&Thing> for Option<ThingId> {
 }
 impl From<&ThingId> for Option<ThingId> {
     fn from(value: &ThingId) -> Option<ThingId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(ThingId::new(value.value()))
     }
 }
 impl From<&ThingId> for ThingId {
     fn from(value: &ThingId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ThingId::new(value.value())
     }
 }
 impl Thing {
     ///
     pub fn get_id(&self) -> ThingId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ThingId::new(self.id.clone())
     }
 }

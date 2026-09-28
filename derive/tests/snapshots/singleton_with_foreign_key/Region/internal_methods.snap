@@ -17,8 +17,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_server_binding_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_region_table;
         use self::this_compilation_error_occurs_because_the_active_tournament_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_region_table;
         let mut entries = vec![];
@@ -94,8 +94,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
             >,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_server_binding_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_region_table;
         use self::this_compilation_error_occurs_because_the_active_tournament_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_region_table;
         let mut entries = std::collections::HashMap::new();

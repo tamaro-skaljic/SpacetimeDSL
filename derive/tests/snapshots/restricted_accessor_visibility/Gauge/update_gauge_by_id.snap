@@ -10,8 +10,8 @@ Try to update a `Gauge` row of the `gauge` table whose value matches the value f
         &'a self,
         gauge: Gauge,
     ) -> Result<Gauge, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let mut gauge = gauge;
         let gauge = self.db().gauge().id().update(gauge);
         Ok(gauge)

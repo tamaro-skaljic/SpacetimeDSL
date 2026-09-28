@@ -10,8 +10,8 @@ Try to get a `Gauge` from the `gauge` table whose value matches the value from t
         &'a self,
         id: impl Into<GaugeId> + Clone,
     ) -> Result<Gauge, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().gauge().id().find(id.clone().into().value()) {
             Some(gauge) => Ok(gauge),
             None => {
@@ -35,8 +35,8 @@ Try to get a `Gauge` from the `gauge` table whose value matches the value from t
         &'a self,
         id: impl Into<GaugeId> + Clone,
     ) -> Result<Gauge, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().gauge().id().find(id.clone().into().value()) {
             Some(gauge) => Ok(gauge),
             None => {

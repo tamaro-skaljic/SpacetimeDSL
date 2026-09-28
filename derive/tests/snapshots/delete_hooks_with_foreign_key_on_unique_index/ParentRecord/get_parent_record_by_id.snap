@@ -10,8 +10,8 @@ Try to get a `ParentRecord` from the `parent_record` table whose value matches t
         &'a self,
         id: impl Into<ParentRecordId> + Clone,
     ) -> Result<ParentRecord, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().parent_record().id().find(id.clone().into().value()) {
             Some(parent_record) => Ok(parent_record),
             None => {
@@ -35,8 +35,8 @@ Try to get a `ParentRecord` from the `parent_record` table whose value matches t
         &'a self,
         id: impl Into<ParentRecordId> + Clone,
     ) -> Result<ParentRecord, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().parent_record().id().find(id.clone().into().value()) {
             Some(parent_record) => Ok(parent_record),
             None => {

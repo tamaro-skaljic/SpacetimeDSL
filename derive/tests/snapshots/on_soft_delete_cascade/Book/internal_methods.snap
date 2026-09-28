@@ -17,8 +17,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_book_table;
         let mut entries = vec![];
         let mut error_from_hook: Option<
@@ -76,8 +76,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
             >,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_book_table;
         let mut entries = std::collections::HashMap::new();
         if primary_key_values_of_rows_to_delete.is_empty() {
@@ -154,8 +154,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_book_table;
         let mut entries = vec![];
         let mut error_from_hook: Option<
@@ -213,8 +213,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
             >,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_book_table;
         let mut entries = std::collections::HashMap::new();
         if primary_key_values_of_rows_to_delete.is_empty() {
@@ -291,10 +291,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_author_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::itertools::Itertools;
         let mut entries = vec![];
         let mut error_from_hook: Option<
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
@@ -378,7 +378,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -424,7 +424,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -472,7 +472,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -535,7 +535,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -598,7 +598,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -639,7 +639,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     column_name: "author_id".into(),
                                     strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                     row_value: format!("{}", BookId::new(id.clone())).into(),
-                                    child_entries,
+                                    child_entries: child_entries,
                                 });
                         }
                     }
@@ -677,10 +677,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_author_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::itertools::Itertools;
         let mut entries = vec![];
         let mut error_from_hook: Option<
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
@@ -766,7 +766,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -843,7 +843,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -906,7 +906,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -947,7 +947,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     column_name: "author_id".into(),
                                     strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
                                     row_value: format!("{}", BookId::new(id.clone())).into(),
-                                    child_entries,
+                                    child_entries: child_entries,
                                 });
                         }
                     }
@@ -990,10 +990,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
             >,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_author_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::itertools::Itertools;
         let mut entries = std::collections::HashMap::new();
         for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
             entries
@@ -1095,7 +1095,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -1149,7 +1149,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -1205,7 +1205,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -1276,7 +1276,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -1347,7 +1347,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -1396,7 +1396,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     column_name: "author_id".into(),
                                     strategy: crate::spacetimedsl::delete::OnDeleteStrategy::Delete,
                                     row_value: format!("{}", BookId::new(id.clone())).into(),
-                                    child_entries,
+                                    child_entries: child_entries,
                                 });
                         }
                     }
@@ -1440,10 +1440,10 @@ impl crate::spacetimedsl::internal::DSLInternals {
             >,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_author_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
-        use ::spacetimedsl::itertools::Itertools;
+        use crate::spacetimedsl::itertools::Itertools;
         let mut entries = std::collections::HashMap::new();
         for primary_key_value_of_a_row_of_another_table_to_delete in primary_key_values_of_rows_of_another_table_to_delete {
             entries
@@ -1547,7 +1547,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -1632,7 +1632,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -1703,7 +1703,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                             column_name: "author_id".into(),
                                             strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
                                             row_value: format!("{}", BookId::new(id.clone())).into(),
-                                            child_entries,
+                                            child_entries: child_entries,
                                         });
                                 }
                             }
@@ -1752,7 +1752,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     column_name: "author_id".into(),
                                     strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
                                     row_value: format!("{}", BookId::new(id.clone())).into(),
-                                    child_entries,
+                                    child_entries: child_entries,
                                 });
                         }
                     }

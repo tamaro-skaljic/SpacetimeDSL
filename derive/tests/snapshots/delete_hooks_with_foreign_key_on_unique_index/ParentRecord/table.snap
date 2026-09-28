@@ -2,7 +2,16 @@
 source: derive/src/characterization_tests.rs
 ---
 pub trait this_compilation_error_occurs_because_the_parent_record_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_child_marker_table {}
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct ParentRecordId {
     value: u64,
 }
@@ -42,20 +51,20 @@ impl From<&ParentRecord> for Option<ParentRecordId> {
 }
 impl From<&ParentRecordId> for Option<ParentRecordId> {
     fn from(value: &ParentRecordId) -> Option<ParentRecordId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(ParentRecordId::new(value.value()))
     }
 }
 impl From<&ParentRecordId> for ParentRecordId {
     fn from(value: &ParentRecordId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ParentRecordId::new(value.value())
     }
 }
 impl ParentRecord {
     ///
     pub fn get_id(&self) -> ParentRecordId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         ParentRecordId::new(self.id.clone())
     }
 }

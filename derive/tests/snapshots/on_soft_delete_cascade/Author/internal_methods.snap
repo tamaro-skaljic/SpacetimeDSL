@@ -17,8 +17,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_book_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_author_table;
         let mut entries = vec![];
         let mut error_from_hook: Option<
@@ -76,8 +76,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
             >,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_book_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_author_table;
         let mut entries = std::collections::HashMap::new();
         if primary_key_values_of_rows_to_delete.is_empty() {
@@ -154,8 +154,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_book_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_author_table;
         let mut entries = vec![];
         let mut error_from_hook: Option<
@@ -213,8 +213,8 @@ impl crate::spacetimedsl::internal::DSLInternals {
             >,
         >,
     > {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         use self::this_compilation_error_occurs_because_the_book_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_author_table;
         let mut entries = std::collections::HashMap::new();
         if primary_key_values_of_rows_to_delete.is_empty() {

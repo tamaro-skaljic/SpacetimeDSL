@@ -21,6 +21,8 @@ pub mod api {
 
     pub mod runtime;
 
+    pub mod spacetimedb;
+
     /// A struct carrying `#[spacetimedb::table]` and `#[spacetimedsl::dsl]`, and its columns.
     #[derive(Clone)]
     pub struct Table {

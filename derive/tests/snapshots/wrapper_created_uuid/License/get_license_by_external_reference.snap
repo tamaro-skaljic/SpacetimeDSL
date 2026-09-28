@@ -10,8 +10,8 @@ Try to get a `License` from the `license` table whose value matches the value fr
         &'a self,
         external_reference: impl Into<ExternalReference> + Clone,
     ) -> Result<License, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self
             .db()
             .license()
@@ -41,8 +41,8 @@ Try to get a `License` from the `license` table whose value matches the value fr
         &'a self,
         external_reference: impl Into<ExternalReference> + Clone,
     ) -> Result<License, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self
             .db()
             .license()

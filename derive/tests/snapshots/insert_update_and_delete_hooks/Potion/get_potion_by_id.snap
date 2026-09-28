@@ -10,8 +10,8 @@ Try to get a `Potion` from the `potion` table whose value matches the value from
         &'a self,
         id: impl Into<PotionId> + Clone,
     ) -> Result<Potion, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().potion().id().find(id.clone().into().value()) {
             Some(potion) => Ok(potion),
             None => {
@@ -35,8 +35,8 @@ Try to get a `Potion` from the `potion` table whose value matches the value from
         &'a self,
         id: impl Into<PotionId> + Clone,
     ) -> Result<Potion, crate::spacetimedsl::error::SpacetimeDSLError> {
-        use ::spacetimedsl::Wrapper;
-        use spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         match self.db().potion().id().find(id.clone().into().value()) {
             Some(potion) => Ok(potion),
             None => {

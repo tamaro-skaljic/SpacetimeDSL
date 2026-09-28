@@ -5,7 +5,16 @@ pub trait this_compilation_error_occurs_because_the_book_table_has_no_foreign_ke
 pub trait this_compilation_error_occurs_because_the_book_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_author_table {}
 pub trait this_compilation_error_occurs_because_the_book_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_review_table {}
 pub trait this_compilation_error_occurs_because_the_book_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_review_table {}
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, spacetimedb::SpacetimeType)]
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
 pub struct BookId {
     value: u64,
 }
@@ -41,36 +50,36 @@ impl From<&Book> for Option<BookId> {
 }
 impl From<&BookId> for Option<BookId> {
     fn from(value: &BookId) -> Option<BookId> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         Some(BookId::new(value.value()))
     }
 }
 impl From<&BookId> for BookId {
     fn from(value: &BookId) -> Self {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         BookId::new(value.value())
     }
 }
 impl Book {
     ///
     pub fn get_id(&self) -> BookId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         BookId::new(self.id.clone())
     }
     ///
     pub fn get_author_id(&self) -> AuthorId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         AuthorId::new(self.author_id.clone())
     }
     ///
     pub fn set_author_id(&mut self, author_id: impl Into<AuthorId>) -> AuthorId {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.author_id, author_id.into().value());
         AuthorId::new(old_value)
     }
     ///
     pub fn get_deleted_at(&self) -> &Option<spacetimedb::Timestamp> {
-        use spacetimedsl::Wrapper;
+        use crate::spacetimedsl::Wrapper;
         &self.deleted_at
     }
 }
