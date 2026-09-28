@@ -31,9 +31,9 @@ impl Setter {
         match wrapper_type {
             Some(wrapper_type) => match wrapper_type {
                 WrapperType::Created(_) => {
-                    let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
+                    let wrapper_type_name_or_path = &wrapper_type.wrapper_path();
 
-                    let wrapped_type_name_or_path = &WrapperType::map_to_wrapped_type(wrapper_type);
+                    let wrapped_type_name_or_path = &wrapper_type.wrapped_type();
                     method_arg = quote! {
                         #column_name: #wrapped_type_name_or_path
                     };
@@ -47,7 +47,7 @@ impl Setter {
                     };
                 }
                 WrapperType::Used(_) => {
-                    let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
+                    let wrapper_type_name_or_path = &wrapper_type.wrapper_path();
 
                     if is_option {
                         method_arg =

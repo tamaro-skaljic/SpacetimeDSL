@@ -176,7 +176,7 @@ pub fn index_column_arguments(
 
         match &column.spacetimedsl_column_wrapper_type {
             Some(wrapper_type) => {
-                let wrapper_type_ty = &WrapperType::map(wrapper_type);
+                let wrapper_type_ty = &wrapper_type.wrapper_path();
 
                 if column_is_string {
                     wrapper_option_mapper = TokenStream::default();
@@ -220,8 +220,7 @@ pub fn index_column_arguments(
                         is_option: true,
                         arg_name: column_name.clone(),
                         arg_type: SpacetimeDSLArgType::Wrapped {
-                            wrapped_type: WrapperType::map_to_wrapped_type(wrapper_type)
-                                .to_token_stream(),
+                            wrapped_type: wrapper_type.wrapped_type().to_token_stream(),
                             actual_type: quote! { &impl Into<Option<#wrapper_type_ty>> },
                         },
                     };
@@ -230,8 +229,7 @@ pub fn index_column_arguments(
                 } else {
                     wrapper_option_mapper = TokenStream::default();
 
-                    let wrapped_type =
-                        WrapperType::map_to_wrapped_type(wrapper_type).to_token_stream();
+                    let wrapped_type = wrapper_type.wrapped_type().to_token_stream();
 
                     match one_or_multiple {
                         OneOrMultiple::Multiple => {

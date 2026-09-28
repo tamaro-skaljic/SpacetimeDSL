@@ -74,12 +74,11 @@ fn create_method_column_parts(
     }
 
     if let Some(uuid_version) = &internal_column.spacetimedsl_column_auto_generated_uuid_version {
-        let wrapper_type = WrapperType::map(
-            internal_column
-                .spacetimedsl_column_wrapper_type
-                .as_ref()
-                .expect("an #[auto_gen] column has a #[create_wrapper]"),
-        );
+        let wrapper_type = internal_column
+            .spacetimedsl_column_wrapper_type
+            .as_ref()
+            .expect("an #[auto_gen] column has a #[create_wrapper]")
+            .wrapper_path();
         let wrapper_constructor_name = uuid_version.wrapper_constructor_name();
 
         constructor_arg = Some(quote! {
@@ -144,7 +143,7 @@ fn create_method_column_parts(
                         is_option: false,
                         arg_name: column_name.clone(),
                         arg_type: SpacetimeDSLArgType::Normal(
-                            WrapperType::map_to_wrapped_type(wrapper_type).to_token_stream(),
+                            wrapper_type.wrapped_type().to_token_stream(),
                         ),
                     });
                 }
@@ -154,15 +153,14 @@ fn create_method_column_parts(
                 });
             }
             WrapperType::Used(_) => {
-                let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
+                let wrapper_type_name_or_path = &wrapper_type.wrapper_path();
 
                 if internal_column.spacetimedsl_column_is_option {
                     arg = Some(SpacetimeDSLArg {
                         is_option: true,
                         arg_name: column_name.clone(),
                         arg_type: SpacetimeDSLArgType::Wrapped {
-                            wrapped_type: WrapperType::map_to_wrapped_type(wrapper_type)
-                                .to_token_stream(),
+                            wrapped_type: wrapper_type.wrapped_type().to_token_stream(),
                             actual_type: quote! { Option<#wrapper_type_name_or_path> },
                         },
                     });
@@ -174,8 +172,7 @@ fn create_method_column_parts(
                         wrapper_type_name_or_path,
                     ));
                 } else {
-                    let wrapped_type =
-                        WrapperType::map_to_wrapped_type(wrapper_type).to_token_stream();
+                    let wrapped_type = wrapper_type.wrapped_type().to_token_stream();
 
                     arg = Some(SpacetimeDSLArg {
                         is_option: false,

@@ -6,10 +6,10 @@ use crate::internal::column::ColumnTypeKind;
 use crate::internal::error;
 use ident_case::RenameRule;
 use proc_macro2::TokenStream;
+use quote::format_ident;
 use quote::quote;
-use quote::{ToTokens, format_ident};
 use spacetime_bindings_macro_input::sats::SatsField;
-use syn::{Ident, Path, Type, parse_str, parse2};
+use syn::{Ident, Path};
 
 /// What `#[create_wrapper]` or `#[use_wrapper(...)]` on a column says, before anything is
 /// generated from it.
@@ -203,30 +203,22 @@ fn uuid_wrapper_constructors(wrapper_struct_name: &Ident) -> TokenStream {
 }
 
 impl WrapperType {
-    pub(crate) fn map_to_wrapped_type(value: &WrapperType) -> Type {
-        let wrapped_type_name_or_path = match value {
-            WrapperType::Created(created_wrapper) => &created_wrapper.wrapped_type_name_or_path,
-            WrapperType::Used(used_wrapper) => &used_wrapper.wrapped_type_name_or_path,
-        };
-
-        parse2(wrapped_type_name_or_path.to_token_stream()).unwrap_or_else(|_| {
-            panic!(
-                "Failed to parse {} as Ident in WrapperType::map_to_wrapped_type.",
-                &wrapped_type_name_or_path.to_token_stream().to_string()
-            )
-        })
-    }
-
-    /// The wrapper's own name as tokens - the generated struct's name for a created
-    /// wrapper, the user's path for a used one.
-    pub(crate) fn struct_name_or_path_tokens(&self) -> TokenStream {
+    /// The wrapper type: a created wrapper's name as a one-segment path, or the path
+    /// `#[use_wrapper(...)]` names.
+    pub(crate) fn wrapper_path(&self) -> Path {
         match self {
             WrapperType::Created(created_wrapper) => {
-                created_wrapper.wrapper_struct_name.to_token_stream()
+                Path::from(created_wrapper.wrapper_struct_name.clone())
             }
-            WrapperType::Used(used_wrapper) => {
-                used_wrapper.wrapper_struct_name_or_path.to_token_stream()
-            }
+            WrapperType::Used(used_wrapper) => used_wrapper.wrapper_struct_name_or_path.clone(),
+        }
+    }
+
+    /// The column type the wrapper type wraps.
+    pub(crate) fn wrapped_type(&self) -> &Path {
+        match self {
+            WrapperType::Created(created_wrapper) => &created_wrapper.wrapped_type_name_or_path,
+            WrapperType::Used(used_wrapper) => &used_wrapper.wrapped_type_name_or_path,
         }
     }
 
@@ -243,20 +235,11 @@ impl WrapperType {
                 .clone(),
         }
     }
-
-    pub(crate) fn map(value: &WrapperType) -> Type {
-        match value {
-            WrapperType::Created(w) => parse_str(&w.wrapper_struct_name.to_token_stream().to_string()).unwrap_or_else(|_| panic!("Failed to parse {} as Ident in WrapperType::map_to_wrapper_type for WrapperType::Wrap.",
-                &w.wrapper_struct_name)),
-            WrapperType::Used(w) => parse_str(&w.wrapper_struct_name_or_path.to_token_stream().to_string()).unwrap_or_else(|_| panic!("Failed to parse {} as Path in WrapperType::map_to_wrapper_type for WrapperType::Wrapped.",
-                &w.wrapper_struct_name_or_path.to_token_stream().to_string())),
-        }
-    }
 }
 
 pub fn map_wrapper_type_option_to_wrapped_type_option(
     column_name: &Ident,
-    wrapper_type_name_or_path: &Type,
+    wrapper_type_name_or_path: &Path,
 ) -> TokenStream {
     let column_option_name = &format_ident!("{column_name}_option");
     quote! {

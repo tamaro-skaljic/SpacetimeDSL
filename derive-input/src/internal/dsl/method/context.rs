@@ -15,7 +15,7 @@ use crate::{
     internal::column::InternalColumn,
 };
 use proc_macro2::TokenStream;
-use quote::format_ident;
+use quote::{ToTokens, format_ident};
 use std::collections::BTreeSet;
 use syn::Ident;
 
@@ -112,5 +112,6 @@ pub fn primary_key_wrapper_type(primary_key_column: &InternalColumn) -> TokenStr
         .expect(
             "A primary key column must be accompanied by `#[create_wrapper]` or `#[use_wrapper(crate::path::to::MyIdType)]`",
         )
-        .struct_name_or_path_tokens()
+        .wrapper_path()
+        .to_token_stream()
 }

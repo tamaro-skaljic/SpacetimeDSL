@@ -19,7 +19,7 @@ impl Getter {
 
         match wrapper_type {
             Some(wrapper_type) => {
-                let wrapper_type_name_or_path = &WrapperType::map(wrapper_type);
+                let wrapper_type_name_or_path = &wrapper_type.wrapper_path();
 
                 if is_option {
                     return_type = quote! {
