@@ -26,7 +26,7 @@ use {
             },
             runtime,
         },
-        internal::{column::canonical_type, dsl::one_or_multiple::OneOrMultiple, error},
+        internal::dsl::one_or_multiple::OneOrMultiple,
     },
     itertools::Itertools,
     proc_macro2::TokenStream,
@@ -35,14 +35,13 @@ use {
     strum::IntoEnumIterator,
 };
 
-/// A module path in one spelling per module, so `::other_crate::tables` and
-/// `other_crate::tables` compare equal: the segments without a leading `::`.
-fn canonical_path(path: &syn::Path) -> String {
-    path.segments
-        .iter()
-        .map(|segment| segment.ident.to_string())
-        .collect::<Vec<_>>()
-        .join("::")
+/// The foreign key of a column which `foreign_key_columns_by_referenced_table` grouped by it.
+pub fn foreign_key_of(column: &Column) -> &ForeignKey {
+    column
+        .spacetimedsl_column
+        .foreign_key
+        .as_ref()
+        .expect("columns are grouped by their foreign key, so every one carries it")
 }
 
 pub fn for_foreign_key(
@@ -52,49 +51,23 @@ pub fn for_foreign_key(
     context: &MethodGenerationContext,
     referenced_table_name: &syn::Ident,
     columns_with_foreign_key: &[&Column],
-) -> syn::Result<(SpacetimeDSLMethod, TableContributions)> {
+) -> (SpacetimeDSLMethod, TableContributions) {
     let mut contributions = TableContributions::default();
 
     let first_foreign_key_column = columns_with_foreign_key
         .first()
         .expect("A table grouped by referenced table must have at least one foreign key column");
 
-    fn foreign_key_of(column: &Column) -> &ForeignKey {
-        column
-            .spacetimedsl_column
-            .foreign_key
-            .as_ref()
-            .expect("columns are grouped by their foreign key, so every one carries it")
-    }
-
-    let referenced_table_path = &foreign_key_of(first_foreign_key_column).path;
-    let canonical_referenced_table_path = canonical_path(referenced_table_path);
+    let referenced_table_path = foreign_key_of(first_foreign_key_column)
+        .path
+        .to_token_stream();
     let referenced_table_primary_key_column_type =
         &first_foreign_key_column.rust_field.type_name_or_path;
-    let canonical_referenced_primary_key_type =
-        canonical_type(referenced_table_primary_key_column_type);
-
-    let referenced_table_path = referenced_table_path.to_token_stream();
 
     let mut columns_by_on_delete_strategies: BTreeMap<_, Vec<&Column>> = BTreeMap::new();
 
     for column_with_foreign_key in columns_with_foreign_key {
         let foreign_key = foreign_key_of(column_with_foreign_key);
-
-        if canonical_type(&column_with_foreign_key.rust_field.type_name_or_path)
-            != canonical_referenced_primary_key_type
-        {
-            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 If Option is supported, the type of the primary key values needs to be without option and it's allowed to have both, option and non-option columns.
-            return Err(error::foreign_key_columns_type_mismatch(
-                &column_with_foreign_key.rust_field.name,
-            ));
-        }
-
-        if canonical_path(&foreign_key.path) != canonical_referenced_table_path {
-            return Err(error::foreign_key_columns_path_mismatch(
-                &column_with_foreign_key.rust_field.name,
-            ));
-        }
 
         // A foreign key sets `on_delete`, `on_soft_delete` or both, so a column
         // contributes to the grouping for one kind of removal and not necessarily the
@@ -267,5 +240,5 @@ pub fn for_foreign_key(
         read_context_compatible: false,
     };
 
-    Ok((method, contributions))
+    (method, contributions)
 }

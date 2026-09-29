@@ -18,11 +18,11 @@ use {
                 wrapper::WrapperMethod,
             },
         },
-        internal::dsl::one_or_multiple::OneOrMultiple,
+        internal::{column::canonical_type, dsl::one_or_multiple::OneOrMultiple, error},
     },
     create::for_create,
     delete::{for_delete_many, for_delete_one},
-    foreign_key::for_foreign_key,
+    foreign_key::{for_foreign_key, foreign_key_of},
     get::{for_get_all, for_get_count, for_get_many, for_get_one},
     index::IndexShape,
     itertools::Itertools,
@@ -183,7 +183,7 @@ impl SpacetimeDSLTableMethods {
             referenced_side_entry_points(context, &mut contributions)?;
 
         let foreign_key_columns_by_referenced_table =
-            foreign_key_columns_by_referenced_table(columns);
+            foreign_key_columns_by_referenced_table(columns)?;
 
         let on_delete_strategies_of_this_table = referencing_side_entry_points(
             context,
@@ -315,21 +315,65 @@ fn referenced_side_entry_points(
 }
 
 /// The columns with a foreign key, grouped by the table the foreign key names.
+///
+/// The columns of a group share the cascade functions and the pairing checks of their
+/// referenced table, so they have to agree on the type of its primary key and on its path.
+/// That is checked for every group, whether or not its foreign keys declare a strategy.
 fn foreign_key_columns_by_referenced_table(
     columns: &[Column],
-) -> BTreeMap<&syn::Ident, Vec<&Column>> {
+) -> syn::Result<BTreeMap<&syn::Ident, Vec<&Column>>> {
     let mut columns_by_referenced_table: BTreeMap<&syn::Ident, Vec<&Column>> = BTreeMap::new();
 
     for column in columns {
-        if let Some(foreign_key) = &column.spacetimedsl_column.foreign_key {
-            columns_by_referenced_table
-                .entry(&foreign_key.table_name)
-                .or_default()
-                .push(column);
+        let Some(foreign_key) = &column.spacetimedsl_column.foreign_key else {
+            continue;
+        };
+
+        let columns_of_the_referenced_table = columns_by_referenced_table
+            .entry(&foreign_key.table_name)
+            .or_default();
+
+        if let Some(first_column) = columns_of_the_referenced_table.first() {
+            reject_foreign_key_disagreeing_with(first_column, column)?;
         }
+
+        columns_of_the_referenced_table.push(column);
     }
 
-    columns_by_referenced_table
+    Ok(columns_by_referenced_table)
+}
+
+/// Rejects `column` when its type, or the path of its referenced table, differs from
+/// `first_column`'s, which references the same table.
+fn reject_foreign_key_disagreeing_with(first_column: &Column, column: &Column) -> syn::Result<()> {
+    // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 If Option is supported, the type of the primary key values needs to be without option and it's allowed to have both, option and non-option columns.
+    if canonical_type(&column.rust_field.type_name_or_path)
+        != canonical_type(&first_column.rust_field.type_name_or_path)
+    {
+        return Err(error::foreign_key_columns_type_mismatch(
+            &column.rust_field.name,
+        ));
+    }
+
+    if canonical_path(&foreign_key_of(column).path)
+        != canonical_path(&foreign_key_of(first_column).path)
+    {
+        return Err(error::foreign_key_columns_path_mismatch(
+            &column.rust_field.name,
+        ));
+    }
+
+    Ok(())
+}
+
+/// A module path in one spelling per module, so `::other_crate::tables` and
+/// `other_crate::tables` compare equal: the segments without a leading `::`.
+fn canonical_path(path: &syn::Path) -> String {
+    path.segments
+        .iter()
+        .map(|segment| segment.ident.to_string())
+        .collect::<Vec<_>>()
+        .join("::")
 }
 
 /// The entry points this table offers each table it references: one pair per kind of
@@ -370,14 +414,14 @@ fn referencing_side_entry_points(
                 removal_kinds,
                 contributions,
                 |removal, one_or_multiple| {
-                    for_foreign_key(
+                    Ok(for_foreign_key(
                         removal,
                         one_or_multiple,
                         referencing_tables,
                         context,
                         referenced_table_name,
                         columns_with_foreign_key,
-                    )
+                    ))
                 },
             )?;
 
