@@ -1,6 +1,12 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+// Documentation appended to the struct:
+///
+/// # Tables referencing the `author` table
+///
+/// - the `book` table (`self`)
+
 pub trait this_compilation_error_occurs_because_the_author_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table {}
 pub trait this_compilation_error_occurs_because_the_author_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table {}
 const _: () = {

@@ -1,6 +1,14 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `child_marker` table
+///
+/// - `parent_id` references the `id` column of the `parent_record` table (`self`).
+///   - On delete: `Delete`
+///   - On soft delete: none, the `parent_record` table is not soft-deletable
+
 pub trait this_compilation_error_occurs_because_the_child_marker_table_has_no_foreign_key_attribute_referencing_the_parent_record_table {}
 const _: () = {
     use self::this_compilation_error_occurs_because_the_parent_record_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_child_marker_table;

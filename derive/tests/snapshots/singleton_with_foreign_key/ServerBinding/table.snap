@@ -1,6 +1,14 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `server_binding` table
+///
+/// - `region_id` references the `id` column of the `region` table (`self`).
+///   - On delete: `Delete`
+///   - On soft delete: none, the `region` table is not soft-deletable
+
 pub trait this_compilation_error_occurs_because_the_server_binding_table_has_no_foreign_key_attribute_referencing_the_region_table {}
 const _: () = {
     use self::this_compilation_error_occurs_because_the_region_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_server_binding_table;

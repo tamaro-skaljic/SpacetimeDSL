@@ -1,6 +1,14 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `expired_membership` table
+///
+/// - `account_id` references the `id` column of the `account` table (`self`).
+///   - On delete: `Error`
+///   - On soft delete: none, the `account` table is not soft-deletable
+
 pub trait this_compilation_error_occurs_because_the_expired_membership_table_has_no_foreign_key_attribute_referencing_the_account_table {}
 const _: () = {
     use self::this_compilation_error_occurs_because_the_account_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_expired_membership_table;

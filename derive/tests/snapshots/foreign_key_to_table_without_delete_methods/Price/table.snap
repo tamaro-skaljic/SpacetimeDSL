@@ -1,6 +1,14 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `price` table
+///
+/// - `currency_id` references the `id` column of the `currency` table (`self`).
+///   - On delete: none, the `currency` table is not deletable
+///   - On soft delete: none, the `currency` table is not soft-deletable
+
 pub trait this_compilation_error_occurs_because_the_price_table_has_no_foreign_key_attribute_referencing_the_currency_table {}
 const _: () = {
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_currency_table_needs_to_define_a_strategy_for_on_delete_or_the_currency_table_has_no_referenced_by_attribute_referencing_the_price_table;

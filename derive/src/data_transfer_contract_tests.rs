@@ -168,6 +168,10 @@ fn the_model_holds_what_a_table_declares() {
             "this_compilation_error_occurs_because_the_gadget_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_part_table",
         ]
     );
+    assert_eq!(
+        spacetimedsl_table.struct_doc_comment,
+        "# Foreign keys of the `gadget` table\n\n- `owner_id` references the `id` column of the `owner` table (`crate::owner`).\n  - On delete: `Delete`\n  - On soft delete: none, the `owner` table is not soft-deletable\n\n# Tables referencing the `gadget` table\n\n- the `part` table (`crate::part`)"
+    );
     let create_dsl_method_arg = spacetimedsl_table
         .create_dsl_method_arg
         .as_ref()
@@ -520,6 +524,7 @@ fn visit_spacetimedsl_table(spacetimedsl_table: &SpacetimeDSLTable) {
         compile_error_check_imports: _,
         create_dsl_method_arg,
         hooks,
+        struct_doc_comment: _,
     } = spacetimedsl_table;
 
     match kind {

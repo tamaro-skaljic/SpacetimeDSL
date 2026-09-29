@@ -174,6 +174,7 @@ impl SpacetimeDSLTable {
             compile_error_checks: BTreeSet::new(),
             compile_error_check_imports: vec![],
             create_dsl_method_arg: None,
+            struct_doc_comment: String::new(),
             hooks,
         })
     }

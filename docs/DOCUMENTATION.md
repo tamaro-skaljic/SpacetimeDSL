@@ -1654,6 +1654,7 @@ The generated code documents the relationships it acts on:
 - `create_<table>`, `update_<table>_by_<key>` and `upsert_<table>` list under *Foreign keys* each foreign key column they check, the table it has to reference, and the value (`0`, `Uuid::NIL`) which references no row.
 - The delete and soft-delete methods of a table with `#[referenced_by]` list under *Cascade* the tables whose `on_delete` or `on_soft_delete` strategies they run.
 - The getter and the setter of a foreign key column name the column and table it references, and its `on_delete` and `on_soft_delete` strategies.
+- The struct gets *Foreign keys of the `<table>` table* and *Tables referencing the `<table>` table* appended to its own documentation.
 
 ### Critical Rule
 

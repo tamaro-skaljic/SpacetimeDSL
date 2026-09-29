@@ -1,6 +1,18 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `category` table
+///
+/// - `parent_category_id` references the `id` column of the `category` table (`self`).
+///   - On delete: `Error`
+///   - On soft delete: none, the `category` table is not soft-deletable
+///
+/// # Tables referencing the `category` table
+///
+/// - the `category` table (`self`)
+
 pub trait this_compilation_error_occurs_because_the_category_table_has_no_foreign_key_attribute_referencing_the_category_table {}
 pub trait this_compilation_error_occurs_because_the_category_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_category_table {}
 pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_category_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_category_table_has_no_referenced_by_attribute_referencing_the_category_table {}

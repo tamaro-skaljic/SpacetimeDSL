@@ -7,7 +7,10 @@
 use {
     super::{reference_integrity, removal::Removal},
     crate::{
-        api::dsl::{foreign_key::ForeignKey, reference::ReferencingTable},
+        api::{
+            Column,
+            dsl::{foreign_key::ForeignKey, reference::ReferencingTable},
+        },
         internal::column::InternalColumn,
     },
     quote::ToTokens,
@@ -78,6 +81,56 @@ pub fn foreign_key(foreign_key: &ForeignKey) -> String {
         "References {}.\n\n- {on_delete}\n- {on_soft_delete}",
         referenced_column(foreign_key)
     )
+}
+
+/// The sections `#[spacetimedsl::dsl]` appends to the struct's documentation: the foreign keys
+/// of the `singular_table_name` table, and the tables its `#[referenced_by]` attributes name.
+/// Empty when it has neither.
+pub fn of_struct(
+    singular_table_name: &Ident,
+    columns: &[Column],
+    referencing_tables: &[ReferencingTable],
+) -> String {
+    let foreign_keys: Vec<String> = columns
+        .iter()
+        .filter_map(|column| {
+            let foreign_key = column.spacetimedsl_column.foreign_key.as_ref()?;
+            let [on_delete, on_soft_delete] = strategies(foreign_key);
+
+            Some(format!(
+                "- `{}` references {}.\n  - {on_delete}\n  - {on_soft_delete}",
+                column.rust_field.name,
+                referenced_column(foreign_key),
+            ))
+        })
+        .collect();
+
+    let referencing_tables: Vec<String> = referencing_tables
+        .iter()
+        .map(|referencing_table| {
+            format!(
+                "- {}",
+                table_and_module(&referencing_table.table_name, &referencing_table.path)
+            )
+        })
+        .collect();
+
+    [
+        section(
+            &format!("Foreign keys of the `{singular_table_name}` table"),
+            None,
+            &foreign_keys,
+        ),
+        section(
+            &format!("Tables referencing the `{singular_table_name}` table"),
+            None,
+            &referencing_tables,
+        ),
+    ]
+    .into_iter()
+    .filter(|section| !section.is_empty())
+    .collect::<Vec<_>>()
+    .join("\n\n")
 }
 
 /// "the `id` column of the `warehouse` table (`self`)"

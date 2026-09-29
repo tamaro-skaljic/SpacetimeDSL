@@ -89,6 +89,7 @@ pub struct TableContributions {
     pub create_dsl_method_arg: Option<CreateDSLMethodArg>,
     pub compile_error_checks: BTreeSet<Ident>,
     pub compile_error_check_imports: Vec<syn::Path>,
+    pub struct_doc_comment: String,
 }
 
 impl TableContributions {
@@ -100,6 +101,10 @@ impl TableContributions {
         self.compile_error_checks.extend(other.compile_error_checks);
         self.compile_error_check_imports
             .extend(other.compile_error_check_imports);
+
+        if !other.struct_doc_comment.is_empty() {
+            self.struct_doc_comment = other.struct_doc_comment;
+        }
     }
 
     pub fn apply_to(self, spacetimedsl_table: &mut SpacetimeDSLTable) {
@@ -113,6 +118,7 @@ impl TableContributions {
         spacetimedsl_table
             .compile_error_check_imports
             .extend(self.compile_error_check_imports);
+        spacetimedsl_table.struct_doc_comment = self.struct_doc_comment;
     }
 }
 

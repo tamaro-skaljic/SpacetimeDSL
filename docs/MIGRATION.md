@@ -179,6 +179,7 @@ A broken pairing between `#[foreign_key]` and `#[referenced_by]` is still an unr
 - `create_<table>`, `update_<table>_by_<key>` and `upsert_<table>` list under *Foreign keys* the foreign key columns they check.
 - The delete and soft-delete methods of a table with `#[referenced_by]` list under *Cascade* the tables whose strategies they run.
 - The getter and setter of a foreign key column say which column and table it references and which strategies it declares.
+- The struct gets its foreign keys and the tables referencing it appended to its documentation.
 
 Only rustdoc output changes.
 
@@ -299,3 +300,7 @@ runtime::error_from_hook_declaration(&quote! { error_from_hook }) // the binding
 #### `Getter::doc_comment` and `Setter::doc_comment`
 
 `Getter` and `Setter` gained `doc_comment: String`: what a foreign key column references and the strategies it declares, empty for any other column. Put it in front of the accessor's documentation, as `spacetimedsl_derive` does.
+
+#### `SpacetimeDSLTable::struct_doc_comment`
+
+`SpacetimeDSLTable::struct_doc_comment: String` holds the sections `#[spacetimedsl::dsl]` appends to the struct's documentation, empty for a table without foreign keys and without `#[referenced_by]`. Append it to the struct you emit as a `#[doc]` attribute after an empty one, as `spacetimedsl_derive` does.

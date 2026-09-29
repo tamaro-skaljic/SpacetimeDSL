@@ -1,6 +1,18 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `book` table
+///
+/// - `author_id` references the `id` column of the `author` table (`self`).
+///   - On delete: `Delete`
+///   - On soft delete: `SoftDelete`
+///
+/// # Tables referencing the `book` table
+///
+/// - the `review` table (`self`)
+
 pub trait this_compilation_error_occurs_because_the_book_table_has_no_foreign_key_attribute_referencing_the_author_table {}
 pub trait this_compilation_error_occurs_because_the_book_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_review_table {}
 pub trait this_compilation_error_occurs_because_the_book_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_review_table {}

@@ -73,6 +73,9 @@ pub struct SpacetimeDSLTable {
     pub create_dsl_method_arg: Option<CreateDSLMethodArg>,
     /// The hooks `#[dsl(hook(...))]` declares.
     pub hooks: SpacetimeDSLMethodHooks,
+    /// The documentation `#[spacetimedsl::dsl]` appends to the struct's own: the table's
+    /// foreign keys and the tables which reference it. Empty when it has neither.
+    pub struct_doc_comment: String,
 }
 
 /// The `Create<Table>` struct the create method takes, with one field per column the caller

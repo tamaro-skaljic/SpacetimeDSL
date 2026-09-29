@@ -1,6 +1,17 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `shipment` table
+///
+/// - `origin_warehouse_id` references the `id` column of the `warehouse` table (`::other_crate::tables`).
+///   - On delete: `Delete`
+///   - On soft delete: none, the `warehouse` table is not soft-deletable
+/// - `destination_warehouse_id` references the `id` column of the `warehouse` table (`other_crate::tables`).
+///   - On delete: `Delete`
+///   - On soft delete: none, the `warehouse` table is not soft-deletable
+
 pub trait this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_referencing_the_warehouse_table {}
 const _: () = {
     use ::other_crate::tables::this_compilation_error_occurs_because_the_warehouse_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_shipment_table;

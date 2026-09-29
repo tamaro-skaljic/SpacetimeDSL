@@ -1,6 +1,14 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `shelved_book` table
+///
+/// - `shelf_id` references the `id` column of the `shelf` table (`self`).
+///   - On delete: `Delete`
+///   - On soft delete: none, the `shelf` table is not soft-deletable
+
 pub trait this_compilation_error_occurs_because_the_shelved_book_table_has_no_foreign_key_attribute_referencing_the_shelf_table {}
 const _: () = {
     use self::this_compilation_error_occurs_because_the_shelf_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_shelved_book_table;

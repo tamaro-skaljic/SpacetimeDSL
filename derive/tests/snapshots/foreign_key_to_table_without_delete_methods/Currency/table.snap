@@ -1,6 +1,12 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+// Documentation appended to the struct:
+///
+/// # Tables referencing the `currency` table
+///
+/// - the `price` table (`self`)
+
 pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_currency_table_needs_to_define_a_strategy_for_on_delete_or_the_currency_table_has_no_referenced_by_attribute_referencing_the_price_table {}
 pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_currency_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_currency_table_has_no_referenced_by_attribute_referencing_the_price_table {}
 const _: () = {
