@@ -20,10 +20,16 @@ use {
 /// `doc`, followed by `section` as a paragraph of its own, or `doc` alone when `section` is
 /// empty.
 pub fn with_section(doc: String, section: String) -> String {
-    match section.is_empty() {
-        true => doc,
-        false => format!("{doc}\n\n{section}"),
-    }
+    paragraphs([doc, section])
+}
+
+/// The non-empty `parts` as paragraphs, each separated from the next by a blank line.
+pub fn paragraphs(parts: impl IntoIterator<Item = String>) -> String {
+    parts
+        .into_iter()
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n\n")
 }
 
 /// The `# Foreign keys` section of a method which checks, before it writes, that the foreign
@@ -115,7 +121,7 @@ pub fn of_struct(
         })
         .collect();
 
-    [
+    paragraphs([
         section(
             &format!("Foreign keys of the `{singular_table_name}` table"),
             None,
@@ -126,11 +132,7 @@ pub fn of_struct(
             None,
             &referencing_tables,
         ),
-    ]
-    .into_iter()
-    .filter(|section| !section.is_empty())
-    .collect::<Vec<_>>()
-    .join("\n\n")
+    ])
 }
 
 /// "the `id` column of the `warehouse` table (`self`)"

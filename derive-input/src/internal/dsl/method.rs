@@ -193,11 +193,14 @@ impl SpacetimeDSLTableMethods {
             &foreign_key_columns_by_referenced_table,
         ));
 
-        contributions.struct_doc_comment = relationship_doc::of_struct(
-            &context.singular_table_name,
-            columns,
-            &context.spacetimedsl_table.referencing_tables,
-        );
+        contributions.merge(TableContributions {
+            struct_doc_comment: relationship_doc::of_struct(
+                &context.singular_table_name,
+                columns,
+                &context.spacetimedsl_table.referencing_tables,
+            ),
+            ..TableContributions::default()
+        });
 
         let methods = SpacetimeDSLTableMethods {
             create,

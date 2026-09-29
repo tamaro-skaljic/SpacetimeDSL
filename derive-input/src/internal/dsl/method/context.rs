@@ -7,6 +7,7 @@
 //! table.
 
 use {
+    super::relationship_doc,
     crate::{
         api::{
             db::table::SpacetimeDBTable,
@@ -17,7 +18,7 @@ use {
     },
     proc_macro2::TokenStream,
     quote::{ToTokens, format_ident},
-    std::collections::BTreeSet,
+    std::{collections::BTreeSet, mem},
     syn::Ident,
 };
 
@@ -101,10 +102,10 @@ impl TableContributions {
         self.compile_error_checks.extend(other.compile_error_checks);
         self.compile_error_check_imports
             .extend(other.compile_error_check_imports);
-
-        if !other.struct_doc_comment.is_empty() {
-            self.struct_doc_comment = other.struct_doc_comment;
-        }
+        self.struct_doc_comment = relationship_doc::paragraphs([
+            mem::take(&mut self.struct_doc_comment),
+            other.struct_doc_comment,
+        ]);
     }
 
     pub fn apply_to(self, spacetimedsl_table: &mut SpacetimeDSLTable) {
@@ -118,7 +119,10 @@ impl TableContributions {
         spacetimedsl_table
             .compile_error_check_imports
             .extend(self.compile_error_check_imports);
-        spacetimedsl_table.struct_doc_comment = self.struct_doc_comment;
+        spacetimedsl_table.struct_doc_comment = relationship_doc::paragraphs([
+            mem::take(&mut spacetimedsl_table.struct_doc_comment),
+            self.struct_doc_comment,
+        ]);
     }
 }
 
