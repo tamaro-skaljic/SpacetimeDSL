@@ -687,6 +687,32 @@ pub fn set_zero_strategy_on_unsupported_type(column_type: &Type) -> Error {
     )
 }
 
+pub fn set_zero_strategy_on_primary_key_column(foreign_key_meta: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        foreign_key_meta,
+        "`OnDeleteStrategy::SetZero` is not allowed on a primary key column!\nClearing it would write the row back under the key `0` or `Uuid::NIL`, where the write finds no row or another one. Choose another strategy, such as `on_delete = Delete`.",
+    )
+}
+
+pub fn set_zero_strategy_on_unique_column(foreign_key_meta: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        foreign_key_meta,
+        "`OnDeleteStrategy::SetZero` is not allowed on a `#[unique]` column!\nA second cleared row would repeat `0` or `Uuid::NIL`, which the unique constraint rejects. Remove `#[unique]`, or choose another strategy, such as `on_delete = Delete`.",
+    )
+}
+
+pub fn set_zero_strategy_on_unique_multi_column_index_column(
+    foreign_key_meta: &impl ToTokens,
+    unique_index_name: &Ident,
+) -> Error {
+    Error::new_spanned(
+        foreign_key_meta,
+        format!(
+            "`OnDeleteStrategy::SetZero` is not allowed on a column of the unique multi-column index `{unique_index_name}`!\nTwo cleared rows which agree in the index's other columns would repeat its values, and SpacetimeDSL checks the index only when a row is created or updated. Remove `unique_index(name = {unique_index_name})`, or choose another strategy, such as `on_delete = Delete`."
+        ),
+    )
+}
+
 pub fn delete_strategy_without_delete_method(foreign_key_meta: &impl ToTokens) -> Error {
     Error::new_spanned(
         foreign_key_meta,

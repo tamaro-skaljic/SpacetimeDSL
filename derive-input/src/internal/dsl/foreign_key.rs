@@ -25,6 +25,7 @@ impl ForeignKey {
         field: &SatsField<'_>,
         spacetimedb_column: &SpacetimeDBColumn,
         column_type_kind: ColumnTypeKind,
+        unique_multi_column_index: Option<&Ident>,
     ) -> syn::Result<Option<ForeignKey>> {
         let mut foreign_key_value = None;
 
@@ -101,6 +102,29 @@ impl ForeignKey {
 
                 if matches!(field.vis, syn::Visibility::Inherited) {
                     return Err(error::set_zero_strategy_on_private_column(&attr.meta));
+                }
+
+                // Clearing the column writes `0` or `Uuid::NIL`, which a second cleared row
+                // would repeat and a cleared primary key would write the row back under.
+                if spacetimedb_column.is_primary_key {
+                    return Err(error::set_zero_strategy_on_primary_key_column(&attr.meta));
+                }
+
+                if spacetimedb_column
+                    .single_column_index
+                    .as_ref()
+                    .is_some_and(|index| index.is_unique)
+                {
+                    return Err(error::set_zero_strategy_on_unique_column(&attr.meta));
+                }
+
+                if let Some(unique_index_name) = unique_multi_column_index {
+                    return Err(
+                        error::set_zero_strategy_on_unique_multi_column_index_column(
+                            &attr.meta,
+                            unique_index_name,
+                        ),
+                    );
                 }
             }
 

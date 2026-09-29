@@ -44,7 +44,7 @@ pub struct Test {
 
     #[unique]
     #[use_wrapper(crate::entity::EntityId)]
-    #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = SetZero)]
+    #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
     pub unique: u128,
 
     pub string: String,

@@ -78,6 +78,10 @@ A column with two single-column indices — for example `#[index(btree)]` on the
 
 Every `#[foreign_key]` has to set `on_delete` when the referenced table has a delete method, and `on_soft_delete` when it is soft-deletable. Two foreign keys of one table to the same table used to be checked together, so one of them could leave out `on_delete` while the other set it; deleting a referenced row then left the rows of the first one pointing at nothing. Each is checked on its own now: *unresolved import `…::this_compilation_error_occurs_because_your_foreign_key_referencing_the_warehouse_table_needs_to_define_a_strategy_for_on_delete_or_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_shipment_table`*. Add the missing strategy.
 
+#### `on_delete = SetZero` on a primary key, a `#[unique]` column or a column of a unique multi-column index
+
+`SetZero` writes `0` or `Uuid::NIL` into the foreign key column and writes the row back through its primary key. On a primary key column that write finds no row or another one; on a `#[unique]` column, or a column of a `unique_index(name = …)` index, a second cleared row repeats the value. SpacetimeDB's `update` panicked inside the cascade in the first two cases, and the third silently broke the index's uniqueness. All three are rejected at the `#[foreign_key]` attribute. Choose another strategy, such as `Delete`, or remove the uniqueness.
+
 ### Newly accepted inputs
 
 #### `#[referenced_by]` on a table without delete and soft-delete methods

@@ -22,6 +22,7 @@ impl SpacetimeDSLColumn {
         rust_struct: &RustStruct,
         rust_field: &RustField,
         spacetimedb_column: &SpacetimeDBColumn,
+        unique_multi_column_index: Option<&Ident>,
     ) -> syn::Result<SpacetimeDSLColumn> {
         let is_singleton = spacetimedsl_table.is_singleton();
         let is_option =
@@ -47,6 +48,7 @@ impl SpacetimeDSLColumn {
             field,
             spacetimedb_column,
             ColumnTypeKind::of(&rust_field.type_name_or_path),
+            unique_multi_column_index,
         )?;
 
         if foreign_key.is_some() {

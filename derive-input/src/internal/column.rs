@@ -2,7 +2,11 @@ use {
     crate::{
         api::{
             Column,
-            db::{column::SpacetimeDBColumn, index::Index, table::SpacetimeDBTable},
+            db::{
+                column::SpacetimeDBColumn,
+                index::{Index, IndexType},
+                table::SpacetimeDBTable,
+            },
             dsl::{
                 auto_gen::UUIDVersion,
                 column::{SpacetimeDSLColumn, SpacetimeDSLColumnMethods},
@@ -92,12 +96,25 @@ pub fn try_parse(
             &primary_key_column_name,
         );
 
+        let unique_multi_column_index = spacetimedb_table
+            .multi_column_indices
+            .iter()
+            .find(|index| {
+                index.is_unique
+                    && matches!(
+                        &index.index_type,
+                        IndexType::BTreeMultiColumn { columns } if columns.contains(&rust_field.name)
+                    )
+            })
+            .map(|index| &index.name);
+
         let spacetimedsl_column = SpacetimeDSLColumn::try_parse(
             spacetimedsl_table,
             field,
             rust_struct,
             &rust_field,
             &spacetimedb_column,
+            unique_multi_column_index,
         )?;
 
         let internal_column = InternalColumn {

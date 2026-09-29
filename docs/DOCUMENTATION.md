@@ -1518,6 +1518,7 @@ Soft deletion is checked the same way, with `soft_deletable` and `on_soft_delete
 - Create and update treat `0` and `Uuid::NIL` as referencing no row, so a row holding either passes the reference integrity check
 - Requires `method(update = true)` on the referencing table's `#[spacetimedsl::dsl]`
 - Requires the foreign key column to be `pub` (so a setter exists)
+- Not allowed on a primary key column, whose cleared value would move the row to another key, nor on a `#[unique]` column or a column of a unique multi-column index, where a second cleared row would repeat the value
 - Clearing the column is an update of the referencing row: its [`before_update` and `after_update` hooks](#during-a-cascading-delete) run around the write, and its `#[set_on_update]` column is set, as in `update_<table>_by_<key>`
 
 **`Ignore`** — Allow dangling references:
