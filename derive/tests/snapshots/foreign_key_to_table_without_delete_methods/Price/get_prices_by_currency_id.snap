@@ -1,0 +1,27 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Price` iterator that contains all rows in the `price` table whose value matches the value from the single-column btree index on the `currency_id` column.
+    pub fn get_prices_by_currency_id<'a>(
+        &'a self,
+        currency_id: impl Into<CurrencyId>,
+    ) -> impl Iterator<Item = Price> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().price().currency_id().filter(currency_id.into().value())
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Price` iterator that contains all rows in the `price` table whose value matches the value from the single-column btree index on the `currency_id` column.
+    pub fn get_prices_by_currency_id<'a>(
+        &'a self,
+        currency_id: impl Into<CurrencyId>,
+    ) -> impl Iterator<Item = Price> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().price().currency_id().filter(currency_id.into().value())
+    }
+}

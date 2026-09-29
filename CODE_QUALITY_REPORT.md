@@ -262,13 +262,13 @@ Recommendation: Make doc and code agree — name `SetNone` explicitly (with a co
 
 Parses `#[referenced_by]`.
 
-### `reference.rs`: `ReferencingTable::try_parse(has_delete_method: &bool, is_soft_deletable: bool, field: &SatsField<'_>) -> syn::Result<Vec<ReferencingTable>>`
+### `reference.rs`: `ReferencingTable::try_parse(field: &SatsField<'_>) -> syn::Result<Vec<ReferencingTable>>`
 
 **Violates:** DRY
 
-Whether the field is the primary key is re-derived from its raw attributes, although `SpacetimeDBColumn::is_primary_key` already states it, and `has_delete_method` is passed as `&bool`.
+Whether the field is the primary key is re-derived from its raw attributes, although `SpacetimeDBColumn::is_primary_key` already states it.
 
-Recommendation: Take the primary-key fact from `SpacetimeDBColumn` and pass `bool` by value, as the plan's Task 50 does for `ForeignKey::try_parse`.
+Recommendation: Take the primary-key fact from `SpacetimeDBColumn`.
 
 ## `derive-input/src/internal/dsl/method/get.rs`
 

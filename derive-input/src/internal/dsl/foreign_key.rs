@@ -90,10 +90,6 @@ impl ForeignKey {
             let primary_key_column_name = primary_key_column_name
                 .ok_or_else(|| error::missing_foreign_key_column(&attr.meta))?;
 
-            if on_delete_strategy.is_none() && on_soft_delete_strategy.is_none() {
-                return Err(error::foreign_key_without_on_delete_strategy(&attr.meta));
-            }
-
             if on_delete_strategy.as_ref() == Some(&OnDeleteStrategy::SetZero) {
                 // `SetZero` writes the value that references no row: `0` or `Uuid::NIL`.
                 if !matches!(

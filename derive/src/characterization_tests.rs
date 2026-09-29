@@ -138,6 +138,11 @@ fn foreign_key_with_table_level_index() {
 }
 
 #[test]
+fn foreign_key_to_table_without_delete_methods() {
+    snapshot_fixture("foreign_key_to_table_without_delete_methods");
+}
+
+#[test]
 fn on_delete_error() {
     snapshot_fixture("on_delete_error");
 }

@@ -670,13 +670,6 @@ pub fn missing_foreign_key_column(foreign_key_meta: &impl ToTokens) -> Error {
     )
 }
 
-pub fn foreign_key_without_on_delete_strategy(foreign_key_meta: &impl ToTokens) -> Error {
-    Error::new_spanned(
-        foreign_key_meta,
-        "A `#[foreign_key]` must set `on_delete`, `on_soft_delete`, or both, e.g. `on_delete = Delete`.\nSet `on_delete` when the referenced table has a delete method, set `on_soft_delete` when it is soft-deletable, and set both when it is both. The referenced table's own `#[referenced_by]` decides which of them is required; leaving out a required one is an unresolved import naming the field to add.",
-    )
-}
-
 pub fn set_zero_strategy_on_private_column(foreign_key_meta: &impl ToTokens) -> Error {
     Error::new_spanned(
         foreign_key_meta,
@@ -763,15 +756,6 @@ pub fn referenced_by_without_primary_key(referenced_by_attribute: &impl ToTokens
     Error::new_spanned(
         referenced_by_attribute,
         "`#[referenced_by]` is only allowed in combination with `#[primary_key]`!",
-    )
-}
-
-pub fn referenced_by_without_delete_or_soft_delete_method(
-    referenced_by_attribute: &impl ToTokens,
-) -> Error {
-    Error::new_spanned(
-        referenced_by_attribute,
-        "`#[referenced_by]` is only allowed when the table has a delete method (`#[dsl(method(delete = true))]`) or is soft-deletable (`#[dsl(method(soft_delete = true))]`)!\nThe on-delete strategies it declares run when a row of this table is deleted or soft-deleted, neither of which the DSL can do while both are disabled.",
     )
 }
 

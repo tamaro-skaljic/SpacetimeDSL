@@ -78,6 +78,16 @@ A column with two single-column indices — for example `#[index(btree)]` on the
 
 Every `#[foreign_key]` has to set `on_delete` when the referenced table has a delete method, and `on_soft_delete` when it is soft-deletable. Two foreign keys of one table to the same table used to be checked together, so one of them could leave out `on_delete` while the other set it; deleting a referenced row then left the rows of the first one pointing at nothing. Each is checked on its own now: *unresolved import `…::this_compilation_error_occurs_because_your_foreign_key_referencing_the_warehouse_table_needs_to_define_a_strategy_for_on_delete_or_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_shipment_table`*. Add the missing strategy.
 
+### Newly accepted inputs
+
+#### `#[referenced_by]` on a table without delete and soft-delete methods
+
+A table with `method(delete = false)` and without `method(soft_delete = true)` may carry `#[referenced_by]`. Its rows are never removed through the DSL, so it generates no cascade. *`#[referenced_by]` is only allowed when the table has a delete method …* is gone.
+
+#### `#[foreign_key]` without `on_delete` and `on_soft_delete`
+
+A foreign key to such a table sets no strategy. *A `#[foreign_key]` must set `on_delete`, `on_soft_delete`, or both* is gone; a foreign key to a table which performs a removal still has to set its strategy. Create and update still check that it references a row.
+
 ### Changed messages and generated code
 
 #### The error of a failed soft-delete cascade says *Soft Delete*
@@ -269,3 +279,7 @@ runtime::error_from_hook_declaration(&quote! { error_from_hook }) // the binding
 #### `SpacetimeDSLTable::compile_error_check_imports` lists the pairing imports
 
 `SpacetimeDSLTable::compile_error_check_imports: Vec<syn::Path>` holds the marker traits the tables on the other side of the table's foreign keys have to declare, as the paths to import them from. The `method_impl` of a cascade method no longer contains these imports. Emit them in a block scope, as `spacetimedsl_derive` does with `const _: () = { use …; };`, or the pairing checks are lost.
+
+#### Cascade entry points only where a cascade runs
+
+`SpacetimeDSLTableMethods::on_delete_strategies_of_referencing_tables` is `None` for a table which neither deletes nor soft-deletes rows, even when other tables reference it, and `on_delete_strategies_of_this_table` leaves out a referenced table whose foreign keys declare no strategy. `ForeignKey::on_delete_strategy` and `on_soft_delete_strategy` are `None` exactly when the referenced table does not perform that removal.

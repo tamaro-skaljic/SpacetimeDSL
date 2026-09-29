@@ -534,7 +534,7 @@ Compile-time validation:
 - `update = true` requires at least one `pub` field ("this column and therefore rows of this table should be mutable") OR a `modified_at`/`updated_at` column
 - `update = false` requires all fields to be private AND no `modified_at`/`updated_at` column ("all columns and therefore rows of this table should be immutable")
 - `delete = false` generates no delete methods at all, the same way `update = false` generates no update methods. It is good for audit tables, though you should export and delete rows in them from time to time, using the raw **SpacetimeDB** API since no delete DSL methods exist
-- `delete = true` is therefore required on a table which declares `#[referenced_by]`, because the on-delete strategies it declares can only run when a row of that table is deleted through the DSL
+- A table with `delete = false` may still declare `#[referenced_by]`. Its foreign keys then declare no `on_delete` strategy, because its rows are never deleted through the DSL
 - `delete = true` is also required on a table whose `#[foreign_key]` uses `on_delete = Delete`, because that strategy deletes rows of that same table
 - Hooks require matching method config (`hook(after(update))` needs `method(update = true)`)
 
@@ -1454,16 +1454,20 @@ entity_id: u128,
 - `table` — the **SpacetimeDB** table accessor name
 - `column` — always the **primary key column** of the referenced table
 
-At least one of the two strategy parameters is required, and both may be set:
+The two strategy parameters follow what the referenced table does. Set `on_delete` exactly when it has a delete method, and `on_soft_delete` exactly when it is soft-deletable:
 
 - `on_delete` — what happens to this table's rows when a referenced row is **deleted**: `Error`, `Delete`, `SoftDelete`, `SetZero`, or `Ignore`
 - `on_soft_delete` — what happens to them when a referenced row is **soft-deleted**: `Error`, `SoftDelete`, or `Ignore`
 
-Set `on_delete` when the referenced table has a delete method, `on_soft_delete` when it is soft-deletable, and both when it is both. Which of them is required is decided by the referenced table, through the pairing below.
+A foreign key to a table with `method(delete = false)` and without `method(soft_delete = true)` sets neither: the rows it references are never removed. Create and update still check that it references a row.
 
 ### Pairing Requirement
 
-Every `#[foreign_key]` needs a `#[referenced_by]` naming its table on the referenced table's primary key, and every `#[referenced_by]` needs a `#[foreign_key]` back in the table it names. Each foreign key declares a strategy for exactly the removals its referenced table performs: `on_delete` when it has a delete method, `on_soft_delete` when it is soft-deletable. The foreign keys of one table are checked one by one. A broken rule is an unresolved import whose name says what to change:
+Every `#[foreign_key]` needs a `#[referenced_by]` naming its table on the referenced table's primary key, and every `#[referenced_by]` needs a `#[foreign_key]` back in the table it names. Each foreign key declares a strategy for exactly the removals its referenced table performs: `on_delete` when it has a delete method, `on_soft_delete` when it is soft-deletable. The foreign keys of one table are checked one by one.
+
+A table which neither deletes nor soft-deletes rows is paired the same way: its `#[referenced_by]` names every table with a foreign key to it, and those foreign keys set no strategy.
+
+A broken rule is an unresolved import whose name says what to change:
 
 ```txt
 unresolved import crate::entity::this_compilation_error_occurs_because_the_entity_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_position_table

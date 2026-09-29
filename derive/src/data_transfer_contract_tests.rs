@@ -316,6 +316,56 @@ fn the_model_holds_what_a_table_declares() {
     };
     assert_eq!(wrapper_method.method_name, "get_gadgets");
 
+    let currency = parse_table(
+        quote! { plural_name = currencies, method(update = false, delete = false) },
+        quote! {
+            #[spacetimedb::table(accessor = currency, public)]
+            pub struct Currency {
+                #[primary_key]
+                #[auto_inc]
+                #[create_wrapper]
+                #[referenced_by(path = crate::price, table = price)]
+                id: u64,
+            }
+        },
+    );
+    visit_table(&currency);
+
+    assert!(
+        currency
+            .spacetimedsl_methods
+            .on_delete_strategies_of_referencing_tables
+            .is_none(),
+        "a table which neither deletes nor soft-deletes rows offers no cascade entry points"
+    );
+
+    let price = parse_table(
+        quote! { plural_name = prices, method(update = true, delete = true) },
+        quote! {
+            #[spacetimedb::table(accessor = price, public)]
+            pub struct Price {
+                #[primary_key]
+                #[auto_inc]
+                #[create_wrapper]
+                id: u64,
+
+                #[index(btree)]
+                #[use_wrapper(crate::currency::CurrencyId)]
+                #[foreign_key(path = crate::currency, table = currency, column = id)]
+                pub currency_id: u64,
+            }
+        },
+    );
+    visit_table(&price);
+
+    assert!(
+        price
+            .spacetimedsl_methods
+            .on_delete_strategies_of_this_table
+            .is_empty(),
+        "a foreign key without strategies has no strategy implementations"
+    );
+
     let cleanup_timer = parse_table(
         quote! { plural_name = cleanup_timers, method(update = false) },
         quote! {

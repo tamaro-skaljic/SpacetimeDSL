@@ -293,10 +293,14 @@ fn referenced_side_entry_points(
             )
         });
 
-    Some(OnDeleteStrategiesOfReferencingTables {
-        on_deletion,
-        on_soft_deletion,
-    })
+    // A table which neither deletes nor soft-deletes rows runs no cascade, so it offers no
+    // entry point, even though other tables reference it.
+    (on_deletion.is_some() || on_soft_deletion.is_some()).then_some(
+        OnDeleteStrategiesOfReferencingTables {
+            on_deletion,
+            on_soft_deletion,
+        },
+    )
 }
 
 /// The columns with a foreign key, grouped by the table the foreign key names.
@@ -375,7 +379,7 @@ fn referencing_side_entry_points(
 
     foreign_key_columns_by_referenced_table
         .iter()
-        .map(|(referenced_table_name, columns_with_foreign_key)| {
+        .filter_map(|(referenced_table_name, columns_with_foreign_key)| {
             let removal_kinds = Removal::ALL.into_iter().filter(|removal| {
                 columns_with_foreign_key.iter().any(|column| {
                     removal
@@ -396,10 +400,12 @@ fn referencing_side_entry_points(
                     )
                 });
 
-            OnDeleteStrategiesOfTheReferencedTable {
-                on_deletion,
-                on_soft_deletion,
-            }
+            (on_deletion.is_some() || on_soft_deletion.is_some()).then_some(
+                OnDeleteStrategiesOfTheReferencedTable {
+                    on_deletion,
+                    on_soft_deletion,
+                },
+            )
         })
         .collect()
 }

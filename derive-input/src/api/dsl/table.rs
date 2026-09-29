@@ -102,7 +102,8 @@ pub struct CascadeEntryPoints {
 /// The cascade entry points a table earns when another table references it.
 ///
 /// One pair per kind of removal the table can perform: `on_deletion` when it has a delete
-/// method, `on_soft_deletion` when it is soft-deletable, both when it is both.
+/// method, `on_soft_deletion` when it is soft-deletable, both when it is both. At least one of
+/// the two is `Some`.
 #[derive(Clone)]
 pub struct OnDeleteStrategiesOfReferencingTables {
     /// `Some` when the table has a delete method.
@@ -135,9 +136,11 @@ pub struct SpacetimeDSLTableMethods {
     /// `count_of_all_<plural_name>`. `None` on a singleton.
     pub get_count: Option<SpacetimeDSLMethod>,
     /// The cascade entry points the tables named in `#[referenced_by(...)]` call when a row
-    /// of this table is removed. `None` when no table references this one.
+    /// of this table is removed. `None` when no table references this one, or when this table
+    /// neither deletes nor soft-deletes rows.
     pub on_delete_strategies_of_referencing_tables: Option<OnDeleteStrategiesOfReferencingTables>,
-    /// The strategy implementations for each table this table references with a foreign key.
+    /// The strategy implementations for each table this table references with a foreign key
+    /// which declares a strategy.
     pub on_delete_strategies_of_this_table: Vec<OnDeleteStrategiesOfTheReferencedTable>,
     /// The methods of each multi-column index, in the order of
     /// `SpacetimeDBTable::multi_column_indices`.

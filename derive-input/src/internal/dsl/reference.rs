@@ -8,11 +8,7 @@ use {
 };
 
 impl ReferencingTable {
-    pub(crate) fn try_parse(
-        has_delete_method: &bool,
-        is_soft_deletable: bool,
-        field: &SatsField<'_>,
-    ) -> syn::Result<Vec<ReferencingTable>> {
+    pub(crate) fn try_parse(field: &SatsField<'_>) -> syn::Result<Vec<ReferencingTable>> {
         let mut referencing_tables: Vec<ReferencingTable> = vec![];
 
         let mut is_primary_key = false;
@@ -30,12 +26,6 @@ impl ReferencingTable {
 
             if !is_primary_key {
                 return Err(error::referenced_by_without_primary_key(attr));
-            }
-
-            if !has_delete_method && !is_soft_deletable {
-                return Err(error::referenced_by_without_delete_or_soft_delete_method(
-                    attr,
-                ));
             }
 
             let mut path_value: Option<Path> = None;
