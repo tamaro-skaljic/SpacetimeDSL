@@ -128,6 +128,10 @@ Where a create method or setter takes an optional used wrapper, the generated co
 
 The lookups inside the generated delete and soft-delete cascades can only fail if SpacetimeDSL generated inconsistent code. Their panic used to name a variable of the generated code, such as *7 should exist in entries.* It now states the invariant that broke and the key it broke for, such as *the referencing tables return child entries only for the primary key values of the rows this table deletes, which does not hold for 7*. The message is formatted only when a lookup fails.
 
+#### The reference-integrity error of `create_<table>` names the column
+
+When `create_<table>`, or the insert path of `upsert_<table>`, rejects a row because a foreign key references no row, the error names the column and its value, `{ warehouse_id : 3 }`, the way `update_<table>_by_<key>` does. It used to print the value in place of the name, `{ 3 : WarehouseId { id: 3 } }`.
+
 ### For crates building on `spacetimedsl_derive-input`
 
 #### The data-transfer contract is documented

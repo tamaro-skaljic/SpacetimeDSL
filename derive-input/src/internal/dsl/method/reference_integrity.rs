@@ -118,12 +118,10 @@ pub fn reference_integrity_checks_on_create(
             runtime::reference_integrity_violation_on_create_or_update(
                 &referencing_table_name_as_string,
                 &quote! { Create },
-                // Names the column by its value rather than its name; kept as it is until
-                // https://github.com/tamaro-skaljic/SpacetimeDSL/issues/173 is fixed, which
-                // then uses `message::single_column_and_value` like the update side.
-                &quote! {
-                    format!("{{ {} : {} }}", #referencing_table_column_name, #referencing_table_name.#referencing_table_column_getter_name())
-                },
+                &message::single_column_and_value(
+                    referencing_table_column_name,
+                    &quote! { #referencing_table_name.#referencing_table_column_getter_name().value() },
+                ),
             );
 
         quote! {

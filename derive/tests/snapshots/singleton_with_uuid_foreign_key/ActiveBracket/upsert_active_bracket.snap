@@ -76,7 +76,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 table_name: "active_bracket".into(),
                                 create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", bracket_id, active_bracket.get_bracket_id()
+                                    "{{ bracket_id : {} }}", active_bracket.get_bracket_id()
+                                    .value()
                                 )
                                     .into(),
                             }),
@@ -93,8 +94,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 table_name: "active_bracket".into(),
                                 create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", seed_bracket_id, active_bracket
-                                    .get_seed_bracket_id()
+                                    "{{ seed_bracket_id : {} }}", active_bracket
+                                    .get_seed_bracket_id().value()
                                 )
                                     .into(),
                             }),

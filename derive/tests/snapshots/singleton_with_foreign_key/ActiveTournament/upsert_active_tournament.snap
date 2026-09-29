@@ -82,8 +82,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 table_name: "active_tournament".into(),
                                 create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", region_id, active_tournament
-                                    .get_region_id()
+                                    "{{ region_id : {} }}", active_tournament.get_region_id()
+                                    .value()
                                 )
                                     .into(),
                             }),
@@ -101,8 +101,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 table_name: "active_tournament".into(),
                                 create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", qualifier_region_id, active_tournament
-                                    .get_qualifier_region_id()
+                                    "{{ qualifier_region_id : {} }}", active_tournament
+                                    .get_qualifier_region_id().value()
                                 )
                                     .into(),
                             }),

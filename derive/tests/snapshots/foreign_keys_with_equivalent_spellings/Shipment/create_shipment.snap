@@ -28,8 +28,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             table_name: "shipment".into(),
                             create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
-                                "{{ {} : {} }}", origin_warehouse_id, shipment
-                                .get_origin_warehouse_id()
+                                "{{ origin_warehouse_id : {} }}", shipment
+                                .get_origin_warehouse_id().value()
                             )
                                 .into(),
                         }),
@@ -46,8 +46,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             table_name: "shipment".into(),
                             create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
-                                "{{ {} : {} }}", destination_warehouse_id, shipment
-                                .get_destination_warehouse_id()
+                                "{{ destination_warehouse_id : {} }}", shipment
+                                .get_destination_warehouse_id().value()
                             )
                                 .into(),
                         }),

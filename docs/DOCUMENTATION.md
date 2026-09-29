@@ -1954,8 +1954,7 @@ Auto Inc Overflow Error on the `entity` table! Unfortunately SpacetimeDB doesn't
 **ReferenceIntegrityViolation (on create/update):**
 
 ```txt
-Reference Integrity Violation Error while trying to create a row in the `position` table
-because of {{ entity_id : 1 }}!
+Reference Integrity Violation Error while trying to create a row in the `position` table because of `{ entity_id : 1 }`!
 ```
 
 **ReferenceIntegrityViolation (on delete):**
