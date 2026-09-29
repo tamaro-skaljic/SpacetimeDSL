@@ -7,7 +7,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_account_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_account_table_has_no_referenced_by_attribute_referencing_the_profile_table;
 };
 impl Profile {
-    ///
+    /**References the `id` column of the `account` table (`self`).
+
+- On delete: `Error`
+- On soft delete: none, the `account` table is not soft-deletable*/
     pub fn get_account_id(&self) -> AccountId {
         use crate::spacetimedsl::Wrapper;
         AccountId::new(self.account_id.clone())

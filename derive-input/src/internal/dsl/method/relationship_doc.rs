@@ -6,7 +6,10 @@
 
 use {
     super::{reference_integrity, removal::Removal},
-    crate::{api::dsl::reference::ReferencingTable, internal::column::InternalColumn},
+    crate::{
+        api::dsl::{foreign_key::ForeignKey, reference::ReferencingTable},
+        internal::column::InternalColumn,
+    },
     quote::ToTokens,
     syn::{Ident, Path},
 };
@@ -64,6 +67,46 @@ pub fn cascade(removal: Removal, referencing_tables: &[ReferencingTable]) -> Str
     );
 
     section("Cascade", Some(lead.as_str()), &bullets)
+}
+
+/// What a foreign key column references, and the strategy it declares for each removal of
+/// the referenced row: the documentation of its getter and setter.
+pub fn foreign_key(foreign_key: &ForeignKey) -> String {
+    let [on_delete, on_soft_delete] = strategies(foreign_key);
+
+    format!(
+        "References {}.\n\n- {on_delete}\n- {on_soft_delete}",
+        referenced_column(foreign_key)
+    )
+}
+
+/// "the `id` column of the `warehouse` table (`self`)"
+fn referenced_column(foreign_key: &ForeignKey) -> String {
+    format!(
+        "the `{}` column of {}",
+        foreign_key.primary_key_column_name,
+        table_and_module(&foreign_key.table_name, &foreign_key.path),
+    )
+}
+
+/// "On delete: `Delete`" and "On soft delete: none, the `warehouse` table is not
+/// soft-deletable". The pairing lets a strategy be missing exactly when the referenced table
+/// does not perform that removal.
+fn strategies(foreign_key: &ForeignKey) -> [String; 2] {
+    let strategy = |removal: Removal, name: &str, capability: &str| match removal
+        .strategy_declared_by(foreign_key)
+    {
+        Some(strategy) => format!("{name}: `{strategy:?}`"),
+        None => format!(
+            "{name}: none, the `{}` table is not {capability}",
+            foreign_key.table_name
+        ),
+    };
+
+    [
+        strategy(Removal::Hard, "On delete", "deletable"),
+        strategy(Removal::Soft, "On soft delete", "soft-deletable"),
+    ]
 }
 
 /// A doc comment section: its heading, a lead sentence when there is one, and its bullets.

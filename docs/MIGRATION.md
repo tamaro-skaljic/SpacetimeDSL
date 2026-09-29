@@ -178,6 +178,7 @@ A broken pairing between `#[foreign_key]` and `#[referenced_by]` is still an unr
 
 - `create_<table>`, `update_<table>_by_<key>` and `upsert_<table>` list under *Foreign keys* the foreign key columns they check.
 - The delete and soft-delete methods of a table with `#[referenced_by]` list under *Cascade* the tables whose strategies they run.
+- The getter and setter of a foreign key column say which column and table it references and which strategies it declares.
 
 Only rustdoc output changes.
 
@@ -294,3 +295,7 @@ runtime::error_from_hook_declaration(&quote! { error_from_hook }) // the binding
 #### Cascade entry points only where a cascade runs
 
 `SpacetimeDSLTableMethods::on_delete_strategies_of_referencing_tables` is `None` for a table which neither deletes nor soft-deletes rows, even when other tables reference it, and `on_delete_strategies_of_this_table` leaves out a referenced table whose foreign keys declare no strategy. `ForeignKey::on_delete_strategy` and `on_soft_delete_strategy` are `None` exactly when the referenced table does not perform that removal.
+
+#### `Getter::doc_comment` and `Setter::doc_comment`
+
+`Getter` and `Setter` gained `doc_comment: String`: what a foreign key column references and the strategies it declares, empty for any other column. Put it in front of the accessor's documentation, as `spacetimedsl_derive` does.

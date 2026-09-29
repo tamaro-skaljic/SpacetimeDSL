@@ -71,7 +71,10 @@ impl ShelvedBook {
         use crate::spacetimedsl::Wrapper;
         ShelvedBookId::new(self.id.clone())
     }
-    ///
+    /**References the `id` column of the `shelf` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `shelf` table is not soft-deletable*/
     pub fn get_shelf_id(&self) -> ShelfId {
         use crate::spacetimedsl::Wrapper;
         ShelfId::new(self.shelf_id.clone())

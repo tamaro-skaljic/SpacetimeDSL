@@ -74,12 +74,18 @@ impl Category {
         use crate::spacetimedsl::Wrapper;
         CategoryId::new(self.id.clone())
     }
-    ///
+    /**References the `id` column of the `category` table (`self`).
+
+- On delete: `Error`
+- On soft delete: none, the `category` table is not soft-deletable*/
     pub fn get_parent_category_id(&self) -> CategoryId {
         use crate::spacetimedsl::Wrapper;
         CategoryId::new(self.parent_category_id.clone())
     }
-    ///
+    /**References the `id` column of the `category` table (`self`).
+
+- On delete: `Error`
+- On soft delete: none, the `category` table is not soft-deletable*/
     pub fn set_parent_category_id(
         &mut self,
         parent_category_id: impl Into<CategoryId>,

@@ -74,12 +74,18 @@ impl Folder {
         use crate::spacetimedsl::Wrapper;
         FolderId::new(self.id.clone())
     }
-    ///
+    /**References the `id` column of the `folder` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: `SoftDelete`*/
     pub fn get_parent_folder_id(&self) -> FolderId {
         use crate::spacetimedsl::Wrapper;
         FolderId::new(self.parent_folder_id.clone())
     }
-    ///
+    /**References the `id` column of the `folder` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: `SoftDelete`*/
     pub fn set_parent_folder_id(
         &mut self,
         parent_folder_id: impl Into<FolderId>,

@@ -71,12 +71,18 @@ impl AccountNote {
         use crate::spacetimedsl::Wrapper;
         AccountNoteId::new(self.id.clone())
     }
-    ///
+    /**References the `id` column of the `account` table (`crate::accounts`).
+
+- On delete: `Error`
+- On soft delete: none, the `account` table is not soft-deletable*/
     pub fn get_account_id(&self) -> crate::accounts::AccountId {
         use crate::spacetimedsl::Wrapper;
         crate::accounts::AccountId::new(self.account_id.clone())
     }
-    ///
+    /**References the `id` column of the `account` table (`crate::accounts`).
+
+- On delete: `Error`
+- On soft delete: none, the `account` table is not soft-deletable*/
     pub fn set_account_id(
         &mut self,
         account_id: impl Into<crate::accounts::AccountId>,

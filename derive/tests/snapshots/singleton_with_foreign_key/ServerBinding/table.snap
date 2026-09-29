@@ -7,12 +7,18 @@ const _: () = {
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_region_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_region_table_has_no_referenced_by_attribute_referencing_the_server_binding_table;
 };
 impl ServerBinding {
-    ///
+    /**References the `id` column of the `region` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `region` table is not soft-deletable*/
     pub fn get_region_id(&self) -> RegionId {
         use crate::spacetimedsl::Wrapper;
         RegionId::new(self.region_id.clone())
     }
-    ///
+    /**References the `id` column of the `region` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `region` table is not soft-deletable*/
     pub fn set_region_id(&mut self, region_id: impl Into<RegionId>) -> RegionId {
         use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.region_id, region_id.into().value());

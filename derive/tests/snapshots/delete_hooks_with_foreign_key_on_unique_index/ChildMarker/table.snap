@@ -71,12 +71,18 @@ impl ChildMarker {
         use crate::spacetimedsl::Wrapper;
         ChildMarkerId::new(self.id.clone())
     }
-    ///
+    /**References the `id` column of the `parent_record` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `parent_record` table is not soft-deletable*/
     pub fn get_parent_id(&self) -> ParentRecordId {
         use crate::spacetimedsl::Wrapper;
         ParentRecordId::new(self.parent_id.clone())
     }
-    ///
+    /**References the `id` column of the `parent_record` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `parent_record` table is not soft-deletable*/
     pub fn set_parent_id(
         &mut self,
         parent_id: impl Into<ParentRecordId>,

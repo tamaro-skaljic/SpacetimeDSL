@@ -67,12 +67,18 @@ impl Price {
         use crate::spacetimedsl::Wrapper;
         PriceId::new(self.id.clone())
     }
-    ///
+    /**References the `id` column of the `currency` table (`self`).
+
+- On delete: none, the `currency` table is not deletable
+- On soft delete: none, the `currency` table is not soft-deletable*/
     pub fn get_currency_id(&self) -> CurrencyId {
         use crate::spacetimedsl::Wrapper;
         CurrencyId::new(self.currency_id.clone())
     }
-    ///
+    /**References the `id` column of the `currency` table (`self`).
+
+- On delete: none, the `currency` table is not deletable
+- On soft delete: none, the `currency` table is not soft-deletable*/
     pub fn set_currency_id(&mut self, currency_id: impl Into<CurrencyId>) -> CurrencyId {
         use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(

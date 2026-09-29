@@ -71,12 +71,18 @@ impl Gadget {
         use crate::spacetimedsl::Wrapper;
         GadgetId::new(self.id.clone())
     }
-    ///
+    /**References the `id` column of the `owner` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `owner` table is not soft-deletable*/
     pub fn get_owner_id(&self) -> OwnerId {
         use crate::spacetimedsl::Wrapper;
         OwnerId::new(self.owner_id.clone())
     }
-    ///
+    /**References the `id` column of the `owner` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `owner` table is not soft-deletable*/
     pub fn set_owner_id(&mut self, owner_id: impl Into<OwnerId>) -> OwnerId {
         use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.owner_id, owner_id.into().value());

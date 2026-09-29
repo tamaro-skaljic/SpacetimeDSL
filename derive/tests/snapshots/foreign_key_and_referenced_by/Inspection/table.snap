@@ -71,12 +71,18 @@ impl Inspection {
         use crate::spacetimedsl::Wrapper;
         InspectionId::new(self.id.clone())
     }
-    ///
+    /**References the `id` column of the `warehouse` table (`self`).
+
+- On delete: `SetZero`
+- On soft delete: none, the `warehouse` table is not soft-deletable*/
     pub fn get_warehouse_id(&self) -> WarehouseId {
         use crate::spacetimedsl::Wrapper;
         WarehouseId::new(self.warehouse_id.clone())
     }
-    ///
+    /**References the `id` column of the `warehouse` table (`self`).
+
+- On delete: `SetZero`
+- On soft delete: none, the `warehouse` table is not soft-deletable*/
     pub fn set_warehouse_id(
         &mut self,
         warehouse_id: impl Into<WarehouseId>,

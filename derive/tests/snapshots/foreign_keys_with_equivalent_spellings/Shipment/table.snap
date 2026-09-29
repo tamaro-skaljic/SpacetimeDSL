@@ -71,12 +71,18 @@ impl Shipment {
         use crate::spacetimedsl::Wrapper;
         ShipmentId::new(self.id.clone())
     }
-    ///
+    /**References the `id` column of the `warehouse` table (`::other_crate::tables`).
+
+- On delete: `Delete`
+- On soft delete: none, the `warehouse` table is not soft-deletable*/
     pub fn get_origin_warehouse_id(&self) -> ::other_crate::tables::WarehouseId {
         use crate::spacetimedsl::Wrapper;
         ::other_crate::tables::WarehouseId::new(self.origin_warehouse_id.clone())
     }
-    ///
+    /**References the `id` column of the `warehouse` table (`::other_crate::tables`).
+
+- On delete: `Delete`
+- On soft delete: none, the `warehouse` table is not soft-deletable*/
     pub fn set_origin_warehouse_id(
         &mut self,
         origin_warehouse_id: impl Into<::other_crate::tables::WarehouseId>,
@@ -88,12 +94,18 @@ impl Shipment {
         );
         ::other_crate::tables::WarehouseId::new(old_value)
     }
-    ///
+    /**References the `id` column of the `warehouse` table (`other_crate::tables`).
+
+- On delete: `Delete`
+- On soft delete: none, the `warehouse` table is not soft-deletable*/
     pub fn get_destination_warehouse_id(&self) -> other_crate::tables::WarehouseId {
         use crate::spacetimedsl::Wrapper;
         other_crate::tables::WarehouseId::new(self.destination_warehouse_id.clone())
     }
-    ///
+    /**References the `id` column of the `warehouse` table (`other_crate::tables`).
+
+- On delete: `Delete`
+- On soft delete: none, the `warehouse` table is not soft-deletable*/
     pub fn set_destination_warehouse_id(
         &mut self,
         destination_warehouse_id: impl Into<other_crate::tables::WarehouseId>,

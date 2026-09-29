@@ -71,12 +71,18 @@ impl Revision {
         use crate::spacetimedsl::Wrapper;
         RevisionId::new(self.id.clone())
     }
-    ///
+    /**References the `id` column of the `draft` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `draft` table is not soft-deletable*/
     pub fn get_draft_id(&self) -> DraftId {
         use crate::spacetimedsl::Wrapper;
         DraftId::new(self.draft_id.clone())
     }
-    ///
+    /**References the `id` column of the `draft` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `draft` table is not soft-deletable*/
     pub fn set_draft_id(&mut self, draft_id: impl Into<DraftId>) -> DraftId {
         use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.draft_id, draft_id.into().value());

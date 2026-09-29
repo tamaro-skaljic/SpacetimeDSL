@@ -233,6 +233,15 @@ fn the_model_holds_what_a_table_declares() {
         foreign_key.on_delete_strategy,
         Some(OnDeleteStrategy::Delete)
     );
+    assert_eq!(
+        owner_id
+            .spacetimedsl_column
+            .getter
+            .as_ref()
+            .expect("every column has a getter")
+            .doc_comment,
+        "References the `id` column of the `owner` table (`crate::owner`).\n\n- On delete: `Delete`\n- On soft delete: none, the `owner` table is not soft-deletable"
+    );
     let Some(SpacetimeDSLColumnMethods::ForIndex(owner_id_methods)) =
         &owner_id.spacetimedsl_methods
     else {
@@ -636,6 +645,7 @@ fn visit_spacetimedsl_column(spacetimedsl_column: &SpacetimeDSLColumn) {
         None | Some(UUIDVersion::V4) | Some(UUIDVersion::V7) => {}
     }
     if let Some(Getter {
+        doc_comment: _,
         method_name: _,
         return_type: _,
         method_impl: _,
@@ -651,6 +661,7 @@ fn visit_spacetimedsl_column(spacetimedsl_column: &SpacetimeDSLColumn) {
         visit_rust_visibility(method_visibility);
     }
     if let Some(Setter {
+        doc_comment: _,
         method_visibility,
         method_name: _,
         method_arg: _,

@@ -70,12 +70,18 @@ impl Book {
         use crate::spacetimedsl::Wrapper;
         BookId::new(self.id.clone())
     }
-    ///
+    /**References the `id` column of the `author` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: `SoftDelete`*/
     pub fn get_author_id(&self) -> AuthorId {
         use crate::spacetimedsl::Wrapper;
         AuthorId::new(self.author_id.clone())
     }
-    ///
+    /**References the `id` column of the `author` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: `SoftDelete`*/
     pub fn set_author_id(&mut self, author_id: impl Into<AuthorId>) -> AuthorId {
         use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.author_id, author_id.into().value());

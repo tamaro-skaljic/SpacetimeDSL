@@ -1,10 +1,10 @@
 use {
     crate::{
         api::{
-            dsl::{getter::Getter, wrapper::WrapperType},
+            dsl::{foreign_key::ForeignKey, getter::Getter, wrapper::WrapperType},
             rust::column::RustField,
         },
-        internal::dsl::method::naming,
+        internal::dsl::method::{naming, relationship_doc},
     },
     quote::quote,
 };
@@ -14,6 +14,7 @@ impl Getter {
         rust_field: &RustField,
         is_option: bool,
         wrapper_type: &Option<WrapperType>,
+        foreign_key: Option<&ForeignKey>,
     ) -> Getter {
         let column_name = &rust_field.name;
 
@@ -53,6 +54,9 @@ impl Getter {
         };
 
         Getter {
+            doc_comment: foreign_key
+                .map(relationship_doc::foreign_key)
+                .unwrap_or_default(),
             method_name: naming::getter_name(column_name),
             return_type,
             method_impl,

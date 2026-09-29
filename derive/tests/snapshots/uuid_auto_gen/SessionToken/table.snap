@@ -146,12 +146,18 @@ impl SessionToken {
         use crate::spacetimedsl::Wrapper;
         SessionTokenToken::new(self.token.clone())
     }
-    ///
+    /**References the `id` column of the `account` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `account` table is not soft-deletable*/
     pub fn get_account_id(&self) -> AccountId {
         use crate::spacetimedsl::Wrapper;
         AccountId::new(self.account_id.clone())
     }
-    ///
+    /**References the `id` column of the `account` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `account` table is not soft-deletable*/
     pub fn set_account_id(&mut self, account_id: impl Into<AccountId>) -> AccountId {
         use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(
