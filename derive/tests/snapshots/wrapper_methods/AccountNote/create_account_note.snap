@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `account_note` table.
+    /**Create a row in the `account_note` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `account_id`: a row of the `account` table (`crate::accounts`), or `0`*/
     pub fn create_account_note<'a>(
         &'a self,
         account_note: CreateAccountNote,

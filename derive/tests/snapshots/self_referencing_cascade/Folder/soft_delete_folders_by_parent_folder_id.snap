@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Try to soft-delete all `Folder` rows in the `folder` table whose value matches the value from the single-column btree index on the `parent_folder_id` column.
+    /**Try to soft-delete all `Folder` rows in the `folder` table whose value matches the value from the single-column btree index on the `parent_folder_id` column.
+
+# Cascade
+
+Runs the `on_soft_delete` strategies which the foreign keys of these tables declare:
+
+- the `folder` table (`self`)*/
     pub fn soft_delete_folders_by_parent_folder_id<'a>(
         &'a self,
         parent_folder_id: impl Into<FolderId>,

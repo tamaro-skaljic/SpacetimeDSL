@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `folder` table.
+    /**Create a row in the `folder` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `parent_folder_id`: a row of the `folder` table (`self`), or `0`*/
     pub fn create_folder<'a>(
         &'a self,
         folder: CreateFolder,

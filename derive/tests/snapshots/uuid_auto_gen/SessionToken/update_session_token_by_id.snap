@@ -5,7 +5,13 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to update a `SessionToken` row of the `session_token` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+Try to update a `SessionToken` row of the `session_token` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `account_id`: a row of the `account` table (`self`), or `Uuid::NIL`*/
     pub fn update_session_token_by_id<'a>(
         &'a self,
         session_token: SessionToken,

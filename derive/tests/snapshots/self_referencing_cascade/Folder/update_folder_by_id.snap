@@ -5,7 +5,13 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to update a `Folder` row of the `folder` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+Try to update a `Folder` row of the `folder` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `parent_folder_id`: a row of the `folder` table (`self`), or `0`*/
     pub fn update_folder_by_id<'a>(
         &'a self,
         folder: Folder,

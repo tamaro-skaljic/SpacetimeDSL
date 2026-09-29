@@ -5,7 +5,13 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to update a `AccountNote` row of the `account_note` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+Try to update a `AccountNote` row of the `account_note` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `account_id`: a row of the `account` table (`crate::accounts`), or `0`*/
     pub fn update_account_note_by_id<'a>(
         &'a self,
         account_note: AccountNote,

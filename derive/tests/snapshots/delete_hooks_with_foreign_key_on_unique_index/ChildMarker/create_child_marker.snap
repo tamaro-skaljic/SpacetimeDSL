@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `child_marker` table.
+    /**Create a row in the `child_marker` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `parent_id`: a row of the `parent_record` table (`self`), or `0`*/
     pub fn create_child_marker<'a>(
         &'a self,
         child_marker: CreateChildMarker,

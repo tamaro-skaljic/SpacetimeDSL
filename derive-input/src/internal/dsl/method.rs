@@ -49,6 +49,7 @@ mod on_delete_strategy;
 mod pairing;
 mod reference_integrity;
 mod referenced_by;
+pub mod relationship_doc;
 mod removal;
 mod singleton_table;
 mod soft_delete;

@@ -6,6 +6,7 @@ use {
         reference_integrity::{
             Action, multi_column_index_checks, reference_integrity_checks_on_create,
         },
+        relationship_doc,
     },
     crate::{
         api::{
@@ -362,7 +363,13 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
     let insert = insert_and_map_errors(context, &after_insert_hook);
 
     let method = SpacetimeDSLMethod {
-        doc_comment: format!("Create a row in the `{singular_table_name}` table."),
+        doc_comment: relationship_doc::with_section(
+            format!("Create a row in the `{singular_table_name}` table."),
+            relationship_doc::reference_checks(
+                "Fails with `ReferenceIntegrityViolation` unless each column references a row:",
+                &internal_columns.iter().collect_vec(),
+            ),
+        ),
         method_name: format_ident!("create_{}", singular_table_name),
         method_args,
         return_type: runtime::error_result_type(struct_name),

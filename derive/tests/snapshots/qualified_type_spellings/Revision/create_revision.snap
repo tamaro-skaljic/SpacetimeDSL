@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `revision` table.
+    /**Create a row in the `revision` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `draft_id`: a row of the `draft` table (`self`), or `0`*/
     pub fn create_revision<'a>(
         &'a self,
         revision: CreateRevision,

@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `gadget` table.
+    /**Create a row in the `gadget` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `owner_id`: a row of the `owner` table (`self`), or `Uuid::NIL`*/
     pub fn create_gadget<'a>(
         &'a self,
         gadget: CreateGadget,

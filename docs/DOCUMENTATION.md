@@ -1647,6 +1647,13 @@ let circles: Vec<Circle> = player.get_id().get_circles(&dsl);
 - Multi-column indices and the foreign key columns of singleton tables add no method.
 - Pass `&dsl` from a reducer or `&read_only_dsl` from a view.
 
+### Generated Documentation
+
+The generated code documents the relationships it acts on:
+
+- `create_<table>`, `update_<table>_by_<key>` and `upsert_<table>` list under *Foreign keys* each foreign key column they check, the table it has to reference, and the value (`0`, `Uuid::NIL`) which references no row.
+- The delete and soft-delete methods of a table with `#[referenced_by]` list under *Cascade* the tables whose `on_delete` or `on_soft_delete` strategies they run.
+
 ### Critical Rule
 
 Foreign keys and referential integrity are enforced ONLY via DSL methods. Never bypass the DSL:

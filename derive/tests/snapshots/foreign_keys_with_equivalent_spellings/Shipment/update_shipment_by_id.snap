@@ -5,7 +5,14 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to update a `Shipment` row of the `shipment` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+Try to update a `Shipment` row of the `shipment` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `origin_warehouse_id`: a row of the `warehouse` table (`::other_crate::tables`), or `0`
+- `destination_warehouse_id`: a row of the `warehouse` table (`other_crate::tables`), or `0`*/
     pub fn update_shipment_by_id<'a>(
         &'a self,
         shipment: Shipment,

@@ -174,6 +174,13 @@ A broken pairing between `#[foreign_key]` and `#[referenced_by]` is still an unr
 - A `#[referenced_by]` naming a table without a foreign key back: `…the_<other>_table_has_no_foreign_key_attribute_referencing_the_<table>_table`, which replaces `…has_no_foreign_key_attribute_with_on_delete_defined…` and `…with_on_soft_delete_defined…`.
 - A foreign key setting a strategy its table cannot use keeps `…the_<table>_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_<other>_table` (or `…is_not_soft_deletable…`).
 
+#### The generated documentation shows foreign keys and cascades
+
+- `create_<table>`, `update_<table>_by_<key>` and `upsert_<table>` list under *Foreign keys* the foreign key columns they check.
+- The delete and soft-delete methods of a table with `#[referenced_by]` list under *Cascade* the tables whose strategies they run.
+
+Only rustdoc output changes.
+
 ### For crates building on `spacetimedsl_derive-input`
 
 #### The data-transfer contract is documented

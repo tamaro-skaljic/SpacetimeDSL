@@ -3,7 +3,14 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Write the `ActiveTournament` row of the singleton `active_tournament` table, whether or not it exists yet.
+    /**Write the `ActiveTournament` row of the singleton `active_tournament` table, whether or not it exists yet.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row. While the row exists, only the columns with a setter are checked, whenever their value changes:
+
+- `region_id`: a row of the `region` table (`self`), or `0`
+- `qualifier_region_id`: a row of the `region` table (`self`), or `0`*/
     pub fn upsert_active_tournament<'a>(
         &'a self,
         active_tournament: ActiveTournament,

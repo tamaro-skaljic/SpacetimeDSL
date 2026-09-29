@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Try to delete all `Category` rows in the `category` table whose value matches the value from the single-column btree index on the `parent_category_id` column.
+    /**Try to delete all `Category` rows in the `category` table whose value matches the value from the single-column btree index on the `parent_category_id` column.
+
+# Cascade
+
+Runs the `on_delete` strategies which the foreign keys of these tables declare:
+
+- the `category` table (`self`)*/
     pub fn delete_categories_by_parent_category_id<'a>(
         &'a self,
         parent_category_id: impl Into<CategoryId>,

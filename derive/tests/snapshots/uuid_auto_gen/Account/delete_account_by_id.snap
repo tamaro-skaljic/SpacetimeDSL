@@ -5,7 +5,13 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to delete a `Account` row in the `account` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+Try to delete a `Account` row in the `account` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Cascade
+
+Runs the `on_delete` strategies which the foreign keys of these tables declare:
+
+- the `session_token` table (`self`)*/
     pub fn delete_account_by_id<'a>(
         &'a self,
         id: impl Into<AccountId> + Clone,

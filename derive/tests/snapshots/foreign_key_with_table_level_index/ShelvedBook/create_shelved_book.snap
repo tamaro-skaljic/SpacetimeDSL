@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `shelved_book` table.
+    /**Create a row in the `shelved_book` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `shelf_id`: a row of the `shelf` table (`self`), or `0`*/
     pub fn create_shelved_book<'a>(
         &'a self,
         shelved_book: CreateShelvedBook,

@@ -3,7 +3,14 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `shipment` table.
+    /**Create a row in the `shipment` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `origin_warehouse_id`: a row of the `warehouse` table (`self`), or `0`
+- `destination_warehouse_id`: a row of the `warehouse` table (`self`), or `0`*/
     pub fn create_shipment<'a>(
         &'a self,
         shipment: CreateShipment,

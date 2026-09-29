@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `server_binding` table.
+    /**Create a row in the `server_binding` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `region_id`: a row of the `region` table (`self`), or `0`*/
     pub fn create_server_binding<'a>(
         &'a self,
         server_binding: CreateServerBinding,

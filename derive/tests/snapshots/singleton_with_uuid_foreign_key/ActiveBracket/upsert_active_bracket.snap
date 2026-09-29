@@ -3,7 +3,14 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Write the `ActiveBracket` row of the singleton `active_bracket` table, whether or not it exists yet.
+    /**Write the `ActiveBracket` row of the singleton `active_bracket` table, whether or not it exists yet.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row. While the row exists, only the columns with a setter are checked, whenever their value changes:
+
+- `bracket_id`: a row of the `bracket` table (`self`), or `Uuid::NIL`
+- `seed_bracket_id`: a row of the `bracket` table (`self`), or `Uuid::NIL`*/
     pub fn upsert_active_bracket<'a>(
         &'a self,
         active_bracket: ActiveBracket,

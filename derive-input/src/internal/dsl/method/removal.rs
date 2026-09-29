@@ -14,7 +14,7 @@ use {
         message, naming,
         reference_integrity::{Action, unique_multi_column_index_check},
         referenced_by::referenced_table_function_call_for_dsl_method,
-        soft_delete,
+        relationship_doc, soft_delete,
         upsert::rebind_row_as_mutable_after_hook,
     },
     crate::{
@@ -740,6 +740,11 @@ fn removal_method(
             format_ident!("{method_prefix}_{plural_table_name}_by_{index_name}"),
         ),
     };
+
+    let doc_comment = relationship_doc::with_section(
+        doc_comment,
+        relationship_doc::cascade(removal, &spacetimedsl_table.referencing_tables),
+    );
 
     SpacetimeDSLMethod {
         doc_comment,

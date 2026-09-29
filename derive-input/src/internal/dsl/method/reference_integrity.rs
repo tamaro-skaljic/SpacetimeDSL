@@ -94,6 +94,21 @@ fn reference_integrity_checks(
     reference_integrity_checks
 }
 
+/// How documentation names the value a foreign key column of this kind holds when it
+/// references no row: the value the guard in `reference_integrity_checks` lets through
+/// unchecked. `None` for a kind every value of which is checked.
+pub fn documented_value_referencing_no_row(kind: ColumnTypeKind) -> Option<&'static str> {
+    match kind {
+        ColumnTypeKind::UnsignedInteger => Some("`0`"),
+        ColumnTypeKind::Optional => Some("`None`"),
+        ColumnTypeKind::UUID => Some("`Uuid::NIL`"),
+        ColumnTypeKind::String
+        | ColumnTypeKind::Bool
+        | ColumnTypeKind::Timestamp
+        | ColumnTypeKind::Other => None,
+    }
+}
+
 pub fn reference_integrity_checks_on_create(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &[InternalColumn],
