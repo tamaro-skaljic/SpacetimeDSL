@@ -785,6 +785,15 @@ pub fn referenced_by_without_primary_key(referenced_by_attribute: &impl ToTokens
     )
 }
 
+pub fn repeated_referenced_by(referencing_table_name: &Ident) -> Error {
+    Error::new_spanned(
+        referencing_table_name,
+        format!(
+            "`#[referenced_by(table = {referencing_table_name})]` is given twice! Name each table which references this one once, however many foreign keys it has to it."
+        ),
+    )
+}
+
 pub fn missing_referenced_by_path(referenced_by_meta: &impl ToTokens) -> Error {
     Error::new_spanned(
         referenced_by_meta,

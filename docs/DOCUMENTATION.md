@@ -1463,7 +1463,7 @@ A foreign key to a table with `method(delete = false)` and without `method(soft_
 
 ### Pairing Requirement
 
-Every `#[foreign_key]` needs a `#[referenced_by]` naming its table on the referenced table's primary key, and every `#[referenced_by]` needs a `#[foreign_key]` back in the table it names. Each foreign key declares a strategy for exactly the removals its referenced table performs: `on_delete` when it has a delete method, `on_soft_delete` when it is soft-deletable. The foreign keys of one table are checked one by one.
+Every `#[foreign_key]` needs a `#[referenced_by]` naming its table on the referenced table's primary key, and every `#[referenced_by]` needs a `#[foreign_key]` back in the table it names. A table with several foreign keys to the referenced table is named there once. Each foreign key declares a strategy for exactly the removals its referenced table performs: `on_delete` when it has a delete method, `on_soft_delete` when it is soft-deletable. The foreign keys of one table are checked one by one.
 
 A table which neither deletes nor soft-deletes rows is paired the same way: its `#[referenced_by]` names every table with a foreign key to it, and those foreign keys set no strategy.
 

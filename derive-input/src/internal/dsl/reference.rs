@@ -52,6 +52,15 @@ impl ReferencingTable {
             let table_name =
                 table_name.ok_or_else(|| error::missing_referenced_by_table(&attr.meta))?;
 
+            // A second attribute naming the same table, whatever path it spells, would repeat
+            // the table's pairing import, which does not compile, and its cascade call.
+            if referencing_tables
+                .iter()
+                .any(|referencing_table| referencing_table.table_name == table_name)
+            {
+                return Err(error::repeated_referenced_by(&table_name));
+            }
+
             referencing_tables.push(ReferencingTable {
                 path: path_value,
                 table_name,
