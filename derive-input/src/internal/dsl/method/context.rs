@@ -18,7 +18,7 @@ use {
     },
     proc_macro2::TokenStream,
     quote::{ToTokens, format_ident},
-    std::{collections::BTreeSet, mem},
+    std::collections::BTreeSet,
     syn::Ident,
 };
 
@@ -103,8 +103,8 @@ impl TableContributions {
         self.compile_error_check_imports
             .extend(other.compile_error_check_imports);
         self.struct_doc_comment = relationship_doc::paragraphs([
-            mem::take(&mut self.struct_doc_comment),
-            other.struct_doc_comment,
+            self.struct_doc_comment.as_str(),
+            other.struct_doc_comment.as_str(),
         ]);
     }
 
@@ -120,8 +120,8 @@ impl TableContributions {
             .compile_error_check_imports
             .extend(self.compile_error_check_imports);
         spacetimedsl_table.struct_doc_comment = relationship_doc::paragraphs([
-            mem::take(&mut spacetimedsl_table.struct_doc_comment),
-            self.struct_doc_comment,
+            spacetimedsl_table.struct_doc_comment.as_str(),
+            self.struct_doc_comment.as_str(),
         ]);
     }
 }

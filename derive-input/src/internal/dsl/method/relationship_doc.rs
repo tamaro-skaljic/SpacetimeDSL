@@ -14,6 +14,7 @@ use {
         internal::column::InternalColumn,
     },
     quote::ToTokens,
+    std::borrow::Borrow,
     syn::{Ident, Path},
 };
 
@@ -24,10 +25,10 @@ pub fn with_section(doc: String, section: String) -> String {
 }
 
 /// The non-empty `parts` as paragraphs, each separated from the next by a blank line.
-pub fn paragraphs(parts: impl IntoIterator<Item = String>) -> String {
+pub fn paragraphs<Part: Borrow<str>>(parts: impl IntoIterator<Item = Part>) -> String {
     parts
         .into_iter()
-        .filter(|part| !part.is_empty())
+        .filter(|part| !part.borrow().is_empty())
         .collect::<Vec<_>>()
         .join("\n\n")
 }
