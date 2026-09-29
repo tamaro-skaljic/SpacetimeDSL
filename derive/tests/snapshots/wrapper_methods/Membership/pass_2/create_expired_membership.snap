@@ -32,7 +32,11 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 }
             };
         }
-        match self.db().expired_membership().try_insert(expired_membership.clone()) {
+        let unique_column_values = (
+            expired_membership.id.clone(),
+            expired_membership.account_id.clone(),
+        );
+        match self.db().expired_membership().try_insert(expired_membership) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -43,8 +47,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ id : {}, account_id : {} }}", expired_membership.id,
-                                expired_membership.account_id
+                                "{{ id : {}, account_id : {} }}", unique_column_values.0,
+                                unique_column_values.1
                             )
                                 .into(),
                         })

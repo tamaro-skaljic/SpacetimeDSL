@@ -36,7 +36,11 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 }
             };
         }
-        match self.db().child_marker().try_insert(child_marker.clone()) {
+        let unique_column_values = (
+            child_marker.id.clone(),
+            child_marker.parent_id.clone(),
+        );
+        match self.db().child_marker().try_insert(child_marker) {
             Ok(entity) => {
                 use self::AfterChildMarkerInsertHook;
                 crate::spacetimedsl::DSLMethodHooks::after_child_marker_insert(
@@ -54,8 +58,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ id : {}, parent_id : {} }}", child_marker.id,
-                                child_marker.parent_id
+                                "{{ id : {}, parent_id : {} }}", unique_column_values.0,
+                                unique_column_values.1
                             )
                                 .into(),
                         })

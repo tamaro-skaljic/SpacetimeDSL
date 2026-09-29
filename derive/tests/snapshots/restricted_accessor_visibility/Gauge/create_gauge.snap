@@ -15,7 +15,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         let reading = gauge.reading;
         let unit = gauge.unit;
         let gauge = Gauge { id, label, reading, unit };
-        match self.db().gauge().try_insert(gauge.clone()) {
+        let unique_column_values = (gauge.id.clone(),);
+        match self.db().gauge().try_insert(gauge) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -26,7 +27,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ id : {} }}", gauge.id
+                                "{{ id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })

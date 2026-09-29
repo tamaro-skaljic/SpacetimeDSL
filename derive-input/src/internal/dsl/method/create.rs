@@ -407,15 +407,21 @@ pub(super) fn insert_and_map_errors(
     } = context;
 
     // SpacetimeDB does not say which unique constraint the row broke, so the message lists
-    // every column SpacetimeDB checks for uniqueness.
+    // every column SpacetimeDB checks for uniqueness. `try_insert` consumes the row and its
+    // error carries nothing, so those values are copied first: only they, not the whole row.
     let unique_column_names = internal_columns
         .iter()
         .filter(|internal_column| internal_column.spacetimedb_column_is_unique)
         .map(|internal_column| internal_column.rust_field_name.clone())
         .collect_vec();
-    let unique_column_values = unique_column_names
+    let unique_column_values = format_ident!("unique_column_values");
+    let unique_column_copies = unique_column_names
         .iter()
-        .map(|column_name| quote! { #singular_table_name.#column_name })
+        .map(|column_name| quote! { #singular_table_name.#column_name.clone() })
+        .collect_vec();
+    let unique_column_value_in_message = (0..unique_column_names.len())
+        .map(syn::Index::from)
+        .map(|position| quote! { #unique_column_values.#position })
         .collect_vec();
 
     let unique_constraint_violation_error = runtime::unique_constraint_violation(
@@ -423,7 +429,10 @@ pub(super) fn insert_and_map_errors(
         &quote! { Create },
         &quote! { SpacetimeDB },
         &OneOrMultiple::One,
-        &message::column_names_and_row_values(&unique_column_names, &unique_column_values),
+        &message::column_names_and_row_values(
+            &unique_column_names,
+            &unique_column_value_in_message,
+        ),
     );
     let auto_inc_overflow_error = runtime::auto_inc_overflow(singular_table_name_as_string);
     let unique_constraint_violation =
@@ -431,10 +440,12 @@ pub(super) fn insert_and_map_errors(
     let auto_inc_overflow = spacetimedb::try_insert_error(&quote! { AutoIncOverflow });
 
     quote! {
+        let #unique_column_values = (#(#unique_column_copies,)*);
+
         match self
             .db()
             .#singular_table_name()
-            .try_insert(#singular_table_name.clone()) {
+            .try_insert(#singular_table_name) {
             Ok(entity) => {
                 #after_insert_hook
 

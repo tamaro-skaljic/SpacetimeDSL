@@ -18,7 +18,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             actor_id,
             message,
         };
-        match self.db().audit_entry().try_insert(audit_entry.clone()) {
+        let unique_column_values = (audit_entry.id.clone(),);
+        match self.db().audit_entry().try_insert(audit_entry) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -29,7 +30,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ id : {} }}", audit_entry.id
+                                "{{ id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })

@@ -13,7 +13,11 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         let id = license.id;
         let external_reference = license.external_reference;
         let license = License { id, external_reference };
-        match self.db().license().try_insert(license.clone()) {
+        let unique_column_values = (
+            license.id.clone(),
+            license.external_reference.clone(),
+        );
+        match self.db().license().try_insert(license) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -24,8 +28,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ id : {}, external_reference : {} }}", license.id,
-                                license.external_reference
+                                "{{ id : {}, external_reference : {} }}",
+                                unique_column_values.0, unique_column_values.1
                             )
                                 .into(),
                         })

@@ -54,7 +54,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 self.ctx().timestamp().expect("a `WriteContext` always has a timestamp"),
             );
             world_settings.modified_at = None;
-            match self.db().world_settings().try_insert(world_settings.clone()) {
+            let unique_column_values = (world_settings.id.clone(),);
+            match self.db().world_settings().try_insert(world_settings) {
                 Ok(entity) => {
                     use self::AfterWorldSettingsInsertHook;
                     crate::spacetimedsl::DSLMethodHooks::after_world_settings_insert(
@@ -72,7 +73,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                                 one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                                 column_names_and_row_values: format!(
-                                    "{{ id : {} }}", world_settings.id
+                                    "{{ id : {} }}", unique_column_values.0
                                 )
                                     .into(),
                             })

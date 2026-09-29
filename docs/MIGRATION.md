@@ -140,6 +140,10 @@ When the row to update no longer exists, the `NotFoundError` of `update_<table>_
 
 When SpacetimeDB rejects the row of `create_<table>`, or of the insert path of `upsert_<table>`, for a unique-constraint violation, the error lists the primary key and the `#[unique]` columns with the values handed to SpacetimeDB, `{ id : 1, code : second }`, instead of the whole row. An `#[auto_inc]` column shows `0`, the value SpacetimeDB replaces. The `Display` text says *here are the unique columns and the values handed to SpacetimeDB* instead of *here are all columns and their values*.
 
+#### `create_<table>` moves the row into `try_insert`
+
+`create_<table>` and the insert path of `upsert_<table>` no longer clone the whole row before they insert it. They copy only the values of the unique columns, which the unique-constraint error needs.
+
 ### For crates building on `spacetimedsl_derive-input`
 
 #### The data-transfer contract is documented

@@ -22,7 +22,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             region_id,
             shard_id,
         };
-        match self.db().session().try_insert(session.clone()) {
+        let unique_column_values = (session.id.clone(), session.device_id.clone());
+        match self.db().session().try_insert(session) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -33,8 +34,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ id : {}, device_id : {} }}", session.id, session
-                                .device_id
+                                "{{ id : {}, device_id : {} }}", unique_column_values.0,
+                                unique_column_values.1
                             )
                                 .into(),
                         })

@@ -18,7 +18,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         let id = u64::default();
         let name = potion.name;
         let potion = Potion { id, name };
-        match self.db().potion().try_insert(potion.clone()) {
+        let unique_column_values = (potion.id.clone(), potion.name.clone());
+        match self.db().potion().try_insert(potion) {
             Ok(entity) => {
                 use self::AfterPotionInsertHook;
                 crate::spacetimedsl::DSLMethodHooks::after_potion_insert(self, &entity)?;
@@ -33,7 +34,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ id : {}, name : {} }}", potion.id, potion.name
+                                "{{ id : {}, name : {} }}", unique_column_values.0,
+                                unique_column_values.1
                             )
                                 .into(),
                         })

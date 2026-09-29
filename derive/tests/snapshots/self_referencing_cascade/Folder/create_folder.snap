@@ -37,7 +37,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 }
             };
         }
-        match self.db().folder().try_insert(folder.clone()) {
+        let unique_column_values = (folder.id.clone(),);
+        match self.db().folder().try_insert(folder) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -48,7 +49,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ id : {} }}", folder.id
+                                "{{ id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })
