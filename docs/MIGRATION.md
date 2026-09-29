@@ -136,6 +136,10 @@ When `create_<table>`, or the insert path of `upsert_<table>`, rejects a row bec
 
 When the row to update no longer exists, the `NotFoundError` of `update_<table>_by_<key>`, `update_<singleton>` and `upsert_<singleton>` shows the primary key value it looked up, `{ id : 7 }`. It used to show the value of a foreign key column under the primary key's name.
 
+#### The unique-constraint error of `create_<table>` lists the unique columns
+
+When SpacetimeDB rejects the row of `create_<table>`, or of the insert path of `upsert_<table>`, for a unique-constraint violation, the error lists the primary key and the `#[unique]` columns with the values handed to SpacetimeDB, `{ id : 1, code : second }`, instead of the whole row. An `#[auto_inc]` column shows `0`, the value SpacetimeDB replaces. The `Display` text says *here are the unique columns and the values handed to SpacetimeDB* instead of *here are all columns and their values*.
+
 ### For crates building on `spacetimedsl_derive-input`
 
 #### The data-transfer contract is documented

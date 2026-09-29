@@ -36,7 +36,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ signed_document : {:?} }}", signed_document
+                                "{{ id : {} }}", signed_document.id
                             )
                                 .into(),
                         })

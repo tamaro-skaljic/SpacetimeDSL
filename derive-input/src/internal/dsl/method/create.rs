@@ -400,19 +400,30 @@ pub(super) fn insert_and_map_errors(
     after_insert_hook: &TokenStream,
 ) -> TokenStream {
     let MethodGenerationContext {
+        internal_columns,
         singular_table_name,
         singular_table_name_as_string,
         ..
     } = context;
 
-    // The row does not exist yet, so the message renders the whole struct rather than
-    // naming the columns a lookup was made on.
+    // SpacetimeDB does not say which unique constraint the row broke, so the message lists
+    // every column SpacetimeDB checks for uniqueness.
+    let unique_column_names = internal_columns
+        .iter()
+        .filter(|internal_column| internal_column.spacetimedb_column_is_unique)
+        .map(|internal_column| internal_column.rust_field_name.clone())
+        .collect_vec();
+    let unique_column_values = unique_column_names
+        .iter()
+        .map(|column_name| quote! { #singular_table_name.#column_name })
+        .collect_vec();
+
     let unique_constraint_violation_error = runtime::unique_constraint_violation(
         singular_table_name_as_string,
         &quote! { Create },
         &quote! { SpacetimeDB },
         &OneOrMultiple::One,
-        &message::whole_row(singular_table_name),
+        &message::column_names_and_row_values(&unique_column_names, &unique_column_values),
     );
     let auto_inc_overflow_error = runtime::auto_inc_overflow(singular_table_name_as_string);
     let unique_constraint_violation =

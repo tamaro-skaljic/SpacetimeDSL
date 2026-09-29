@@ -21,6 +21,7 @@ pub mod singleton_with_foreign_key_test;
 pub mod soft_deletion;
 pub mod table_level_index_foreign_key_test;
 pub mod timestamp_helper_test;
+pub mod unique_constraint_message_test;
 pub mod update_and_soft_delete_hook_test;
 
 type TestGroup = fn(&DSL<'_, ReducerContext>) -> Result<(), String>;
@@ -79,6 +80,10 @@ const TEST_GROUPS: &[(&str, TestGroup)] = &[
     (
         "reference_integrity_message_test",
         reference_integrity_message_test::run_tests,
+    ),
+    (
+        "unique_constraint_message_test",
+        unique_constraint_message_test::run_tests,
     ),
 ];
 

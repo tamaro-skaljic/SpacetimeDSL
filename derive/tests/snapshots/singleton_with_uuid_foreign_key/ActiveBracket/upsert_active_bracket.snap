@@ -113,7 +113,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                                 one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                                 column_names_and_row_values: format!(
-                                    "{{ active_bracket : {:?} }}", active_bracket
+                                    "{{ id : {} }}", active_bracket.id
                                 )
                                     .into(),
                             })

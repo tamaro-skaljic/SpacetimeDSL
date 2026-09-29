@@ -35,13 +35,6 @@ pub fn single_column_and_value(column_name: &Ident, value: &impl ToTokens) -> To
     column_names_and_row_values(std::slice::from_ref(column_name), &[value])
 }
 
-/// `format!("{{ row : {:?} }}", row)`: a whole row, debug-printed under its binding's name.
-pub fn whole_row(row: &Ident) -> TokenStream {
-    let format_string = format!("{{{{ {row} : {{:?}} }}}}");
-
-    quote! { format!(#format_string, #row) }
-}
-
 /// `"{ id : 0 }"`: a singleton's injected primary key and its only value. Both are known at
 /// generation time, so the text is a plain literal.
 pub fn singleton_primary_key() -> TokenStream {

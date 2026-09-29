@@ -54,7 +54,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ child_marker : {:?} }}", child_marker
+                                "{{ id : {}, parent_id : {} }}", child_marker.id,
+                                child_marker.parent_id
                             )
                                 .into(),
                         })

@@ -1934,15 +1934,13 @@ Not Found Error while trying to find a row in the `position` table with `{ entit
 **UniqueConstraintViolation (from SpacetimeDB):**
 
 ```txt
-Unique Constraint Violation Error while trying to create a row in the `entity` table!
-Unfortunately SpacetimeDB doesn't provide more information, so here are all columns and their values:
-{{ entity : Entity { id: EntityId { id: 1 }, created_at: ... } }}
+Unique Constraint Violation Error while trying to create a row in the `user` table! Unfortunately SpacetimeDB doesn't provide more information, so here are the unique columns and the values handed to SpacetimeDB: `{ id : 0, email : alice@example.com }`.
 ```
 
 **UniqueConstraintViolation (from SpacetimeDSL — multi-column):**
 
 ```txt
-Unique Constraint Violation Error while trying to create a row in the `entity_relationship` table because of {{ parent_entity_id : 1, child_entity_id : 2 }}!
+Unique Constraint Violation Error while trying to create a row in the `entity_relationship` table because of `{ parent_entity_id : 1, child_entity_id : 2 }`!
 ```
 
 **AutoIncOverflow:**

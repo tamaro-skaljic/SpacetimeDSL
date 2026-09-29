@@ -33,7 +33,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ session : {:?} }}", session
+                                "{{ id : {}, device_id : {} }}", session.id, session
+                                .device_id
                             )
                                 .into(),
                         })
