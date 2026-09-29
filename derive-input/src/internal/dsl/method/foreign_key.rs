@@ -38,6 +38,16 @@ pub fn foreign_key_of(column: &Column) -> &ForeignKey {
         .expect("columns are grouped by their foreign key, so every one carries it")
 }
 
+/// The first column of a group `foreign_key_columns_by_referenced_table` built. Its type and
+/// the path its foreign key spells stand for the whole group, which that function checked
+/// agrees on both.
+pub fn first_column_of<'a>(columns_with_foreign_key: &[&'a Column]) -> &'a Column {
+    columns_with_foreign_key
+        .first()
+        .copied()
+        .expect("A table grouped by referenced table must have at least one foreign key column")
+}
+
 pub fn for_foreign_key(
     removal: Removal,
     one_or_multiple: &OneOrMultiple,
@@ -46,12 +56,9 @@ pub fn for_foreign_key(
     referenced_table_name: &syn::Ident,
     columns_with_foreign_key: &[&Column],
 ) -> SpacetimeDSLMethod {
-    let first_foreign_key_column = columns_with_foreign_key
-        .first()
-        .expect("A table grouped by referenced table must have at least one foreign key column");
-
-    let referenced_table_primary_key_column_type =
-        &first_foreign_key_column.rust_field.type_name_or_path;
+    let referenced_table_primary_key_column_type = &first_column_of(columns_with_foreign_key)
+        .rust_field
+        .type_name_or_path;
 
     let mut columns_by_on_delete_strategies: BTreeMap<_, Vec<&Column>> = BTreeMap::new();
 

@@ -13,7 +13,7 @@
 use {
     super::{
         context::{MethodGenerationContext, TableContributions},
-        foreign_key::foreign_key_of,
+        foreign_key::{first_column_of, foreign_key_of},
         removal::Removal,
     },
     crate::api::Column,
@@ -89,7 +89,7 @@ fn as_referencing_table(
 
     for (referenced_table_name, columns_with_foreign_key) in foreign_key_columns_by_referenced_table
     {
-        let referenced_table_path = &foreign_key_of(columns_with_foreign_key[0]).path;
+        let referenced_table_path = &foreign_key_of(first_column_of(columns_with_foreign_key)).path;
 
         contributions
             .compile_error_checks
