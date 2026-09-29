@@ -74,6 +74,10 @@ A column with two single-column indices — for example `#[index(btree)]` on the
 
 `on_delete = SetZero` is rejected on a foreign key column that is neither an unsigned integer (`u8`–`u128`, in any spelling) nor a `Uuid`, at the column's type: *`OnDeleteStrategy::SetZero` is only allowed on unsigned integer and `Uuid` columns, …* This includes columns that used to work: signed integers such as `i32` / `i64`, and type aliases such as `type PlayerId = u64`, which the check cannot see through. Other types, such as `String`, used to fail inside the expanded code. Spell an aliased key as its unsigned type, move a signed key to an unsigned one, or choose another strategy (`Delete`, `Ignore`, …).
 
+#### A foreign key which leaves out the strategy of a removal its table performs
+
+Every `#[foreign_key]` has to set `on_delete` when the referenced table has a delete method, and `on_soft_delete` when it is soft-deletable. Two foreign keys of one table to the same table used to be checked together, so one of them could leave out `on_delete` while the other set it; deleting a referenced row then left the rows of the first one pointing at nothing. Each is checked on its own now: *unresolved import `…::this_compilation_error_occurs_because_your_foreign_key_referencing_the_warehouse_table_needs_to_define_a_strategy_for_on_delete_or_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_shipment_table`*. Add the missing strategy.
+
 ### Changed messages and generated code
 
 #### The error of a failed soft-delete cascade says *Soft Delete*
@@ -147,6 +151,14 @@ When SpacetimeDB rejects the row of `create_<table>`, or of the insert path of `
 #### The foreign key pairing is imported once per table
 
 The `use` statements which pair a `#[foreign_key]` with its `#[referenced_by]` moved out of the generated cascade methods into one `const _: () = { … };` block per table.
+
+#### The pairing errors name what to change
+
+A broken pairing between `#[foreign_key]` and `#[referenced_by]` is still an unresolved import, with these names:
+
+- A foreign key missing a strategy for a removal its table performs: `…your_foreign_key_referencing_the_<table>_table_needs_to_define_a_strategy_for_on_delete_or_the_<table>_table_has_no_referenced_by_attribute_referencing_the_<other>_table` (or `…on_soft_delete…`).
+- A `#[referenced_by]` naming a table without a foreign key back: `…the_<other>_table_has_no_foreign_key_attribute_referencing_the_<table>_table`, which replaces `…has_no_foreign_key_attribute_with_on_delete_defined…` and `…with_on_soft_delete_defined…`.
+- A foreign key setting a strategy its table cannot use keeps `…the_<table>_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_<other>_table` (or `…is_not_soft_deletable…`).
 
 ### For crates building on `spacetimedsl_derive-input`
 

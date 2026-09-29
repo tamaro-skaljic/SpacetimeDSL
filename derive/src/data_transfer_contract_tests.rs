@@ -150,9 +150,22 @@ fn the_model_holds_what_a_table_declares() {
     assert_eq!(
         compile_error_check_imports,
         [
-            "crate :: part :: this_compilation_error_occurs_because_the_part_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_gadget_table",
-            "crate :: part :: this_compilation_error_occurs_because_the_part_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_gadget_table",
+            "crate :: part :: this_compilation_error_occurs_because_the_part_table_has_no_foreign_key_attribute_referencing_the_gadget_table",
             "crate :: owner :: this_compilation_error_occurs_because_the_owner_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_gadget_table",
+            "crate :: owner :: this_compilation_error_occurs_because_your_foreign_key_referencing_the_owner_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_owner_table_has_no_referenced_by_attribute_referencing_the_gadget_table",
+        ]
+    );
+    let compile_error_checks: Vec<String> = spacetimedsl_table
+        .compile_error_checks
+        .iter()
+        .map(ToString::to_string)
+        .collect();
+    assert_eq!(
+        compile_error_checks,
+        [
+            "this_compilation_error_occurs_because_the_gadget_table_has_no_foreign_key_attribute_referencing_the_owner_table",
+            "this_compilation_error_occurs_because_the_gadget_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_part_table",
+            "this_compilation_error_occurs_because_the_gadget_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_part_table",
         ]
     );
     let create_dsl_method_arg = spacetimedsl_table

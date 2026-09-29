@@ -1463,19 +1463,19 @@ Set `on_delete` when the referenced table has a delete method, `on_soft_delete` 
 
 ### Pairing Requirement
 
-Every `#[foreign_key]` needs a corresponding `#[referenced_by]` on the referenced table's primary key. Missing either produces a descriptive compilation error:
+Every `#[foreign_key]` needs a `#[referenced_by]` naming its table on the referenced table's primary key, and every `#[referenced_by]` needs a `#[foreign_key]` back in the table it names. Each foreign key declares a strategy for exactly the removals its referenced table performs: `on_delete` when it has a delete method, `on_soft_delete` when it is soft-deletable. The foreign keys of one table are checked one by one. A broken rule is an unresolved import whose name says what to change:
 
 ```txt
-unresolved import crate::entity::this_compilation_error_occurs_because_the_entity_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_entity_relationship_table
-unresolved import crate::entity_relationship::this_compilation_error_occurs_because_the_entity_relationship_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_entity_table
+unresolved import crate::entity::this_compilation_error_occurs_because_the_entity_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_position_table
+unresolved import crate::entity::this_compilation_error_occurs_because_your_foreign_key_referencing_the_entity_table_needs_to_define_a_strategy_for_on_delete_or_the_entity_table_has_no_referenced_by_attribute_referencing_the_position_table
+unresolved import crate::position::this_compilation_error_occurs_because_the_position_table_has_no_foreign_key_attribute_referencing_the_entity_table
 ```
 
-The pairing is checked once per kind of removal, so a soft-deletable referenced table names the other field:
+- The first: a foreign key of `position` sets `on_delete`, but `entity` has no delete method, or no `#[referenced_by]` naming `position`.
+- The second: `entity` has a delete method, but a foreign key of `position` to it does not set `on_delete`, or `entity` has no `#[referenced_by]` naming `position`.
+- The third: `entity` names `position` in `#[referenced_by]`, but `position` has no foreign key to `entity`.
 
-```txt
-unresolved import crate::entity::this_compilation_error_occurs_because_the_entity_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_entity_relationship_table
-unresolved import crate::entity_relationship::this_compilation_error_occurs_because_the_entity_relationship_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_entity_table
-```
+Soft deletion is checked the same way, with `soft_deletable` and `on_soft_delete` in the names.
 
 ### `path` Parameter
 
@@ -2127,6 +2127,7 @@ impl Config {
 | Wrong hook name: `before_entity_create`           | Correct: `before_entity_insert`                                                                         |
 | Missing `#[referenced_by]` for a `#[foreign_key]` | Every foreign key needs a matching `referenced_by` on the referenced PK                                 |
 | Missing `#[foreign_key]` for a `#[referenced_by]` | Every referenced table needs a matching `foreign_key` on the referencing table                          |
+| A foreign key without `on_delete` to a deletable table | Set `on_delete`; each foreign key reacts to every removal its referenced table performs |
 | `update = true` without pub fields or timestamp   | Add a `pub` field or `modified_at`/`updated_at` column                                                  |
 | Omitting `update` parameter entirely              | Compilation error — `update` is required (unlike `delete` which defaults to `true`)                     |
 | `unique_index(accessor = ...)`                    | Correct: `unique_index(name = ...)` — `accessor` is for **SpacetimeDB** `index`, not DSL `unique_index` |

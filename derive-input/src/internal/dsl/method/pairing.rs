@@ -22,9 +22,8 @@ use {
     syn::{Ident, Path, PathSegment},
 };
 
-/// The traits the table of `context` declares and imports, as the referenced table its
-/// `#[referenced_by]` attributes describe, and as the referencing table its foreign keys make
-/// it.
+/// The traits the table of `context` declares and imports, as the table its
+/// `#[referenced_by]` attributes describe and as the table whose foreign keys reference others.
 pub fn for_table(
     context: &MethodGenerationContext,
     foreign_key_columns_by_referenced_table: &BTreeMap<&Ident, Vec<&Column>>,
@@ -39,9 +38,9 @@ pub fn for_table(
     contributions
 }
 
-/// For every table the `#[referenced_by]` attributes name and every removal this table
-/// performs: the trait which says so, and the import of the trait the other table declares
-/// when a foreign key of it declares a strategy for that removal.
+/// For every table the `#[referenced_by]` attributes name: per removal, the trait which says
+/// whether this table performs it, and the import of the trait which says that the other
+/// table has a foreign key back.
 fn as_referenced_table(context: &MethodGenerationContext) -> TableContributions {
     let MethodGenerationContext {
         spacetimedsl_table,
@@ -52,38 +51,36 @@ fn as_referenced_table(context: &MethodGenerationContext) -> TableContributions 
     let mut contributions = TableContributions::default();
 
     for referencing_table in &spacetimedsl_table.referencing_tables {
+        let referencing_table_name = &referencing_table.table_name;
+
         for removal in Removal::ALL {
-            if !removal.is_performed_by(spacetimedsl_table) {
-                continue;
-            }
+            let declared = match removal.is_performed_by(spacetimedsl_table) {
+                true => removal_is_possible(removal, singular_table_name, referencing_table_name),
+                false => {
+                    removal_is_impossible(removal, singular_table_name, referencing_table_name)
+                }
+            };
 
-            contributions
-                .compile_error_checks
-                .insert(referenced_table_compile_error_check(
-                    removal,
-                    singular_table_name,
-                    &referencing_table.table_name,
-                ));
-
-            contributions
-                .compile_error_check_imports
-                .push(imported_from(
-                    &referencing_table.path,
-                    referencing_table_compile_error_check(
-                        removal,
-                        &referencing_table.table_name,
-                        singular_table_name,
-                    ),
-                ));
+            contributions.compile_error_checks.insert(declared);
         }
+
+        contributions
+            .compile_error_check_imports
+            .push(imported_from(
+                &referencing_table.path,
+                foreign_key_exists(referencing_table_name, singular_table_name),
+            ));
     }
 
     contributions
 }
 
-/// For every table the foreign keys reference and every removal one of them declares a
-/// strategy for: the trait which says so, and the import of the trait the referenced table
-/// declares when it performs that removal.
+/// For every table the foreign keys reference: the trait which says that this table has a
+/// foreign key to it, and per removal the import of the trait matching each foreign key.
+///
+/// A foreign key declares a strategy exactly when the referenced table performs the removal,
+/// so a group where one foreign key declares it and another does not imports both traits,
+/// and one of them is missing.
 fn as_referencing_table(
     singular_table_name: &Ident,
     foreign_key_columns_by_referenced_table: &BTreeMap<&Ident, Vec<&Column>>,
@@ -94,44 +91,46 @@ fn as_referencing_table(
     {
         let referenced_table_path = &foreign_key_of(columns_with_foreign_key[0]).path;
 
+        contributions
+            .compile_error_checks
+            .insert(foreign_key_exists(
+                singular_table_name,
+                referenced_table_name,
+            ));
+
         for removal in Removal::ALL {
-            let declares_a_strategy = columns_with_foreign_key.iter().any(|column| {
+            let declares_a_strategy = |column: &&Column| {
                 removal
                     .strategy_declared_by(foreign_key_of(column))
                     .is_some()
-            });
+            };
 
-            if !declares_a_strategy {
-                continue;
+            if columns_with_foreign_key.iter().any(declares_a_strategy) {
+                contributions
+                    .compile_error_check_imports
+                    .push(imported_from(
+                        referenced_table_path,
+                        removal_is_possible(removal, referenced_table_name, singular_table_name),
+                    ));
             }
 
-            contributions
-                .compile_error_checks
-                .insert(referencing_table_compile_error_check(
-                    removal,
-                    singular_table_name,
-                    referenced_table_name,
-                ));
-
-            contributions
-                .compile_error_check_imports
-                .push(imported_from(
-                    referenced_table_path,
-                    referenced_table_compile_error_check(
-                        removal,
-                        referenced_table_name,
-                        singular_table_name,
-                    ),
-                ));
+            if !columns_with_foreign_key.iter().all(declares_a_strategy) {
+                contributions
+                    .compile_error_check_imports
+                    .push(imported_from(
+                        referenced_table_path,
+                        removal_is_impossible(removal, referenced_table_name, singular_table_name),
+                    ));
+            }
         }
     }
 
     contributions
 }
 
-/// `this_compilation_error_occurs_because_the_<referenced>_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_<referencing>_table`,
-/// or `…_soft_deletable…` for a soft deletion.
-fn referenced_table_compile_error_check(
+/// Declared by a referenced table for each table its `#[referenced_by]` names and each
+/// removal it performs. A foreign key declaring a strategy for that removal imports it.
+fn removal_is_possible(
     removal: Removal,
     referenced_table_name: &Ident,
     referencing_table_name: &Ident,
@@ -146,17 +145,26 @@ fn referenced_table_compile_error_check(
     )
 }
 
-/// `this_compilation_error_occurs_because_the_<referencing>_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_<referenced>_table`,
-/// or `…on_soft_delete…` for a soft deletion.
-fn referencing_table_compile_error_check(
+/// Declared by a referenced table for each table its `#[referenced_by]` names and each
+/// removal it does not perform. A foreign key declaring no strategy for that removal imports
+/// it.
+fn removal_is_impossible(
     removal: Removal,
-    referencing_table_name: &Ident,
     referenced_table_name: &Ident,
+    referencing_table_name: &Ident,
 ) -> Ident {
     let strategy_argument = removal.strategy_argument();
 
     format_ident!(
-        "this_compilation_error_occurs_because_the_{referencing_table_name}_table_has_no_foreign_key_attribute_with_{strategy_argument}_defined_referencing_the_{referenced_table_name}_table"
+        "this_compilation_error_occurs_because_your_foreign_key_referencing_the_{referenced_table_name}_table_needs_to_define_a_strategy_for_{strategy_argument}_or_the_{referenced_table_name}_table_has_no_referenced_by_attribute_referencing_the_{referencing_table_name}_table"
+    )
+}
+
+/// Declared by a referencing table for each table its foreign keys reference. The referenced
+/// table imports it for each table its `#[referenced_by]` names.
+fn foreign_key_exists(referencing_table_name: &Ident, referenced_table_name: &Ident) -> Ident {
+    format_ident!(
+        "this_compilation_error_occurs_because_the_{referencing_table_name}_table_has_no_foreign_key_attribute_referencing_the_{referenced_table_name}_table"
     )
 }
 
