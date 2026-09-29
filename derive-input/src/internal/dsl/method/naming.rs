@@ -193,6 +193,12 @@ pub mod cascade_binding {
         format_ident!("primary_key_values_of_rows_to_delete")
     }
 
+    /// The primary key value of one of this table's rows a strategy removes, under which a
+    /// referencing table returns the entries its own strategies produced for that row.
+    pub fn primary_key_value_of_a_row_to_delete() -> Ident {
+        format_ident!("primary_key_value_of_a_row_to_delete")
+    }
+
     /// The entries of the tables this table's removed rows cascaded into, by row.
     pub fn child_entries_by_primary_key_value_of_row_to_delete() -> Ident {
         format_ident!("child_entries_by_primary_key_value_of_row_to_delete")

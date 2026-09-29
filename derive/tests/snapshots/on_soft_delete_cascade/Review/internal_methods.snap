@@ -184,9 +184,12 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                 .get_mut(
                                     primary_key_value_of_a_row_of_another_table_to_delete,
                                 )
-                                .expect(
-                                    "every primary key value of a removed row of the referenced table was given an entry list before its strategies ran",
-                                )
+                                .unwrap_or_else(|| {
+                                    panic!(
+                                        "every primary key value of a removed row of the referenced table was given an entry list before its strategies ran, which does not hold for {}",
+                                        primary_key_value_of_a_row_of_another_table_to_delete
+                                    )
+                                })
                                 .push(crate::spacetimedsl::delete::DeletionResultEntry {
                                     table_name: "review".into(),
                                     column_name: "book_id".into(),
@@ -272,9 +275,12 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                 .get_mut(
                                     primary_key_value_of_a_row_of_another_table_to_delete,
                                 )
-                                .expect(
-                                    "every primary key value of a removed row of the referenced table was given an entry list before its strategies ran",
-                                )
+                                .unwrap_or_else(|| {
+                                    panic!(
+                                        "every primary key value of a removed row of the referenced table was given an entry list before its strategies ran, which does not hold for {}",
+                                        primary_key_value_of_a_row_of_another_table_to_delete
+                                    )
+                                })
                                 .push(crate::spacetimedsl::delete::DeletionResultEntry {
                                     table_name: "review".into(),
                                     column_name: "book_id".into(),

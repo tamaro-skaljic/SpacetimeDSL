@@ -55,9 +55,12 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 {
                     deletion_result_entries
                         .get_mut(primary_key_value_of_a_row_to_delete)
-                        .expect(
-                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
-                        )
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "the referencing tables return child entries only for the primary key values of the rows this table deletes, which does not hold for {}",
+                                primary_key_value_of_a_row_to_delete
+                            )
+                        })
                         .child_entries
                         .append(&mut child_entries);
                 }
@@ -80,9 +83,12 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
                     deletion_result_entries
                         .get_mut(primary_key_value_of_a_row_to_delete)
-                        .expect(
-                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
-                        )
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "the referencing tables return child entries only for the primary key values of the rows this table deletes, which does not hold for {}",
+                                primary_key_value_of_a_row_to_delete
+                            )
+                        })
                         .child_entries
                         .append(&mut child_entries);
                 }
@@ -118,9 +124,12 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 {
                     deletion_result_entries
                         .get_mut(primary_key_value_of_a_row_to_delete)
-                        .expect(
-                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
-                        )
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "the referencing tables return child entries only for the primary key values of the rows this table deletes, which does not hold for {}",
+                                primary_key_value_of_a_row_to_delete
+                            )
+                        })
                         .child_entries
                         .append(&mut child_entries);
                 }
@@ -143,9 +152,12 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
                     deletion_result_entries
                         .get_mut(primary_key_value_of_a_row_to_delete)
-                        .expect(
-                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
-                        )
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "the referencing tables return child entries only for the primary key values of the rows this table deletes, which does not hold for {}",
+                                primary_key_value_of_a_row_to_delete
+                            )
+                        })
                         .child_entries
                         .append(&mut child_entries);
                 }
@@ -162,9 +174,12 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 {
                     deletion_result_entries
                         .get_mut(primary_key_value_of_a_row_to_delete)
-                        .expect(
-                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
-                        )
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "the referencing tables return child entries only for the primary key values of the rows this table deletes, which does not hold for {}",
+                                primary_key_value_of_a_row_to_delete
+                            )
+                        })
                         .child_entries
                         .append(&mut child_entries);
                 }
@@ -187,9 +202,12 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
                     deletion_result_entries
                         .get_mut(primary_key_value_of_a_row_to_delete)
-                        .expect(
-                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
-                        )
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "the referencing tables return child entries only for the primary key values of the rows this table deletes, which does not hold for {}",
+                                primary_key_value_of_a_row_to_delete
+                            )
+                        })
                         .child_entries
                         .append(&mut child_entries);
                 }
@@ -206,9 +224,12 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 {
                     deletion_result_entries
                         .get_mut(primary_key_value_of_a_row_to_delete)
-                        .expect(
-                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
-                        )
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "the referencing tables return child entries only for the primary key values of the rows this table deletes, which does not hold for {}",
+                                primary_key_value_of_a_row_to_delete
+                            )
+                        })
                         .child_entries
                         .append(&mut child_entries);
                 }
@@ -231,9 +252,12 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
                     deletion_result_entries
                         .get_mut(primary_key_value_of_a_row_to_delete)
-                        .expect(
-                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
-                        )
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "the referencing tables return child entries only for the primary key values of the rows this table deletes, which does not hold for {}",
+                                primary_key_value_of_a_row_to_delete
+                            )
+                        })
                         .child_entries
                         .append(&mut child_entries);
                 }
@@ -250,9 +274,12 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 {
                     deletion_result_entries
                         .get_mut(primary_key_value_of_a_row_to_delete)
-                        .expect(
-                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
-                        )
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "the referencing tables return child entries only for the primary key values of the rows this table deletes, which does not hold for {}",
+                                primary_key_value_of_a_row_to_delete
+                            )
+                        })
                         .child_entries
                         .append(&mut child_entries);
                 }
@@ -275,9 +302,12 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
                     deletion_result_entries
                         .get_mut(primary_key_value_of_a_row_to_delete)
-                        .expect(
-                            "the referencing tables return child entries only for the primary key values of the rows this table deletes",
-                        )
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "the referencing tables return child entries only for the primary key values of the rows this table deletes, which does not hold for {}",
+                                primary_key_value_of_a_row_to_delete
+                            )
+                        })
                         .child_entries
                         .append(&mut child_entries);
                 }

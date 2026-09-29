@@ -124,6 +124,10 @@ Generated code reaches the runtime only through `crate::spacetimedsl`, the modul
 
 Where a create method or setter takes an optional used wrapper, the generated code converts it with one `Option::map` (`let due_at = due_at.map(|value| Into::<ReminderDueAt>::into(value).value());`) instead of a mutable `None`, an `is_some()` test and an `expect`. Only the code rustdoc shows under *Implementation* changes.
 
+#### A panic inside a generated cascade names its invariant and its key
+
+The lookups inside the generated delete and soft-delete cascades can only fail if SpacetimeDSL generated inconsistent code. Their panic used to name a variable of the generated code, such as *7 should exist in entries.* It now states the invariant that broke and the key it broke for, such as *the referencing tables return child entries only for the primary key values of the rows this table deletes, which does not hold for 7*. The message is formatted only when a lookup fails.
+
 ### For crates building on `spacetimedsl_derive-input`
 
 #### The data-transfer contract is documented
