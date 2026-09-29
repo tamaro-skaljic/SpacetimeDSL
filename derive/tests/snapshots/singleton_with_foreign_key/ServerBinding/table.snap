@@ -2,6 +2,9 @@
 source: derive/src/characterization_tests.rs
 ---
 pub trait this_compilation_error_occurs_because_the_server_binding_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_region_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_region_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_server_binding_table;
+};
 impl ServerBinding {
     ///
     pub fn get_region_id(&self) -> RegionId {

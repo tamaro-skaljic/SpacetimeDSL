@@ -144,6 +144,10 @@ When SpacetimeDB rejects the row of `create_<table>`, or of the insert path of `
 
 `create_<table>` and the insert path of `upsert_<table>` no longer clone the whole row before they insert it. They copy only the values of the unique columns, which the unique-constraint error needs.
 
+#### The foreign key pairing is imported once per table
+
+The `use` statements which pair a `#[foreign_key]` with its `#[referenced_by]` moved out of the generated cascade methods into one `const _: () = { … };` block per table.
+
 ### For crates building on `spacetimedsl_derive-input`
 
 #### The data-transfer contract is documented
@@ -249,3 +253,7 @@ runtime::error_from_hook_declaration(&quote! { error_from_hook }) // the binding
 #### `SpacetimeDSLArgType::actual_type()` returns the type as written
 
 `SpacetimeDSLArgType::actual_type()` returns the type of a parameter as written, for both variants.
+
+#### `SpacetimeDSLTable::compile_error_check_imports` lists the pairing imports
+
+`SpacetimeDSLTable::compile_error_check_imports: Vec<syn::Path>` holds the marker traits the tables on the other side of the table's foreign keys have to declare, as the paths to import them from. The `method_impl` of a cascade method no longer contains these imports. Emit them in a block scope, as `spacetimedsl_derive` does with `const _: () = { use …; };`, or the pairing checks are lost.

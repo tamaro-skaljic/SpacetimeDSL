@@ -64,6 +64,10 @@ pub struct SpacetimeDSLTable {
     /// of a foreign key. A table whose counterpart does not declare the trait it expects fails
     /// to compile with an error naming the missing configuration.
     pub compile_error_checks: BTreeSet<Ident>,
+    /// The marker traits the tables on the other side of a foreign key have to declare, as the
+    /// paths the expansion imports them from. A missing one is an unresolved import whose name
+    /// says what to change.
+    pub compile_error_check_imports: Vec<syn::Path>,
     /// The `Create<Table>` struct the create method takes. `None` when the table has no create
     /// method.
     pub create_dsl_method_arg: Option<CreateDSLMethodArg>,

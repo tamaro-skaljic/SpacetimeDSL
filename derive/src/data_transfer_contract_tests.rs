@@ -142,6 +142,19 @@ fn the_model_holds_what_a_table_declares() {
         panic!("one table references the table");
     };
     assert_eq!(referencing_table.table_name, "part");
+    let compile_error_check_imports: Vec<String> = spacetimedsl_table
+        .compile_error_check_imports
+        .iter()
+        .map(|path| path.to_token_stream().to_string())
+        .collect();
+    assert_eq!(
+        compile_error_check_imports,
+        [
+            "crate :: part :: this_compilation_error_occurs_because_the_part_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_gadget_table",
+            "crate :: part :: this_compilation_error_occurs_because_the_part_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_gadget_table",
+            "crate :: owner :: this_compilation_error_occurs_because_the_owner_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_gadget_table",
+        ]
+    );
     let create_dsl_method_arg = spacetimedsl_table
         .create_dsl_method_arg
         .as_ref()
@@ -432,6 +445,7 @@ fn visit_spacetimedsl_table(spacetimedsl_table: &SpacetimeDSLTable) {
         on_update_set_current_timestamp_column_name: _,
         referencing_tables,
         compile_error_checks: _,
+        compile_error_check_imports: _,
         create_dsl_method_arg,
         hooks,
     } = spacetimedsl_table;
