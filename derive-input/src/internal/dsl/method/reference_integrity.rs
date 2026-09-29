@@ -135,6 +135,11 @@ pub fn reference_integrity_checks_on_create(
     })
 }
 
+/// Why the generated update may unwrap the stored row: the first foreign key check looks it up
+/// by its primary key and returns when it finds none.
+const STORED_ROW_LOOKED_UP: &str =
+    "the stored row is looked up by its primary key before its foreign key columns are compared";
+
 /// `is_singleton` decides how the check finds the row it compares against. Every other table
 /// reads its primary key off the row through the key's wrapper, but a singleton's injected
 /// `id: u8` has neither a getter nor a wrapper, so the check names its only legal value
@@ -143,8 +148,6 @@ pub fn reference_integrity_checks_on_update(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &[InternalColumn],
     field_name_for_found_value: &Ident,
-    index_columns: &[Ident],
-    one_or_multiple: &OneOrMultiple,
     primary_key_column: &InternalColumn,
     is_singleton: bool,
 ) -> Vec<TokenStream> {
@@ -165,40 +168,31 @@ pub fn reference_integrity_checks_on_update(
         let referencing_table_column_getter_name =
             naming::getter_name(referencing_table_column_name);
 
-        let row_value_getters = index_columns
-            .iter()
-            .map(|cn| {
-                quote! {
-                    #referencing_table_name.#cn
-                }
-            })
-            .collect_vec();
-
-        let format_for_not_found_error = match one_or_multiple {
-            OneOrMultiple::One => message::column_names_and_row_values(
-                index_columns,
-                &[referencing_table_column_name],
-            ),
-            OneOrMultiple::Multiple => {
-                message::column_names_and_row_values(index_columns, &row_value_getters)
-            }
-        };
-
-        let primary_key_value_of_referencing_table = match is_singleton {
+        // The stored row is looked up by the primary key value of the row to write, so a
+        // missing row is reported with that value.
+        let (primary_key_value_of_referencing_table, missing_row) = match is_singleton {
             true => {
                 let primary_key_value = singleton::primary_key_value();
-                quote! { &#primary_key_value }
+
+                (
+                    quote! { &#primary_key_value },
+                    message::singleton_primary_key(),
+                )
             }
             false => {
                 let getter_name = naming::getter_name(primary_key_column_name_of_referencing_table);
-                quote! { #referencing_table_name.#getter_name().value() }
+                let primary_key_value = quote! { #referencing_table_name.#getter_name().value() };
+                let missing_row = message::single_column_and_value(
+                    primary_key_column_name_of_referencing_table,
+                    &primary_key_value,
+                );
+
+                (primary_key_value, missing_row)
             }
         };
 
-        let not_found_error = runtime::not_found_error(
-            &referencing_table_name_as_string,
-            &format_for_not_found_error,
-        );
+        let not_found_error =
+            runtime::not_found_error(&referencing_table_name_as_string, &missing_row);
 
         let reference_integrity_violation_error =
             runtime::reference_integrity_violation_on_create_or_update(
@@ -219,7 +213,7 @@ pub fn reference_integrity_checks_on_update(
                     }
                 };
             }
-            if #field_name_for_found_value.as_ref().expect("field_name_for_found_value should be Some(_)").#referencing_table_column_getter_name().ne(&#referencing_table_name.#referencing_table_column_getter_name()) {
+            if #field_name_for_found_value.as_ref().expect(#STORED_ROW_LOOKED_UP).#referencing_table_column_getter_name().ne(&#referencing_table_name.#referencing_table_column_getter_name()) {
                 match self.#get_row_of_referenced_table_by_primary_key_method_name(#referencing_table_name.#referencing_table_column_getter_name()) {
                     Ok(_) => {},
                     Err(_) => return Err(#reference_integrity_violation_error)

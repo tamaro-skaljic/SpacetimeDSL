@@ -28,7 +28,7 @@ Try to update a `Inspection` row of the `inspection` table whose value matches t
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                             table_name: "inspection".into(),
                             column_names_and_row_values: format!(
-                                "{{ id : {} }}", warehouse_id
+                                "{{ id : {} }}", inspection.get_id().value()
                             )
                                 .into(),
                         });
@@ -37,7 +37,9 @@ Try to update a `Inspection` row of the `inspection` table whose value matches t
             }
             if the_same_or_another_inspection
                 .as_ref()
-                .expect("field_name_for_found_value should be Some(_)")
+                .expect(
+                    "the stored row is looked up by its primary key before its foreign key columns are compared",
+                )
                 .get_warehouse_id()
                 .ne(&inspection.get_warehouse_id())
             {

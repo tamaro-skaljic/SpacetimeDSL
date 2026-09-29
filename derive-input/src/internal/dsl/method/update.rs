@@ -11,15 +11,12 @@ use {
             set_singleton_primary_key, set_updated_at_on_update,
         },
     },
-    crate::{
-        api::{
-            dsl::{
-                hook::HookKind,
-                method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
-            },
-            runtime,
+    crate::api::{
+        dsl::{
+            hook::HookKind,
+            method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
         },
-        internal::dsl::one_or_multiple::OneOrMultiple,
+        runtime,
     },
     proc_macro2::TokenStream,
     quote::{format_ident, quote},
@@ -80,17 +77,10 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
         TokenStream::default()
     };
 
-    let one_or_multiple = match shape.is_multi_column {
-        false => OneOrMultiple::One,
-        true => OneOrMultiple::Multiple,
-    };
-
     let reference_integrity_checks = reference_integrity_checks_on_update(
         spacetimedb_table,
         internal_columns,
         field_name_for_found_value,
-        &shape.index_columns,
-        &one_or_multiple,
         primary_key_column,
         is_singleton_pk,
     );

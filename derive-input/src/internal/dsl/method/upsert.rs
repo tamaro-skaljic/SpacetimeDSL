@@ -35,7 +35,7 @@ use {
         },
         internal::{
             column::{ColumnTypeKind, InternalColumn},
-            dsl::{one_or_multiple::OneOrMultiple, singleton},
+            dsl::singleton,
         },
     },
     proc_macro2::TokenStream,
@@ -342,14 +342,10 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
         arg_type: SpacetimeDSLArgType::Normal(quote! { #struct_name }),
     }];
 
-    let index_columns = vec![primary_key.clone()];
-
     let checks_on_update = reference_integrity_checks_on_update(
         spacetimedb_table,
         internal_columns,
         field_name_for_found_value,
-        &index_columns,
-        &OneOrMultiple::One,
         primary_key_column,
         true,
     );

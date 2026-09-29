@@ -34,6 +34,7 @@ pub struct IntegrityParcel {
 
 pub(crate) fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
     create_names_the_column_which_references_no_row(dsl)?;
+    update_of_a_missing_row_names_its_primary_key(dsl)?;
 
     Ok(())
 }
@@ -64,6 +65,37 @@ fn create_names_the_column_which_references_no_row<T: WriteContext>(
     if error.to_string() != expected {
         return Err(format!(
             "The reference-integrity error of create_integrity_parcel should name the column and its value!\n\nExpected:\n{expected}\n\nActual:\n{error}"
+        ));
+    }
+
+    Ok(())
+}
+
+/// Updating a parcel which no longer exists fails with the primary key value the lookup used,
+/// not with the value of its foreign key.
+fn update_of_a_missing_row_names_its_primary_key<T: WriteContext>(
+    dsl: &DSL<'_, T>,
+) -> Result<(), String> {
+    let depot = dsl.create_integrity_depot()?;
+    let parcel = dsl.create_integrity_parcel(CreateIntegrityParcel {
+        id: 1_000_000,
+        depot_id: depot.get_id(),
+    })?;
+    dsl.delete_integrity_parcel_by_id(parcel.get_id())?;
+
+    let error = match dsl.update_integrity_parcel_by_id(parcel) {
+        Ok(parcel) => {
+            return Err(format!(
+                "Updating a parcel which no longer exists should fail! Got:\n{parcel:?}"
+            ));
+        }
+        Err(error) => error,
+    };
+
+    let expected = "Not Found Error while trying to find a row in the `integrity_parcel` table with `{ id : 1000000 }`!";
+    if error.to_string() != expected {
+        return Err(format!(
+            "Updating a parcel which no longer exists should name the primary key value it looked up!\n\nExpected:\n{expected}\n\nActual:\n{error}"
         ));
     }
 

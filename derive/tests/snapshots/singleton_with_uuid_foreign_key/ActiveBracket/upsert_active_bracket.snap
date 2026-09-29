@@ -31,17 +31,16 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                         None => {
                             return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                                 table_name: "active_bracket".into(),
-                                column_names_and_row_values: format!(
-                                    "{{ id : {} }}", bracket_id
-                                )
-                                    .into(),
+                                column_names_and_row_values: "{ id : 0 }".into(),
                             });
                         }
                     };
                 }
                 if the_same_or_another_active_bracket
                     .as_ref()
-                    .expect("field_name_for_found_value should be Some(_)")
+                    .expect(
+                        "the stored row is looked up by its primary key before its foreign key columns are compared",
+                    )
                     .get_bracket_id()
                     .ne(&active_bracket.get_bracket_id())
                 {

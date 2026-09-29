@@ -28,7 +28,7 @@ Try to update a `SessionToken` row of the `session_token` table whose value matc
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                             table_name: "session_token".into(),
                             column_names_and_row_values: format!(
-                                "{{ id : {} }}", account_id
+                                "{{ id : {} }}", session_token.get_id().value()
                             )
                                 .into(),
                         });
@@ -37,7 +37,9 @@ Try to update a `SessionToken` row of the `session_token` table whose value matc
             }
             if the_same_or_another_session_token
                 .as_ref()
-                .expect("field_name_for_found_value should be Some(_)")
+                .expect(
+                    "the stored row is looked up by its primary key before its foreign key columns are compared",
+                )
                 .get_account_id()
                 .ne(&session_token.get_account_id())
             {

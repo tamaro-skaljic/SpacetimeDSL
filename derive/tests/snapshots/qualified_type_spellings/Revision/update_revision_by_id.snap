@@ -28,7 +28,7 @@ Try to update a `Revision` row of the `revision` table whose value matches the v
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                             table_name: "revision".into(),
                             column_names_and_row_values: format!(
-                                "{{ id : {} }}", draft_id
+                                "{{ id : {} }}", revision.get_id().value()
                             )
                                 .into(),
                         });
@@ -37,7 +37,9 @@ Try to update a `Revision` row of the `revision` table whose value matches the v
             }
             if the_same_or_another_revision
                 .as_ref()
-                .expect("field_name_for_found_value should be Some(_)")
+                .expect(
+                    "the stored row is looked up by its primary key before its foreign key columns are compared",
+                )
                 .get_draft_id()
                 .ne(&revision.get_draft_id())
             {

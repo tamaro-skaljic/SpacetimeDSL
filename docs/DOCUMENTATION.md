@@ -1928,7 +1928,7 @@ match dsl.delete_entity_by_id(&entity) {
 **NotFoundError:**
 
 ```txt
-Not Found Error while trying to find a row in the `position` table with {{ entity_id : 1 }}!
+Not Found Error while trying to find a row in the `position` table with `{ entity_id : 1 }`!
 ```
 
 **UniqueConstraintViolation (from SpacetimeDB):**

@@ -132,6 +132,10 @@ The lookups inside the generated delete and soft-delete cascades can only fail i
 
 When `create_<table>`, or the insert path of `upsert_<table>`, rejects a row because a foreign key references no row, the error names the column and its value, `{ warehouse_id : 3 }`, the way `update_<table>_by_<key>` does. It used to print the value in place of the name, `{ 3 : WarehouseId { id: 3 } }`.
 
+#### A missing row in `update_<table>_by_<key>` is reported by its primary key
+
+When the row to update no longer exists, the `NotFoundError` of `update_<table>_by_<key>`, `update_<singleton>` and `upsert_<singleton>` shows the primary key value it looked up, `{ id : 7 }`. It used to show the value of a foreign key column under the primary key's name.
+
 ### For crates building on `spacetimedsl_derive-input`
 
 #### The data-transfer contract is documented
