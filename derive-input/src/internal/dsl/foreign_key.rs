@@ -100,12 +100,10 @@ impl ForeignKey {
                     return Err(error::set_zero_strategy_on_unsupported_type(field.ty));
                 }
 
-                if matches!(field.vis, syn::Visibility::Inherited) {
-                    return Err(error::set_zero_strategy_on_private_column(&attr.meta));
-                }
-
                 // Clearing the column writes `0` or `Uuid::NIL`, which a second cleared row
                 // would repeat and a cleared primary key would write the row back under.
+                // Making the column public cures none of these, so they are reported before
+                // the private-column check which would ask for exactly that.
                 if spacetimedb_column.is_primary_key {
                     return Err(error::set_zero_strategy_on_primary_key_column(&attr.meta));
                 }
@@ -125,6 +123,10 @@ impl ForeignKey {
                             unique_index_name,
                         ),
                     );
+                }
+
+                if matches!(field.vis, syn::Visibility::Inherited) {
+                    return Err(error::set_zero_strategy_on_private_column(&attr.meta));
                 }
             }
 
