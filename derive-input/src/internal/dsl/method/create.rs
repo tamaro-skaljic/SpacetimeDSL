@@ -6,6 +6,7 @@ use {
         reference_integrity::{
             Action, multi_column_index_checks, reference_integrity_checks_on_create,
         },
+        relationship_doc,
     },
     crate::{
         api::{
@@ -362,7 +363,13 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
     let insert = insert_and_map_errors(context, &after_insert_hook);
 
     let method = SpacetimeDSLMethod {
-        doc_comment: format!("Create a row in the `{singular_table_name}` table."),
+        doc_comment: relationship_doc::with_section(
+            format!("Create a row in the `{singular_table_name}` table."),
+            relationship_doc::reference_checks(
+                "Fails with `ReferenceIntegrityViolation` unless each column references a row:",
+                &internal_columns.iter().collect_vec(),
+            ),
+        ),
         method_name: format_ident!("create_{}", singular_table_name),
         method_args,
         return_type: runtime::error_result_type(struct_name),
@@ -400,19 +407,39 @@ pub(super) fn insert_and_map_errors(
     after_insert_hook: &TokenStream,
 ) -> TokenStream {
     let MethodGenerationContext {
+        internal_columns,
         singular_table_name,
         singular_table_name_as_string,
         ..
     } = context;
 
-    // The row does not exist yet, so the message renders the whole struct rather than
-    // naming the columns a lookup was made on.
+    // SpacetimeDB does not say which unique constraint the row broke, so the message lists
+    // every column SpacetimeDB checks for uniqueness. `try_insert` consumes the row and its
+    // error carries nothing, so those values are copied first: only they, not the whole row.
+    let unique_column_names = internal_columns
+        .iter()
+        .filter(|internal_column| internal_column.spacetimedb_column_is_unique)
+        .map(|internal_column| internal_column.rust_field_name.clone())
+        .collect_vec();
+    let unique_column_values = format_ident!("unique_column_values");
+    let unique_column_copies = unique_column_names
+        .iter()
+        .map(|column_name| quote! { #singular_table_name.#column_name.clone() })
+        .collect_vec();
+    let unique_column_value_in_message = (0..unique_column_names.len())
+        .map(syn::Index::from)
+        .map(|position| quote! { #unique_column_values.#position })
+        .collect_vec();
+
     let unique_constraint_violation_error = runtime::unique_constraint_violation(
         singular_table_name_as_string,
         &quote! { Create },
         &quote! { SpacetimeDB },
         &OneOrMultiple::One,
-        &message::whole_row(singular_table_name),
+        &message::column_names_and_row_values(
+            &unique_column_names,
+            &unique_column_value_in_message,
+        ),
     );
     let auto_inc_overflow_error = runtime::auto_inc_overflow(singular_table_name_as_string);
     let unique_constraint_violation =
@@ -420,10 +447,12 @@ pub(super) fn insert_and_map_errors(
     let auto_inc_overflow = spacetimedb::try_insert_error(&quote! { AutoIncOverflow });
 
     quote! {
+        let #unique_column_values = (#(#unique_column_copies,)*);
+
         match self
             .db()
             .#singular_table_name()
-            .try_insert(#singular_table_name.clone()) {
+            .try_insert(#singular_table_name) {
             Ok(entity) => {
                 #after_insert_hook
 

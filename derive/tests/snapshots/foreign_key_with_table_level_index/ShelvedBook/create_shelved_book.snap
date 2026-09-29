@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `shelved_book` table.
+    /**Create a row in the `shelved_book` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `shelf_id`: a row of the `shelf` table (`self`), or `0`*/
     pub fn create_shelved_book<'a>(
         &'a self,
         shelved_book: CreateShelvedBook,
@@ -23,7 +29,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             table_name: "shelved_book".into(),
                             create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
-                                "{{ {} : {} }}", shelf_id, shelved_book.get_shelf_id()
+                                "{{ shelf_id : {} }}", shelved_book.get_shelf_id().value()
                             )
                                 .into(),
                         }),
@@ -31,7 +37,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 }
             };
         }
-        match self.db().shelved_book().try_insert(shelved_book.clone()) {
+        let unique_column_values = (shelved_book.id.clone(),);
+        match self.db().shelved_book().try_insert(shelved_book) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -42,7 +49,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ shelved_book : {:?} }}", shelved_book
+                                "{{ id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })

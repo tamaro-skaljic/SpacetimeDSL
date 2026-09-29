@@ -11,7 +11,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let id = u64::default();
         let thing = Thing { id };
-        match self.db().thing().try_insert(thing.clone()) {
+        let unique_column_values = (thing.id.clone(),);
+        match self.db().thing().try_insert(thing) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -22,7 +23,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ thing : {:?} }}", thing
+                                "{{ id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })

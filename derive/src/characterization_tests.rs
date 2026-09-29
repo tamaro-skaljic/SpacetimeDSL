@@ -5,7 +5,8 @@
 //! Each fixture in `tests/fixtures` isolates one feature and names the branch it covers.
 //! Its snapshots live in `tests/snapshots/<fixture>/<StructName>`: `table.snap` holds
 //! everything the macro emits that is not a DSL method, plus a manifest of the generated
-//! method names, one `<method_name>.snap` holds each public DSL method,
+//! method names, and starts with the documentation the macro appended to the struct, when it
+//! appended any; one `<method_name>.snap` holds each public DSL method,
 //! `internal_methods.snap` holds all internal DSL methods together, and
 //! `wrapper_methods.snap` holds all methods the struct adds to the wrapper types of its
 //! foreign key columns. A struct carrying more than one `#[dsl]` attribute is expanded
@@ -135,6 +136,11 @@ fn foreign_keys_with_equivalent_spellings() {
 #[test]
 fn foreign_key_with_table_level_index() {
     snapshot_fixture("foreign_key_with_table_level_index");
+}
+
+#[test]
+fn foreign_key_to_table_without_delete_methods() {
+    snapshot_fixture("foreign_key_to_table_without_delete_methods");
 }
 
 #[test]
@@ -483,6 +489,8 @@ struct FixtureExpansion {
     /// How many `#[dsl]` attributes the struct carries in total.
     pass_count: usize,
     generated_output: GeneratedOutput,
+    /// The doc attributes this pass appended to the struct, in order.
+    appended_documentation: Vec<String>,
 }
 
 fn snapshot_fixture(fixture_name: &str) {
@@ -492,6 +500,7 @@ fn snapshot_fixture(fixture_name: &str) {
             pass_number,
             pass_count,
             generated_output,
+            appended_documentation,
         } = expansion;
 
         // Structs with a single `#[dsl]` attribute - almost all of them - would otherwise
@@ -506,7 +515,10 @@ fn snapshot_fixture(fixture_name: &str) {
             prepend_module_to_snapshot => false,
             omit_expression => true,
         }, {
-            insta::assert_snapshot!("table", table_snapshot(&generated_output, &struct_name));
+            insta::assert_snapshot!(
+                "table",
+                table_snapshot(&generated_output, &struct_name, &appended_documentation)
+            );
 
             for dsl_method in &generated_output.dsl_methods {
                 if dsl_method.is_internal {
@@ -566,6 +578,8 @@ fn expand_fixture(fixture_name: &str) -> Vec<FixtureExpansion> {
             let dsl_attribute_args = take_first_dsl_attribute_args(&mut derive_input.attrs)
                 .expect("the `#[dsl]` attributes of the struct were just counted");
 
+            let documentation_before = documentation_of(&derive_input.attrs).len();
+
             let ExpandedDSLAttribute {
                 derive_input: echoed_item,
                 generated_output,
@@ -576,11 +590,15 @@ fn expand_fixture(fixture_name: &str) -> Vec<FixtureExpansion> {
                     )
                 });
 
+            let appended_documentation =
+                documentation_of(&echoed_item.attrs).split_off(documentation_before);
+
             expansions.push(FixtureExpansion {
                 struct_name: struct_name.clone(),
                 pass_number,
                 pass_count,
                 generated_output,
+                appended_documentation,
             });
 
             derive_input = echoed_item;
@@ -635,10 +653,34 @@ fn internal_methods_snapshot(generated_output: &GeneratedOutput) -> Option<Strin
     (!internal_methods.is_empty()).then_some(internal_methods)
 }
 
+/// The text of every `#[doc = "…"]` attribute, in order.
+fn documentation_of(attributes: &[Attribute]) -> Vec<String> {
+    attributes
+        .iter()
+        .filter(|attribute| attribute.path().is_ident("doc"))
+        .filter_map(|attribute| match &attribute.meta {
+            syn::Meta::NameValue(syn::MetaNameValue {
+                value:
+                    Expr::Lit(ExprLit {
+                        lit: Lit::Str(text),
+                        ..
+                    }),
+                ..
+            }) => Some(text.value()),
+            _ => None,
+        })
+        .collect()
+}
+
 /// Everything the macro emits that is not a DSL method, followed by a manifest of the
-/// generated method names. The manifest makes an added or removed method fail this
-/// snapshot instead of only orphaning a file.
-fn table_snapshot(generated_output: &GeneratedOutput, struct_name: &str) -> String {
+/// generated method names, and preceded by the documentation it appended to the struct. The
+/// manifest makes an added or removed method fail this snapshot instead of only orphaning a
+/// file.
+fn table_snapshot(
+    generated_output: &GeneratedOutput,
+    struct_name: &str,
+    appended_documentation: &[String],
+) -> String {
     let method_names: BTreeSet<String> = generated_output
         .dsl_methods
         .iter()
@@ -651,13 +693,29 @@ fn table_snapshot(generated_output: &GeneratedOutput, struct_name: &str) -> Stri
         "`{struct_name}` should generate each DSL method name only once, otherwise its methods cannot be snapshotted separately"
     );
 
+    let appended_documentation = match appended_documentation.is_empty() {
+        true => String::new(),
+        false => {
+            let lines = appended_documentation
+                .join("\n")
+                .lines()
+                .map(|line| format!("/// {line}").trim_end().to_string())
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            format!("// Documentation appended to the struct:\n{lines}\n\n")
+        }
+    };
+
     let items_outside_dsl_methods = format_tokens(&generated_output.items_outside_dsl_methods);
     let manifest = method_names
         .iter()
         .map(|method_name| format!("// {method_name}\n"))
         .collect::<String>();
 
-    format!("{items_outside_dsl_methods}\n// Generated DSL methods:\n{manifest}")
+    format!(
+        "{appended_documentation}{items_outside_dsl_methods}\n// Generated DSL methods:\n{manifest}"
+    )
 }
 
 /// The args of the first `#[dsl]` attribute, removed from the attributes - which is

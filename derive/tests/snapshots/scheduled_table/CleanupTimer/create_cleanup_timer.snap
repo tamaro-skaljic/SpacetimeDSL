@@ -16,7 +16,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             scheduled_id,
             scheduled_at,
         };
-        match self.db().cleanup_timer().try_insert(cleanup_timer.clone()) {
+        let unique_column_values = (cleanup_timer.scheduled_id.clone(),);
+        match self.db().cleanup_timer().try_insert(cleanup_timer) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -27,7 +28,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ cleanup_timer : {:?} }}", cleanup_timer
+                                "{{ scheduled_id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })

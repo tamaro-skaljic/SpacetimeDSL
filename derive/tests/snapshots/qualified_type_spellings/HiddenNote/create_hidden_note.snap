@@ -14,7 +14,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         let text = hidden_note.text;
         let hidden = false;
         let hidden_note = HiddenNote { id, text, hidden };
-        match self.db().hidden_note().try_insert(hidden_note.clone()) {
+        let unique_column_values = (hidden_note.id.clone(),);
+        match self.db().hidden_note().try_insert(hidden_note) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -25,7 +26,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ hidden_note : {:?} }}", hidden_note
+                                "{{ id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })

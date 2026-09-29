@@ -20,7 +20,7 @@ pub struct Position {
     /// The unique ID of the Entity the Position belongs to.
     #[unique]
     #[use_wrapper(crate::entity::EntityId)]
-    #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = SetZero)]
+    #[foreign_key(path = crate::entity, table = entity, column = obj_id, on_delete = Delete)]
     pub entity_id: u128,
 
     pub x: i128,
@@ -299,12 +299,12 @@ pub fn run_tests(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
 
     if dsl
         .get_position_by_id(&player_reflection_position.get_id())
-        .expect("should exist")
-        .get_entity_id()
-        .value()
-        .ne(&0)
+        .is_ok()
     {
-        return Err("The entity_id of the position which was previously for the player_reflection entity should be 0 because the entity was deleted and the foreign key has a SetZero strategy!".to_string());
+        return Err(
+            "Deleting the player_reflection Entity should delete its Position through on_delete = Delete!"
+                .to_string(),
+        );
     }
 
     Ok(())

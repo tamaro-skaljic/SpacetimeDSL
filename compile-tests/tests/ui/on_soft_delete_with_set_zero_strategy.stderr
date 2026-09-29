@@ -4,14 +4,14 @@ error: `OnDeleteStrategy::SetZero` is not allowed in `on_soft_delete`! Soft dele
 41 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_soft_delete = SetZero)]
    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E0432]: unresolved import `crate::shipment::this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_warehouse_table`
+error[E0432]: unresolved import `crate::shipment::this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_referencing_the_warehouse_table`
   --> tests/ui/on_soft_delete_with_set_zero_strategy.rs:12:5
    |
 12 | /     #[spacetimedsl::dsl(
 13 | |         plural_name = warehouses,
 14 | |         method(update = true, delete = false, soft_delete = true),
 15 | |     )]
-   | |______^ no `this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_warehouse_table` in `shipment`
+   | |______^ no `this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_referencing_the_warehouse_table` in `shipment`
    |
    = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
 

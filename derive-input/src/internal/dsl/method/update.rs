@@ -5,22 +5,22 @@ use {
         reference_integrity::{
             Action, multi_column_index_checks, reference_integrity_checks_on_update,
         },
+        relationship_doc,
         upsert::{
             ForeignKeyColumnScope, after_update_hook, before_update_hook_use_and_call,
             rebind_row_as_mutable_after_hook, row_value_getters_for_foreign_key_columns,
             set_singleton_primary_key, set_updated_at_on_update,
         },
     },
-    crate::{
-        api::{
-            dsl::{
-                hook::HookKind,
-                method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
-            },
-            runtime,
+    crate::api::{
+        dsl::{
+            hook::HookKind,
+            method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
         },
-        internal::dsl::one_or_multiple::OneOrMultiple,
+        runtime,
+        rust::visibility::RustVisibility,
     },
+    itertools::Itertools,
     proc_macro2::TokenStream,
     quote::{format_ident, quote},
 };
@@ -80,17 +80,10 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
         TokenStream::default()
     };
 
-    let one_or_multiple = match shape.is_multi_column {
-        false => OneOrMultiple::One,
-        true => OneOrMultiple::Multiple,
-    };
-
     let reference_integrity_checks = reference_integrity_checks_on_update(
         spacetimedb_table,
         internal_columns,
         field_name_for_found_value,
-        &shape.index_columns,
-        &one_or_multiple,
         primary_key_column,
         is_singleton_pk,
     );
@@ -155,15 +148,32 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
         true => set_singleton_primary_key(singular_table_name),
     };
 
+    // The check skips a private column, which has no setter and cannot change.
+    let columns_with_a_setter = internal_columns
+        .iter()
+        .filter(|internal_column| {
+            !matches!(
+                internal_column.rust_field_visibility,
+                RustVisibility::Private
+            )
+        })
+        .collect_vec();
+
     SpacetimeDSLMethod {
-        doc_comment: match is_singleton_pk {
-            true => format!(
-                "Try to update the `{struct_name}` row of the singleton `{singular_table_name}` table."
+        doc_comment: relationship_doc::with_section(
+            match is_singleton_pk {
+                true => format!(
+                    "Try to update the `{struct_name}` row of the singleton `{singular_table_name}` table."
+                ),
+                false => format!(
+                    "{unique_multi_column_index_hint}\n\nTry to update a `{struct_name}` row of the `{singular_table_name}` table {described_as}."
+                ),
+            },
+            relationship_doc::reference_checks(
+                "Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:",
+                &columns_with_a_setter,
             ),
-            false => format!(
-                "{unique_multi_column_index_hint}\n\nTry to update a `{struct_name}` row of the `{singular_table_name}` table {described_as}."
-            ),
-        },
+        ),
         method_name: match is_singleton_pk {
             true => format_ident!("update_{singular_table_name}"),
             false => format_ident!("update_{singular_table_name}_by_{index_name}"),

@@ -1,8 +1,19 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-pub trait this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_book_table {}
-pub trait this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_book_table {}
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `review` table
+///
+/// - `book_id` references the `id` column of the `book` table (`self`).
+///   - On delete: `Delete`
+///   - On soft delete: `Ignore`
+
+pub trait this_compilation_error_occurs_because_the_review_table_has_no_foreign_key_attribute_referencing_the_book_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_book_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_review_table;
+    use self::this_compilation_error_occurs_because_the_book_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_review_table;
+};
 #[derive(
     Clone,
     Debug,
@@ -68,12 +79,18 @@ impl Review {
         use crate::spacetimedsl::Wrapper;
         ReviewId::new(self.id.clone())
     }
-    ///
+    /**References the `id` column of the `book` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: `Ignore`*/
     pub fn get_book_id(&self) -> BookId {
         use crate::spacetimedsl::Wrapper;
         BookId::new(self.book_id.clone())
     }
-    ///
+    /**References the `id` column of the `book` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: `Ignore`*/
     pub fn set_book_id(&mut self, book_id: impl Into<BookId>) -> BookId {
         use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.book_id, book_id.into().value());

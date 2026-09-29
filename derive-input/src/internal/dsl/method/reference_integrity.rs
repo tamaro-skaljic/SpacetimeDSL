@@ -94,6 +94,21 @@ fn reference_integrity_checks(
     reference_integrity_checks
 }
 
+/// How documentation names the value a foreign key column of this kind holds when it
+/// references no row: the value the guard in `reference_integrity_checks` lets through
+/// unchecked. `None` for a kind every value of which is checked.
+pub fn documented_value_referencing_no_row(kind: ColumnTypeKind) -> Option<&'static str> {
+    match kind {
+        ColumnTypeKind::UnsignedInteger => Some("`0`"),
+        ColumnTypeKind::Optional => Some("`None`"),
+        ColumnTypeKind::UUID => Some("`Uuid::NIL`"),
+        ColumnTypeKind::String
+        | ColumnTypeKind::Bool
+        | ColumnTypeKind::Timestamp
+        | ColumnTypeKind::Other => None,
+    }
+}
+
 pub fn reference_integrity_checks_on_create(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &[InternalColumn],
@@ -118,12 +133,10 @@ pub fn reference_integrity_checks_on_create(
             runtime::reference_integrity_violation_on_create_or_update(
                 &referencing_table_name_as_string,
                 &quote! { Create },
-                // Names the column by its value rather than its name; kept as it is until
-                // https://github.com/tamaro-skaljic/SpacetimeDSL/issues/173 is fixed, which
-                // then uses `message::single_column_and_value` like the update side.
-                &quote! {
-                    format!("{{ {} : {} }}", #referencing_table_column_name, #referencing_table_name.#referencing_table_column_getter_name())
-                },
+                &message::single_column_and_value(
+                    referencing_table_column_name,
+                    &quote! { #referencing_table_name.#referencing_table_column_getter_name().value() },
+                ),
             );
 
         quote! {
@@ -137,6 +150,11 @@ pub fn reference_integrity_checks_on_create(
     })
 }
 
+/// Why the generated update may unwrap the stored row: the first foreign key check looks it up
+/// by its primary key and returns when it finds none.
+const STORED_ROW_LOOKED_UP: &str =
+    "the stored row is looked up by its primary key before its foreign key columns are compared";
+
 /// `is_singleton` decides how the check finds the row it compares against. Every other table
 /// reads its primary key off the row through the key's wrapper, but a singleton's injected
 /// `id: u8` has neither a getter nor a wrapper, so the check names its only legal value
@@ -145,8 +163,6 @@ pub fn reference_integrity_checks_on_update(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &[InternalColumn],
     field_name_for_found_value: &Ident,
-    index_columns: &[Ident],
-    one_or_multiple: &OneOrMultiple,
     primary_key_column: &InternalColumn,
     is_singleton: bool,
 ) -> Vec<TokenStream> {
@@ -167,40 +183,31 @@ pub fn reference_integrity_checks_on_update(
         let referencing_table_column_getter_name =
             naming::getter_name(referencing_table_column_name);
 
-        let row_value_getters = index_columns
-            .iter()
-            .map(|cn| {
-                quote! {
-                    #referencing_table_name.#cn
-                }
-            })
-            .collect_vec();
-
-        let format_for_not_found_error = match one_or_multiple {
-            OneOrMultiple::One => message::column_names_and_row_values(
-                index_columns,
-                &[referencing_table_column_name],
-            ),
-            OneOrMultiple::Multiple => {
-                message::column_names_and_row_values(index_columns, &row_value_getters)
-            }
-        };
-
-        let primary_key_value_of_referencing_table = match is_singleton {
+        // The stored row is looked up by the primary key value of the row to write, so a
+        // missing row is reported with that value.
+        let (primary_key_value_of_referencing_table, missing_row) = match is_singleton {
             true => {
                 let primary_key_value = singleton::primary_key_value();
-                quote! { &#primary_key_value }
+
+                (
+                    quote! { &#primary_key_value },
+                    message::singleton_primary_key(),
+                )
             }
             false => {
                 let getter_name = naming::getter_name(primary_key_column_name_of_referencing_table);
-                quote! { #referencing_table_name.#getter_name().value() }
+                let primary_key_value = quote! { #referencing_table_name.#getter_name().value() };
+                let missing_row = message::single_column_and_value(
+                    primary_key_column_name_of_referencing_table,
+                    &primary_key_value,
+                );
+
+                (primary_key_value, missing_row)
             }
         };
 
-        let not_found_error = runtime::not_found_error(
-            &referencing_table_name_as_string,
-            &format_for_not_found_error,
-        );
+        let not_found_error =
+            runtime::not_found_error(&referencing_table_name_as_string, &missing_row);
 
         let reference_integrity_violation_error =
             runtime::reference_integrity_violation_on_create_or_update(
@@ -221,7 +228,7 @@ pub fn reference_integrity_checks_on_update(
                     }
                 };
             }
-            if #field_name_for_found_value.as_ref().expect("field_name_for_found_value should be Some(_)").#referencing_table_column_getter_name().ne(&#referencing_table_name.#referencing_table_column_getter_name()) {
+            if #field_name_for_found_value.as_ref().expect(#STORED_ROW_LOOKED_UP).#referencing_table_column_getter_name().ne(&#referencing_table_name.#referencing_table_column_getter_name()) {
                 match self.#get_row_of_referenced_table_by_primary_key_method_name(#referencing_table_name.#referencing_table_column_getter_name()) {
                     Ok(_) => {},
                     Err(_) => return Err(#reference_integrity_violation_error)

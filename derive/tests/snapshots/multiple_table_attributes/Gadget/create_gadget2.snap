@@ -13,7 +13,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         let id = u64::default();
         let owner_id = gadget2.owner_id;
         let gadget2 = Gadget { id, owner_id };
-        match self.db().gadget2().try_insert(gadget2.clone()) {
+        let unique_column_values = (gadget2.id.clone(),);
+        match self.db().gadget2().try_insert(gadget2) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -24,7 +25,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ gadget2 : {:?} }}", gadget2
+                                "{{ id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })

@@ -74,6 +74,24 @@ A column with two single-column indices — for example `#[index(btree)]` on the
 
 `on_delete = SetZero` is rejected on a foreign key column that is neither an unsigned integer (`u8`–`u128`, in any spelling) nor a `Uuid`, at the column's type: *`OnDeleteStrategy::SetZero` is only allowed on unsigned integer and `Uuid` columns, …* This includes columns that used to work: signed integers such as `i32` / `i64`, and type aliases such as `type PlayerId = u64`, which the check cannot see through. Other types, such as `String`, used to fail inside the expanded code. Spell an aliased key as its unsigned type, move a signed key to an unsigned one, or choose another strategy (`Delete`, `Ignore`, …).
 
+#### A foreign key which leaves out the strategy of a removal its table performs
+
+Every `#[foreign_key]` has to set `on_delete` when the referenced table has a delete method, and `on_soft_delete` when it is soft-deletable. Two foreign keys of one table to the same table used to be checked together, so one of them could leave out `on_delete` while the other set it; deleting a referenced row then left the rows of the first one pointing at nothing. Each is checked on its own now: *unresolved import `…::this_compilation_error_occurs_because_your_foreign_key_referencing_the_warehouse_table_needs_to_define_a_strategy_for_on_delete_or_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_shipment_table`*. Add the missing strategy.
+
+#### `on_delete = SetZero` on a primary key, a `#[unique]` column or a column of a unique multi-column index
+
+`SetZero` writes `0` or `Uuid::NIL` into the foreign key column and writes the row back through its primary key. On a primary key column that write finds no row or another one; on a `#[unique]` column, or a column of a `unique_index(name = …)` index, a second cleared row repeats the value. SpacetimeDB's `update` panicked inside the cascade in the first two cases, and the third silently broke the index's uniqueness. All three are rejected at the `#[foreign_key]` attribute. Choose another strategy, such as `Delete`, or remove the uniqueness.
+
+### Newly accepted inputs
+
+#### `#[referenced_by]` on a table without delete and soft-delete methods
+
+A table with `method(delete = false)` and without `method(soft_delete = true)` may carry `#[referenced_by]`. Its rows are never removed through the DSL, so it generates no cascade. *`#[referenced_by]` is only allowed when the table has a delete method …* is gone.
+
+#### `#[foreign_key]` without `on_delete` and `on_soft_delete`
+
+A foreign key to such a table sets no strategy. *A `#[foreign_key]` must set `on_delete`, `on_soft_delete`, or both* is gone; a foreign key to a table which performs a removal still has to set its strategy. Create and update still check that it references a row.
+
 ### Changed messages and generated code
 
 #### The error of a failed soft-delete cascade says *Soft Delete*
@@ -123,6 +141,51 @@ Generated code reaches the runtime only through `crate::spacetimedsl`, the modul
 #### An optional used wrapper is converted with `Option::map`
 
 Where a create method or setter takes an optional used wrapper, the generated code converts it with one `Option::map` (`let due_at = due_at.map(|value| Into::<ReminderDueAt>::into(value).value());`) instead of a mutable `None`, an `is_some()` test and an `expect`. Only the code rustdoc shows under *Implementation* changes.
+
+#### A panic inside a generated cascade names its invariant and its key
+
+The lookups inside the generated delete and soft-delete cascades can only fail if SpacetimeDSL generated inconsistent code. Their panic used to name a variable of the generated code, such as *7 should exist in entries.* It now states the invariant that broke and the key it broke for, such as *the referencing tables return child entries only for the primary key values of the rows this table deletes, which does not hold for 7*. The message is formatted only when a lookup fails.
+
+#### The reference-integrity error of `create_<table>` names the column
+
+When `create_<table>`, or the insert path of `upsert_<table>`, rejects a row because a foreign key references no row, the error names the column and its value, `{ warehouse_id : 3 }`, the way `update_<table>_by_<key>` does. It used to print the value in place of the name, `{ 3 : WarehouseId { id: 3 } }`.
+
+#### A missing row in `update_<table>_by_<key>` is reported by its primary key
+
+When the row to update no longer exists, the `NotFoundError` of `update_<table>_by_<key>`, `update_<singleton>` and `upsert_<singleton>` shows the primary key value it looked up, `{ id : 7 }`. It used to show the value of a foreign key column under the primary key's name.
+
+#### The unique-constraint error of `create_<table>` lists the unique columns
+
+When SpacetimeDB rejects the row of `create_<table>`, or of the insert path of `upsert_<table>`, for a unique-constraint violation, the error lists the primary key and the `#[unique]` columns with the values handed to SpacetimeDB, `{ id : 1, code : second }`, instead of the whole row. An `#[auto_inc]` column shows `0`, the value SpacetimeDB replaces. The `Display` text says *here are the unique columns and the values handed to SpacetimeDB* instead of *here are all columns and their values*.
+
+#### `create_<table>` moves the row into `try_insert`
+
+`create_<table>` and the insert path of `upsert_<table>` no longer clone the whole row before they insert it. They copy only the values of the unique columns, which the unique-constraint error needs.
+
+#### The foreign key pairing is imported once per table
+
+The `use` statements which pair a `#[foreign_key]` with its `#[referenced_by]` moved out of the generated cascade methods into one `const _: () = { … };` block per table.
+
+#### The pairing errors name what to change
+
+A broken pairing between `#[foreign_key]` and `#[referenced_by]` is still an unresolved import, with these names:
+
+- A foreign key missing a strategy for a removal its table performs: `…your_foreign_key_referencing_the_<table>_table_needs_to_define_a_strategy_for_on_delete_or_the_<table>_table_has_no_referenced_by_attribute_referencing_the_<other>_table` (or `…on_soft_delete…`).
+- A `#[referenced_by]` naming a table without a foreign key back: `…the_<other>_table_has_no_foreign_key_attribute_referencing_the_<table>_table`, which replaces `…has_no_foreign_key_attribute_with_on_delete_defined…` and `…with_on_soft_delete_defined…`.
+- A foreign key setting a strategy its table cannot use keeps `…the_<table>_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_<other>_table` (or `…is_not_soft_deletable…`).
+
+#### A `#[referenced_by]` naming a table twice is reported as such
+
+Two `#[referenced_by]` attributes naming the same table used to fail with rustc's *the name `this_compilation_error_occurs_because_…` is defined multiple times* (`E0252`). The second one is now rejected with *`#[referenced_by(table = …)]` is given twice!* Name each referencing table once, however many foreign keys it has to the table.
+
+#### The generated documentation shows foreign keys and cascades
+
+- `create_<table>`, `update_<table>_by_<key>` and `upsert_<table>` list under *Foreign keys* the foreign key columns they check.
+- The delete and soft-delete methods of a table with `#[referenced_by]` list under *Cascade* the tables whose strategies they run.
+- The getter and setter of a foreign key column say which column and table it references and which strategies it declares.
+- The struct gets its foreign keys and the tables referencing it appended to its documentation.
+
+Only rustdoc output changes.
 
 ### For crates building on `spacetimedsl_derive-input`
 
@@ -229,3 +292,19 @@ runtime::error_from_hook_declaration(&quote! { error_from_hook }) // the binding
 #### `SpacetimeDSLArgType::actual_type()` returns the type as written
 
 `SpacetimeDSLArgType::actual_type()` returns the type of a parameter as written, for both variants.
+
+#### `SpacetimeDSLTable::compile_error_check_imports` lists the pairing imports
+
+`SpacetimeDSLTable::compile_error_check_imports: Vec<syn::Path>` holds the marker traits the tables on the other side of the table's foreign keys have to declare, as the paths to import them from. The `method_impl` of a cascade method no longer contains these imports. Emit them in a block scope, as `spacetimedsl_derive` does with `const _: () = { use …; };`, or the pairing checks are lost.
+
+#### Cascade entry points only where a cascade runs
+
+`SpacetimeDSLTableMethods::on_delete_strategies_of_referencing_tables` is `None` for a table which neither deletes nor soft-deletes rows, even when other tables reference it, and `on_delete_strategies_of_this_table` leaves out a referenced table whose foreign keys declare no strategy. `ForeignKey::on_delete_strategy` and `on_soft_delete_strategy` are `None` exactly when the referenced table does not perform that removal.
+
+#### `Getter::doc_comment` and `Setter::doc_comment`
+
+`Getter` and `Setter` gained `doc_comment: String`: what a foreign key column references and the strategies it declares, empty for any other column. Put it in front of the accessor's documentation, as `spacetimedsl_derive` does.
+
+#### `SpacetimeDSLTable::struct_doc_comment`
+
+`SpacetimeDSLTable::struct_doc_comment: String` holds the sections `#[spacetimedsl::dsl]` appends to the struct's documentation, empty for a table without foreign keys and without `#[referenced_by]`. Append it to the struct you emit as a `#[doc]` attribute after an empty one, as `spacetimedsl_derive` does.

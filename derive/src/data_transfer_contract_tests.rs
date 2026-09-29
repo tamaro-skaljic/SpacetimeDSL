@@ -142,6 +142,36 @@ fn the_model_holds_what_a_table_declares() {
         panic!("one table references the table");
     };
     assert_eq!(referencing_table.table_name, "part");
+    let compile_error_check_imports: Vec<String> = spacetimedsl_table
+        .compile_error_check_imports
+        .iter()
+        .map(|path| path.to_token_stream().to_string())
+        .collect();
+    assert_eq!(
+        compile_error_check_imports,
+        [
+            "crate :: part :: this_compilation_error_occurs_because_the_part_table_has_no_foreign_key_attribute_referencing_the_gadget_table",
+            "crate :: owner :: this_compilation_error_occurs_because_the_owner_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_gadget_table",
+            "crate :: owner :: this_compilation_error_occurs_because_your_foreign_key_referencing_the_owner_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_owner_table_has_no_referenced_by_attribute_referencing_the_gadget_table",
+        ]
+    );
+    let compile_error_checks: Vec<String> = spacetimedsl_table
+        .compile_error_checks
+        .iter()
+        .map(ToString::to_string)
+        .collect();
+    assert_eq!(
+        compile_error_checks,
+        [
+            "this_compilation_error_occurs_because_the_gadget_table_has_no_foreign_key_attribute_referencing_the_owner_table",
+            "this_compilation_error_occurs_because_the_gadget_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_part_table",
+            "this_compilation_error_occurs_because_the_gadget_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_part_table",
+        ]
+    );
+    assert_eq!(
+        spacetimedsl_table.struct_doc_comment,
+        "# Foreign keys of the `gadget` table\n\n- `owner_id` references the `id` column of the `owner` table (`crate::owner`).\n  - On delete: `Delete`\n  - On soft delete: none, the `owner` table is not soft-deletable\n\n# Tables referencing the `gadget` table\n\n- the `part` table (`crate::part`)"
+    );
     let create_dsl_method_arg = spacetimedsl_table
         .create_dsl_method_arg
         .as_ref()
@@ -206,6 +236,15 @@ fn the_model_holds_what_a_table_declares() {
     assert_eq!(
         foreign_key.on_delete_strategy,
         Some(OnDeleteStrategy::Delete)
+    );
+    assert_eq!(
+        owner_id
+            .spacetimedsl_column
+            .getter
+            .as_ref()
+            .expect("every column has a getter")
+            .doc_comment,
+        "References the `id` column of the `owner` table (`crate::owner`).\n\n- On delete: `Delete`\n- On soft delete: none, the `owner` table is not soft-deletable"
     );
     let Some(SpacetimeDSLColumnMethods::ForIndex(owner_id_methods)) =
         &owner_id.spacetimedsl_methods
@@ -289,6 +328,56 @@ fn the_model_holds_what_a_table_declares() {
         panic!("the one foreign key column adds one method to its wrapper type");
     };
     assert_eq!(wrapper_method.method_name, "get_gadgets");
+
+    let currency = parse_table(
+        quote! { plural_name = currencies, method(update = false, delete = false) },
+        quote! {
+            #[spacetimedb::table(accessor = currency, public)]
+            pub struct Currency {
+                #[primary_key]
+                #[auto_inc]
+                #[create_wrapper]
+                #[referenced_by(path = crate::price, table = price)]
+                id: u64,
+            }
+        },
+    );
+    visit_table(&currency);
+
+    assert!(
+        currency
+            .spacetimedsl_methods
+            .on_delete_strategies_of_referencing_tables
+            .is_none(),
+        "a table which neither deletes nor soft-deletes rows offers no cascade entry points"
+    );
+
+    let price = parse_table(
+        quote! { plural_name = prices, method(update = true, delete = true) },
+        quote! {
+            #[spacetimedb::table(accessor = price, public)]
+            pub struct Price {
+                #[primary_key]
+                #[auto_inc]
+                #[create_wrapper]
+                id: u64,
+
+                #[index(btree)]
+                #[use_wrapper(crate::currency::CurrencyId)]
+                #[foreign_key(path = crate::currency, table = currency, column = id)]
+                pub currency_id: u64,
+            }
+        },
+    );
+    visit_table(&price);
+
+    assert!(
+        price
+            .spacetimedsl_methods
+            .on_delete_strategies_of_this_table
+            .is_empty(),
+        "a foreign key without strategies has no strategy implementations"
+    );
 
     let cleanup_timer = parse_table(
         quote! { plural_name = cleanup_timers, method(update = false) },
@@ -432,8 +521,10 @@ fn visit_spacetimedsl_table(spacetimedsl_table: &SpacetimeDSLTable) {
         on_update_set_current_timestamp_column_name: _,
         referencing_tables,
         compile_error_checks: _,
+        compile_error_check_imports: _,
         create_dsl_method_arg,
         hooks,
+        struct_doc_comment: _,
     } = spacetimedsl_table;
 
     match kind {
@@ -559,6 +650,7 @@ fn visit_spacetimedsl_column(spacetimedsl_column: &SpacetimeDSLColumn) {
         None | Some(UUIDVersion::V4) | Some(UUIDVersion::V7) => {}
     }
     if let Some(Getter {
+        doc_comment: _,
         method_name: _,
         return_type: _,
         method_impl: _,
@@ -574,6 +666,7 @@ fn visit_spacetimedsl_column(spacetimedsl_column: &SpacetimeDSLColumn) {
         visit_rust_visibility(method_visibility);
     }
     if let Some(Setter {
+        doc_comment: _,
         method_visibility,
         method_name: _,
         method_arg: _,

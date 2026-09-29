@@ -2,7 +2,11 @@ use {
     crate::{
         api::{
             Column,
-            db::{column::SpacetimeDBColumn, index::Index, table::SpacetimeDBTable},
+            db::{
+                column::SpacetimeDBColumn,
+                index::{Index, IndexType},
+                table::SpacetimeDBTable,
+            },
             dsl::{
                 auto_gen::UUIDVersion,
                 column::{SpacetimeDSLColumn, SpacetimeDSLColumnMethods},
@@ -92,12 +96,25 @@ pub fn try_parse(
             &primary_key_column_name,
         );
 
+        let unique_multi_column_index = spacetimedb_table
+            .multi_column_indices
+            .iter()
+            .find(|index| {
+                index.is_unique
+                    && matches!(
+                        &index.index_type,
+                        IndexType::BTreeMultiColumn { columns } if columns.contains(&rust_field.name)
+                    )
+            })
+            .map(|index| &index.name);
+
         let spacetimedsl_column = SpacetimeDSLColumn::try_parse(
             spacetimedsl_table,
             field,
             rust_struct,
             &rust_field,
             &spacetimedb_column,
+            unique_multi_column_index,
         )?;
 
         let internal_column = InternalColumn {
@@ -108,6 +125,11 @@ pub fn try_parse(
             rust_field_type_kind: ColumnTypeKind::of(&rust_field.type_name_or_path),
             spacetimedsl_column_foreign_key: spacetimedsl_column.foreign_key.clone(),
             spacetimedb_column_is_auto_inc: spacetimedb_column.is_auto_inc,
+            spacetimedb_column_is_unique: spacetimedb_column.is_primary_key
+                || spacetimedb_column
+                    .single_column_index
+                    .as_ref()
+                    .is_some_and(|index| index.is_unique),
             spacetimedsl_column_is_option: spacetimedsl_column.is_option,
             spacetimedsl_column_wrapper_type: spacetimedsl_column.wrapper_type.clone(),
             spacetimedsl_column_auto_generated_uuid_version: spacetimedsl_column
@@ -305,6 +327,9 @@ pub struct InternalColumn {
     pub rust_field_type_name_or_path: Path,
     pub rust_field_type_kind: ColumnTypeKind,
     pub spacetimedb_column_is_auto_inc: bool,
+    /// Whether SpacetimeDB rejects a second row with the same value in this column: the
+    /// primary key, or a column with a unique single-column index.
+    pub spacetimedb_column_is_unique: bool,
     pub spacetimedsl_column_is_option: bool,
     pub spacetimedsl_column_foreign_key: Option<ForeignKey>,
     pub spacetimedsl_column_wrapper_type: Option<WrapperType>,

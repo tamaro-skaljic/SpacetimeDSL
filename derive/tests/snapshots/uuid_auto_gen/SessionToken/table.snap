@@ -1,7 +1,19 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-pub trait this_compilation_error_occurs_because_the_session_token_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_account_table {}
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `session_token` table
+///
+/// - `account_id` references the `id` column of the `account` table (`self`).
+///   - On delete: `Delete`
+///   - On soft delete: none, the `account` table is not soft-deletable
+
+pub trait this_compilation_error_occurs_because_the_session_token_table_has_no_foreign_key_attribute_referencing_the_account_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_account_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_session_token_table;
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_account_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_account_table_has_no_referenced_by_attribute_referencing_the_session_token_table;
+};
 #[derive(
     Clone,
     Debug,
@@ -142,12 +154,18 @@ impl SessionToken {
         use crate::spacetimedsl::Wrapper;
         SessionTokenToken::new(self.token.clone())
     }
-    ///
+    /**References the `id` column of the `account` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `account` table is not soft-deletable*/
     pub fn get_account_id(&self) -> AccountId {
         use crate::spacetimedsl::Wrapper;
         AccountId::new(self.account_id.clone())
     }
-    ///
+    /**References the `id` column of the `account` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `account` table is not soft-deletable*/
     pub fn set_account_id(&mut self, account_id: impl Into<AccountId>) -> AccountId {
         use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(

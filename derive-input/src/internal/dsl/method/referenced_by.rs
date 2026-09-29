@@ -7,15 +7,10 @@
 
 use {
     super::{
-        context::TableContributions,
         naming::{
-            referenced_table_compile_error_check_for_deletions,
-            referenced_table_compile_error_check_for_soft_deletions,
-            referenced_table_function_name, referencing_table_compile_error_check_for_deletions,
-            referencing_table_compile_error_check_for_soft_deletions,
-            referencing_table_function_name,
+            cascade_binding, referenced_table_function_name, referencing_table_function_name,
         },
-        on_delete_strategy::CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE,
+        on_delete_strategy::child_entries_of_a_row_to_delete_or_panic,
         removal::{Removal, dispatcher_signature},
     },
     crate::{
@@ -29,7 +24,7 @@ use {
         internal::{column::InternalColumn, dsl::one_or_multiple::OneOrMultiple},
     },
     proc_macro2::TokenStream,
-    quote::{format_ident, quote},
+    quote::quote,
     syn::Ident,
 };
 
@@ -81,11 +76,15 @@ pub fn referenced_table_function_call_for_dsl_method(
                 },
             );
 
+            let primary_key_value_of_a_row_to_delete =
+                cascade_binding::primary_key_value_of_a_row_to_delete();
+            let child_entries_or_panic = child_entries_of_a_row_to_delete_or_panic();
+
             quote! {
                 match #referenced_table_call {
                     Err(failure) => {
-                        for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure.entries {
-                            deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).expect(#CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE).child_entries.append(&mut child_entries);
+                        for (#primary_key_value_of_a_row_to_delete, mut child_entries) in failure.entries {
+                            deletion_result_entries.get_mut(#primary_key_value_of_a_row_to_delete)#child_entries_or_panic.child_entries.append(&mut child_entries);
                         }
 
                         let error_from_hook = failure.error_from_hook;
@@ -93,8 +92,8 @@ pub fn referenced_table_function_call_for_dsl_method(
                         #on_error_handler
                     },
                     Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
-                        for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                            deletion_result_entries.get_mut(primary_key_value_of_a_row_to_delete).expect(#CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE).child_entries.append(&mut child_entries);
+                        for (#primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
+                            deletion_result_entries.get_mut(#primary_key_value_of_a_row_to_delete)#child_entries_or_panic.child_entries.append(&mut child_entries);
                         }
                     }
                 };
@@ -109,8 +108,11 @@ pub fn for_referenced_by(
     spacetimedb_table: &SpacetimeDBTable,
     spacetimedsl_table: &SpacetimeDSLTable,
     primary_key_column: &InternalColumn,
-) -> (SpacetimeDSLMethod, TableContributions) {
-    let mut contributions = TableContributions::default();
+) -> SpacetimeDSLMethod {
+    let primary_key_value_of_a_row_to_delete =
+        cascade_binding::primary_key_value_of_a_row_to_delete();
+    let primary_key_values_of_rows_to_delete =
+        cascade_binding::primary_key_values_of_rows_to_delete();
 
     let singular_table_name = &spacetimedb_table.singular_name;
     let primary_key_column_type = &primary_key_column.rust_field_type_name_or_path;
@@ -125,13 +127,13 @@ pub fn for_referenced_by(
             format!(
                 "Execute On Delete Strategies of all referencing tables after one row of the referenced table `{singular_table_name}` {past_tense}."
             ),
-            format_ident!("primary_key_value_of_a_row_to_delete"),
+            primary_key_value_of_a_row_to_delete.clone(),
         ),
         OneOrMultiple::Multiple => (
             format!(
                 "Execute On Delete Strategies of all referencing tables after multiple rows of the referenced table `{singular_table_name}` {past_tense}."
             ),
-            format_ident!("primary_key_values_of_rows_to_delete"),
+            primary_key_values_of_rows_to_delete.clone(),
         ),
     };
 
@@ -156,56 +158,21 @@ pub fn for_referenced_by(
             quote! {
                 let mut entries = std::collections::HashMap::new();
 
-                if primary_key_values_of_rows_to_delete.is_empty() {
+                if #primary_key_values_of_rows_to_delete.is_empty() {
                     return Ok(entries);
                 }
 
-                for primary_key_value_of_a_row_to_delete in primary_key_values_of_rows_to_delete {
-                    entries.insert(primary_key_value_of_a_row_to_delete, vec![]);
+                for #primary_key_value_of_a_row_to_delete in #primary_key_values_of_rows_to_delete {
+                    entries.insert(#primary_key_value_of_a_row_to_delete, vec![]);
                 }
             }
         }
     };
 
-    let mut compile_error_check_usages = vec![];
-
     let mut strategy_calls = vec![];
 
     for referencing_table in &spacetimedsl_table.referencing_tables {
         let referencing_table_name = &referencing_table.table_name;
-
-        let referencing_table_path = &referencing_table.path;
-
-        // This table emits the half it can perform, and imports from the referencing table
-        // the half that table must declare for it. A missing `on_delete` and a missing
-        // `on_soft_delete` therefore fail as two different unresolved imports.
-        let compile_error_check = match removal {
-            Removal::Hard => referenced_table_compile_error_check_for_deletions(
-                singular_table_name,
-                referencing_table_name,
-            ),
-            Removal::Soft => referenced_table_compile_error_check_for_soft_deletions(
-                singular_table_name,
-                referencing_table_name,
-            ),
-        };
-        contributions
-            .compile_error_checks
-            .insert(compile_error_check.clone());
-
-        let compile_error_check = match removal {
-            Removal::Hard => referencing_table_compile_error_check_for_deletions(
-                referencing_table_name,
-                singular_table_name,
-            ),
-            Removal::Soft => referencing_table_compile_error_check_for_soft_deletions(
-                referencing_table_name,
-                singular_table_name,
-            ),
-        };
-        compile_error_check_usages.push(quote! {
-            use #referencing_table_path::#compile_error_check;
-        });
 
         let referencing_table_function_name = referencing_table_function_name(
             removal,
@@ -241,11 +208,13 @@ pub fn for_referenced_by(
                     }
                 },
                 OneOrMultiple::Multiple => {
+                    let child_entries_or_panic = child_entries_of_a_row_to_delete_or_panic();
+
                     quote! {
                         match #referencing_table_call {
                             Err(failure) => {
-                                for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure.entries {
-                                    entries.get_mut(&primary_key_value_of_a_row_to_delete).expect(#CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE).append(&mut child_entries);
+                                for (#primary_key_value_of_a_row_to_delete, mut child_entries) in failure.entries {
+                                    entries.get_mut(&#primary_key_value_of_a_row_to_delete)#child_entries_or_panic.append(&mut child_entries);
                                 }
 
                                 if error_from_hook.is_none() {
@@ -255,8 +224,8 @@ pub fn for_referenced_by(
                                 error = true;
                             },
                             Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
-                                for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                                    entries.get_mut(&primary_key_value_of_a_row_to_delete).expect(#CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE).append(&mut child_entries);
+                                for (#primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
+                                    entries.get_mut(&#primary_key_value_of_a_row_to_delete)#child_entries_or_panic.append(&mut child_entries);
                                 }
                             },
                         };
@@ -272,8 +241,6 @@ pub fn for_referenced_by(
         runtime::on_delete_strategy_failure(&quote! { entries }, &quote! { error_from_hook });
 
     let function_impl = quote! {
-        #(#compile_error_check_usages)*
-
         #create_entries
 
         #error_from_hook_declaration
@@ -287,7 +254,7 @@ pub fn for_referenced_by(
         }
     };
 
-    let method = SpacetimeDSLMethod {
+    SpacetimeDSLMethod {
         doc_comment,
         method_name: function_name,
         method_args: function_args,
@@ -295,7 +262,5 @@ pub fn for_referenced_by(
         method_impl: function_impl,
         // A cascade entry point removes or writes the referencing rows.
         read_context_compatible: false,
-    };
-
-    (method, contributions)
+    }
 }

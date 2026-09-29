@@ -670,13 +670,6 @@ pub fn missing_foreign_key_column(foreign_key_meta: &impl ToTokens) -> Error {
     )
 }
 
-pub fn foreign_key_without_on_delete_strategy(foreign_key_meta: &impl ToTokens) -> Error {
-    Error::new_spanned(
-        foreign_key_meta,
-        "A `#[foreign_key]` must set `on_delete`, `on_soft_delete`, or both, e.g. `on_delete = Delete`.\nSet `on_delete` when the referenced table has a delete method, set `on_soft_delete` when it is soft-deletable, and set both when it is both. The referenced table's own `#[referenced_by]` decides which of them is required; leaving out a required one is an unresolved import naming the field to add.",
-    )
-}
-
 pub fn set_zero_strategy_on_private_column(foreign_key_meta: &impl ToTokens) -> Error {
     Error::new_spanned(
         foreign_key_meta,
@@ -690,6 +683,32 @@ pub fn set_zero_strategy_on_unsupported_type(column_type: &Type) -> Error {
         format!(
             "`OnDeleteStrategy::SetZero` is only allowed on unsigned integer and `Uuid` columns, which it sets to `0` or `Uuid::NIL`, the values that reference no row! Found: {}",
             column_type.to_token_stream()
+        ),
+    )
+}
+
+pub fn set_zero_strategy_on_primary_key_column(foreign_key_meta: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        foreign_key_meta,
+        "`OnDeleteStrategy::SetZero` is not allowed on a primary key column!\nClearing it would write the row back under the key `0` or `Uuid::NIL`, where the write finds no row or another one. Choose another strategy, such as `on_delete = Delete`.",
+    )
+}
+
+pub fn set_zero_strategy_on_unique_column(foreign_key_meta: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        foreign_key_meta,
+        "`OnDeleteStrategy::SetZero` is not allowed on a `#[unique]` column!\nA second cleared row would repeat `0` or `Uuid::NIL`, which the unique constraint rejects. Remove `#[unique]`, or choose another strategy, such as `on_delete = Delete`.",
+    )
+}
+
+pub fn set_zero_strategy_on_unique_multi_column_index_column(
+    foreign_key_meta: &impl ToTokens,
+    unique_index_name: &Ident,
+) -> Error {
+    Error::new_spanned(
+        foreign_key_meta,
+        format!(
+            "`OnDeleteStrategy::SetZero` is not allowed on a column of the unique multi-column index `{unique_index_name}`!\nTwo cleared rows which agree in the index's other columns would repeat its values, and SpacetimeDSL checks the index only when a row is created or updated. Remove `unique_index(name = {unique_index_name})`, or choose another strategy, such as `on_delete = Delete`."
         ),
     )
 }
@@ -766,12 +785,12 @@ pub fn referenced_by_without_primary_key(referenced_by_attribute: &impl ToTokens
     )
 }
 
-pub fn referenced_by_without_delete_or_soft_delete_method(
-    referenced_by_attribute: &impl ToTokens,
-) -> Error {
+pub fn repeated_referenced_by(referencing_table_name: &Ident) -> Error {
     Error::new_spanned(
-        referenced_by_attribute,
-        "`#[referenced_by]` is only allowed when the table has a delete method (`#[dsl(method(delete = true))]`) or is soft-deletable (`#[dsl(method(soft_delete = true))]`)!\nThe on-delete strategies it declares run when a row of this table is deleted or soft-deleted, neither of which the DSL can do while both are disabled.",
+        referencing_table_name,
+        format!(
+            "`#[referenced_by(table = {referencing_table_name})]` is given twice! Name each table which references this one once, however many foreign keys it has to it."
+        ),
     )
 }
 

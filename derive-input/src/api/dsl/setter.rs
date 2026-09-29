@@ -3,6 +3,9 @@ use {crate::api::rust::visibility::RustVisibility, proc_macro2::TokenStream, syn
 /// The setter `set_<column>` a column gets when its field is not private.
 #[derive(Clone)]
 pub struct Setter {
+    /// What the column references and the strategies it declares, when it has a foreign
+    /// key; empty otherwise.
+    pub doc_comment: String,
     /// The visibility of the field, which the setter takes over.
     pub method_visibility: RustVisibility,
     /// `set_<column>`.

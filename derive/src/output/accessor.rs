@@ -18,7 +18,8 @@ pub enum Accessor<'a> {
 pub fn build(accessor: Accessor<'_>) -> TokenStream {
     let accessor = accessor.definition();
     let method = accessor.method_tokens();
-    let doc_comment = doc_comment::implementation_doc_comment(method.clone());
+    let doc_comment =
+        doc_comment::doc_comment_with_implementation(accessor.doc_comment, method.clone());
 
     quote! {
         #[doc = #doc_comment]
@@ -27,6 +28,7 @@ pub fn build(accessor: Accessor<'_>) -> TokenStream {
 }
 
 struct AccessorDefinition<'a> {
+    doc_comment: &'a str,
     method_visibility: TokenStream,
     method_name: &'a Ident,
     method_args: Vec<TokenStream>,
@@ -38,6 +40,7 @@ impl<'a> Accessor<'a> {
     fn definition(&self) -> AccessorDefinition<'a> {
         match self {
             Self::Getter(getter) => AccessorDefinition {
+                doc_comment: &getter.doc_comment,
                 method_visibility: quote! { pub },
                 method_name: &getter.method_name,
                 method_args: vec![quote! { &self }],
@@ -45,6 +48,7 @@ impl<'a> Accessor<'a> {
                 method_impl: &getter.method_impl,
             },
             Self::MutGetter(mut_getter) => AccessorDefinition {
+                doc_comment: "",
                 method_visibility: mut_getter.method_visibility.to_token_stream(),
                 method_name: &mut_getter.method_name,
                 method_args: vec![quote! { &mut self }],
@@ -52,6 +56,7 @@ impl<'a> Accessor<'a> {
                 method_impl: &mut_getter.method_impl,
             },
             Self::Setter(setter) => AccessorDefinition {
+                doc_comment: &setter.doc_comment,
                 method_visibility: setter.method_visibility.to_token_stream(),
                 method_name: &setter.method_name,
                 method_args: vec![quote! { &mut self }, setter.method_arg.clone()],

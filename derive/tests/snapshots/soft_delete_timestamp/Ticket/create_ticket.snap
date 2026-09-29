@@ -20,7 +20,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             priority,
             retired_at,
         };
-        match self.db().ticket().try_insert(ticket.clone()) {
+        let unique_column_values = (ticket.id.clone(), ticket.reference.clone());
+        match self.db().ticket().try_insert(ticket) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -31,7 +32,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ ticket : {:?} }}", ticket
+                                "{{ id : {}, reference : {} }}", unique_column_values.0,
+                                unique_column_values.1
                             )
                                 .into(),
                         })

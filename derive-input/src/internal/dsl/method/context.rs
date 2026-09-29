@@ -7,6 +7,7 @@
 //! table.
 
 use {
+    super::relationship_doc,
     crate::{
         api::{
             db::table::SpacetimeDBTable,
@@ -88,6 +89,8 @@ impl<'a> MethodGenerationContext<'a> {
 pub struct TableContributions {
     pub create_dsl_method_arg: Option<CreateDSLMethodArg>,
     pub compile_error_checks: BTreeSet<Ident>,
+    pub compile_error_check_imports: Vec<syn::Path>,
+    pub struct_doc_comment: String,
 }
 
 impl TableContributions {
@@ -97,6 +100,12 @@ impl TableContributions {
         }
 
         self.compile_error_checks.extend(other.compile_error_checks);
+        self.compile_error_check_imports
+            .extend(other.compile_error_check_imports);
+        self.struct_doc_comment = relationship_doc::paragraphs([
+            self.struct_doc_comment.as_str(),
+            other.struct_doc_comment.as_str(),
+        ]);
     }
 
     pub fn apply_to(self, spacetimedsl_table: &mut SpacetimeDSLTable) {
@@ -107,6 +116,13 @@ impl TableContributions {
         spacetimedsl_table
             .compile_error_checks
             .extend(self.compile_error_checks);
+        spacetimedsl_table
+            .compile_error_check_imports
+            .extend(self.compile_error_check_imports);
+        spacetimedsl_table.struct_doc_comment = relationship_doc::paragraphs([
+            spacetimedsl_table.struct_doc_comment.as_str(),
+            self.struct_doc_comment.as_str(),
+        ]);
     }
 }
 

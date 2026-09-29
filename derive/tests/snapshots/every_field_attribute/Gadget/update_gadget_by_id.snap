@@ -5,7 +5,13 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to update a `Gadget` row of the `gadget` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+Try to update a `Gadget` row of the `gadget` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `owner_id`: a row of the `owner` table (`self`), or `Uuid::NIL`*/
     pub fn update_gadget_by_id<'a>(
         &'a self,
         gadget: Gadget,
@@ -28,7 +34,7 @@ Try to update a `Gadget` row of the `gadget` table whose value matches the value
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                             table_name: "gadget".into(),
                             column_names_and_row_values: format!(
-                                "{{ id : {} }}", owner_id
+                                "{{ id : {} }}", gadget.get_id().value()
                             )
                                 .into(),
                         });
@@ -37,7 +43,9 @@ Try to update a `Gadget` row of the `gadget` table whose value matches the value
             }
             if the_same_or_another_gadget
                 .as_ref()
-                .expect("field_name_for_found_value should be Some(_)")
+                .expect(
+                    "the stored row is looked up by its primary key before its foreign key columns are compared",
+                )
                 .get_owner_id()
                 .ne(&gadget.get_owner_id())
             {

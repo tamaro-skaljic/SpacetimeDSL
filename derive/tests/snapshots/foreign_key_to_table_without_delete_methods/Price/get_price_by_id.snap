@@ -1,0 +1,53 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Price` from the `price` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn get_price_by_id<'a>(
+        &'a self,
+        id: impl Into<PriceId> + Clone,
+    ) -> Result<Price, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().price().id().find(id.clone().into().value()) {
+            Some(price) => Ok(price),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "price".into(),
+                    column_names_and_row_values: format!(
+                        "{{ id : {} }}", id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to get a `Price` from the `price` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn get_price_by_id<'a>(
+        &'a self,
+        id: impl Into<PriceId> + Clone,
+    ) -> Result<Price, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().price().id().find(id.clone().into().value()) {
+            Some(price) => Ok(price),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "price".into(),
+                    column_names_and_row_values: format!(
+                        "{{ id : {} }}", id.clone().into().value()
+                    )
+                        .into(),
+                });
+            }
+        }
+    }
+}

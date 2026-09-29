@@ -5,7 +5,13 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to update a `AccountNote` row of the `account_note` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+Try to update a `AccountNote` row of the `account_note` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `account_id`: a row of the `account` table (`crate::accounts`), or `0`*/
     pub fn update_account_note_by_id<'a>(
         &'a self,
         account_note: AccountNote,
@@ -28,7 +34,7 @@ Try to update a `AccountNote` row of the `account_note` table whose value matche
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                             table_name: "account_note".into(),
                             column_names_and_row_values: format!(
-                                "{{ id : {} }}", account_id
+                                "{{ id : {} }}", account_note.get_id().value()
                             )
                                 .into(),
                         });
@@ -37,7 +43,9 @@ Try to update a `AccountNote` row of the `account_note` table whose value matche
             }
             if the_same_or_another_account_note
                 .as_ref()
-                .expect("field_name_for_found_value should be Some(_)")
+                .expect(
+                    "the stored row is looked up by its primary key before its foreign key columns are compared",
+                )
                 .get_account_id()
                 .ne(&account_note.get_account_id())
             {

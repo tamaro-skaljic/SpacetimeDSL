@@ -163,6 +163,18 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
             });
         });
 
+    let compile_error_check_imports = &input.spacetimedsl_table.compile_error_check_imports;
+
+    // A block scope, so the imports of two tables in one module cannot clash.
+    let compile_error_check_usages = match compile_error_check_imports.is_empty() {
+        true => TokenStream::default(),
+        false => quote! {
+            const _: () = {
+                #(use #compile_error_check_imports;)*
+            };
+        },
+    };
+
     let create_dsl_method_arg = match &input.spacetimedsl_table.create_dsl_method_arg {
         Some(arg) => create_method_arg::build(&arg.struct_impl)?,
         None => TokenStream::default(),
@@ -185,6 +197,8 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
     Ok(GeneratedOutput {
         items_outside_dsl_methods: quote! {
             #(#compile_error_checks)*
+
+            #compile_error_check_usages
 
             #(#wrapper_types)*
 

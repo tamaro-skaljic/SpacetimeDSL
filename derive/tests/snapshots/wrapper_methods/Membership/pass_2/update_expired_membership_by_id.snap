@@ -5,7 +5,13 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to update a `Membership` row of the `expired_membership` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+Try to update a `Membership` row of the `expired_membership` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `account_id`: a row of the `account` table (`self`), or `0`*/
     pub fn update_expired_membership_by_id<'a>(
         &'a self,
         expired_membership: Membership,
@@ -28,7 +34,7 @@ Try to update a `Membership` row of the `expired_membership` table whose value m
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                             table_name: "expired_membership".into(),
                             column_names_and_row_values: format!(
-                                "{{ id : {} }}", account_id
+                                "{{ id : {} }}", expired_membership.get_id().value()
                             )
                                 .into(),
                         });
@@ -37,7 +43,9 @@ Try to update a `Membership` row of the `expired_membership` table whose value m
             }
             if the_same_or_another_expired_membership
                 .as_ref()
-                .expect("field_name_for_found_value should be Some(_)")
+                .expect(
+                    "the stored row is looked up by its primary key before its foreign key columns are compared",
+                )
                 .get_account_id()
                 .ne(&expired_membership.get_account_id())
             {

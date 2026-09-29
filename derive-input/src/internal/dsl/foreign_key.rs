@@ -25,6 +25,7 @@ impl ForeignKey {
         field: &SatsField<'_>,
         spacetimedb_column: &SpacetimeDBColumn,
         column_type_kind: ColumnTypeKind,
+        unique_multi_column_index: Option<&Ident>,
     ) -> syn::Result<Option<ForeignKey>> {
         let mut foreign_key_value = None;
 
@@ -90,10 +91,6 @@ impl ForeignKey {
             let primary_key_column_name = primary_key_column_name
                 .ok_or_else(|| error::missing_foreign_key_column(&attr.meta))?;
 
-            if on_delete_strategy.is_none() && on_soft_delete_strategy.is_none() {
-                return Err(error::foreign_key_without_on_delete_strategy(&attr.meta));
-            }
-
             if on_delete_strategy.as_ref() == Some(&OnDeleteStrategy::SetZero) {
                 // `SetZero` writes the value that references no row: `0` or `Uuid::NIL`.
                 if !matches!(
@@ -101,6 +98,31 @@ impl ForeignKey {
                     ColumnTypeKind::UnsignedInteger | ColumnTypeKind::UUID
                 ) {
                     return Err(error::set_zero_strategy_on_unsupported_type(field.ty));
+                }
+
+                // Clearing the column writes `0` or `Uuid::NIL`, which a second cleared row
+                // would repeat and a cleared primary key would write the row back under.
+                // Making the column public cures none of these, so they are reported before
+                // the private-column check which would ask for exactly that.
+                if spacetimedb_column.is_primary_key {
+                    return Err(error::set_zero_strategy_on_primary_key_column(&attr.meta));
+                }
+
+                if spacetimedb_column
+                    .single_column_index
+                    .as_ref()
+                    .is_some_and(|index| index.is_unique)
+                {
+                    return Err(error::set_zero_strategy_on_unique_column(&attr.meta));
+                }
+
+                if let Some(unique_index_name) = unique_multi_column_index {
+                    return Err(
+                        error::set_zero_strategy_on_unique_multi_column_index_column(
+                            &attr.meta,
+                            unique_index_name,
+                        ),
+                    );
                 }
 
                 if matches!(field.vis, syn::Visibility::Inherited) {

@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `folder` table.
+    /**Create a row in the `folder` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `parent_folder_id`: a row of the `folder` table (`self`), or `0`*/
     pub fn create_folder<'a>(
         &'a self,
         folder: CreateFolder,
@@ -28,8 +34,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             table_name: "folder".into(),
                             create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
-                                "{{ {} : {} }}", parent_folder_id, folder
-                                .get_parent_folder_id()
+                                "{{ parent_folder_id : {} }}", folder.get_parent_folder_id()
+                                .value()
                             )
                                 .into(),
                         }),
@@ -37,7 +43,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 }
             };
         }
-        match self.db().folder().try_insert(folder.clone()) {
+        let unique_column_values = (folder.id.clone(),);
+        match self.db().folder().try_insert(folder) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -48,7 +55,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ folder : {:?} }}", folder
+                                "{{ id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })

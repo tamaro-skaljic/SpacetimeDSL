@@ -1,7 +1,19 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-pub trait this_compilation_error_occurs_because_the_gadget_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_owner_table {}
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `gadget` table
+///
+/// - `owner_id` references the `id` column of the `owner` table (`self`).
+///   - On delete: `Delete`
+///   - On soft delete: none, the `owner` table is not soft-deletable
+
+pub trait this_compilation_error_occurs_because_the_gadget_table_has_no_foreign_key_attribute_referencing_the_owner_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_owner_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_gadget_table;
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_owner_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_owner_table_has_no_referenced_by_attribute_referencing_the_gadget_table;
+};
 #[derive(
     Clone,
     Debug,
@@ -67,12 +79,18 @@ impl Gadget {
         use crate::spacetimedsl::Wrapper;
         GadgetId::new(self.id.clone())
     }
-    ///
+    /**References the `id` column of the `owner` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `owner` table is not soft-deletable*/
     pub fn get_owner_id(&self) -> OwnerId {
         use crate::spacetimedsl::Wrapper;
         OwnerId::new(self.owner_id.clone())
     }
-    ///
+    /**References the `id` column of the `owner` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `owner` table is not soft-deletable*/
     pub fn set_owner_id(&mut self, owner_id: impl Into<OwnerId>) -> OwnerId {
         use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.owner_id, owner_id.into().value());

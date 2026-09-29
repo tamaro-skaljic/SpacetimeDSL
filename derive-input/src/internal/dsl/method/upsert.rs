@@ -21,6 +21,7 @@ use {
         reference_integrity::{
             reference_integrity_checks_on_create, reference_integrity_checks_on_update,
         },
+        relationship_doc,
     },
     crate::{
         api::{
@@ -35,9 +36,10 @@ use {
         },
         internal::{
             column::{ColumnTypeKind, InternalColumn},
-            dsl::{one_or_multiple::OneOrMultiple, singleton},
+            dsl::singleton,
         },
     },
+    itertools::Itertools,
     proc_macro2::TokenStream,
     quote::{format_ident, quote},
     syn::Ident,
@@ -342,14 +344,10 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
         arg_type: SpacetimeDSLArgType::Normal(quote! { #struct_name }),
     }];
 
-    let index_columns = vec![primary_key.clone()];
-
     let checks_on_update = reference_integrity_checks_on_update(
         spacetimedb_table,
         internal_columns,
         field_name_for_found_value,
-        &index_columns,
-        &OneOrMultiple::One,
         primary_key_column,
         true,
     );
@@ -442,8 +440,14 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
     let insert = create::insert_and_map_errors(context, &after_insert_hook);
 
     SpacetimeDSLMethod {
-        doc_comment: format!(
-            "Write the `{struct_name}` row of the singleton `{singular_table_name}` table, whether or not it exists yet."
+        doc_comment: relationship_doc::with_section(
+            format!(
+                "Write the `{struct_name}` row of the singleton `{singular_table_name}` table, whether or not it exists yet."
+            ),
+            relationship_doc::reference_checks(
+                "Fails with `ReferenceIntegrityViolation` unless each column references a row. While the row exists, only the columns with a setter are checked, whenever their value changes:",
+                &internal_columns.iter().collect_vec(),
+            ),
         ),
         method_name: format_ident!("upsert_{singular_table_name}"),
         method_args,

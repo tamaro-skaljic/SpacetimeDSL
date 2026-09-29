@@ -85,6 +85,11 @@ fn expand_dsl_attribute_parts(
 
     let input = Table::try_parse(args, &derive_input)?;
 
+    append_documentation(
+        &mut derive_input,
+        &input.spacetimedsl_table.struct_doc_comment,
+    );
+
     // Build the output, possibly using quasi-quotation
     let generated_output = output::build(&input, first_dsl_attribute)?;
 
@@ -108,6 +113,18 @@ fn derive_table_helper_attr() -> syn::Attribute {
     let spacetimedsl_derive = runtime::spacetimedsl_derive();
 
     syn::parse_quote!(#[derive(Clone, Debug, PartialEq, #spacetimedsl_derive)])
+}
+
+/// Appends `documentation` to the struct's own doc comment, as a paragraph of its own.
+fn append_documentation(derive_input: &mut syn::DeriveInput, documentation: &str) {
+    if documentation.is_empty() {
+        return;
+    }
+
+    derive_input.attrs.push(syn::parse_quote!(#[doc = ""]));
+    derive_input
+        .attrs
+        .push(syn::parse_quote!(#[doc = #documentation]));
 }
 
 /// Declares the field attributes `#[dsl]` reads as helper attributes, so the compiler accepts

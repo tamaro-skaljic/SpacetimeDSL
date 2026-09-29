@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `book` table.
+    /**Create a row in the `book` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `author_id`: a row of the `author` table (`self`), or `Uuid::NIL`*/
     pub fn create_book<'a>(
         &'a self,
         book: CreateBook,
@@ -23,7 +29,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             table_name: "book".into(),
                             create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
-                                "{{ {} : {} }}", author_id, book.get_author_id()
+                                "{{ author_id : {} }}", book.get_author_id().value()
                             )
                                 .into(),
                         }),
@@ -31,7 +37,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 }
             };
         }
-        match self.db().book().try_insert(book.clone()) {
+        let unique_column_values = (book.id.clone(),);
+        match self.db().book().try_insert(book) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -42,7 +49,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ book : {:?} }}", book
+                                "{{ id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })

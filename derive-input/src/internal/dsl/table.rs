@@ -85,11 +85,7 @@ impl SpacetimeDSLTable {
         let mut referencing_tables = vec![];
 
         for field in &column_args.fields {
-            let refs = ReferencingTable::try_parse(
-                &has_delete_method.unwrap_or(true),
-                soft_delete_marker.is_some(),
-                field,
-            )?;
+            let refs = ReferencingTable::try_parse(field)?;
             if referencing_tables.is_empty() {
                 referencing_tables = refs;
             }
@@ -174,10 +170,11 @@ impl SpacetimeDSLTable {
             on_insert_set_current_timestamp_column_name,
             on_update_set_current_timestamp_column_name,
             referencing_tables,
+            // `TableContributions::apply_to` fills these in, after the methods are generated.
             compile_error_checks: BTreeSet::new(),
-            // `TableContributions::apply_to` fills this in, after the create method is
-            // generated.
+            compile_error_check_imports: vec![],
             create_dsl_method_arg: None,
+            struct_doc_comment: String::new(),
             hooks,
         })
     }

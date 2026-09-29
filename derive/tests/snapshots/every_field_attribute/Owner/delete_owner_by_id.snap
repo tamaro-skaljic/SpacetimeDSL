@@ -5,7 +5,13 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to delete a `Owner` row in the `owner` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+Try to delete a `Owner` row in the `owner` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Cascade
+
+Runs the `on_delete` strategies which the foreign keys of these tables declare:
+
+- the `gadget` table (`self`)*/
     pub fn delete_owner_by_id<'a>(
         &'a self,
         id: impl Into<OwnerId> + Clone,

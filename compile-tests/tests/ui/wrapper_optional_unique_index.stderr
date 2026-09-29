@@ -1,3 +1,13 @@
+error[E0277]: `Option<spacetimedb::Timestamp>` doesn't implement `std::fmt::Display`
+  --> tests/ui/wrapper_optional_unique_index.rs:22:5
+   |
+22 |     #[spacetimedsl::dsl(plural_name = reminders, method(update = true))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Option<spacetimedb::Timestamp>` cannot be formatted with the default formatter
+   |
+   = help: the trait `std::fmt::Display` is not implemented for `Option<spacetimedb::Timestamp>`
+   = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+   = note: this error originates in the macro `$crate::__export::format_args` which comes from the expansion of the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
 error[E0277]: the trait bound `ReminderAcknowledgedAt: From<&impl Into<Option<ReminderAcknowledgedAt>>>` is not satisfied
   --> tests/ui/wrapper_optional_unique_index.rs:32:13
    |

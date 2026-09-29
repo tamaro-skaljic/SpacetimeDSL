@@ -5,7 +5,13 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to soft-delete a `Book` row in the `book` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+Try to soft-delete a `Book` row in the `book` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Cascade
+
+Runs the `on_soft_delete` strategies which the foreign keys of these tables declare:
+
+- the `review` table (`self`)*/
     pub fn soft_delete_book_by_id<'a>(
         &'a self,
         id: impl Into<BookId> + Clone,

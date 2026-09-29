@@ -110,7 +110,7 @@ impl Display for SpacetimeDSLError {
                 match error_from {
                     ErrorFrom::SpacetimeDB => write!(
                         f,
-                        "! {spacetimedb_gives_no_details}, so here are all columns and their values: `{column_names_and_row_values}`."
+                        "! {spacetimedb_gives_no_details}, so here are the unique columns and the values handed to SpacetimeDB: `{column_names_and_row_values}`."
                     ),
                     ErrorFrom::SpacetimeDSL => {
                         let one_or_multiple = match one_or_multiple {

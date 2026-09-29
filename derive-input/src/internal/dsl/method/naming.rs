@@ -3,19 +3,11 @@
 //! trait a hook function implements, and the identifiers two tables in a foreign key
 //! relationship share.
 //!
-//! A referencing table calls a function it does not see the definition of, and imports a
-//! trait the other table defines, so both sides have to build the same identifier from the
-//! same two table names. Both sides build it here.
+//! A referencing table calls a function it does not see the definition of, so both sides
+//! have to build the same identifier from the same two table names. Both sides build it
+//! here. The marker traits which pair the two sides are named in [`super::pairing`].
 //!
-//! These names are part of the generated API. Changing one breaks every module generated
-//! against the previous name until it is regenerated.
-//!
-//! Each direction of the paired check is split by capability, because a table may be
-//! deletable, soft-deletable or both, and the two say different things about what the
-//! referencing side must declare. A table emits the half it can perform and imports the
-//! half it needs from the other side, so a missing `on_delete` and a missing
-//! `on_soft_delete` fail as two different unresolved imports, each naming the field to
-//! add.
+//! These names are part of the generated API.
 
 use {
     super::removal::Removal, crate::internal::dsl::one_or_multiple::OneOrMultiple,
@@ -61,42 +53,6 @@ pub fn hook_trait_name(hook_function_name: &Ident) -> Ident {
     format_ident!(
         "{}Hook",
         RenameRule::PascalCase.apply_to_field(hook_function_name.to_string())
-    )
-}
-
-pub fn referenced_table_compile_error_check_for_deletions(
-    referenced_table_name: &Ident,
-    referencing_table_name: &Ident,
-) -> Ident {
-    format_ident!(
-        "this_compilation_error_occurs_because_the_{referenced_table_name}_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_{referencing_table_name}_table"
-    )
-}
-
-pub fn referenced_table_compile_error_check_for_soft_deletions(
-    referenced_table_name: &Ident,
-    referencing_table_name: &Ident,
-) -> Ident {
-    format_ident!(
-        "this_compilation_error_occurs_because_the_{referenced_table_name}_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_{referencing_table_name}_table"
-    )
-}
-
-pub fn referencing_table_compile_error_check_for_deletions(
-    referencing_table_name: &Ident,
-    referenced_table_name: &Ident,
-) -> Ident {
-    format_ident!(
-        "this_compilation_error_occurs_because_the_{referencing_table_name}_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_{referenced_table_name}_table"
-    )
-}
-
-pub fn referencing_table_compile_error_check_for_soft_deletions(
-    referencing_table_name: &Ident,
-    referenced_table_name: &Ident,
-) -> Ident {
-    format_ident!(
-        "this_compilation_error_occurs_because_the_{referencing_table_name}_table_has_no_foreign_key_attribute_with_on_soft_delete_defined_referencing_the_{referenced_table_name}_table"
     )
 }
 
@@ -191,6 +147,12 @@ pub mod cascade_binding {
     /// The primary key values of this table's rows a strategy removes in turn.
     pub fn primary_key_values_of_rows_to_delete() -> Ident {
         format_ident!("primary_key_values_of_rows_to_delete")
+    }
+
+    /// The primary key value of one of this table's rows a strategy removes, under which a
+    /// referencing table returns the entries its own strategies produced for that row.
+    pub fn primary_key_value_of_a_row_to_delete() -> Ident {
+        format_ident!("primary_key_value_of_a_row_to_delete")
     }
 
     /// The entries of the tables this table's removed rows cascaded into, by row.

@@ -5,7 +5,13 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to update a `Folder` row of the `folder` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+Try to update a `Folder` row of the `folder` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `parent_folder_id`: a row of the `folder` table (`self`), or `0`*/
     pub fn update_folder_by_id<'a>(
         &'a self,
         folder: Folder,
@@ -28,7 +34,7 @@ Try to update a `Folder` row of the `folder` table whose value matches the value
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                             table_name: "folder".into(),
                             column_names_and_row_values: format!(
-                                "{{ id : {} }}", parent_folder_id
+                                "{{ id : {} }}", folder.get_id().value()
                             )
                                 .into(),
                         });
@@ -37,7 +43,9 @@ Try to update a `Folder` row of the `folder` table whose value matches the value
             }
             if the_same_or_another_folder
                 .as_ref()
-                .expect("field_name_for_found_value should be Some(_)")
+                .expect(
+                    "the stored row is looked up by its primary key before its foreign key columns are compared",
+                )
                 .get_parent_folder_id()
                 .ne(&folder.get_parent_folder_id())
             {

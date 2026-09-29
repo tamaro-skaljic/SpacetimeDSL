@@ -13,7 +13,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
         let id = shipment.id.value();
         let warehouse_id = shipment.warehouse_id.value();
         let shipment = Shipment { id, warehouse_id };
-        match self.db().shipment().try_insert(shipment.clone()) {
+        let unique_column_values = (shipment.id.clone(), shipment.warehouse_id.clone());
+        match self.db().shipment().try_insert(shipment) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -24,7 +25,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ shipment : {:?} }}", shipment
+                                "{{ id : {}, warehouse_id : {} }}", unique_column_values.0,
+                                unique_column_values.1
                             )
                                 .into(),
                         })

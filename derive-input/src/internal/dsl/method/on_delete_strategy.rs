@@ -30,7 +30,7 @@ use {
         },
     },
     proc_macro2::TokenStream,
-    quote::{TokenStreamExt, format_ident, quote},
+    quote::{ToTokens, TokenStreamExt, format_ident, quote},
     syn::Ident,
 };
 
@@ -91,6 +91,18 @@ pub fn on_delete_strategy_implementation(
             .db()
             .#singular_table_name()
     };
+    let entry_list_or_panic = unwrap_or_panic_naming_the_key(
+        ENTRY_LIST_PREPARED,
+        &primary_key_value_of_a_row_of_another_table_to_delete,
+    );
+    let row_list_or_panic = unwrap_or_panic_naming_the_key(
+        ROW_LIST_PREPARED,
+        &primary_key_value_of_a_row_of_another_table_to_delete,
+    );
+    let recorded_row_or_panic =
+        unwrap_or_panic_naming_the_key(ROW_RECORDED, primary_key_column_name);
+    let child_entry_list_or_panic =
+        unwrap_or_panic_naming_the_key(CHILD_ENTRY_LIST_PREPARED, primary_key_column_name);
 
     // Deliberate empty slot, symmetric with strategy_after_all.
     let strategy_before_all = quote! {};
@@ -186,7 +198,7 @@ pub fn on_delete_strategy_implementation(
             }
             OneOrMultiple::Multiple => {
                 quote! {
-                    #entries.get_mut(#primary_key_value_of_a_row_of_another_table_to_delete).expect(#ENTRY_LIST_PREPARED).push(#create_entry);
+                    #entries.get_mut(#primary_key_value_of_a_row_of_another_table_to_delete)#entry_list_or_panic.push(#create_entry);
                 }
             }
         };
@@ -271,7 +283,7 @@ pub fn on_delete_strategy_implementation(
                         let create_entries_and_add_them_to_entries = quote! {
                             for (#primary_key_value_of_a_row_of_another_table_to_delete, #primary_key_values_of_rows_to_delete) in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete {
                                 for #primary_key_column_name in &#primary_key_values_of_rows_to_delete {
-                                    let child_entries = #child_entries_by_primary_key_value_of_row_to_delete.remove(&#primary_key_column_name).expect(#CHILD_ENTRY_LIST_PREPARED);
+                                    let child_entries = #child_entries_by_primary_key_value_of_row_to_delete.remove(&#primary_key_column_name)#child_entry_list_or_panic;
                                     #create_entry_and_add_it_to_entries
                                 }
                             }
@@ -349,7 +361,7 @@ pub fn on_delete_strategy_implementation(
 
                         let strategy_for_each_row = quote! {
                             if !#child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.#primary_key_column_name) {
-                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(#primary_key_value_of_a_row_of_another_table_to_delete).expect(#ROW_LIST_PREPARED).push(row.#primary_key_column_name);
+                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(#primary_key_value_of_a_row_of_another_table_to_delete)#row_list_or_panic.push(row.#primary_key_column_name);
                                 #child_entries_by_primary_key_value_of_row_to_delete.insert(row.#primary_key_column_name, vec![]);
                             row_to_delete_by_primary_key_value.insert(row.#primary_key_column_name, row);
                             }
@@ -359,7 +371,7 @@ pub fn on_delete_strategy_implementation(
                             for #primary_key_column_name in &#primary_key_values_of_rows_to_delete {
                                 let row = row_to_delete_by_primary_key_value
                                     .get(#primary_key_column_name)
-                                    .expect(#ROW_RECORDED);
+                                    #recorded_row_or_panic;
 
                                 #before_delete_hook
 
@@ -520,7 +532,7 @@ pub fn on_delete_strategy_implementation(
                         let create_entries_and_add_them_to_entries = quote! {
                             for (#primary_key_value_of_a_row_of_another_table_to_delete, #primary_key_values_of_rows_to_delete) in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete {
                                 for #primary_key_column_name in &#primary_key_values_of_rows_to_delete {
-                                    let child_entries = #child_entries_by_primary_key_value_of_row_to_delete.remove(&#primary_key_column_name).expect(#CHILD_ENTRY_LIST_PREPARED);
+                                    let child_entries = #child_entries_by_primary_key_value_of_row_to_delete.remove(&#primary_key_column_name)#child_entry_list_or_panic;
                                     #create_entry_and_add_it_to_entries
                                 }
                             }
@@ -582,7 +594,7 @@ pub fn on_delete_strategy_implementation(
 
                         let strategy_for_each_row = quote! {
                             if !(#is_row_marked) && !#child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.#primary_key_column_name) {
-                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(#primary_key_value_of_a_row_of_another_table_to_delete).expect(#ROW_LIST_PREPARED).push(row.#primary_key_column_name);
+                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(#primary_key_value_of_a_row_of_another_table_to_delete)#row_list_or_panic.push(row.#primary_key_column_name);
                                 #child_entries_by_primary_key_value_of_row_to_delete.insert(row.#primary_key_column_name, vec![]);
                                 row_to_delete_by_primary_key_value.insert(row.#primary_key_column_name, row);
                             }
@@ -599,7 +611,7 @@ pub fn on_delete_strategy_implementation(
                             for #primary_key_column_name in &#primary_key_values_of_rows_to_delete {
                                 let old_row = row_to_delete_by_primary_key_value
                                     .get(#primary_key_column_name)
-                                    .expect(#ROW_RECORDED);
+                                    #recorded_row_or_panic;
 
                                 #clone_old_row
 
@@ -884,6 +896,9 @@ fn referenced_table_function_call_for_strategy_implementation(
         cascade_binding::primary_key_values_of_rows_to_delete();
     let child_entries_by_primary_key_value_of_row_to_delete =
         cascade_binding::child_entries_by_primary_key_value_of_row_to_delete();
+    let primary_key_value_of_a_row_to_delete =
+        cascade_binding::primary_key_value_of_a_row_to_delete();
+    let child_entries_or_panic = child_entries_of_a_row_to_delete_or_panic();
     let referenced_table_function_name =
         referenced_table_function_name(removal, &OneOrMultiple::Multiple, singular_table_name);
     let referenced_table_call = runtime::dsl_internals_call(
@@ -894,8 +909,8 @@ fn referenced_table_function_call_for_strategy_implementation(
     quote! {
         match #referenced_table_call {
             Err(failure) => {
-                for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure.entries {
-                    #child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).expect(#CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE).append(&mut child_entries);
+                for (#primary_key_value_of_a_row_to_delete, mut child_entries) in failure.entries {
+                    #child_entries_by_primary_key_value_of_row_to_delete.get_mut(#primary_key_value_of_a_row_to_delete)#child_entries_or_panic.append(&mut child_entries);
                 }
 
                 if #error_from_hook.is_none() {
@@ -905,8 +920,8 @@ fn referenced_table_function_call_for_strategy_implementation(
                 #on_error_handler
             },
             Ok(child_entries_by_primary_key_value_of_a_row_to_delete) => {
-                for (primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
-                    #child_entries_by_primary_key_value_of_row_to_delete.get_mut(primary_key_value_of_a_row_to_delete).expect(#CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE).append(&mut child_entries);
+                for (#primary_key_value_of_a_row_to_delete, mut child_entries) in child_entries_by_primary_key_value_of_a_row_to_delete {
+                    #child_entries_by_primary_key_value_of_row_to_delete.get_mut(#primary_key_value_of_a_row_to_delete)#child_entries_or_panic.append(&mut child_entries);
                 }
             }
         };
@@ -922,8 +937,8 @@ fn value_referencing_no_row(column_type: &syn::Path) -> TokenStream {
     }
 }
 
-// Why the lookups in the generated cascades cannot fail. Each is the message of the
-// `expect` that relies on it, so a panic names the invariant that broke.
+// Why the lookups in the generated cascades cannot fail. Each starts the panic message of the
+// lookup that relies on it, which goes on to name the key the invariant broke for.
 
 const ENTRY_LIST_PREPARED: &str = "every primary key value of a removed row of the referenced table was given an entry list before its strategies ran";
 
@@ -934,4 +949,24 @@ const ROW_RECORDED: &str =
 
 const CHILD_ENTRY_LIST_PREPARED: &str = "every primary key value of a row to delete was given a child entry list before its strategies ran";
 
-pub(super) const CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE: &str = "the referencing tables return child entries only for the primary key values of the rows this table deletes";
+const CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE: &str = "the referencing tables return child entries only for the primary key values of the rows this table deletes";
+
+/// `.unwrap_or_else(|| panic!("<invariant>, which does not hold for {}", <key>))`, the end of
+/// a lookup in a generated cascade which fails only if SpacetimeDSL generated inconsistent
+/// code. The message is formatted only when the lookup fails, not on every lookup.
+fn unwrap_or_panic_naming_the_key(invariant: &str, key: &impl ToTokens) -> TokenStream {
+    let message = format!("{invariant}, which does not hold for {{}}");
+
+    quote! {
+        .unwrap_or_else(|| panic!(#message, #key))
+    }
+}
+
+/// The end of the lookup of the child entries a referencing table returned under
+/// `primary_key_value_of_a_row_to_delete`, a row this table deletes.
+pub(super) fn child_entries_of_a_row_to_delete_or_panic() -> TokenStream {
+    unwrap_or_panic_naming_the_key(
+        CHILD_ENTRIES_ONLY_FOR_ROWS_TO_DELETE,
+        &cascade_binding::primary_key_value_of_a_row_to_delete(),
+    )
+}

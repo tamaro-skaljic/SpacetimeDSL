@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `profile` table.
+    /**Create a row in the `profile` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `account_id`: a row of the `account` table (`self`), or `0`*/
     pub fn create_profile<'a>(
         &'a self,
         profile: CreateProfile,
@@ -26,7 +32,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             table_name: "profile".into(),
                             create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
-                                "{{ {} : {} }}", account_id, profile.get_account_id()
+                                "{{ account_id : {} }}", profile.get_account_id().value()
                             )
                                 .into(),
                         }),
@@ -34,7 +40,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 }
             };
         }
-        match self.db().profile().try_insert(profile.clone()) {
+        let unique_column_values = (profile.account_id.clone(),);
+        match self.db().profile().try_insert(profile) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -45,7 +52,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ profile : {:?} }}", profile
+                                "{{ account_id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })

@@ -6,14 +6,8 @@
 
 use {
     super::{
-        context::{MethodGenerationContext, TableContributions},
-        naming::{
-            cascade_binding, referenced_table_compile_error_check_for_deletions,
-            referenced_table_compile_error_check_for_soft_deletions,
-            referencing_table_compile_error_check_for_deletions,
-            referencing_table_compile_error_check_for_soft_deletions,
-            referencing_table_function_name,
-        },
+        context::MethodGenerationContext,
+        naming::{cascade_binding, referencing_table_function_name},
         on_delete_strategy::{ReferencingTables, on_delete_strategy_implementation},
         removal::{Removal, dispatcher_signature},
     },
@@ -26,23 +20,32 @@ use {
             },
             runtime,
         },
-        internal::{column::canonical_type, dsl::one_or_multiple::OneOrMultiple, error},
+        internal::dsl::one_or_multiple::OneOrMultiple,
     },
     itertools::Itertools,
     proc_macro2::TokenStream,
-    quote::{ToTokens, format_ident, quote},
+    quote::{format_ident, quote},
     std::collections::BTreeMap,
     strum::IntoEnumIterator,
 };
 
-/// A module path in one spelling per module, so `::other_crate::tables` and
-/// `other_crate::tables` compare equal: the segments without a leading `::`.
-fn canonical_path(path: &syn::Path) -> String {
-    path.segments
-        .iter()
-        .map(|segment| segment.ident.to_string())
-        .collect::<Vec<_>>()
-        .join("::")
+/// The foreign key of a column which `foreign_key_columns_by_referenced_table` grouped by it.
+pub fn foreign_key_of(column: &Column) -> &ForeignKey {
+    column
+        .spacetimedsl_column
+        .foreign_key
+        .as_ref()
+        .expect("columns are grouped by their foreign key, so every one carries it")
+}
+
+/// The first column of a group `foreign_key_columns_by_referenced_table` built. Its type and
+/// the path its foreign key spells stand for the whole group, which that function checked
+/// agrees on both.
+pub fn first_column_of<'a>(columns_with_foreign_key: &[&'a Column]) -> &'a Column {
+    columns_with_foreign_key
+        .first()
+        .copied()
+        .expect("A table grouped by referenced table must have at least one foreign key column")
 }
 
 pub fn for_foreign_key(
@@ -52,61 +55,21 @@ pub fn for_foreign_key(
     context: &MethodGenerationContext,
     referenced_table_name: &syn::Ident,
     columns_with_foreign_key: &[&Column],
-) -> syn::Result<(SpacetimeDSLMethod, TableContributions)> {
-    let mut contributions = TableContributions::default();
-
-    let first_foreign_key_column = columns_with_foreign_key
-        .first()
-        .expect("A table grouped by referenced table must have at least one foreign key column");
-
-    fn foreign_key_of(column: &Column) -> &ForeignKey {
-        column
-            .spacetimedsl_column
-            .foreign_key
-            .as_ref()
-            .expect("columns are grouped by their foreign key, so every one carries it")
-    }
-
-    let referenced_table_path = &foreign_key_of(first_foreign_key_column).path;
-    let canonical_referenced_table_path = canonical_path(referenced_table_path);
-    let referenced_table_primary_key_column_type =
-        &first_foreign_key_column.rust_field.type_name_or_path;
-    let canonical_referenced_primary_key_type =
-        canonical_type(referenced_table_primary_key_column_type);
-
-    let referenced_table_path = referenced_table_path.to_token_stream();
+) -> SpacetimeDSLMethod {
+    let referenced_table_primary_key_column_type = &first_column_of(columns_with_foreign_key)
+        .rust_field
+        .type_name_or_path;
 
     let mut columns_by_on_delete_strategies: BTreeMap<_, Vec<&Column>> = BTreeMap::new();
 
     for column_with_foreign_key in columns_with_foreign_key {
-        let foreign_key = foreign_key_of(column_with_foreign_key);
-
-        if canonical_type(&column_with_foreign_key.rust_field.type_name_or_path)
-            != canonical_referenced_primary_key_type
-        {
-            // TODO: https://github.com/tamaro-skaljic/SpacetimeDSL/issues/32 If Option is supported, the type of the primary key values needs to be without option and it's allowed to have both, option and non-option columns.
-            return Err(error::foreign_key_columns_type_mismatch(
-                &column_with_foreign_key.rust_field.name,
-            ));
-        }
-
-        if canonical_path(&foreign_key.path) != canonical_referenced_table_path {
-            return Err(error::foreign_key_columns_path_mismatch(
-                &column_with_foreign_key.rust_field.name,
-            ));
-        }
-
         // A foreign key sets `on_delete`, `on_soft_delete` or both, so a column
         // contributes to the grouping for one kind of removal and not necessarily the
         // other.
-        let on_delete_strategy = match removal {
-            Removal::Hard => &foreign_key.on_delete_strategy,
-            Removal::Soft => &foreign_key.on_soft_delete_strategy,
-        };
-
-        let on_delete_strategy = match on_delete_strategy {
-            None => continue,
-            Some(on_delete_strategy) => on_delete_strategy,
+        let Some(on_delete_strategy) =
+            removal.strategy_declared_by(foreign_key_of(column_with_foreign_key))
+        else {
+            continue;
         };
 
         columns_by_on_delete_strategies
@@ -199,46 +162,12 @@ pub fn for_foreign_key(
         })
         .collect_vec();
 
-    // This table emits the half it declares a strategy for, and imports from the
-    // referenced table the half that table must be able to perform.
-    let compile_error_check = match removal {
-        Removal::Hard => referencing_table_compile_error_check_for_deletions(
-            singular_table_name,
-            &referenced_table_name,
-        ),
-        Removal::Soft => referencing_table_compile_error_check_for_soft_deletions(
-            singular_table_name,
-            &referenced_table_name,
-        ),
-    };
-
-    contributions
-        .compile_error_checks
-        .insert(compile_error_check.clone());
-
-    let compile_error_check = match removal {
-        Removal::Hard => referenced_table_compile_error_check_for_deletions(
-            &referenced_table_name,
-            singular_table_name,
-        ),
-        Removal::Soft => referenced_table_compile_error_check_for_soft_deletions(
-            &referenced_table_name,
-            singular_table_name,
-        ),
-    };
-
-    let compile_error_check_usage = quote! {
-        use #referenced_table_path::#compile_error_check;
-    };
-
     let error_from_hook_declaration = runtime::error_from_hook_declaration(&error_from_hook);
     let failure = runtime::on_delete_strategy_failure(&entries, &error_from_hook);
 
     let itertools_import = runtime::itertools_import();
 
     let function_impl = quote! {
-        #compile_error_check_usage
-
         #itertools_import
         #create_data_structure_for_child_entries
 
@@ -257,7 +186,7 @@ pub fn for_foreign_key(
         }
     };
 
-    let method = SpacetimeDSLMethod {
+    SpacetimeDSLMethod {
         doc_comment,
         method_name: function_name,
         method_args: function_args,
@@ -265,7 +194,5 @@ pub fn for_foreign_key(
         method_impl: function_impl,
         // A strategy writes the referencing rows.
         read_context_compatible: false,
-    };
-
-    Ok((method, contributions))
+    }
 }

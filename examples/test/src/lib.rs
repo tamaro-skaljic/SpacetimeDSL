@@ -13,6 +13,8 @@ pub mod hand_written_wrapper_test;
 pub mod hash_index_test;
 pub mod hook_trait_name_test;
 pub mod primary_key_foreign_key_cascade_test;
+pub mod reference_integrity_message_test;
+pub mod referenced_table_without_delete_methods_test;
 pub mod self_referencing_cascade_test;
 pub mod singleton_test;
 pub mod singleton_with_default_test;
@@ -20,6 +22,7 @@ pub mod singleton_with_foreign_key_test;
 pub mod soft_deletion;
 pub mod table_level_index_foreign_key_test;
 pub mod timestamp_helper_test;
+pub mod unique_constraint_message_test;
 pub mod update_and_soft_delete_hook_test;
 
 type TestGroup = fn(&DSL<'_, ReducerContext>) -> Result<(), String>;
@@ -74,6 +77,18 @@ const TEST_GROUPS: &[(&str, TestGroup)] = &[
     (
         "self_referencing_cascade_test",
         self_referencing_cascade_test::run_tests,
+    ),
+    (
+        "reference_integrity_message_test",
+        reference_integrity_message_test::run_tests,
+    ),
+    (
+        "unique_constraint_message_test",
+        unique_constraint_message_test::run_tests,
+    ),
+    (
+        "referenced_table_without_delete_methods_test",
+        referenced_table_without_delete_methods_test::run_tests,
     ),
 ];
 

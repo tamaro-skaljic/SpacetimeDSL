@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `revision` table.
+    /**Create a row in the `revision` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `draft_id`: a row of the `draft` table (`self`), or `0`*/
     pub fn create_revision<'a>(
         &'a self,
         revision: CreateRevision,
@@ -33,7 +39,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             table_name: "revision".into(),
                             create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
-                                "{{ {} : {} }}", draft_id, revision.get_draft_id()
+                                "{{ draft_id : {} }}", revision.get_draft_id().value()
                             )
                                 .into(),
                         }),
@@ -41,7 +47,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 }
             };
         }
-        match self.db().revision().try_insert(revision.clone()) {
+        let unique_column_values = (revision.id.clone(),);
+        match self.db().revision().try_insert(revision) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -52,7 +59,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ revision : {:?} }}", revision
+                                "{{ id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })

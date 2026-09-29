@@ -3,7 +3,14 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Write the `ActiveTournament` row of the singleton `active_tournament` table, whether or not it exists yet.
+    /**Write the `ActiveTournament` row of the singleton `active_tournament` table, whether or not it exists yet.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row. While the row exists, only the columns with a setter are checked, whenever their value changes:
+
+- `region_id`: a row of the `region` table (`self`), or `0`
+- `qualifier_region_id`: a row of the `region` table (`self`), or `0`*/
     pub fn upsert_active_tournament<'a>(
         &'a self,
         active_tournament: ActiveTournament,
@@ -31,17 +38,16 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                         None => {
                             return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                                 table_name: "active_tournament".into(),
-                                column_names_and_row_values: format!(
-                                    "{{ id : {} }}", region_id
-                                )
-                                    .into(),
+                                column_names_and_row_values: "{ id : 0 }".into(),
                             });
                         }
                     };
                 }
                 if the_same_or_another_active_tournament
                     .as_ref()
-                    .expect("field_name_for_found_value should be Some(_)")
+                    .expect(
+                        "the stored row is looked up by its primary key before its foreign key columns are compared",
+                    )
                     .get_region_id()
                     .ne(&active_tournament.get_region_id())
                 {
@@ -82,8 +88,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 table_name: "active_tournament".into(),
                                 create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", region_id, active_tournament
-                                    .get_region_id()
+                                    "{{ region_id : {} }}", active_tournament.get_region_id()
+                                    .value()
                                 )
                                     .into(),
                             }),
@@ -101,8 +107,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 table_name: "active_tournament".into(),
                                 create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", qualifier_region_id, active_tournament
-                                    .get_qualifier_region_id()
+                                    "{{ qualifier_region_id : {} }}", active_tournament
+                                    .get_qualifier_region_id().value()
                                 )
                                     .into(),
                             }),
@@ -110,7 +116,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                     }
                 };
             }
-            match self.db().active_tournament().try_insert(active_tournament.clone()) {
+            let unique_column_values = (active_tournament.id.clone(),);
+            match self.db().active_tournament().try_insert(active_tournament) {
                 Ok(entity) => Ok(entity),
                 Err(error) => {
                     match error {
@@ -121,7 +128,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                                 one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                                 column_names_and_row_values: format!(
-                                    "{{ active_tournament : {:?} }}", active_tournament
+                                    "{{ id : {} }}", unique_column_values.0
                                 )
                                     .into(),
                             })

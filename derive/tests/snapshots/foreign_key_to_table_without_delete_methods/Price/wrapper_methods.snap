@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl CurrencyId {
+    /**Get all `Price` rows whose `currency_id` column references this `CurrencyId`.
+
+Use it like `currency_id.get_prices(&dsl)`.*/
+    pub fn get_prices<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Price> {
+        dsl.into().get_prices_by_currency_id(self).collect()
+    }
+}

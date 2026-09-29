@@ -1,14 +1,35 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-pub trait this_compilation_error_occurs_because_the_active_bracket_table_has_no_foreign_key_attribute_with_on_delete_defined_referencing_the_bracket_table {}
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `active_bracket` table
+///
+/// - `bracket_id` references the `id` column of the `bracket` table (`self`).
+///   - On delete: `Delete`
+///   - On soft delete: none, the `bracket` table is not soft-deletable
+/// - `seed_bracket_id` references the `id` column of the `bracket` table (`self`).
+///   - On delete: `Error`
+///   - On soft delete: none, the `bracket` table is not soft-deletable
+
+pub trait this_compilation_error_occurs_because_the_active_bracket_table_has_no_foreign_key_attribute_referencing_the_bracket_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_bracket_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_active_bracket_table;
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_bracket_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_bracket_table_has_no_referenced_by_attribute_referencing_the_active_bracket_table;
+};
 impl ActiveBracket {
-    ///
+    /**References the `id` column of the `bracket` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `bracket` table is not soft-deletable*/
     pub fn get_bracket_id(&self) -> BracketId {
         use crate::spacetimedsl::Wrapper;
         BracketId::new(self.bracket_id.clone())
     }
-    ///
+    /**References the `id` column of the `bracket` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `bracket` table is not soft-deletable*/
     pub fn set_bracket_id(&mut self, bracket_id: impl Into<BracketId>) -> BracketId {
         use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(
@@ -17,7 +38,10 @@ impl ActiveBracket {
         );
         BracketId::new(old_value)
     }
-    ///
+    /**References the `id` column of the `bracket` table (`self`).
+
+- On delete: `Error`
+- On soft delete: none, the `bracket` table is not soft-deletable*/
     pub fn get_seed_bracket_id(&self) -> BracketId {
         use crate::spacetimedsl::Wrapper;
         BracketId::new(self.seed_bracket_id.clone())

@@ -3,7 +3,14 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Write the `ActiveBracket` row of the singleton `active_bracket` table, whether or not it exists yet.
+    /**Write the `ActiveBracket` row of the singleton `active_bracket` table, whether or not it exists yet.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row. While the row exists, only the columns with a setter are checked, whenever their value changes:
+
+- `bracket_id`: a row of the `bracket` table (`self`), or `Uuid::NIL`
+- `seed_bracket_id`: a row of the `bracket` table (`self`), or `Uuid::NIL`*/
     pub fn upsert_active_bracket<'a>(
         &'a self,
         active_bracket: ActiveBracket,
@@ -31,17 +38,16 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                         None => {
                             return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                                 table_name: "active_bracket".into(),
-                                column_names_and_row_values: format!(
-                                    "{{ id : {} }}", bracket_id
-                                )
-                                    .into(),
+                                column_names_and_row_values: "{ id : 0 }".into(),
                             });
                         }
                     };
                 }
                 if the_same_or_another_active_bracket
                     .as_ref()
-                    .expect("field_name_for_found_value should be Some(_)")
+                    .expect(
+                        "the stored row is looked up by its primary key before its foreign key columns are compared",
+                    )
                     .get_bracket_id()
                     .ne(&active_bracket.get_bracket_id())
                 {
@@ -76,7 +82,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 table_name: "active_bracket".into(),
                                 create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", bracket_id, active_bracket.get_bracket_id()
+                                    "{{ bracket_id : {} }}", active_bracket.get_bracket_id()
+                                    .value()
                                 )
                                     .into(),
                             }),
@@ -93,8 +100,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 table_name: "active_bracket".into(),
                                 create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                                 column_names_and_row_values: format!(
-                                    "{{ {} : {} }}", seed_bracket_id, active_bracket
-                                    .get_seed_bracket_id()
+                                    "{{ seed_bracket_id : {} }}", active_bracket
+                                    .get_seed_bracket_id().value()
                                 )
                                     .into(),
                             }),
@@ -102,7 +109,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                     }
                 };
             }
-            match self.db().active_bracket().try_insert(active_bracket.clone()) {
+            let unique_column_values = (active_bracket.id.clone(),);
+            match self.db().active_bracket().try_insert(active_bracket) {
                 Ok(entity) => Ok(entity),
                 Err(error) => {
                     match error {
@@ -113,7 +121,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                                 error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                                 one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                                 column_names_and_row_values: format!(
-                                    "{{ active_bracket : {:?} }}", active_bracket
+                                    "{{ id : {} }}", unique_column_values.0
                                 )
                                     .into(),
                             })

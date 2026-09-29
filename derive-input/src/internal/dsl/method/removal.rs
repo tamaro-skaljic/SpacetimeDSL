@@ -14,13 +14,13 @@ use {
         message, naming,
         reference_integrity::{Action, unique_multi_column_index_check},
         referenced_by::referenced_table_function_call_for_dsl_method,
-        soft_delete,
+        relationship_doc, soft_delete,
         upsert::rebind_row_as_mutable_after_hook,
     },
     crate::{
         api::{
             dsl::{
-                foreign_key::OnDeleteStrategy,
+                foreign_key::{ForeignKey, OnDeleteStrategy},
                 hook::HookKind,
                 method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
                 soft_delete::SoftDeleteMarker,
@@ -43,6 +43,34 @@ pub enum Removal {
 }
 
 impl Removal {
+    /// Both kinds of removal, deletion first.
+    pub const ALL: [Removal; 2] = [Removal::Hard, Removal::Soft];
+
+    /// Whether `spacetimedsl_table` performs this kind of removal: `Hard` with a delete
+    /// method, `Soft` when it is soft-deletable.
+    pub fn is_performed_by(self, spacetimedsl_table: &SpacetimeDSLTable) -> bool {
+        match self {
+            Removal::Hard => spacetimedsl_table.has_delete_method,
+            Removal::Soft => spacetimedsl_table.is_soft_deletable(),
+        }
+    }
+
+    /// The strategy `foreign_key` declares for this kind of removal of the referenced row.
+    pub fn strategy_declared_by(self, foreign_key: &ForeignKey) -> Option<&OnDeleteStrategy> {
+        match self {
+            Removal::Hard => foreign_key.on_delete_strategy.as_ref(),
+            Removal::Soft => foreign_key.on_soft_delete_strategy.as_ref(),
+        }
+    }
+
+    /// The `#[foreign_key]` argument which declares the strategy for this kind of removal.
+    pub fn strategy_argument(self) -> &'static str {
+        match self {
+            Removal::Hard => "on_delete",
+            Removal::Soft => "on_soft_delete",
+        }
+    }
+
     /// How a doc comment says the rows were removed: "was deleted", "were soft-deleted", and
     /// so on. `naming` derives the dispatcher names from the same words.
     pub fn past_tense(self, one_or_multiple: &OneOrMultiple) -> &'static str {
@@ -712,6 +740,11 @@ fn removal_method(
             format_ident!("{method_prefix}_{plural_table_name}_by_{index_name}"),
         ),
     };
+
+    let doc_comment = relationship_doc::with_section(
+        doc_comment,
+        relationship_doc::cascade(removal, &spacetimedsl_table.referencing_tables),
+    );
 
     SpacetimeDSLMethod {
         doc_comment,

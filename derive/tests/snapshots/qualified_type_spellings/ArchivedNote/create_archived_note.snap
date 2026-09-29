@@ -18,7 +18,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
             text,
             deleted_at,
         };
-        match self.db().archived_note().try_insert(archived_note.clone()) {
+        let unique_column_values = (archived_note.id.clone(),);
+        match self.db().archived_note().try_insert(archived_note) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -29,7 +30,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ archived_note : {:?} }}", archived_note
+                                "{{ id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })

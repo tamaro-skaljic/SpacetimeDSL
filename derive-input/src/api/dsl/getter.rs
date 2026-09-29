@@ -4,6 +4,9 @@ use {proc_macro2::TokenStream, syn::Ident};
 /// injects into a singleton.
 #[derive(Clone)]
 pub struct Getter {
+    /// What the column references and the strategies it declares, when it has a foreign
+    /// key; empty otherwise.
+    pub doc_comment: String,
     /// `get_<column>`.
     pub method_name: Ident,
     /// What the getter returns: the wrapper type for a column with a wrapper (in an `Option`

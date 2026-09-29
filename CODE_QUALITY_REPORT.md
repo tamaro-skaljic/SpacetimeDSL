@@ -170,9 +170,9 @@ The public description of the table-level DSL settings and of the cascade entry 
 
 **Violates:** Connascence — of Execution; Code For The Maintainer — Principle of Least Astonishment
 
-`SpacetimeDSLTable::try_parse` builds the table with `create_dsl_method_arg: None` and empty `compile_error_checks`, and method generation fills both in later through `TableContributions::apply_to`. In between, the value looks complete but is not; a generator reading those fields during generation would silently see the empty state.
+`SpacetimeDSLTable::try_parse` builds the table with `create_dsl_method_arg: None`, empty `compile_error_checks` and `compile_error_check_imports`, and an empty `struct_doc_comment`, and method generation fills them in later through `TableContributions::apply_to`. In between, the value looks complete but is not; a generator reading those fields during generation would silently see the empty state.
 
-Recommendation: Keep generation results out of the parsed table — for example move `create_dsl_method_arg` and `compile_error_checks` into `SpacetimeDSLTableMethods` or into a separate result type — so that `SpacetimeDSLTable` does not change after parsing. This changes the public API, whose fields the plan's Task 13 documents and pins as a data-transfer contract.
+Recommendation: Keep generation results out of the parsed table — for example move `create_dsl_method_arg`, `compile_error_checks`, `compile_error_check_imports` and `struct_doc_comment` into `SpacetimeDSLTableMethods` or into a separate result type — so that `SpacetimeDSLTable` does not change after parsing. This changes the public API, whose fields the plan's Task 13 documents and pins as a data-transfer contract.
 
 ---
 
@@ -262,13 +262,13 @@ Recommendation: Make doc and code agree — name `SetNone` explicitly (with a co
 
 Parses `#[referenced_by]`.
 
-### `reference.rs`: `ReferencingTable::try_parse(has_delete_method: &bool, is_soft_deletable: bool, field: &SatsField<'_>) -> syn::Result<Vec<ReferencingTable>>`
+### `reference.rs`: `ReferencingTable::try_parse(field: &SatsField<'_>) -> syn::Result<Vec<ReferencingTable>>`
 
 **Violates:** DRY
 
-Whether the field is the primary key is re-derived from its raw attributes, although `SpacetimeDBColumn::is_primary_key` already states it, and `has_delete_method` is passed as `&bool`.
+Whether the field is the primary key is re-derived from its raw attributes, although `SpacetimeDBColumn::is_primary_key` already states it.
 
-Recommendation: Take the primary-key fact from `SpacetimeDBColumn` and pass `bool` by value, as the plan's Task 50 does for `ForeignKey::try_parse`.
+Recommendation: Take the primary-key fact from `SpacetimeDBColumn`.
 
 ## `derive-input/src/internal/dsl/method/get.rs`
 

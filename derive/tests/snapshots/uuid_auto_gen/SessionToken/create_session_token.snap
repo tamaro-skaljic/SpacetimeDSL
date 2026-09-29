@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `session_token` table.
+    /**Create a row in the `session_token` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `account_id`: a row of the `account` table (`self`), or `Uuid::NIL`*/
     pub fn create_session_token<'a>(
         &'a self,
         session_token: CreateSessionToken,
@@ -28,7 +34,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             table_name: "session_token".into(),
                             create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
-                                "{{ {} : {} }}", account_id, session_token.get_account_id()
+                                "{{ account_id : {} }}", session_token.get_account_id()
+                                .value()
                             )
                                 .into(),
                         }),
@@ -36,7 +43,11 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 }
             };
         }
-        match self.db().session_token().try_insert(session_token.clone()) {
+        let unique_column_values = (
+            session_token.id.clone(),
+            session_token.token.clone(),
+        );
+        match self.db().session_token().try_insert(session_token) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -47,7 +58,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ session_token : {:?} }}", session_token
+                                "{{ id : {}, token : {} }}", unique_column_values.0,
+                                unique_column_values.1
                             )
                                 .into(),
                         })

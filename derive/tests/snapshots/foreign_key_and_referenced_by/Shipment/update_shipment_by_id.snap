@@ -5,7 +5,14 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to update a `Shipment` row of the `shipment` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+Try to update a `Shipment` row of the `shipment` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `origin_warehouse_id`: a row of the `warehouse` table (`self`), or `0`
+- `destination_warehouse_id`: a row of the `warehouse` table (`self`), or `0`*/
     pub fn update_shipment_by_id<'a>(
         &'a self,
         shipment: Shipment,
@@ -29,7 +36,7 @@ Try to update a `Shipment` row of the `shipment` table whose value matches the v
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                             table_name: "shipment".into(),
                             column_names_and_row_values: format!(
-                                "{{ id : {} }}", origin_warehouse_id
+                                "{{ id : {} }}", shipment.get_id().value()
                             )
                                 .into(),
                         });
@@ -38,7 +45,9 @@ Try to update a `Shipment` row of the `shipment` table whose value matches the v
             }
             if the_same_or_another_shipment
                 .as_ref()
-                .expect("field_name_for_found_value should be Some(_)")
+                .expect(
+                    "the stored row is looked up by its primary key before its foreign key columns are compared",
+                )
                 .get_origin_warehouse_id()
                 .ne(&shipment.get_origin_warehouse_id())
             {
@@ -72,7 +81,7 @@ Try to update a `Shipment` row of the `shipment` table whose value matches the v
                         return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
                             table_name: "shipment".into(),
                             column_names_and_row_values: format!(
-                                "{{ id : {} }}", destination_warehouse_id
+                                "{{ id : {} }}", shipment.get_id().value()
                             )
                                 .into(),
                         });
@@ -81,7 +90,9 @@ Try to update a `Shipment` row of the `shipment` table whose value matches the v
             }
             if the_same_or_another_shipment
                 .as_ref()
-                .expect("field_name_for_found_value should be Some(_)")
+                .expect(
+                    "the stored row is looked up by its primary key before its foreign key columns are compared",
+                )
                 .get_destination_warehouse_id()
                 .ne(&shipment.get_destination_warehouse_id())
             {

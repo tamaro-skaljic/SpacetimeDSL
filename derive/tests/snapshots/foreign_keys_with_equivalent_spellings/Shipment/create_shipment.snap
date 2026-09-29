@@ -3,7 +3,14 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `shipment` table.
+    /**Create a row in the `shipment` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `origin_warehouse_id`: a row of the `warehouse` table (`::other_crate::tables`), or `0`
+- `destination_warehouse_id`: a row of the `warehouse` table (`other_crate::tables`), or `0`*/
     pub fn create_shipment<'a>(
         &'a self,
         shipment: CreateShipment,
@@ -28,8 +35,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             table_name: "shipment".into(),
                             create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
-                                "{{ {} : {} }}", origin_warehouse_id, shipment
-                                .get_origin_warehouse_id()
+                                "{{ origin_warehouse_id : {} }}", shipment
+                                .get_origin_warehouse_id().value()
                             )
                                 .into(),
                         }),
@@ -46,8 +53,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             table_name: "shipment".into(),
                             create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
-                                "{{ {} : {} }}", destination_warehouse_id, shipment
-                                .get_destination_warehouse_id()
+                                "{{ destination_warehouse_id : {} }}", shipment
+                                .get_destination_warehouse_id().value()
                             )
                                 .into(),
                         }),
@@ -55,7 +62,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 }
             };
         }
-        match self.db().shipment().try_insert(shipment.clone()) {
+        let unique_column_values = (shipment.id.clone(),);
+        match self.db().shipment().try_insert(shipment) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -66,7 +74,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ shipment : {:?} }}", shipment
+                                "{{ id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })

@@ -3,7 +3,13 @@ source: derive/src/characterization_tests.rs
 ---
 impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
-    ///Create a row in the `server_binding` table.
+    /**Create a row in the `server_binding` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `region_id`: a row of the `region` table (`self`), or `0`*/
     pub fn create_server_binding<'a>(
         &'a self,
         server_binding: CreateServerBinding,
@@ -23,7 +29,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             table_name: "server_binding".into(),
                             create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
                             column_names_and_row_values: format!(
-                                "{{ {} : {} }}", region_id, server_binding.get_region_id()
+                                "{{ region_id : {} }}", server_binding.get_region_id()
+                                .value()
                             )
                                 .into(),
                         }),
@@ -31,7 +38,8 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                 }
             };
         }
-        match self.db().server_binding().try_insert(server_binding.clone()) {
+        let unique_column_values = (server_binding.id.clone(),);
+        match self.db().server_binding().try_insert(server_binding) {
             Ok(entity) => Ok(entity),
             Err(error) => {
                 match error {
@@ -42,7 +50,7 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
                             error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
                             one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
                             column_names_and_row_values: format!(
-                                "{{ server_binding : {:?} }}", server_binding
+                                "{{ id : {} }}", unique_column_values.0
                             )
                                 .into(),
                         })
