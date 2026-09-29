@@ -534,8 +534,8 @@ Compile-time validation:
 - `update = true` requires at least one `pub` field ("this column and therefore rows of this table should be mutable") OR a `modified_at`/`updated_at` column
 - `update = false` requires all fields to be private AND no `modified_at`/`updated_at` column ("all columns and therefore rows of this table should be immutable")
 - `delete = false` generates no delete methods at all, the same way `update = false` generates no update methods. It is good for audit tables, though you should export and delete rows in them from time to time, using the raw **SpacetimeDB** API since no delete DSL methods exist
-- A table with `delete = false` may still declare `#[referenced_by]`. Its foreign keys then declare no `on_delete` strategy, because its rows are never deleted through the DSL
-- `delete = true` is also required on a table whose `#[foreign_key]` uses `on_delete = Delete`, because that strategy deletes rows of that same table
+- A table with `delete = false` may still declare `#[referenced_by]`. The foreign keys which reference it then set neither `on_delete` nor `on_soft_delete`, because its rows are never removed through the DSL
+- `delete = true` is required on a table whose `#[foreign_key]` uses `on_delete = Delete`, because that strategy deletes rows of that same table
 - Hooks require matching method config (`hook(after(update))` needs `method(update = true)`)
 
 ---
