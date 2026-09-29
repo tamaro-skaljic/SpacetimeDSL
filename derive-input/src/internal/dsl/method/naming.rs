@@ -7,8 +7,7 @@
 //! have to build the same identifier from the same two table names. Both sides build it
 //! here. The marker traits which pair the two sides are named in [`super::pairing`].
 //!
-//! These names are part of the generated API. Changing one breaks every module generated
-//! against the previous name until it is regenerated.
+//! These names are part of the generated API.
 
 use {
     super::removal::Removal, crate::internal::dsl::one_or_multiple::OneOrMultiple,

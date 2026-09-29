@@ -2134,20 +2134,20 @@ impl Config {
 
 ### DSL-Specific Mistakes
 
-| Mistake                                           | Fix                                                                                                     |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Bypassing DSL: `ctx.db.table().insert(...)`       | Use `dsl.create_table(...)` — raw access breaks FK/unique checks                                        |
-| `dsl.ctx().db.table().insert(...)`                | Still bypasses DSL — use DSL methods exclusively                                                        |
-| Wrong hook name: `before_entity_create`           | Correct: `before_entity_insert`                                                                         |
-| Missing `#[referenced_by]` for a `#[foreign_key]` | Every foreign key needs a matching `referenced_by` on the referenced PK                                 |
-| Missing `#[foreign_key]` for a `#[referenced_by]` | Every referenced table needs a matching `foreign_key` on the referencing table                          |
-| A foreign key without `on_delete` to a deletable table | Set `on_delete`; each foreign key reacts to every removal its referenced table performs |
-| `update = true` without pub fields or timestamp   | Add a `pub` field or `modified_at`/`updated_at` column                                                  |
-| Omitting `update` parameter entirely              | Compilation error — `update` is required (unlike `delete` which defaults to `true`)                     |
-| `unique_index(accessor = ...)`                    | Correct: `unique_index(name = ...)` — `accessor` is for **SpacetimeDB** `index`, not DSL `unique_index` |
-| Passing raw numeric where wrapper expected        | Use `EntityId::new(42)` or `entity.get_id()`                                                            |
-| Using `read_only_dsl` in a reducer                | `read_only_dsl` is for views only — use `dsl` for reducers                                              |
-| Missing `column` param in `#[foreign_key]`        | `column` is always required — name the PK column of the referenced table                                |
+| Mistake                                                | Fix                                                                                                     |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| Bypassing DSL: `ctx.db.table().insert(...)`            | Use `dsl.create_table(...)` — raw access breaks FK/unique checks                                        |
+| `dsl.ctx().db.table().insert(...)`                     | Still bypasses DSL — use DSL methods exclusively                                                        |
+| Wrong hook name: `before_entity_create`                | Correct: `before_entity_insert`                                                                         |
+| Missing `#[referenced_by]` for a `#[foreign_key]`      | Every foreign key needs a matching `referenced_by` on the referenced PK                                 |
+| Missing `#[foreign_key]` for a `#[referenced_by]`      | Every referenced table needs a matching `foreign_key` on the referencing table                          |
+| A foreign key without `on_delete` to a deletable table | Set `on_delete`; each foreign key reacts to every removal its referenced table performs                 |
+| `update = true` without pub fields or timestamp        | Add a `pub` field or `modified_at`/`updated_at` column                                                  |
+| Omitting `update` parameter entirely                   | Compilation error — `update` is required (unlike `delete` which defaults to `true`)                     |
+| `unique_index(accessor = ...)`                         | Correct: `unique_index(name = ...)` — `accessor` is for **SpacetimeDB** `index`, not DSL `unique_index` |
+| Passing raw numeric where wrapper expected             | Use `EntityId::new(42)` or `entity.get_id()`                                                            |
+| Using `read_only_dsl` in a reducer                     | `read_only_dsl` is for views only — use `dsl` for reducers                                              |
+| Missing `column` param in `#[foreign_key]`             | `column` is always required — name the PK column of the referenced table                                |
 
 ---
 

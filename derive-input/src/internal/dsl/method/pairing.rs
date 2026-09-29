@@ -7,8 +7,7 @@
 //! and the trait's name says what to change.
 //!
 //! These names are part of the generated API: both sides build them here, from the same two
-//! table names, and changing one breaks every module generated against the previous name
-//! until it is regenerated.
+//! table names.
 
 use {
     super::{
