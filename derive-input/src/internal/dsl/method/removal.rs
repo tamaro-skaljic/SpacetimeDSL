@@ -9,6 +9,7 @@
 use {
     super::{
         context::{self, MethodGenerationContext},
+        doc,
         hook_call::hook_tokens,
         index::{IndexColumnArguments, IndexShape, index_accessor, index_column_arguments},
         message, naming,
@@ -741,7 +742,7 @@ fn removal_method(
         ),
     };
 
-    let doc_comment = relationship_doc::with_section(
+    let doc_comment = doc::with_section(
         doc_comment,
         relationship_doc::cascade(removal, &spacetimedsl_table.referencing_tables),
     );

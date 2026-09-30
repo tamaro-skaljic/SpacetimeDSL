@@ -239,6 +239,7 @@ pub struct Task {
 #[referenced_by(path = self, table = position)]                               // Marks PK as referenced by another table's FK
 #[auto_gen(v4)]          // Fills a private `Uuid` column with a random UUID v4 on create (needs #[create_wrapper])
 #[auto_gen(v7)]          // Fills a private `Uuid` column with a sortable UUID v7 on create (needs #[create_wrapper])
+#[creation_default(0)]   // Fills the column on create instead of asking for it in Create{Table}
 ```
 
 ### ReducerContext API
@@ -960,6 +961,7 @@ You can see that the `consume_entity_timer`, `food` and `circle` tables each hav
 | `updated_at: Timestamp`          | `ctx.timestamp` on create                    |
 | `#[auto_gen(v4)]` columns        | A new random UUID v4                         |
 | `#[auto_gen(v7)]` columns        | A new sortable UUID v7                       |
+| `#[creation_default(<expression>)]` columns | The expression                       |
 
 Both `created_at`/`inserted_at` and `modified_at`/`updated_at` are recognized aliases. For other
 column names, use the bare `#[set_on_create]` or `#[set_on_update]` helper attribute:
@@ -998,6 +1000,37 @@ when they should reveal nothing about it. An `#[auto_gen]` column must have the 
 than one. `#[auto_gen]` works on ordinary and `#[dsl(singleton)]` tables, but not on
 `#[dsl(singleton(with_default))]` tables, because they have no create method. Generating a UUID
 fails outside reducers, like `ctx.timestamp` does.
+
+#### Defaults of Your Own: `#[creation_default(...)]`
+
+`#[creation_default(<expression>)]` leaves a column out of `Create{Table}` and fills it with the expression instead, each time `create_<table>` builds a row:
+
+```rust
+#[spacetimedsl::dsl(plural_name = players, method(update = true))]
+#[spacetimedb::table(accessor = player, public)]
+pub struct Player {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    pub name: String,
+
+    #[creation_default(100)]
+    pub coins: u32,
+
+    #[creation_default(Membership::Trial)]
+    membership: Membership,
+}
+
+// CreatePlayer has: name
+let player = dsl.create_player(CreatePlayer { name: "Ada".to_string() })?;
+```
+
+- The expression has the column's own type, also on a column with a wrapper type: `#[creation_default(0)]` on `#[use_wrapper(TeamId)] team_id: u64`. On a foreign key column, `0` and `Uuid::NIL` reference no row, so create skips the reference check for them.
+- The column may be private or public. A public one keeps its setter, so an update can change it later.
+- The `before_insert` hook receives `Create{Table}`, which does not hold the column; the row is built from the expression after the hook.
+- The documentation of `create_<table>` lists the defaulted columns under *Defaults*.
 
 #### Usage
 

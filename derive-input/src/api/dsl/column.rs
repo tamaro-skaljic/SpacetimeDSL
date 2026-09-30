@@ -17,6 +17,9 @@ pub struct SpacetimeDSLColumn {
     pub foreign_key: Option<ForeignKey>,
     /// `Some` when the field has `#[auto_gen(v4)]` or `#[auto_gen(v7)]`.
     pub auto_generated_uuid_version: Option<UUIDVersion>,
+    /// `Some` when the field has `#[creation_default(...)]`: the expression `create_<table>`
+    /// fills the column with instead of asking the caller for it.
+    pub creation_default: Option<syn::Expr>,
     /// `Some` for every field except the primary key SpacetimeDSL injects into a singleton.
     pub getter: Option<Getter>,
     /// `Some` when the field is not private and has no wrapper type.

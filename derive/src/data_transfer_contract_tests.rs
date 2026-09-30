@@ -72,6 +72,9 @@ fn the_model_holds_what_a_table_declares() {
 
                 pub name: String,
 
+                #[creation_default(1)]
+                pub revision: u32,
+
                 #[unique]
                 #[create_wrapper]
                 #[auto_gen(v7)]
@@ -90,7 +93,7 @@ fn the_model_holds_what_a_table_declares() {
         gadget.rust_struct.visibility,
         RustVisibility::Public
     ));
-    assert_eq!(gadget.columns.len(), 6);
+    assert_eq!(gadget.columns.len(), 7);
     assert_eq!(gadget.primary_key_column.rust_field.name, "id");
 
     let spacetimedb_table = &gadget.spacetimedb_table;
@@ -289,6 +292,25 @@ fn the_model_holds_what_a_table_declares() {
             .expect("a public column has a setter")
             .method_name,
         "set_name"
+    );
+
+    let revision = column(&gadget, "revision");
+    assert_eq!(
+        revision
+            .spacetimedsl_column
+            .creation_default
+            .as_ref()
+            .expect("`revision` has `#[creation_default(1)]`")
+            .to_token_stream()
+            .to_string(),
+        "1"
+    );
+    assert!(
+        create_dsl_method_arg
+            .struct_members
+            .iter()
+            .all(|member| member.arg_name != "revision"),
+        "a column with `#[creation_default]` is not asked of the caller"
     );
 
     let serial_number = column(&gadget, "serial_number");
@@ -616,6 +638,7 @@ fn visit_spacetimedsl_column(spacetimedsl_column: &SpacetimeDSLColumn) {
         wrapper_type,
         foreign_key,
         auto_generated_uuid_version,
+        creation_default: _,
         getter,
         mut_getter,
         setter,

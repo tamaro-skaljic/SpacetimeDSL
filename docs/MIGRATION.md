@@ -207,7 +207,7 @@ The functions `derive-input` used to build the model — among them `RustField::
 
 #### `api::attribute::FIELD_ATTRIBUTE_NAMES` lists the field attributes
 
-`api::attribute::FIELD_ATTRIBUTE_NAMES` lists every field attribute `#[spacetimedsl::dsl]` reads (`create_wrapper`, `use_wrapper`, `foreign_key`, `referenced_by`, `set_on_create`, `set_on_update`, `set_on_soft_delete`, `auto_gen`). A derive of your own that has to accept them as helper attributes can check its list against it.
+`api::attribute::FIELD_ATTRIBUTE_NAMES` lists every field attribute `#[spacetimedsl::dsl]` reads (`create_wrapper`, `use_wrapper`, `foreign_key`, `referenced_by`, `set_on_create`, `set_on_update`, `set_on_soft_delete`, `auto_gen`, `creation_default`). A derive of your own that has to accept them as helper attributes can check its list against it.
 
 #### `api::attribute::is_dsl_attribute` recognises `#[dsl]` in every spelling
 
@@ -312,3 +312,7 @@ runtime::error_from_hook_declaration(&quote! { error_from_hook }) // the binding
 #### `SpacetimeDSLTable::struct_doc_comment`
 
 `SpacetimeDSLTable::struct_doc_comment: String` holds the sections `#[spacetimedsl::dsl]` appends to the struct's documentation, empty for a table without foreign keys and without `#[referenced_by]`. Append it to the struct you emit as a `#[doc]` attribute after an empty one, as `spacetimedsl_derive` does.
+
+#### `SpacetimeDSLColumn::creation_default`
+
+`SpacetimeDSLColumn` gained `creation_default: Option<syn::Expr>`, the expression of `#[creation_default(...)]`, which `create_<table>` fills the column with. Such a column is not a member of `CreateDSLMethodArg::struct_members`.

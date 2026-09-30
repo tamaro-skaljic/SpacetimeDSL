@@ -1,0 +1,27 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Loan` iterator that contains all rows in the `loan` table whose value matches the value from the single-column btree index on the `purpose` column.
+    pub fn get_loans_by_purpose<'a>(
+        &'a self,
+        purpose: &str,
+    ) -> impl Iterator<Item = Loan> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().loan().purpose().filter(purpose)
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Loan` iterator that contains all rows in the `loan` table whose value matches the value from the single-column btree index on the `purpose` column.
+    pub fn get_loans_by_purpose<'a>(
+        &'a self,
+        purpose: &str,
+    ) -> impl Iterator<Item = Loan> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().loan().purpose().filter(purpose)
+    }
+}

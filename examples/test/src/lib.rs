@@ -8,6 +8,7 @@ use {
 
 pub mod cascade_hook_error_test;
 pub mod component;
+pub mod creation_default_test;
 pub mod entity;
 pub mod err_macro_test;
 pub mod hand_written_wrapper_test;
@@ -92,6 +93,7 @@ const TEST_GROUPS: &[(&str, TestGroup)] = &[
         referenced_table_without_delete_methods_test::run_tests,
     ),
     ("err_macro_test", err_macro_test::run_tests),
+    ("creation_default_test", creation_default_test::run_tests),
 ];
 
 /// Runs every test group, also after one of them failed, and fails with the messages of all

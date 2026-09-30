@@ -39,6 +39,7 @@ use {
 mod context;
 mod create;
 mod delete;
+pub mod doc;
 mod foreign_key;
 mod get;
 mod hook_call;

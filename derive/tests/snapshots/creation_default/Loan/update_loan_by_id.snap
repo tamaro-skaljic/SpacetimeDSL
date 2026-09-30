@@ -1,0 +1,72 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Loan` row of the `loan` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `branch_id`: a row of the `branch` table (`self`), or `0`*/
+    pub fn update_loan_by_id<'a>(
+        &'a self,
+        loan: Loan,
+    ) -> Result<Loan, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut loan = loan;
+        let mut the_same_or_another_loan: Option<Loan> = None;
+        let branch_id = loan.get_branch_id().value();
+        if branch_id.ne(&0) {
+            if the_same_or_another_loan.is_none() {
+                the_same_or_another_loan = match self
+                    .db()
+                    .loan()
+                    .id()
+                    .find(loan.get_id().value())
+                {
+                    Some(loan) => Some(loan),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "loan".into(),
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", loan.get_id().value()
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_loan
+                .as_ref()
+                .expect(
+                    "the stored row is looked up by its primary key before its foreign key columns are compared",
+                )
+                .get_branch_id()
+                .ne(&loan.get_branch_id())
+            {
+                match self.get_branch_by_id(loan.get_branch_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "loan".into(),
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ branch_id : {} }}", branch_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        let loan = self.db().loan().id().update(loan);
+        Ok(loan)
+    }
+}

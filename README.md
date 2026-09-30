@@ -210,6 +210,7 @@ fn before_position_hook_helper(
 - ⏰ `created_at` is set automatically on create.
 - 🔄 `modified_at` is set to `None` on create and updated to `Some(ctx.timestamp)` on update.
 - 🏷️ Use `#[set_on_create]` or `#[set_on_update]` on private timestamp columns when their names differ from the conventional aliases.
+- 🧩 `#[creation_default(...)]` fills a column on create, so `Create{Table}` doesn't ask for it.
 
 **Data Integrity by Construction:**
 

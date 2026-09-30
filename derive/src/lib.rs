@@ -142,7 +142,8 @@ fn append_documentation(derive_input: &mut syn::DeriveInput, documentation: &str
         set_on_create,
         set_on_update,
         set_on_soft_delete,
-        auto_gen
+        auto_gen,
+        creation_default
     )
 )]
 pub fn table_helper(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {

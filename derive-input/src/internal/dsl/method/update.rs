@@ -1,6 +1,7 @@
 use {
     super::{
         context::MethodGenerationContext,
+        doc,
         index::IndexShape,
         reference_integrity::{
             Action, multi_column_index_checks, reference_integrity_checks_on_update,
@@ -160,7 +161,7 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
         .collect_vec();
 
     SpacetimeDSLMethod {
-        doc_comment: relationship_doc::with_section(
+        doc_comment: doc::with_section(
             match is_singleton_pk {
                 true => format!(
                     "Try to update the `{struct_name}` row of the singleton `{singular_table_name}` table."

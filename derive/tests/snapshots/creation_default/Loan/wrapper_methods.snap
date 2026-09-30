@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl BranchId {
+    /**Get all `Loan` rows whose `branch_id` column references this `BranchId`.
+
+Use it like `branch_id.get_loans(&dsl)`.*/
+    pub fn get_loans<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Loan> {
+        dsl.into().get_loans_by_branch_id(self).collect()
+    }
+}

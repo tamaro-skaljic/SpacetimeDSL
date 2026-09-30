@@ -1,6 +1,7 @@
 use {
     super::{
         context::{MethodGenerationContext, TableContributions},
+        doc,
         hook_call::hook_tokens,
         message, naming,
         reference_integrity::{
@@ -60,6 +61,8 @@ pub(super) enum CreateColumnRole {
     SetOnUpdate { optional: bool },
     /// The soft-delete marker, which starts out unmarked.
     SoftDeleteMarker(SoftDeleteMarkerKind),
+    /// A `#[creation_default(...)]` column, filled with its expression.
+    CreationDefault,
     /// A `#[create_wrapper]` column the caller supplies as the wrapped type.
     CreatedWrapper,
     /// A `#[use_wrapper(...)]` column the caller supplies as the wrapper.
@@ -109,6 +112,13 @@ impl CreateColumnRole {
             && marker.column_name == *column_name
         {
             return CreateColumnRole::SoftDeleteMarker(marker.kind);
+        }
+
+        if internal_column
+            .spacetimedsl_column_creation_default
+            .is_some()
+        {
+            return CreateColumnRole::CreationDefault;
         }
 
         match &internal_column.spacetimedsl_column_wrapper_type {
@@ -179,6 +189,23 @@ fn create_method_column_parts(
         }
         CreateColumnRole::SoftDeleteMarker(SoftDeleteMarkerKind::Timestamp) => {
             filled_in(quote! { None })
+        }
+        CreateColumnRole::CreationDefault => {
+            let creation_default = internal_column
+                .spacetimedsl_column_creation_default
+                .as_ref()
+                .expect(
+                    "the creation default role is only given to a column with a creation default",
+                );
+
+            CreateMethodColumnParts {
+                arg: None,
+                wrapper_option_mapper: None,
+                constructor_arg: Some(quote! {
+                    let #column_name: #column_type = #creation_default;
+                }),
+                constructor_arg_name: quote! { #column_name },
+            }
         }
         CreateColumnRole::CreatedWrapper => supplied(
             false,
@@ -363,13 +390,14 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
     let insert = insert_and_map_errors(context, &after_insert_hook);
 
     let method = SpacetimeDSLMethod {
-        doc_comment: relationship_doc::with_section(
+        doc_comment: doc::paragraphs([
             format!("Create a row in the `{singular_table_name}` table."),
+            defaults_section(internal_columns),
             relationship_doc::reference_checks(
                 "Fails with `ReferenceIntegrityViolation` unless each column references a row:",
                 &internal_columns.iter().collect_vec(),
             ),
-        ),
+        ]),
         method_name: format_ident!("create_{}", singular_table_name),
         method_args,
         return_type: runtime::error_result_type(struct_name),
@@ -397,6 +425,31 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
     };
 
     (method, contributions)
+}
+
+/// The `# Defaults` section of `create_<table>`: the columns it fills with their
+/// `#[creation_default]` instead of asking the caller for them. Empty when there is none.
+fn defaults_section(internal_columns: &[InternalColumn]) -> String {
+    let bullets: Vec<String> = internal_columns
+        .iter()
+        .filter_map(|internal_column| {
+            let creation_default = internal_column
+                .spacetimedsl_column_creation_default
+                .as_ref()?;
+
+            Some(format!(
+                "- `{}`: `{}`",
+                internal_column.rust_field_name,
+                doc::written_tokens(creation_default.to_token_stream()),
+            ))
+        })
+        .collect();
+
+    doc::section(
+        "Defaults",
+        Some("Fills these columns with their `#[creation_default]` instead of asking for them:"),
+        &bullets,
+    )
 }
 
 /// The `try_insert` of the row bound to the table's singular name, with SpacetimeDB's insert

@@ -25,6 +25,7 @@ pub mod one_or_multiple;
 pub mod singleton;
 
 pub mod auto_gen;
+pub mod creation_default;
 
 pub mod soft_delete;
 
@@ -54,6 +55,7 @@ symbol!(on_soft_delete);
 symbol!(create_wrapper);
 symbol!(use_wrapper);
 symbol!(auto_gen);
+symbol!(creation_default);
 symbol!(set_on_create);
 symbol!(set_on_update);
 symbol!(set_on_soft_delete);

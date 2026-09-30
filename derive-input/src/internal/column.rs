@@ -29,7 +29,7 @@ use {
     quote::ToTokens,
     spacetime_bindings_macro_input::table::ColumnArgs,
     std::collections::BTreeMap,
-    syn::{GenericArgument, Ident, Path, PathArguments, Type},
+    syn::{Expr, GenericArgument, Ident, Path, PathArguments, Type},
 };
 
 /// Every column of a table, in the shape the public API exposes and in the shape the
@@ -134,6 +134,7 @@ pub fn try_parse(
             spacetimedsl_column_wrapper_type: spacetimedsl_column.wrapper_type.clone(),
             spacetimedsl_column_auto_generated_uuid_version: spacetimedsl_column
                 .auto_generated_uuid_version,
+            spacetimedsl_column_creation_default: spacetimedsl_column.creation_default.clone(),
         };
 
         rust_fields.push(rust_field);
@@ -334,6 +335,7 @@ pub struct InternalColumn {
     pub spacetimedsl_column_foreign_key: Option<ForeignKey>,
     pub spacetimedsl_column_wrapper_type: Option<WrapperType>,
     pub spacetimedsl_column_auto_generated_uuid_version: Option<UUIDVersion>,
+    pub spacetimedsl_column_creation_default: Option<Expr>,
 }
 
 fn get_auto_inc_column_names(column_args: &ColumnArgs<'_>) -> Vec<Ident> {

@@ -16,6 +16,7 @@ use {
     super::{
         context::MethodGenerationContext,
         create::{self, CreateColumnRole},
+        doc,
         hook_call::{hook_tokens, hook_use_and_call},
         naming,
         reference_integrity::{
@@ -440,7 +441,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
     let insert = create::insert_and_map_errors(context, &after_insert_hook);
 
     SpacetimeDSLMethod {
-        doc_comment: relationship_doc::with_section(
+        doc_comment: doc::with_section(
             format!(
                 "Write the `{struct_name}` row of the singleton `{singular_table_name}` table, whether or not it exists yet."
             ),

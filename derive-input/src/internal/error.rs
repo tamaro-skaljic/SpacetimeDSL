@@ -436,6 +436,22 @@ pub fn auto_gen_without_wrapper(auto_gen_attribute: &impl ToTokens) -> Error {
     )
 }
 
+// `#[creation_default]`
+
+pub fn multiple_creation_default_attributes(creation_default_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "Only one `#[creation_default]` is allowed per column!",
+    )
+}
+
+pub fn creation_default_without_expression(creation_default_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "Expected an expression in `#[creation_default(...)]`, e.g. `#[creation_default(0)]` or `#[creation_default(String::new())]`: the value `create_<table>` fills this column with!",
+    )
+}
+
 // `set_on_create` and `set_on_update`
 
 pub fn set_on_create_and_set_on_update(column_name: &Ident) -> Error {

@@ -65,6 +65,10 @@ impl SpacetimeDSLColumn {
             }
         }
 
+        // Through `super`, because importing the module would import the attribute's symbol,
+        // which has the same name, and turn this binding into a pattern matching it.
+        let creation_default = super::creation_default::try_parse(field)?;
+
         // Singleton PK column (id: u8) doesn't need getter/setter/mut_getter
         let is_singleton_pk = is_singleton && spacetimedb_column.is_primary_key;
 
@@ -88,6 +92,7 @@ impl SpacetimeDSLColumn {
             wrapper_type,
             foreign_key,
             auto_generated_uuid_version,
+            creation_default,
             getter,
             mut_getter,
             setter,

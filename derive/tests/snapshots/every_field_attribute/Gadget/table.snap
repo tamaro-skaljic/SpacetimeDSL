@@ -97,6 +97,22 @@ impl Gadget {
         OwnerId::new(old_value)
     }
     ///
+    pub fn get_rating(&self) -> &u8 {
+        use crate::spacetimedsl::Wrapper;
+        &self.rating
+    }
+    ///
+    pub fn get_rating_mut(&mut self) -> &mut u8 {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.rating
+    }
+    ///
+    pub fn set_rating(&mut self, rating: u8) -> u8 {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.rating, rating);
+        old_value
+    }
+    ///
     pub fn get_created_at(&self) -> &Timestamp {
         use crate::spacetimedsl::Wrapper;
         &self.created_at

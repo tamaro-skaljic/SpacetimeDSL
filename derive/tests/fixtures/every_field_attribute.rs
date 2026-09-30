@@ -1,6 +1,6 @@
 //! Covers every field attribute SpacetimeDSL reads on accepted tables: `create_wrapper`,
 //! `use_wrapper`, `foreign_key`, `referenced_by`, `set_on_create`, `set_on_update`,
-//! `set_on_soft_delete` and `auto_gen`.
+//! `set_on_soft_delete`, `auto_gen` and `creation_default`.
 //!
 //! The harness only expands fixtures and never compiles them, so this fixture cannot notice
 //! a field attribute missing from the helper attributes of the `SpacetimeDSL` derive;
@@ -35,6 +35,9 @@ pub struct Gadget {
     #[use_wrapper(OwnerId)]
     #[foreign_key(path = self, table = owner, column = id, on_delete = Delete)]
     pub owner_id: Uuid,
+
+    #[creation_default(1)]
+    pub rating: u8,
 
     #[set_on_create]
     created_at: Timestamp,
