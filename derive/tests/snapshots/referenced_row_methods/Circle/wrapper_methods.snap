@@ -1,0 +1,41 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl EntityId {
+    /**Get the `Circle` whose `entity_id` column references this `EntityId`.
+
+Use it like `entity_id.get_circle(&dsl)`.*/
+    pub fn get_circle<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<Circle, crate::spacetimedsl::error::SpacetimeDSLError> {
+        dsl.into().get_circle_by_entity_id(self)
+    }
+}
+impl PlayerId {
+    /**Get all `Circle` rows whose `player_id` column references this `PlayerId`.
+
+Use it like `player_id.get_circles(&dsl)`.*/
+    pub fn get_circles<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Circle> {
+        dsl.into().get_circles_by_player_id(self).collect()
+    }
+}
+impl EntityId {
+    /**Get the row of the `player` table which the `player_id` column of the `Circle` row with this `EntityId` references.
+
+Use it like `entity_id.get_player(&dsl)`.*/
+    pub fn get_player<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::player__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let circle = dsl.get_circle_by_entity_id(self)?;
+        dsl.get_player_by_id(circle.get_player_id())
+    }
+}

@@ -12,3 +12,19 @@ Use it like `draft_id.get_revisions(&dsl)`.*/
         dsl.into().get_revisions_by_draft_id(self).collect()
     }
 }
+impl RevisionId {
+    /**Get the row of the `draft` table which the `draft_id` column of the `Revision` row with this `RevisionId` references.
+
+Use it like `revision_id.get_draft(&dsl)`.*/
+    pub fn get_draft<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::draft__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let revision = dsl.get_revision_by_id(self)?;
+        dsl.get_draft_by_id(revision.get_draft_id())
+    }
+}

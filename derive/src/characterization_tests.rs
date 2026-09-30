@@ -224,6 +224,11 @@ fn wrapper_methods() {
 }
 
 #[test]
+fn referenced_row_methods() {
+    snapshot_fixture("referenced_row_methods");
+}
+
+#[test]
 fn soft_delete_flag() {
     snapshot_fixture("soft_delete_flag");
 }

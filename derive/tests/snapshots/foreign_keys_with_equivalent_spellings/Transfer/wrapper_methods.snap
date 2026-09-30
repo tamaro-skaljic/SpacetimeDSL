@@ -23,3 +23,35 @@ Use it like `ledger_id.get_transfers_by_target_ledger_id(&dsl)`.*/
         dsl.into().get_transfers_by_target_ledger_id(self).collect()
     }
 }
+impl TransferId {
+    /**Get the row of the `ledger` table which the `source_ledger_id` column of the `Transfer` row with this `TransferId` references.
+
+Use it like `transfer_id.get_source_ledger(&dsl)`.*/
+    pub fn get_source_ledger<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <::other_crate::tables::ledger__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let transfer = dsl.get_transfer_by_id(self)?;
+        dsl.get_ledger_by_id(transfer.get_source_ledger_id())
+    }
+}
+impl TransferId {
+    /**Get the row of the `ledger` table which the `target_ledger_id` column of the `Transfer` row with this `TransferId` references.
+
+Use it like `transfer_id.get_target_ledger(&dsl)`.*/
+    pub fn get_target_ledger<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <other_crate::tables::ledger__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let transfer = dsl.get_transfer_by_id(self)?;
+        dsl.get_ledger_by_id(transfer.get_target_ledger_id())
+    }
+}

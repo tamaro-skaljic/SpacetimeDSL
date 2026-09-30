@@ -1,0 +1,63 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl SeasonId {
+    /**Get all `Tournament` rows whose `opening_season_id` column references this `SeasonId`.
+
+Use it like `season_id.get_tournaments_by_opening_season_id(&dsl)`.*/
+    pub fn get_tournaments_by_opening_season_id<
+        'a,
+        T: 'a + crate::spacetimedsl::ReadContext,
+    >(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Tournament> {
+        dsl.into().get_tournaments_by_opening_season_id(self).collect()
+    }
+}
+impl SeasonId {
+    /**Get all `Tournament` rows whose `closing_season_id` column references this `SeasonId`.
+
+Use it like `season_id.get_tournaments_by_closing_season_id(&dsl)`.*/
+    pub fn get_tournaments_by_closing_season_id<
+        'a,
+        T: 'a + crate::spacetimedsl::ReadContext,
+    >(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Tournament> {
+        dsl.into().get_tournaments_by_closing_season_id(self).collect()
+    }
+}
+impl TournamentId {
+    /**Get the row of the `season` table which the `opening_season_id` column of the `Tournament` row with this `TournamentId` references.
+
+Use it like `tournament_id.get_opening_season(&dsl)`.*/
+    pub fn get_opening_season<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::season__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let tournament = dsl.get_tournament_by_id(self)?;
+        dsl.get_season_by_id(tournament.get_opening_season_id())
+    }
+}
+impl TournamentId {
+    /**Get the row of the `season` table which the `closing_season_id` column of the `Tournament` row with this `TournamentId` references.
+
+Use it like `tournament_id.get_closing_season(&dsl)`.*/
+    pub fn get_closing_season<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::season__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let tournament = dsl.get_tournament_by_id(self)?;
+        dsl.get_season_by_id(tournament.get_closing_season_id())
+    }
+}

@@ -12,3 +12,19 @@ Use it like `branch_id.get_loans(&dsl)`.*/
         dsl.into().get_loans_by_branch_id(self).collect()
     }
 }
+impl LoanId {
+    /**Get the row of the `branch` table which the `branch_id` column of the `Loan` row with this `LoanId` references.
+
+Use it like `loan_id.get_branch(&dsl)`.*/
+    pub fn get_branch<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::branch__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let loan = dsl.get_loan_by_id(self)?;
+        dsl.get_branch_by_id(loan.get_branch_id())
+    }
+}

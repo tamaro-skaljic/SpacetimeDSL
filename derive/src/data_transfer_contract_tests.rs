@@ -370,6 +370,19 @@ fn the_model_holds_what_a_table_declares() {
         panic!("the one foreign key column adds one method to its wrapper type");
     };
     assert_eq!(wrapper_method.method_name, "get_gadgets");
+    let [referenced_row_method] = spacetimedsl_methods.referenced_row_methods.as_slice() else {
+        panic!(
+            "the one foreign key column besides the primary key adds one method to the primary key's wrapper type"
+        );
+    };
+    assert_eq!(referenced_row_method.method_name, "get_owner");
+    assert_eq!(
+        referenced_row_method
+            .wrapper_type
+            .to_token_stream()
+            .to_string(),
+        "GadgetId"
+    );
 
     let currency = parse_table(
         quote! { plural_name = currencies, method(update = false, delete = false) },
@@ -803,6 +816,7 @@ fn visit_spacetimedsl_table_methods(spacetimedsl_methods: &SpacetimeDSLTableMeth
         on_delete_strategies_of_this_table,
         multi_column_indices,
         wrapper_methods,
+        referenced_row_methods,
     } = spacetimedsl_methods;
 
     [create, get_all, get_count]
@@ -837,6 +851,14 @@ fn visit_spacetimedsl_table_methods(spacetimedsl_methods: &SpacetimeDSLTableMeth
         return_type: _,
         method_impl: _,
     } in wrapper_methods
+    {}
+    for WrapperMethod {
+        wrapper_type: _,
+        doc_comment: _,
+        method_name: _,
+        return_type: _,
+        method_impl: _,
+    } in referenced_row_methods
     {}
 }
 

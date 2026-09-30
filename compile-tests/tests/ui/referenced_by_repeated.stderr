@@ -36,11 +36,34 @@ error[E0425]: cannot find type `WarehouseId` in module `crate::warehouse`
 38 |         #[use_wrapper(crate::warehouse::WarehouseId)]
    |                                         ^^^^^^^^^^^ not found in `crate::warehouse`
 
+error[E0425]: cannot find type `warehouse__TableHandle` in module `crate::warehouse`
+  --> tests/ui/referenced_by_repeated.rs:24:5
+   |
+24 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `crate::warehouse`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
 error[E0599]: no method named `get_warehouse_by_id` found for reference `&'a DSL<'_, T>` in the current scope
   --> tests/ui/referenced_by_repeated.rs:24:5
    |
 24 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&'a DSL<'_, T>`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: you are looking for the module in `std`, not the primitive type
+   |
+24 |     std::#[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
+   |     +++++
+
+error[E0599]: no method named `get_warehouse_by_id` found for struct `ReadOnlyDSL<'a, T>` in the current scope
+  --> tests/ui/referenced_by_repeated.rs:24:5
+   |
+ 8 | ::spacetimedsl::spacetimedsl!();
+   | ------------------------------- method `get_warehouse_by_id` not found for this struct
+...
+24 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ReadOnlyDSL<'_, T>`
    |
    = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: you are looking for the module in `std`, not the primitive type

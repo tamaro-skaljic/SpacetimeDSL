@@ -1,0 +1,30 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl ServerId {
+    /**Get all `Alliance` rows whose `server_id` column references this `ServerId`.
+
+Use it like `server_id.get_alliances(&dsl)`.*/
+    pub fn get_alliances<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Alliance> {
+        dsl.into().get_alliances_by_server_id(self).collect()
+    }
+}
+impl AllianceId {
+    /**Get the row of the `server` table which the `server_id` column of the `Alliance` row with this `AllianceId` references.
+
+Use it like `alliance_id.get_server(&dsl)`.*/
+    pub fn get_server<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::server__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let alliance = dsl.get_alliance_by_id(self)?;
+        dsl.get_server_by_id(alliance.get_server_id())
+    }
+}

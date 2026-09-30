@@ -1,0 +1,91 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Create a row in the `tournament` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `opening_season_id`: a row of the `season` table (`self`), or `0`
+- `closing_season_id`: a row of the `season` table (`self`), or `0`*/
+    pub fn create_tournament<'a>(
+        &'a self,
+        tournament: CreateTournament,
+    ) -> Result<Tournament, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let opening_season_id = tournament.opening_season_id.value();
+        let closing_season_id = tournament.closing_season_id.value();
+        let tournament = Tournament {
+            id,
+            opening_season_id,
+            closing_season_id,
+        };
+        let mut the_same_or_another_tournament: Option<Tournament> = None;
+        if opening_season_id.ne(&0) {
+            match self.get_season_by_id(tournament.get_opening_season_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "tournament".into(),
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                            column_names_and_row_values: format!(
+                                "{{ opening_season_id : {} }}", tournament
+                                .get_opening_season_id().value()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        if closing_season_id.ne(&0) {
+            match self.get_season_by_id(tournament.get_closing_season_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "tournament".into(),
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                            column_names_and_row_values: format!(
+                                "{{ closing_season_id : {} }}", tournament
+                                .get_closing_season_id().value()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        let unique_column_values = (tournament.id.clone(),);
+        match self.db().tournament().try_insert(tournament) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "tournament".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", unique_column_values.0
+                            )
+                                .into(),
+                        })
+                    }
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "tournament".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

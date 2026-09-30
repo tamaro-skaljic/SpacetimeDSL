@@ -1715,8 +1715,7 @@ Both columns reference `entity`, so `EntityId` gets `get_entity_relationships_by
 
 ### Look Up Referencing Rows From a Wrapper
 
-Every `#[foreign_key]` column with a single-column index adds a method to its `#[use_wrapper]`
-type. The method looks up the rows which reference one value of that wrapper. You do not have
+Every `#[foreign_key]` column with a single-column index adds a method to its `#[use_wrapper]` type, which looks up the rows referencing one value of that wrapper; the next section describes the method for the other direction. You do not have
 to add anything.
 
 ```rust
@@ -1733,6 +1732,26 @@ let circles: Vec<Circle> = player.get_id().get_circles(&dsl);
 - Two or more columns of one table reference the same table, or a column references its own table: each method takes the full name of the DSL method it calls, for example `get_entity_relationships_by_parent_entity_id`.
 - Multi-column indices and the foreign key columns of singleton tables add no method.
 - Pass `&dsl` from a reducer or `&read_only_dsl` from a view.
+
+### Look Up the Referenced Row From a Wrapper
+
+Every `#[foreign_key]` column besides the primary key also adds a method to the wrapper type of its own table's primary key. The method looks up the row the column of the row with that key references:
+
+```rust
+// Alliance has `#[use_wrapper(ServerId)] #[foreign_key(… table = server …)] server_id`,
+// Server has `#[use_wrapper(SeasonId)] #[foreign_key(… table = season …)] season_id`:
+let max_alliance_level = alliance.get_server_id().get_season(&dsl)?.get_max_alliance_level();
+
+// instead of
+let server = dsl.get_server_by_id(alliance.get_server_id())?;
+let max_alliance_level = dsl.get_season_by_id(server.get_season_id())?.get_max_alliance_level();
+```
+
+- The method is `get_<referenced table>` and returns `Result<Row, SpacetimeDSLError>`: a `NotFoundError` when no row has the key, or when the column holds `0` or `Uuid::NIL`, which reference no row.
+- When a table references the same table through several columns, or references itself, each method takes the name of its column without its `_<primary key>` or `_id` suffix: `parent_entity_id` adds `get_parent_entity`. A unique foreign key to the own table therefore gets both `get_<table>_by_<column>`, the row which references this one, and `get_<column stem>`, the row this one references.
+- The return type names the row as `<path::<table>__TableHandle as ::spacetimedb::Table>::Row`, the type SpacetimeDB generates for the referenced table: the foreign key names the table, not its struct. Its value is the table's struct.
+- A foreign key on the primary key adds no such method, and neither does a singleton, whose injected primary key has no wrapper type, nor a struct with several `#[dsl]` attributes, whose tables share the wrapper type.
+- The documentation of each method says which column it follows, so its direction is clear although both directions share the `get_` prefix.
 
 ### Generated Documentation
 

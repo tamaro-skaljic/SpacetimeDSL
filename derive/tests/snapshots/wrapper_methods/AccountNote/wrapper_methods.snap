@@ -12,3 +12,19 @@ Use it like `account_id.get_account_notes(&dsl)`.*/
         dsl.into().get_account_notes_by_account_id(self).collect()
     }
 }
+impl AccountNoteId {
+    /**Get the row of the `account` table which the `account_id` column of the `AccountNote` row with this `AccountNoteId` references.
+
+Use it like `account_note_id.get_account(&dsl)`.*/
+    pub fn get_account<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <crate::accounts::account__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let account_note = dsl.get_account_note_by_id(self)?;
+        dsl.get_account_by_id(account_note.get_account_id())
+    }
+}

@@ -1,0 +1,30 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl StageId {
+    /**Get the `Stage` whose `next_stage_id` column references this `StageId`.
+
+Use it like `stage_id.get_stage_by_next_stage_id(&dsl)`.*/
+    pub fn get_stage_by_next_stage_id<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<Stage, crate::spacetimedsl::error::SpacetimeDSLError> {
+        dsl.into().get_stage_by_next_stage_id(self)
+    }
+}
+impl StageId {
+    /**Get the row of the `stage` table which the `next_stage_id` column of the `Stage` row with this `StageId` references.
+
+Use it like `stage_id.get_next_stage(&dsl)`.*/
+    pub fn get_next_stage<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::stage__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let stage = dsl.get_stage_by_id(self)?;
+        dsl.get_stage_by_id(stage.get_next_stage_id())
+    }
+}

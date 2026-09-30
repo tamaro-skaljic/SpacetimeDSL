@@ -1,0 +1,90 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Tables referencing the `season` table
+///
+/// - the `server` table (`self`)
+/// - the `tournament` table (`self`)
+
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_season_table_needs_to_define_a_strategy_for_on_delete_or_the_season_table_has_no_referenced_by_attribute_referencing_the_server_table {}
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_season_table_needs_to_define_a_strategy_for_on_delete_or_the_season_table_has_no_referenced_by_attribute_referencing_the_tournament_table {}
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_season_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_season_table_has_no_referenced_by_attribute_referencing_the_server_table {}
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_season_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_season_table_has_no_referenced_by_attribute_referencing_the_tournament_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_server_table_has_no_foreign_key_attribute_referencing_the_season_table;
+    use self::this_compilation_error_occurs_because_the_tournament_table_has_no_foreign_key_attribute_referencing_the_season_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct SeasonId {
+    value: u64,
+}
+impl Default for SeasonId {
+    fn default() -> SeasonId {
+        SeasonId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for SeasonId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "SeasonId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for SeasonId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Season> for SeasonId {
+    fn from(value: &Season) -> Self {
+        SeasonId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Season> for Option<SeasonId> {
+    fn from(value: &Season) -> Option<SeasonId> {
+        Some(SeasonId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&SeasonId> for Option<SeasonId> {
+    fn from(value: &SeasonId) -> Option<SeasonId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(SeasonId::new(value.value()))
+    }
+}
+impl From<&SeasonId> for SeasonId {
+    fn from(value: &SeasonId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        SeasonId::new(value.value())
+    }
+}
+impl Season {
+    ///
+    pub fn get_id(&self) -> SeasonId {
+        use crate::spacetimedsl::Wrapper;
+        SeasonId::new(self.id.clone())
+    }
+}
+
+// Generated DSL methods:
+// count_of_all_seasons
+// create_season
+// get_all_seasons
+// get_season_by_id

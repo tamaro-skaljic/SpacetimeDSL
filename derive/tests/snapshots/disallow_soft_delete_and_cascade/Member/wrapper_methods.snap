@@ -12,3 +12,19 @@ Use it like `guild_id.get_members(&dsl)`.*/
         dsl.into().get_members_by_guild_id(self).collect()
     }
 }
+impl MemberId {
+    /**Get the row of the `guild` table which the `guild_id` column of the `Member` row with this `MemberId` references.
+
+Use it like `member_id.get_guild(&dsl)`.*/
+    pub fn get_guild<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::guild__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let member = dsl.get_member_by_id(self)?;
+        dsl.get_guild_by_id(member.get_guild_id())
+    }
+}

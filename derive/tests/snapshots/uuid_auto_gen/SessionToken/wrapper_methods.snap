@@ -12,3 +12,19 @@ Use it like `account_id.get_session_tokens(&dsl)`.*/
         dsl.into().get_session_tokens_by_account_id(self).collect()
     }
 }
+impl SessionTokenId {
+    /**Get the row of the `account` table which the `account_id` column of the `SessionToken` row with this `SessionTokenId` references.
+
+Use it like `session_token_id.get_account(&dsl)`.*/
+    pub fn get_account<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::account__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let session_token = dsl.get_session_token_by_id(self)?;
+        dsl.get_account_by_id(session_token.get_account_id())
+    }
+}

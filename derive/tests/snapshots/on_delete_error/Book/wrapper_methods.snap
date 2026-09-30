@@ -12,3 +12,19 @@ Use it like `author_id.get_books(&dsl)`.*/
         dsl.into().get_books_by_author_id(self).collect()
     }
 }
+impl BookId {
+    /**Get the row of the `author` table which the `author_id` column of the `Book` row with this `BookId` references.
+
+Use it like `book_id.get_author(&dsl)`.*/
+    pub fn get_author<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::author__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let book = dsl.get_book_by_id(self)?;
+        dsl.get_author_by_id(book.get_author_id())
+    }
+}

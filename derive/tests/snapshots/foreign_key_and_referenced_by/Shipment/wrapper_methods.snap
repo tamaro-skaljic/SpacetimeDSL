@@ -23,3 +23,35 @@ Use it like `warehouse_id.get_shipments_by_destination_warehouse_id(&dsl)`.*/
         dsl.into().get_shipments_by_destination_warehouse_id(self).collect()
     }
 }
+impl ShipmentId {
+    /**Get the row of the `warehouse` table which the `origin_warehouse_id` column of the `Shipment` row with this `ShipmentId` references.
+
+Use it like `shipment_id.get_origin_warehouse(&dsl)`.*/
+    pub fn get_origin_warehouse<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::warehouse__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let shipment = dsl.get_shipment_by_id(self)?;
+        dsl.get_warehouse_by_id(shipment.get_origin_warehouse_id())
+    }
+}
+impl ShipmentId {
+    /**Get the row of the `warehouse` table which the `destination_warehouse_id` column of the `Shipment` row with this `ShipmentId` references.
+
+Use it like `shipment_id.get_destination_warehouse(&dsl)`.*/
+    pub fn get_destination_warehouse<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::warehouse__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let shipment = dsl.get_shipment_by_id(self)?;
+        dsl.get_warehouse_by_id(shipment.get_destination_warehouse_id())
+    }
+}

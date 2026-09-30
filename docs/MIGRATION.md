@@ -326,3 +326,7 @@ runtime::error_from_hook_declaration(&quote! { error_from_hook }) // the binding
 #### `SpacetimeDSLColumn::disallowed`
 
 `SpacetimeDSLColumn` gained `disallowed: BTreeSet<Disallowed>`, the rules of `#[disallow(...)]`, from the new `api::dsl::disallow::Disallowed` (`Zero`, `Decreasing`, `Increasing`). The checks they add live inside the `method_impl` of the write methods.
+
+#### `SpacetimeDSLTableMethods::referenced_row_methods`
+
+`SpacetimeDSLTableMethods` gained `referenced_row_methods: Vec<WrapperMethod>`: the methods a table adds to the wrapper type of its primary key, which look up the row each foreign key column references. Emit them only for a struct with a single `#[dsl]` attribute, as `spacetimedsl_derive` does: the tables of a struct with several share its wrapper types, and each would add the same methods. Their return type names the referenced struct through SpacetimeDB's `<accessor>__TableHandle`.

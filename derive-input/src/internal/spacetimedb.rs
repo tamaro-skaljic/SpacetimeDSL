@@ -12,7 +12,8 @@
 
 use {
     proc_macro2::TokenStream,
-    quote::{ToTokens, quote},
+    quote::{ToTokens, format_ident, quote},
+    syn::{Ident, Path},
 };
 
 /// `TryInsertError::#variant`, the error a failed `try_insert` returns.
@@ -34,5 +35,17 @@ pub fn spacetimetype_derive() -> TokenStream {
 pub fn uuid_nil() -> TokenStream {
     quote! {
         ::spacetimedb::Uuid::NIL
+    }
+}
+
+/// `<#module_path::<accessor>__TableHandle as ::spacetimedb::Table>::Row`: the struct of the
+/// table `table_accessor` in `module_path`, named without knowing it. SpacetimeDB generates the
+/// handle type `<accessor>__TableHandle` next to every table and implements `Table` for it with
+/// the struct as `Row`.
+pub fn table_row_type(module_path: &Path, table_accessor: &Ident) -> TokenStream {
+    let table_handle = format_ident!("{table_accessor}__TableHandle");
+
+    quote! {
+        <#module_path::#table_handle as ::spacetimedb::Table>::Row
     }
 }

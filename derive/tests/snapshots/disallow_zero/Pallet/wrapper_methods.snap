@@ -12,3 +12,19 @@ Use it like `warehouse_id.get_pallets(&dsl)`.*/
         dsl.into().get_pallets_by_warehouse_id(self).collect()
     }
 }
+impl PalletId {
+    /**Get the row of the `warehouse` table which the `warehouse_id` column of the `Pallet` row with this `PalletId` references.
+
+Use it like `pallet_id.get_warehouse(&dsl)`.*/
+    pub fn get_warehouse<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::warehouse__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let pallet = dsl.get_pallet_by_id(self)?;
+        dsl.get_warehouse_by_id(pallet.get_warehouse_id())
+    }
+}

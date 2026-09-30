@@ -2,20 +2,28 @@
 //!
 //! Each one looks rows up through the DSL method of the column's index, so the lookup, its
 //! name and its return type stay defined once, in `get.rs`.
+//!
+//! It also adds the methods in the other direction to the wrapper type of the table's primary
+//! key, which look up the row a foreign key column references.
 
 use {
-    super::context::MethodGenerationContext,
-    crate::api::{
-        Column,
-        dsl::{
-            column::SpacetimeDSLColumnMethods,
-            wrapper::{WrapperMethod, WrapperType},
+    super::{context::MethodGenerationContext, foreign_key::foreign_key_of, naming},
+    crate::{
+        api::{
+            Column,
+            dsl::{
+                column::SpacetimeDSLColumnMethods,
+                wrapper::{WrapperMethod, WrapperType},
+            },
+            runtime,
         },
+        internal::spacetimedb,
     },
     ident_case::RenameRule,
     proc_macro2::TokenStream,
     quote::{format_ident, quote},
-    syn::Type,
+    std::collections::BTreeMap,
+    syn::{Ident, Type},
 };
 
 /// One method per column of `columns_with_foreign_key`, which all reference
@@ -86,6 +94,107 @@ pub fn for_wrapper_methods(
             })
         })
         .collect()
+}
+
+/// One method per foreign key column besides the primary key, added to the wrapper type of
+/// the primary key, which looks up the row the column of the row with that key references.
+///
+/// It takes the name of the referenced table, `get_<table>`. Where the table references that
+/// table through several columns, or references itself, the table's name would not say which
+/// column the method follows, so it takes the column's stem instead: `parent_folder_id` adds
+/// `get_parent_folder`.
+pub fn for_referenced_row_methods(
+    context: &MethodGenerationContext,
+    foreign_key_columns_by_referenced_table: &BTreeMap<&Ident, Vec<&Column>>,
+) -> Vec<WrapperMethod> {
+    let MethodGenerationContext {
+        spacetimedsl_table,
+        primary_key_column,
+        struct_name,
+        singular_table_name,
+        primary_key_column_name,
+        ..
+    } = context;
+
+    // A singleton's injected primary key has no wrapper type to add a method to.
+    if spacetimedsl_table.is_singleton() {
+        return vec![];
+    }
+
+    let primary_key_wrapper = primary_key_column
+        .spacetimedsl_column_wrapper_type
+        .as_ref()
+        .expect(
+            "`internal/dsl/column.rs` rejects a primary key without a wrapper outside singletons",
+        );
+    let primary_key_wrapper_struct_name = primary_key_wrapper.struct_name();
+    let primary_key_wrapper_variable_name =
+        RenameRule::SnakeCase.apply_to_variant(primary_key_wrapper_struct_name.to_string());
+    let get_this_row =
+        naming::get_by_index_method_name(singular_table_name, primary_key_column_name);
+
+    let mut methods = vec![];
+
+    for (referenced_table_name, columns_with_foreign_key) in foreign_key_columns_by_referenced_table
+    {
+        let takes_the_column_stem =
+            *referenced_table_name == singular_table_name || columns_with_foreign_key.len() > 1;
+
+        // A foreign key on the primary key references the row its own value names.
+        let columns = columns_with_foreign_key
+            .iter()
+            .filter(|column| !column.spacetimedb_column.is_primary_key);
+
+        for column in columns {
+            let foreign_key = foreign_key_of(column);
+            let column_name = &column.rust_field.name;
+
+            let method_name = match takes_the_column_stem {
+                false => format_ident!("get_{referenced_table_name}"),
+                true => format_ident!(
+                    "get_{}",
+                    column_stem(column_name, &foreign_key.primary_key_column_name)
+                ),
+            };
+
+            let get_referenced_row = naming::get_by_index_method_name(
+                &foreign_key.table_name,
+                &foreign_key.primary_key_column_name,
+            );
+            let getter_name = naming::getter_name(column_name);
+            let referenced_row_type =
+                spacetimedb::table_row_type(&foreign_key.path, &foreign_key.table_name);
+
+            methods.push(WrapperMethod {
+                wrapper_type: wrapper_type_of(primary_key_wrapper),
+                doc_comment: format!(
+                    "Get the row of the `{referenced_table_name}` table which the `{column_name}` column of the `{struct_name}` row with this `{primary_key_wrapper_struct_name}` references.\n\nUse it like `{primary_key_wrapper_variable_name}.{method_name}(&dsl)`."
+                ),
+                method_name,
+                return_type: runtime::error_result_type(&referenced_row_type),
+                method_impl: quote! {
+                    let dsl = dsl.into();
+                    let #singular_table_name = dsl.#get_this_row(self)?;
+                    dsl.#get_referenced_row(#singular_table_name.#getter_name())
+                },
+            });
+        }
+    }
+
+    methods
+}
+
+/// The name of a foreign key column without the suffix which names the key it holds: without
+/// `_<primary key of the referenced table>`, or else without `_id`, or else whole.
+fn column_stem(column_name: &Ident, referenced_primary_key_column_name: &Ident) -> String {
+    let column_name = column_name.to_string();
+    let key_suffix = format!("_{referenced_primary_key_column_name}");
+
+    column_name
+        .strip_suffix(key_suffix.as_str())
+        .or_else(|| column_name.strip_suffix("_id"))
+        .unwrap_or(&column_name)
+        .to_string()
 }
 
 /// The wrapper type as the `Type` `WrapperMethod::wrapper_type` holds.
