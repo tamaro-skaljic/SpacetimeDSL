@@ -1,6 +1,7 @@
 use {
     super::{
         context::MethodGenerationContext,
+        disallow::{self, CheckedRules, GuardedWrite},
         doc,
         index::IndexShape,
         reference_integrity::{
@@ -160,8 +161,18 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
         })
         .collect_vec();
 
+    let row = quote! { #singular_table_name };
+    let disallow_checks = disallow::checks(
+        context,
+        &GuardedWrite::Update {
+            row_key: disallow::row_key(context, &row),
+        },
+        &row,
+        disallow::return_the_error,
+    );
+
     SpacetimeDSLMethod {
-        doc_comment: doc::with_section(
+        doc_comment: doc::paragraphs([
             match is_singleton_pk {
                 true => format!(
                     "Try to update the `{struct_name}` row of the singleton `{singular_table_name}` table."
@@ -170,11 +181,12 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
                     "{unique_multi_column_index_hint}\n\nTry to update a `{struct_name}` row of the `{singular_table_name}` table {described_as}."
                 ),
             },
+            disallow::section(internal_columns, CheckedRules::OfAWrittenRow),
             relationship_doc::reference_checks(
                 "Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:",
                 &columns_with_a_setter,
             ),
-        ),
+        ]),
         method_name: match is_singleton_pk {
             true => format_ident!("update_{singular_table_name}"),
             false => format_ident!("update_{singular_table_name}_by_{index_name}"),
@@ -195,6 +207,8 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
             #(#reference_integrity_checks)*
 
             #before_update_hook
+
+            #disallow_checks
 
             #rebind_row_as_mutable
             #on_update_set_current_timestamp

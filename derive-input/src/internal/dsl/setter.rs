@@ -1,16 +1,22 @@
 use {
     crate::{
         api::{
-            dsl::{foreign_key::ForeignKey, setter::Setter, wrapper::WrapperType},
+            dsl::{
+                disallow::Disallowed, foreign_key::ForeignKey, setter::Setter, wrapper::WrapperType,
+            },
             rust::{column::RustField, visibility::RustVisibility},
         },
-        internal::dsl::{
-            method::{naming, relationship_doc},
-            wrapper::map_wrapper_type_option_to_wrapped_type_option,
+        internal::{
+            column::ColumnTypeKind,
+            dsl::{
+                method::{disallow, doc, naming, relationship_doc},
+                wrapper::map_wrapper_type_option_to_wrapped_type_option,
+            },
         },
     },
     proc_macro2::TokenStream,
     quote::quote,
+    std::collections::BTreeSet,
 };
 
 /// The parts of a setter that depend on the column's wrapper, built together per shape.
@@ -26,6 +32,7 @@ impl Setter {
         is_option: bool,
         wrapper_type: &Option<WrapperType>,
         foreign_key: Option<&ForeignKey>,
+        disallowed: &BTreeSet<Disallowed>,
     ) -> Option<Setter> {
         if let RustVisibility::Private = rust_field.visibility {
             return None;
@@ -98,9 +105,15 @@ impl Setter {
         };
 
         Some(Setter {
-            doc_comment: foreign_key
-                .map(relationship_doc::foreign_key)
-                .unwrap_or_default(),
+            doc_comment: doc::paragraphs([
+                foreign_key
+                    .map(relationship_doc::foreign_key)
+                    .unwrap_or_default(),
+                disallow::setter_doc(
+                    disallowed,
+                    ColumnTypeKind::of(&rust_field.type_name_or_path),
+                ),
+            ]),
             method_visibility: rust_field.visibility.clone(),
             method_name: naming::setter_name(column_name),
             method_arg: argument,

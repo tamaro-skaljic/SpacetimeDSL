@@ -10,6 +10,7 @@ use {
             dsl::{
                 auto_gen::UUIDVersion,
                 column::{SpacetimeDSLColumn, SpacetimeDSLColumnMethods},
+                disallow::Disallowed,
                 foreign_key::ForeignKey,
                 table::SpacetimeDSLTable,
                 wrapper::WrapperType,
@@ -28,7 +29,7 @@ use {
     itertools::izip,
     quote::ToTokens,
     spacetime_bindings_macro_input::table::ColumnArgs,
-    std::collections::BTreeMap,
+    std::collections::{BTreeMap, BTreeSet},
     syn::{Expr, GenericArgument, Ident, Path, PathArguments, Type},
 };
 
@@ -135,6 +136,7 @@ pub fn try_parse(
             spacetimedsl_column_auto_generated_uuid_version: spacetimedsl_column
                 .auto_generated_uuid_version,
             spacetimedsl_column_creation_default: spacetimedsl_column.creation_default.clone(),
+            spacetimedsl_column_disallowed: spacetimedsl_column.disallowed.clone(),
         };
 
         rust_fields.push(rust_field);
@@ -342,6 +344,7 @@ pub struct InternalColumn {
     pub spacetimedsl_column_wrapper_type: Option<WrapperType>,
     pub spacetimedsl_column_auto_generated_uuid_version: Option<UUIDVersion>,
     pub spacetimedsl_column_creation_default: Option<Expr>,
+    pub spacetimedsl_column_disallowed: BTreeSet<Disallowed>,
 }
 
 fn get_auto_inc_column_names(column_args: &ColumnArgs<'_>) -> Vec<Ident> {

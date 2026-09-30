@@ -16,6 +16,7 @@ use {
     super::{
         context::MethodGenerationContext,
         create::{self, CreateColumnRole},
+        disallow::{self, CheckedRules, GuardedWrite},
         doc,
         hook_call::{hook_tokens, hook_use_and_call},
         naming,
@@ -440,16 +441,33 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
 
     let insert = create::insert_and_map_errors(context, &after_insert_hook);
 
+    let row = quote! { #singular_table_name };
+    let disallow_checks_on_update = disallow::checks(
+        context,
+        &GuardedWrite::Update {
+            row_key: disallow::row_key(context, &row),
+        },
+        &row,
+        disallow::return_the_error,
+    );
+    let disallow_checks_on_insert = disallow::checks(
+        context,
+        &GuardedWrite::Create,
+        &row,
+        disallow::return_the_error,
+    );
+
     SpacetimeDSLMethod {
-        doc_comment: doc::with_section(
+        doc_comment: doc::paragraphs([
             format!(
                 "Write the `{struct_name}` row of the singleton `{singular_table_name}` table, whether or not it exists yet."
             ),
+            disallow::section(internal_columns, CheckedRules::OfAWrittenRow),
             relationship_doc::reference_checks(
                 "Fails with `ReferenceIntegrityViolation` unless each column references a row. While the row exists, only the columns with a setter are checked, whenever their value changes:",
                 &internal_columns.iter().collect_vec(),
             ),
-        ),
+        ]),
         method_name: format_ident!("upsert_{singular_table_name}"),
         method_args,
         return_type: runtime::error_result_type(struct_name),
@@ -468,6 +486,8 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
 
                 #use_before_update_hook_trait
                 #before_update_hook_call
+
+                #disallow_checks_on_update
 
                 #rebind_row_as_mutable_on_update
                 #keep_created_at
@@ -488,6 +508,8 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
                 #(#checks_on_create)*
 
                 #before_insert_hook
+
+                #disallow_checks_on_insert
 
                 #rebind_row_as_mutable_on_insert
                 #set_created_at

@@ -14,7 +14,7 @@ use {
     },
     proc_macro2::Span,
     quote::ToTokens,
-    syn::{Error, Ident, Type, Visibility, meta::ParseNestedMeta},
+    syn::{Error, Ident, Path, Type, Visibility, meta::ParseNestedMeta},
 };
 
 /// Why a singleton is never soft-deletable, shared by the three shapes it is rejected in.
@@ -511,6 +511,62 @@ pub fn creation_default_on_unique_column(creation_default_attribute: &impl ToTok
     Error::new_spanned(
         creation_default_attribute,
         "`#[creation_default]` is not allowed on a `#[unique]` column! Every created row would get the same value, which the unique constraint rejects from the second row on.",
+    )
+}
+
+// `#[disallow]`
+
+pub fn multiple_disallow_attributes(disallow_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        disallow_attribute,
+        "Only one `#[disallow]` is allowed per column! Name all its rules in one list.",
+    )
+}
+
+pub fn disallow_without_rules(disallow_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        disallow_attribute,
+        "`#[disallow(...)]` has to name at least one rule, e.g. `#[disallow(zero)]`!",
+    )
+}
+
+pub fn repeated_disallow_rule(rule: &Path) -> Error {
+    Error::new_spanned(
+        rule,
+        format!(
+            "`{}` is given twice in `#[disallow(...)]`! Remove this one.",
+            rule.to_token_stream()
+        ),
+    )
+}
+
+pub fn disallow_zero_on_unsupported_type(column_type: &Type) -> Error {
+    Error::new_spanned(
+        column_type,
+        format!(
+            "`#[disallow(zero)]` is only allowed on unsigned integer and `Uuid` columns, whose `0` or `Uuid::NIL` it forbids! Found: {}",
+            column_type.to_token_stream()
+        ),
+    )
+}
+
+pub fn disallow_zero_with_set_zero_strategy(disallow_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        disallow_attribute,
+        "`#[disallow(zero)]` is not allowed together with `on_delete = SetZero`, which writes `0` or `Uuid::NIL` into this column when the referenced row is deleted! Remove `zero`, or choose another strategy, such as `on_delete = Delete`.",
+    )
+}
+
+pub fn disallow_zero_with_zero_creation_default(
+    creation_default: &impl ToTokens,
+    written_creation_default: &str,
+    zero_value: &str,
+) -> Error {
+    Error::new_spanned(
+        creation_default,
+        format!(
+            "`#[creation_default({written_creation_default})]` fills this column with `{zero_value}`, which `#[disallow(zero)]` forbids! Choose another default, or remove `zero`."
+        ),
     )
 }
 

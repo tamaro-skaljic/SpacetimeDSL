@@ -1,9 +1,10 @@
 use {
     super::{
-        auto_gen::UUIDVersion, foreign_key::ForeignKey, getter::Getter, setter::Setter,
-        wrapper::WrapperType,
+        auto_gen::UUIDVersion, disallow::Disallowed, foreign_key::ForeignKey, getter::Getter,
+        setter::Setter, wrapper::WrapperType,
     },
     crate::api::dsl::{method::SpacetimeDSLMethod, mut_getter::MutGetter},
+    std::collections::BTreeSet,
 };
 
 /// What `#[spacetimedsl::dsl]` declares for one field of the struct.
@@ -20,6 +21,9 @@ pub struct SpacetimeDSLColumn {
     /// `Some` when the field has `#[creation_default(...)]`: the expression `create_<table>`
     /// fills the column with instead of asking the caller for it.
     pub creation_default: Option<syn::Expr>,
+    /// The rules `#[disallow(...)]` states for the value of the field. Empty without the
+    /// attribute.
+    pub disallowed: BTreeSet<Disallowed>,
     /// `Some` for every field except the primary key SpacetimeDSL injects into a singleton.
     pub getter: Option<Getter>,
     /// `Some` when the field is not private and has no wrapper type.

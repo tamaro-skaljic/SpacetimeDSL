@@ -209,7 +209,7 @@ The functions `derive-input` used to build the model — among them `RustField::
 
 #### `api::attribute::FIELD_ATTRIBUTE_NAMES` lists the field attributes
 
-`api::attribute::FIELD_ATTRIBUTE_NAMES` lists every field attribute `#[spacetimedsl::dsl]` reads (`create_wrapper`, `use_wrapper`, `foreign_key`, `referenced_by`, `set_on_create`, `set_on_update`, `set_on_soft_delete`, `auto_gen`, `creation_default`). A derive of your own that has to accept them as helper attributes can check its list against it.
+`api::attribute::FIELD_ATTRIBUTE_NAMES` lists every field attribute `#[spacetimedsl::dsl]` reads (`create_wrapper`, `use_wrapper`, `foreign_key`, `referenced_by`, `set_on_create`, `set_on_update`, `set_on_soft_delete`, `auto_gen`, `creation_default`, `disallow`). A derive of your own that has to accept them as helper attributes can check its list against it.
 
 #### `api::attribute::is_dsl_attribute` recognises `#[dsl]` in every spelling
 
@@ -309,7 +309,7 @@ runtime::error_from_hook_declaration(&quote! { error_from_hook }) // the binding
 
 #### `Getter::doc_comment` and `Setter::doc_comment`
 
-`Getter` and `Setter` gained `doc_comment: String`: what a foreign key column references and the strategies it declares, empty for any other column. Put it in front of the accessor's documentation, as `spacetimedsl_derive` does.
+`Getter` and `Setter` gained `doc_comment: String`: what a foreign key column references and the strategies it declares, empty for any other column, followed by the values its `#[disallow]` rules forbid. Put it in front of the accessor's documentation, as `spacetimedsl_derive` does.
 
 #### `SpacetimeDSLTable::struct_doc_comment`
 
@@ -318,3 +318,7 @@ runtime::error_from_hook_declaration(&quote! { error_from_hook }) // the binding
 #### `SpacetimeDSLColumn::creation_default`
 
 `SpacetimeDSLColumn` gained `creation_default: Option<syn::Expr>`, the expression of `#[creation_default(...)]`, which `create_<table>` fills the column with. Such a column is not a member of `CreateDSLMethodArg::struct_members`.
+
+#### `SpacetimeDSLColumn::disallowed`
+
+`SpacetimeDSLColumn` gained `disallowed: BTreeSet<Disallowed>`, the rules of `#[disallow(...)]`, from the new `api::dsl::disallow::Disallowed`. The checks they add live inside the `method_impl` of the write methods.

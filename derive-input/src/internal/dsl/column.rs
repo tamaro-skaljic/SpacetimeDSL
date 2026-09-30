@@ -9,7 +9,7 @@ use {
             },
             rust::{column::RustField, table::RustStruct},
         },
-        internal::{column::ColumnTypeKind, error},
+        internal::{column::ColumnTypeKind, dsl::disallow, error},
     },
     spacetime_bindings_macro_input::sats::SatsField,
     syn::Ident,
@@ -75,6 +75,13 @@ impl SpacetimeDSLColumn {
             auto_generated_uuid_version,
         )?;
 
+        let disallowed = disallow::try_parse(
+            field,
+            rust_field,
+            foreign_key.as_ref(),
+            creation_default.as_ref(),
+        )?;
+
         // Singleton PK column (id: u8) doesn't need getter/setter/mut_getter
         let is_singleton_pk = is_singleton && spacetimedb_column.is_primary_key;
 
@@ -89,7 +96,13 @@ impl SpacetimeDSLColumn {
                     foreign_key.as_ref(),
                 )),
                 MutGetter::map(rust_field, &wrapper_type),
-                Setter::map(rust_field, is_option, &wrapper_type, foreign_key.as_ref()),
+                Setter::map(
+                    rust_field,
+                    is_option,
+                    &wrapper_type,
+                    foreign_key.as_ref(),
+                    &disallowed,
+                ),
             )
         };
 
@@ -99,6 +112,7 @@ impl SpacetimeDSLColumn {
             foreign_key,
             auto_generated_uuid_version,
             creation_default,
+            disallowed,
             getter,
             mut_getter,
             setter,

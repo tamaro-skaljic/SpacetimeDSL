@@ -1,0 +1,5 @@
+error: `#[disallow(...)]` has to name at least one rule, e.g. `#[disallow(zero)]`!
+  --> tests/ui/disallow_with_empty_list.rs:12:9
+   |
+12 |         #[disallow()]
+   |         ^^^^^^^^^^^^^

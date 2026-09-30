@@ -240,6 +240,7 @@ pub struct Task {
 #[auto_gen(v4)]          // Fills a private `Uuid` column with a random UUID v4 on create (needs #[create_wrapper])
 #[auto_gen(v7)]          // Fills a private `Uuid` column with a sortable UUID v7 on create (needs #[create_wrapper])
 #[creation_default(0)]   // Fills the column on create instead of asking for it in Create{Table}
+#[disallow(zero)]        // Refuses to write 0, or Uuid::NIL, into the column
 ```
 
 ### ReducerContext API
@@ -1465,6 +1466,42 @@ dsl.get_entity_by_id(player.get_entity_id())?;
 
 // Setters work the same
 player.set_position_id(&position);
+```
+
+---
+
+## Disallowed Values
+
+`#[disallow(...)]` on a column names what its value must not be. Every DSL method which writes the row refuses a value a rule forbids and fails with a `SpacetimeDSLError::Error` whose message starts with *Disallowed Value Error*:
+
+```rust
+#[spacetimedsl::dsl(plural_name = players, method(update = true))]
+#[spacetimedb::table(accessor = player, public)]
+pub struct Player {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    #[disallow(zero)]
+    pub level: u8,
+}
+```
+
+| Rule   | Forbids                       | Column types        |
+| ------ | ----------------------------- | ------------------- |
+| `zero` | the value `0`, or `Uuid::NIL` | `u8`–`u128`, `Uuid` |
+
+- `create_<table>`, `update_<table>_by_<key>` and both paths of `upsert_<table>` check the rules after their before hook, so a hook may repair a value, and a value a hook writes is checked as well.
+- `create_<table>` skips `zero` on an `#[auto_inc]` column: it writes `0` there, which SpacetimeDB replaces with a value of its sequence, never `0`. A row which reaches `0` another way, such as a system user written through raw SpacetimeDB access in the table's module, cannot be written through the DSL afterwards.
+- On a foreign key column, `zero` forbids a reference to no row.
+- The setter of the column and the documentation of each write method name the rules.
+
+A second `#[disallow]` on a column, a rule named twice and a `#[disallow]` without a rule are rejected, and so are `zero` on a column that is not `u8`–`u128` or `Uuid`, `zero` on a column whose foreign key has `on_delete = SetZero`, which writes `0` into it, and `zero` on a column whose `#[creation_default(...)]` is `0` or `Uuid::NIL`.
+
+```txt
+Disallowed Value Error while trying to create a row in the `player` table because `level` is `0`, which `#[disallow(zero)]` forbids!
+Disallowed Value Error while trying to update the row `{ id : 7 }` in the `player` table because `level` is `0`, which `#[disallow(zero)]` forbids!
 ```
 
 ---

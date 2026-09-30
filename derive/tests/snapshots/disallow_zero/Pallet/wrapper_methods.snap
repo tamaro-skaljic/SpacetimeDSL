@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl WarehouseId {
+    /**Get all `Pallet` rows whose `warehouse_id` column references this `WarehouseId`.
+
+Use it like `warehouse_id.get_pallets(&dsl)`.*/
+    pub fn get_pallets<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Pallet> {
+        dsl.into().get_pallets_by_warehouse_id(self).collect()
+    }
+}

@@ -24,6 +24,7 @@ use {
                 SpacetimeDSLColumn, SpacetimeDSLColumnMethods, SpacetimeDSLColumnMethodsForIndex,
                 SpacetimeDSLColumnMethodsForUniqueIndex,
             },
+            disallow::Disallowed,
             foreign_key::{ForeignKey, OnDeleteStrategy},
             getter::Getter,
             hook::{HookKind, Operation, SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks, Timing},
@@ -73,6 +74,7 @@ fn the_model_holds_what_a_table_declares() {
                 pub name: String,
 
                 #[creation_default(1)]
+                #[disallow(zero)]
                 pub revision: u32,
 
                 #[unique]
@@ -311,6 +313,24 @@ fn the_model_holds_what_a_table_declares() {
             .iter()
             .all(|member| member.arg_name != "revision"),
         "a column with `#[creation_default]` is not asked of the caller"
+    );
+    assert_eq!(
+        revision
+            .spacetimedsl_column
+            .disallowed
+            .iter()
+            .copied()
+            .collect::<Vec<_>>(),
+        [Disallowed::Zero]
+    );
+    assert_eq!(
+        revision
+            .spacetimedsl_column
+            .setter
+            .as_ref()
+            .expect("a public column has a setter")
+            .doc_comment,
+        "Writing the row through the DSL fails with a *Disallowed Value Error* if this column is `0` (`#[disallow(zero)]`)."
     );
 
     let serial_number = column(&gadget, "serial_number");
@@ -639,6 +659,7 @@ fn visit_spacetimedsl_column(spacetimedsl_column: &SpacetimeDSLColumn) {
         foreign_key,
         auto_generated_uuid_version,
         creation_default: _,
+        disallowed,
         getter,
         mut_getter,
         setter,
@@ -671,6 +692,11 @@ fn visit_spacetimedsl_column(spacetimedsl_column: &SpacetimeDSLColumn) {
     }
     match auto_generated_uuid_version {
         None | Some(UUIDVersion::V4) | Some(UUIDVersion::V7) => {}
+    }
+    for rule in disallowed {
+        match rule {
+            Disallowed::Zero => {}
+        }
     }
     if let Some(Getter {
         doc_comment: _,

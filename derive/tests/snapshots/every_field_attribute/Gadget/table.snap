@@ -106,7 +106,7 @@ impl Gadget {
         use crate::spacetimedsl::Wrapper;
         &mut self.rating
     }
-    ///
+    ///Writing the row through the DSL fails with a *Disallowed Value Error* if this column is `0` (`#[disallow(zero)]`).
     pub fn set_rating(&mut self, rating: u8) -> u8 {
         use crate::spacetimedsl::Wrapper;
         let old_value = std::mem::replace(&mut self.rating, rating);

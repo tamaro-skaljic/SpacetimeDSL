@@ -1,0 +1,5 @@
+error: `#[disallow(zero)]` is only allowed on unsigned integer and `Uuid` columns, whose `0` or `Uuid::NIL` it forbids! Found: i64
+  --> tests/ui/disallow_zero_on_signed_column.rs:13:22
+   |
+13 |         pub balance: i64,
+   |                      ^^^

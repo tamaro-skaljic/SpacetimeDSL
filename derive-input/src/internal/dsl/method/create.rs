@@ -1,6 +1,7 @@
 use {
     super::{
         context::{MethodGenerationContext, TableContributions},
+        disallow::{self, CheckedRules, GuardedWrite},
         doc,
         hook_call::hook_tokens,
         message, naming,
@@ -387,12 +388,20 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
         },
     );
 
+    let disallow_checks = disallow::checks(
+        context,
+        &GuardedWrite::Create,
+        &quote! { #singular_table_name },
+        disallow::return_the_error,
+    );
+
     let insert = insert_and_map_errors(context, &after_insert_hook);
 
     let method = SpacetimeDSLMethod {
         doc_comment: doc::paragraphs([
             format!("Create a row in the `{singular_table_name}` table."),
             defaults_section(internal_columns),
+            disallow::section(internal_columns, CheckedRules::OfANewRow),
             relationship_doc::reference_checks(
                 "Fails with `ReferenceIntegrityViolation` unless each column references a row:",
                 &internal_columns.iter().collect_vec(),
@@ -411,6 +420,8 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
             let #singular_table_name = #struct_name {
                 #(#constructor_arg_names),*
             };
+
+            #disallow_checks
 
             #let_field_name_for_found_value
 

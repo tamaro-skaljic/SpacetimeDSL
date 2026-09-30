@@ -1,0 +1,137 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Pallet` row of the `pallet` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Disallowed values
+
+Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids:
+
+- `id`: `0`
+- `quantity`: `0`
+- `tracking_code`: `Uuid::NIL`
+- `warehouse_id`: `0`
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `warehouse_id`: a row of the `warehouse` table (`self`), or `0`*/
+    pub fn update_pallet_by_id<'a>(
+        &'a self,
+        pallet: Pallet,
+    ) -> Result<Pallet, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut pallet = pallet;
+        let mut the_same_or_another_pallet: Option<Pallet> = None;
+        let warehouse_id = pallet.get_warehouse_id().value();
+        if warehouse_id.ne(&0) {
+            if the_same_or_another_pallet.is_none() {
+                the_same_or_another_pallet = match self
+                    .db()
+                    .pallet()
+                    .id()
+                    .find(pallet.get_id().value())
+                {
+                    Some(pallet) => Some(pallet),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "pallet".into(),
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", pallet.get_id().value()
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_pallet
+                .as_ref()
+                .expect(
+                    "the stored row is looked up by its primary key before its foreign key columns are compared",
+                )
+                .get_warehouse_id()
+                .ne(&pallet.get_warehouse_id())
+            {
+                match self.get_warehouse_by_id(pallet.get_warehouse_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "pallet".into(),
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ warehouse_id : {} }}", warehouse_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        if the_same_or_another_pallet.is_none() {
+            the_same_or_another_pallet = Some(
+                self
+                    .db()
+                    .pallet()
+                    .id()
+                    .find(pallet.id)
+                    .expect("Row should exist for update"),
+            );
+        }
+        use self::BeforePalletUpdateHook;
+        let pallet = crate::spacetimedsl::DSLMethodHooks::before_pallet_update(
+            self,
+            the_same_or_another_pallet.as_ref().unwrap(),
+            pallet,
+        )?;
+        if pallet.id == 0 {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Disallowed Value Error while trying to update the row `{}` in the `pallet` table because `id` is `0`, which `#[disallow(zero)]` forbids!",
+                        format!("{{ id : {} }}", pallet.id)
+                    ),
+                ),
+            );
+        }
+        if pallet.quantity == 0 {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Disallowed Value Error while trying to update the row `{}` in the `pallet` table because `quantity` is `0`, which `#[disallow(zero)]` forbids!",
+                        format!("{{ id : {} }}", pallet.id)
+                    ),
+                ),
+            );
+        }
+        if pallet.tracking_code == ::spacetimedb::Uuid::NIL {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Disallowed Value Error while trying to update the row `{}` in the `pallet` table because `tracking_code` is `Uuid::NIL`, which `#[disallow(zero)]` forbids!",
+                        format!("{{ id : {} }}", pallet.id)
+                    ),
+                ),
+            );
+        }
+        if pallet.warehouse_id == 0 {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Disallowed Value Error while trying to update the row `{}` in the `pallet` table because `warehouse_id` is `0`, which `#[disallow(zero)]` forbids!",
+                        format!("{{ id : {} }}", pallet.id)
+                    ),
+                ),
+            );
+        }
+        let pallet = self.db().pallet().id().update(pallet);
+        Ok(pallet)
+    }
+}

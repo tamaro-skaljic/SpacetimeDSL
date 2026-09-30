@@ -1,0 +1,26 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl PalletLimits {
+    ///
+    pub fn get_maximum_quantity(&self) -> &u32 {
+        use crate::spacetimedsl::Wrapper;
+        &self.maximum_quantity
+    }
+    ///
+    pub fn get_maximum_quantity_mut(&mut self) -> &mut u32 {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.maximum_quantity
+    }
+    ///Writing the row through the DSL fails with a *Disallowed Value Error* if this column is `0` (`#[disallow(zero)]`).
+    pub fn set_maximum_quantity(&mut self, maximum_quantity: u32) -> u32 {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.maximum_quantity, maximum_quantity);
+        old_value
+    }
+}
+
+// Generated DSL methods:
+// delete_pallet_limits
+// get_pallet_limits
+// upsert_pallet_limits
