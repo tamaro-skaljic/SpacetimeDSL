@@ -1485,23 +1485,36 @@ pub struct Player {
 
     #[disallow(zero)]
     pub level: u8,
+
+    #[disallow(decreasing)]
+    pub experience: u64,
+
+    #[disallow(increasing)]
+    pub remaining_lives: u8,
 }
 ```
 
-| Rule   | Forbids                       | Column types        |
-| ------ | ----------------------------- | ------------------- |
-| `zero` | the value `0`, or `Uuid::NIL` | `u8`–`u128`, `Uuid` |
+| Rule         | Forbids                               | Column types                           |
+| ------------ | ------------------------------------- | -------------------------------------- |
+| `zero`       | the value `0`, or `Uuid::NIL`         | `u8`–`u128`, `Uuid`                    |
+| `decreasing` | a write which makes the value smaller | `u8`–`u128`, `i8`–`i128`, `f32`, `f64` |
+| `increasing` | a write which makes the value larger  | `u8`–`u128`, `i8`–`i128`, `f32`, `f64` |
+
+Name several rules in one attribute, such as `#[disallow(zero, decreasing)]`.
 
 - `create_<table>`, `update_<table>_by_<key>` and both paths of `upsert_<table>` check the rules after their before hook, so a hook may repair a value, and a value a hook writes is checked as well.
 - `create_<table>` skips `zero` on an `#[auto_inc]` column: it writes `0` there, which SpacetimeDB replaces with a value of its sequence, never `0`. A row which reaches `0` another way, such as a system user written through raw SpacetimeDB access in the table's module, cannot be written through the DSL afterwards.
 - On a foreign key column, `zero` forbids a reference to no row.
 - The setter of the column and the documentation of each write method name the rules.
+- `decreasing` and `increasing` compare the written value with the stored one, so `create_<table>` and the insert path of `upsert_<table>`, which have no stored row, do not check them.
+- `f32` and `f64` compare through `partial_cmp`: a change to or from NaN breaks both rules, while an unchanged value, NaN included, breaks neither.
 
-A second `#[disallow]` on a column, a rule named twice and a `#[disallow]` without a rule are rejected, and so are `zero` on a column that is not `u8`–`u128` or `Uuid`, `zero` on a column whose foreign key has `on_delete = SetZero`, which writes `0` into it, and `zero` on a column whose `#[creation_default(...)]` is `0` or `Uuid::NIL`.
+A second `#[disallow]` on a column, a rule named twice and a `#[disallow]` without a rule are rejected, and so are `zero` on a column that is not `u8`–`u128` or `Uuid`, `zero` on a column whose foreign key has `on_delete = SetZero`, which writes `0` into it, `zero` on a column whose `#[creation_default(...)]` is `0` or `Uuid::NIL`, `decreasing` or `increasing` on a column that is not an integer or a float, on the primary key, which an update never changes, or on a private column, which has no setter, `decreasing` together with `increasing`, which forbid every change — remove both and make the column private instead — and `decreasing` on a column whose foreign key has `on_delete = SetZero`.
 
 ```txt
 Disallowed Value Error while trying to create a row in the `player` table because `level` is `0`, which `#[disallow(zero)]` forbids!
 Disallowed Value Error while trying to update the row `{ id : 7 }` in the `player` table because `level` is `0`, which `#[disallow(zero)]` forbids!
+Disallowed Value Error while trying to update the row `{ id : 7 }` in the `player` table because `experience` would decrease from `10` to `5`, which `#[disallow(decreasing)]` forbids!
 ```
 
 ---

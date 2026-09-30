@@ -1,0 +1,26 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl League {
+    ///
+    pub fn get_remaining_rounds(&self) -> &u16 {
+        use crate::spacetimedsl::Wrapper;
+        &self.remaining_rounds
+    }
+    ///
+    pub fn get_remaining_rounds_mut(&mut self) -> &mut u16 {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.remaining_rounds
+    }
+    ///Writing the row through the DSL fails with a *Disallowed Value Error* if this column increases (`#[disallow(increasing)]`).
+    pub fn set_remaining_rounds(&mut self, remaining_rounds: u16) -> u16 {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.remaining_rounds, remaining_rounds);
+        old_value
+    }
+}
+
+// Generated DSL methods:
+// delete_league
+// get_league
+// upsert_league

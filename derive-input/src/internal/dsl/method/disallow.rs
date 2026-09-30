@@ -28,17 +28,51 @@ pub enum GuardedWrite {
     /// `create_<table>` and the insert path of `upsert_<table>`. The row has no key yet which
     /// a message could name: an `#[auto_inc]` key is still the placeholder `0`.
     Create,
-    /// A write over a stored row. `row_key` renders the row's primary key as `{ id : 7 }`.
-    Update { row_key: TokenStream },
+    /// A write over a stored row. `row_key` renders the row's primary key as `{ id : 7 }`, and
+    /// `stored_row` is the row as it is stored, which `decreasing` and `increasing` compare
+    /// with.
+    Update {
+        row_key: TokenStream,
+        stored_row: TokenStream,
+    },
 }
 
 /// Which of a column's rules a documented method checks.
 #[derive(Clone, Copy)]
 pub enum CheckedRules {
-    /// `create_<table>`: every rule, but none on an `#[auto_inc]` column.
-    OfANewRow,
+    /// `create_<table>`, which has no stored row: `zero`, but not on an `#[auto_inc]` column.
+    Insert,
     /// A write over a stored row: every rule.
-    OfAWrittenRow,
+    Overwrite,
+    /// `upsert_<table>`: every rule, `decreasing` and `increasing` while the row exists.
+    Upsert,
+}
+
+/// The change `decreasing` or `increasing` forbids.
+#[derive(Clone, Copy)]
+enum Change {
+    Decrease,
+    Increase,
+}
+
+/// The change `rule` forbids, `None` for `zero`, which reads the written value alone.
+fn forbidden_change(rule: Disallowed) -> Option<Change> {
+    match rule {
+        Disallowed::Zero => None,
+        Disallowed::Decreasing => Some(Change::Decrease),
+        Disallowed::Increasing => Some(Change::Increase),
+    }
+}
+
+/// Whether a write over a stored row has to look that row up for the table's rules: whether
+/// a column states `decreasing` or `increasing`.
+pub fn compares_with_the_stored_row(internal_columns: &[InternalColumn]) -> bool {
+    internal_columns.iter().any(|internal_column| {
+        internal_column
+            .spacetimedsl_column_disallowed
+            .iter()
+            .any(|rule| forbidden_change(*rule).is_some())
+    })
 }
 
 /// `return Err(<error>);`, how a DSL method leaves on a broken rule.
@@ -79,8 +113,12 @@ pub fn checks(
                 continue;
             }
 
-            let check = match rule {
-                Disallowed::Zero => zero_check(internal_column, row),
+            let check = match (forbidden_change(*rule), write) {
+                (None, _) => zero_check(internal_column, row),
+                (Some(change), GuardedWrite::Update { stored_row, .. }) => {
+                    change_check(internal_column, change, row, stored_row)
+                }
+                (Some(_), GuardedWrite::Create) => continue,
             };
 
             let error = disallowed_value_error(context, write, internal_column, *rule, &check);
@@ -100,11 +138,12 @@ pub fn checks(
 
 /// Whether `write` checks `rule` of `internal_column`. `create_<table>` writes the placeholder
 /// `0` into an `#[auto_inc]` column, which SpacetimeDB replaces with a value of its sequence,
-/// never `0`.
+/// never `0`, and a new row has no stored one to compare with.
 fn is_checked(rule: Disallowed, internal_column: &InternalColumn, write: &GuardedWrite) -> bool {
     match (rule, write) {
         (Disallowed::Zero, GuardedWrite::Create) => !internal_column.spacetimedb_column_is_auto_inc,
-        (Disallowed::Zero, GuardedWrite::Update { .. }) => true,
+        (Disallowed::Decreasing | Disallowed::Increasing, GuardedWrite::Create) => false,
+        (_, GuardedWrite::Update { .. }) => true,
     }
 }
 
@@ -133,6 +172,48 @@ fn zero_check(internal_column: &InternalColumn, row: &TokenStream) -> Check {
     }
 }
 
+/// The condition under which `row` breaks `decreasing` or `increasing` of `internal_column`
+/// against `stored_row`. An integer compares with `<` or `>`. A float compares through
+/// `partial_cmp`, so a change to or from NaN breaks both rules, while an unchanged value —
+/// the same bits, NaN included — breaks neither.
+fn change_check(
+    internal_column: &InternalColumn,
+    change: Change,
+    row: &TokenStream,
+    stored_row: &TokenStream,
+) -> Check {
+    let column_name = &internal_column.rust_field_name;
+    let written_value = quote! { #row.#column_name };
+    let stored_value = quote! { #stored_row.#column_name };
+
+    let (integer_violation, allowed_orderings, verb) = match change {
+        Change::Decrease => (
+            quote! { #written_value < #stored_value },
+            quote! { ::core::cmp::Ordering::Greater | ::core::cmp::Ordering::Equal },
+            "decrease",
+        ),
+        Change::Increase => (
+            quote! { #written_value > #stored_value },
+            quote! { ::core::cmp::Ordering::Less | ::core::cmp::Ordering::Equal },
+            "increase",
+        ),
+    };
+
+    let violated = match internal_column.rust_field_type_kind {
+        ColumnTypeKind::Float => quote! {
+            #written_value.to_bits() != #stored_value.to_bits()
+                && !matches!(#written_value.partial_cmp(&#stored_value), Some(#allowed_orderings))
+        },
+        _ => integer_violation,
+    };
+
+    Check {
+        violated,
+        reason: format!("would {verb} from `{{}}` to `{{}}`"),
+        reason_arguments: vec![stored_value, written_value],
+    }
+}
+
 fn written_zero(column_type_kind: ColumnTypeKind) -> &'static str {
     forbidden_zero(column_type_kind).expect(ZERO_ONLY_WITH_A_FORBIDDEN_VALUE)
 }
@@ -149,7 +230,7 @@ fn disallowed_value_error(
 ) -> TokenStream {
     let (attempted, mut arguments) = match write {
         GuardedWrite::Create => ("create a row in", vec![]),
-        GuardedWrite::Update { row_key } => ("update the row `{}` in", vec![row_key.clone()]),
+        GuardedWrite::Update { row_key, .. } => ("update the row `{}` in", vec![row_key.clone()]),
     };
     arguments.extend(check.reason_arguments.iter().cloned());
 
@@ -179,10 +260,10 @@ pub fn section(internal_columns: &[InternalColumn], checked: CheckedRules) -> St
                 .spacetimedsl_column_disallowed
                 .iter()
                 .filter(|rule| match checked {
-                    CheckedRules::OfANewRow => {
+                    CheckedRules::Insert => {
                         is_checked(**rule, internal_column, &GuardedWrite::Create)
                     }
-                    CheckedRules::OfAWrittenRow => true,
+                    CheckedRules::Overwrite | CheckedRules::Upsert => true,
                 })
                 .map(|rule| forbidden_value(*rule, internal_column.rust_field_type_kind))
                 .collect();
@@ -197,19 +278,25 @@ pub fn section(internal_columns: &[InternalColumn], checked: CheckedRules) -> St
         })
         .collect();
 
-    doc::section(
-        "Disallowed values",
-        Some(
-            "Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids:",
-        ),
-        &bullets,
-    )
+    // The insert path of an upsert has no stored row, which only the change rules need.
+    let lead = match checked {
+        CheckedRules::Upsert if compares_with_the_stored_row(internal_columns) => {
+            "Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids, a decrease or an increase only while the row exists:"
+        }
+        CheckedRules::Insert | CheckedRules::Overwrite | CheckedRules::Upsert => {
+            "Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids:"
+        }
+    };
+
+    doc::section("Disallowed values", Some(lead), &bullets)
 }
 
 /// How the documentation names what `rule` forbids.
 fn forbidden_value(rule: Disallowed, column_type_kind: ColumnTypeKind) -> String {
     match rule {
         Disallowed::Zero => format!("`{}`", written_zero(column_type_kind)),
+        Disallowed::Decreasing => "a decrease".to_string(),
+        Disallowed::Increasing => "an increase".to_string(),
     }
 }
 
@@ -224,6 +311,8 @@ pub fn setter_doc(disallowed: &BTreeSet<Disallowed>, column_type_kind: ColumnTyp
         .iter()
         .map(|rule| match rule {
             Disallowed::Zero => format!("is `{}`", written_zero(column_type_kind)),
+            Disallowed::Decreasing => "decreases".to_string(),
+            Disallowed::Increasing => "increases".to_string(),
         })
         .collect();
 

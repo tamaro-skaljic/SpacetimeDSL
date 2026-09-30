@@ -217,7 +217,7 @@ fn before_position_hook_helper(
 - 🏷️ Wrapper types (`#[create_wrapper]` + `#[use_wrapper(EntityId)]`) make cross-table ID misuse much harder.
 - 🧭 Foreign-key columns add lookups to their wrapper types, like `entity_id.get_position(&dsl)`.
 - 🔗 Foreign-key validation ensures referenced `Entity` exists on create (and update, if the `entity_id` column would be mutable).
-- 🚫 `#[disallow(zero)]` refuses to write `0` or `Uuid::NIL` into a column, whichever DSL method writes the row.
+- 🚫 `#[disallow(zero)]`, `#[disallow(decreasing)]` and `#[disallow(increasing)]` refuse a forbidden value or change, whichever DSL method writes the row.
 - 🧹 Referential cleanup on delete keeps dependent `Position` rows in sync automatically when deleting their corresponding `Entity`.
 - 🎲 `unique_index(name = x_y)` enforces unique multi-column `(x, y)` positions.
 

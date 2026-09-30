@@ -78,6 +78,7 @@ impl SpacetimeDSLColumn {
         let disallowed = disallow::try_parse(
             field,
             rust_field,
+            spacetimedb_column,
             foreign_key.as_ref(),
             creation_default.as_ref(),
         )?;

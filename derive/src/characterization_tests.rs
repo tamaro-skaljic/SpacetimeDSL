@@ -283,6 +283,11 @@ fn disallow_zero() {
     snapshot_fixture("disallow_zero");
 }
 
+#[test]
+fn disallow_change() {
+    snapshot_fixture("disallow_change");
+}
+
 /// `proc_macro_derive(attributes(...))` needs literal identifiers, so the helper
 /// attributes of the `SpacetimeDSL` derive cannot be generated from
 /// `FIELD_ATTRIBUTE_NAMES`. A name missing from the helper list surfaces only as an

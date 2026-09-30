@@ -570,6 +570,60 @@ pub fn disallow_zero_with_zero_creation_default(
     )
 }
 
+pub fn disallow_change_on_unsupported_type(column_type: &Type) -> Error {
+    Error::new_spanned(
+        column_type,
+        format!(
+            "`#[disallow(decreasing)]` and `#[disallow(increasing)]` are only allowed on the integer and float columns `u8`–`u128`, `i8`–`i128`, `f32` and `f64`, whose values are ordered! Found: {}",
+            column_type.to_token_stream()
+        ),
+    )
+}
+
+pub fn disallow_decreasing_and_increasing(
+    disallow_attribute: &impl ToTokens,
+    column_name: &Ident,
+) -> Error {
+    Error::new_spanned(
+        disallow_attribute,
+        format!(
+            "`decreasing` and `increasing` together forbid every change of `{column_name}`! Remove both and make the column private (no visibility modifier), so it has no setter and does not change."
+        ),
+    )
+}
+
+pub fn disallow_change_on_primary_key_column(
+    disallow_attribute: &impl ToTokens,
+    rule: &str,
+) -> Error {
+    Error::new_spanned(
+        disallow_attribute,
+        format!(
+            "`#[disallow({rule})]` is not allowed on a primary key column, which an update never changes, because it finds the row by it! Remove `{rule}`."
+        ),
+    )
+}
+
+pub fn disallow_change_on_private_column(
+    disallow_attribute: &impl ToTokens,
+    rule: &str,
+    column_name: &Ident,
+) -> Error {
+    Error::new_spanned(
+        disallow_attribute,
+        format!(
+            "`#[disallow({rule})]` needs a column with a setter, but `{column_name}` is private, so no DSL method changes it! Make the column `pub`, or remove `{rule}`."
+        ),
+    )
+}
+
+pub fn disallow_decreasing_with_set_zero_strategy(disallow_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        disallow_attribute,
+        "`#[disallow(decreasing)]` is not allowed together with `on_delete = SetZero`, which lowers this column to `0` when the referenced row is deleted! Remove `decreasing`, or choose another strategy, such as `on_delete = Delete`.",
+    )
+}
+
 // `set_on_create` and `set_on_update`
 
 pub fn set_on_create_and_set_on_update(column_name: &Ident) -> Error {

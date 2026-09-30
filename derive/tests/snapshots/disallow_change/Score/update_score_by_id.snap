@@ -1,0 +1,100 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Score` row of the `score` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Disallowed values
+
+Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids:
+
+- `points`: `0`, a decrease
+- `remaining_attempts`: an increase
+- `rating`: a decrease*/
+    pub fn update_score_by_id<'a>(
+        &'a self,
+        score: Score,
+    ) -> Result<Score, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut score = score;
+        let mut the_same_or_another_score: Option<Score> = None;
+        if the_same_or_another_score.is_none() {
+            the_same_or_another_score = match self
+                .db()
+                .score()
+                .id()
+                .find(score.get_id().value())
+            {
+                Some(score) => Some(score),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "score".into(),
+                        column_names_and_row_values: format!(
+                            "{{ id : {} }}", score.get_id().value()
+                        )
+                            .into(),
+                    });
+                }
+            };
+        }
+        let stored_row = the_same_or_another_score
+            .as_ref()
+            .expect(
+                "the stored row is looked up by its primary key before the row to write is compared with it",
+            );
+        if score.points == 0 {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Disallowed Value Error while trying to update the row `{}` in the `score` table because `points` is `0`, which `#[disallow(zero)]` forbids!",
+                        format!("{{ id : {} }}", score.id)
+                    ),
+                ),
+            );
+        }
+        if score.points < stored_row.points {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Disallowed Value Error while trying to update the row `{}` in the `score` table because `points` would decrease from `{}` to `{}`, which `#[disallow(decreasing)]` forbids!",
+                        format!("{{ id : {} }}", score.id), stored_row.points, score
+                        .points
+                    ),
+                ),
+            );
+        }
+        if score.remaining_attempts > stored_row.remaining_attempts {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Disallowed Value Error while trying to update the row `{}` in the `score` table because `remaining_attempts` would increase from `{}` to `{}`, which `#[disallow(increasing)]` forbids!",
+                        format!("{{ id : {} }}", score.id), stored_row
+                        .remaining_attempts, score.remaining_attempts
+                    ),
+                ),
+            );
+        }
+        if score.rating.to_bits() != stored_row.rating.to_bits()
+            && !matches!(
+                score.rating.partial_cmp(& stored_row.rating),
+                Some(::core::cmp::Ordering::Greater | ::core::cmp::Ordering::Equal)
+            )
+        {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Disallowed Value Error while trying to update the row `{}` in the `score` table because `rating` would decrease from `{}` to `{}`, which `#[disallow(decreasing)]` forbids!",
+                        format!("{{ id : {} }}", score.id), stored_row.rating, score
+                        .rating
+                    ),
+                ),
+            );
+        }
+        let score = self.db().score().id().update(score);
+        Ok(score)
+    }
+}

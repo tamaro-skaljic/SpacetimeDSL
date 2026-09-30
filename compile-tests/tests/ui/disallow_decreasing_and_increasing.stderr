@@ -1,0 +1,5 @@
+error: `decreasing` and `increasing` together forbid every change of `score`! Remove both and make the column private (no visibility modifier), so it has no setter and does not change.
+  --> tests/ui/disallow_decreasing_and_increasing.rs:12:9
+   |
+12 |         #[disallow(decreasing, increasing)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

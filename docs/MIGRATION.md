@@ -321,4 +321,4 @@ runtime::error_from_hook_declaration(&quote! { error_from_hook }) // the binding
 
 #### `SpacetimeDSLColumn::disallowed`
 
-`SpacetimeDSLColumn` gained `disallowed: BTreeSet<Disallowed>`, the rules of `#[disallow(...)]`, from the new `api::dsl::disallow::Disallowed`. The checks they add live inside the `method_impl` of the write methods.
+`SpacetimeDSLColumn` gained `disallowed: BTreeSet<Disallowed>`, the rules of `#[disallow(...)]`, from the new `api::dsl::disallow::Disallowed` (`Zero`, `Decreasing`, `Increasing`). The checks they add live inside the `method_impl` of the write methods.

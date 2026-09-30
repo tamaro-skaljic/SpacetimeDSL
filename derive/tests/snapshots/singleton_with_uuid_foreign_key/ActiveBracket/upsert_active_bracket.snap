@@ -46,7 +46,7 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row. Wh
                 if the_same_or_another_active_bracket
                     .as_ref()
                     .expect(
-                        "the stored row is looked up by its primary key before its foreign key columns are compared",
+                        "the stored row is looked up by its primary key before the row to write is compared with it",
                     )
                     .get_bracket_id()
                     .ne(&active_bracket.get_bracket_id())

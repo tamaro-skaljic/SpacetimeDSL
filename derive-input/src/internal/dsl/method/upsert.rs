@@ -268,6 +268,9 @@ pub fn set_singleton_primary_key(row: &Ident) -> TokenStream {
 
 //endregion Pieces shared with `update.rs`
 
+/// Why the update path may unwrap the row it looked up.
+const ROW_FOUND_ON_THE_UPDATE_PATH: &str = "The update path only runs when the row was found";
+
 /// `<row>.<created_at> = <the stored value>;`, so an update cannot move the insert time.
 ///
 /// The caller hands in a whole row, and that row may well have come from
@@ -283,7 +286,7 @@ fn keep_created_at_on_update(
         Some(column_name) => quote! {
             #row.#column_name = #found_row
                 .as_ref()
-                .expect("The update path only runs when the row was found")
+                .expect(#ROW_FOUND_ON_THE_UPDATE_PATH)
                 .#column_name;
         },
     }
@@ -441,11 +444,21 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
 
     let insert = create::insert_and_map_errors(context, &after_insert_hook);
 
+    let stored_row_on_update = match disallow::compares_with_the_stored_row(internal_columns) {
+        false => TokenStream::default(),
+        true => quote! {
+            let stored_row = #field_name_for_found_value
+                .as_ref()
+                .expect(#ROW_FOUND_ON_THE_UPDATE_PATH);
+        },
+    };
+
     let row = quote! { #singular_table_name };
     let disallow_checks_on_update = disallow::checks(
         context,
         &GuardedWrite::Update {
             row_key: disallow::row_key(context, &row),
+            stored_row: quote! { stored_row },
         },
         &row,
         disallow::return_the_error,
@@ -462,7 +475,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
             format!(
                 "Write the `{struct_name}` row of the singleton `{singular_table_name}` table, whether or not it exists yet."
             ),
-            disallow::section(internal_columns, CheckedRules::OfAWrittenRow),
+            disallow::section(internal_columns, CheckedRules::Upsert),
             relationship_doc::reference_checks(
                 "Fails with `ReferenceIntegrityViolation` unless each column references a row. While the row exists, only the columns with a setter are checked, whenever their value changes:",
                 &internal_columns.iter().collect_vec(),
@@ -487,6 +500,7 @@ pub fn for_singleton_upsert(context: &MethodGenerationContext) -> SpacetimeDSLMe
                 #use_before_update_hook_trait
                 #before_update_hook_call
 
+                #stored_row_on_update
                 #disallow_checks_on_update
 
                 #rebind_row_as_mutable_on_update

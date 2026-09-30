@@ -59,6 +59,8 @@ symbol!(auto_gen);
 symbol!(creation_default);
 symbol!(disallow);
 symbol!(zero);
+symbol!(decreasing);
+symbol!(increasing);
 symbol!(set_on_create);
 symbol!(set_on_update);
 symbol!(set_on_soft_delete);

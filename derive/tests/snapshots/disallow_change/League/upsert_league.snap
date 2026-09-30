@@ -1,0 +1,71 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Write the `League` row of the singleton `league` table, whether or not it exists yet.
+
+# Disallowed values
+
+Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids, a decrease or an increase only while the row exists:
+
+- `remaining_rounds`: an increase*/
+    pub fn upsert_league<'a>(
+        &'a self,
+        league: League,
+    ) -> Result<League, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut league = league;
+        league.id = 0u8;
+        let the_same_or_another_league: Option<League> = self
+            .db()
+            .league()
+            .id()
+            .find(&0u8);
+        if the_same_or_another_league.is_some() {
+            let stored_row = the_same_or_another_league
+                .as_ref()
+                .expect("The update path only runs when the row was found");
+            if league.remaining_rounds > stored_row.remaining_rounds {
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                        format!(
+                            "Disallowed Value Error while trying to update the row `{}` in the `league` table because `remaining_rounds` would increase from `{}` to `{}`, which `#[disallow(increasing)]` forbids!",
+                            "{ id : 0 }", stored_row.remaining_rounds, league
+                            .remaining_rounds
+                        ),
+                    ),
+                );
+            }
+            let league = self.db().league().id().update(league);
+            Ok(league)
+        } else {
+            let unique_column_values = (league.id.clone(),);
+            match self.db().league().try_insert(league) {
+                Ok(entity) => Ok(entity),
+                Err(error) => {
+                    match error {
+                        ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                            Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                                table_name: "league".into(),
+                                action: crate::spacetimedsl::error::Action::Create,
+                                error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                                one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                                column_names_and_row_values: format!(
+                                    "{{ id : {} }}", unique_column_values.0
+                                )
+                                    .into(),
+                            })
+                        }
+                        ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                            Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                                table_name: "league".into(),
+                            })
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

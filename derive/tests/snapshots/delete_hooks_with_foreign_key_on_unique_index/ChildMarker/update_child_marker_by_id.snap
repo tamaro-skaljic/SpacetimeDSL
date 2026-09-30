@@ -44,7 +44,7 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
             if the_same_or_another_child_marker
                 .as_ref()
                 .expect(
-                    "the stored row is looked up by its primary key before its foreign key columns are compared",
+                    "the stored row is looked up by its primary key before the row to write is compared with it",
                 )
                 .get_parent_id()
                 .ne(&child_marker.get_parent_id())

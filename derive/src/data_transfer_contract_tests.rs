@@ -74,7 +74,7 @@ fn the_model_holds_what_a_table_declares() {
                 pub name: String,
 
                 #[creation_default(1)]
-                #[disallow(zero)]
+                #[disallow(zero, decreasing)]
                 pub revision: u32,
 
                 #[unique]
@@ -321,7 +321,7 @@ fn the_model_holds_what_a_table_declares() {
             .iter()
             .copied()
             .collect::<Vec<_>>(),
-        [Disallowed::Zero]
+        [Disallowed::Zero, Disallowed::Decreasing]
     );
     assert_eq!(
         revision
@@ -330,7 +330,7 @@ fn the_model_holds_what_a_table_declares() {
             .as_ref()
             .expect("a public column has a setter")
             .doc_comment,
-        "Writing the row through the DSL fails with a *Disallowed Value Error* if this column is `0` (`#[disallow(zero)]`)."
+        "Writing the row through the DSL fails with a *Disallowed Value Error* if this column is `0` or decreases (`#[disallow(zero, decreasing)]`)."
     );
 
     let serial_number = column(&gadget, "serial_number");
@@ -695,7 +695,7 @@ fn visit_spacetimedsl_column(spacetimedsl_column: &SpacetimeDSLColumn) {
     }
     for rule in disallowed {
         match rule {
-            Disallowed::Zero => {}
+            Disallowed::Zero | Disallowed::Decreasing | Disallowed::Increasing => {}
         }
     }
     if let Some(Getter {

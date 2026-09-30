@@ -401,7 +401,7 @@ pub fn for_create(context: &MethodGenerationContext) -> (SpacetimeDSLMethod, Tab
         doc_comment: doc::paragraphs([
             format!("Create a row in the `{singular_table_name}` table."),
             defaults_section(internal_columns),
-            disallow::section(internal_columns, CheckedRules::OfANewRow),
+            disallow::section(internal_columns, CheckedRules::Insert),
             relationship_doc::reference_checks(
                 "Fails with `ReferenceIntegrityViolation` unless each column references a row:",
                 &internal_columns.iter().collect_vec(),

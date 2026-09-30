@@ -45,7 +45,7 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
         if the_same_or_another_transfer
             .as_ref()
             .expect(
-                "the stored row is looked up by its primary key before its foreign key columns are compared",
+                "the stored row is looked up by its primary key before the row to write is compared with it",
             )
             .get_source_ledger_id()
             .ne(&transfer.get_source_ledger_id())
@@ -88,7 +88,7 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
         if the_same_or_another_transfer
             .as_ref()
             .expect(
-                "the stored row is looked up by its primary key before its foreign key columns are compared",
+                "the stored row is looked up by its primary key before the row to write is compared with it",
             )
             .get_target_ledger_id()
             .ne(&transfer.get_target_ledger_id())

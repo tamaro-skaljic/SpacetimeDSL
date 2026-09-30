@@ -9,6 +9,7 @@ use {
 pub mod cascade_hook_error_test;
 pub mod component;
 pub mod creation_default_test;
+pub mod disallow_change_test;
 pub mod disallow_zero_test;
 pub mod entity;
 pub mod err_macro_test;
@@ -96,6 +97,7 @@ const TEST_GROUPS: &[(&str, TestGroup)] = &[
     ("err_macro_test", err_macro_test::run_tests),
     ("creation_default_test", creation_default_test::run_tests),
     ("disallow_zero_test", disallow_zero_test::run_tests),
+    ("disallow_change_test", disallow_change_test::run_tests),
 ];
 
 /// Runs every test group, also after one of them failed, and fails with the messages of all

@@ -44,7 +44,7 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
             if the_same_or_another_account_note
                 .as_ref()
                 .expect(
-                    "the stored row is looked up by its primary key before its foreign key columns are compared",
+                    "the stored row is looked up by its primary key before the row to write is compared with it",
                 )
                 .get_account_id()
                 .ne(&account_note.get_account_id())
