@@ -25,6 +25,12 @@ Use it like `folder_id.get_parent_folder(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let folder = dsl.get_folder_by_id(self)?;
+        if folder.parent_folder_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "folder".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_folder_by_id(folder.get_parent_folder_id())
     }
 }

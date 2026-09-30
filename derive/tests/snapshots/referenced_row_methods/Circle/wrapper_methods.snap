@@ -36,6 +36,12 @@ Use it like `entity_id.get_player(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let circle = dsl.get_circle_by_entity_id(self)?;
+        if circle.player_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "player".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_player_by_id(circle.get_player_id())
     }
 }

@@ -25,6 +25,12 @@ Use it like `alliance_id.get_server(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let alliance = dsl.get_alliance_by_id(self)?;
+        if alliance.server_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "server".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_server_by_id(alliance.get_server_id())
     }
 }

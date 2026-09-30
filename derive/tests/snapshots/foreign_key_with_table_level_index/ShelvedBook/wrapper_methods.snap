@@ -25,6 +25,12 @@ Use it like `shelved_book_id.get_shelf(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let shelved_book = dsl.get_shelved_book_by_id(self)?;
+        if shelved_book.shelf_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "shelf".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_shelf_by_id(shelved_book.get_shelf_id())
     }
 }

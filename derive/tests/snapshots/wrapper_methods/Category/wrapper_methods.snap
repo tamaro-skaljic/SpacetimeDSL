@@ -25,6 +25,12 @@ Use it like `category_id.get_parent_category(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let category = dsl.get_category_by_id(self)?;
+        if category.parent_category_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "category".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_category_by_id(category.get_parent_category_id())
     }
 }

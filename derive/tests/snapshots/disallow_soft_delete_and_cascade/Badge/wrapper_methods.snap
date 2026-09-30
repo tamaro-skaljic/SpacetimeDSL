@@ -25,6 +25,12 @@ Use it like `badge_id.get_member(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let badge = dsl.get_badge_by_id(self)?;
+        if badge.member_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "member".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_member_by_id(badge.get_member_id())
     }
 }

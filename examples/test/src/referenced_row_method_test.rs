@@ -114,9 +114,35 @@ pub struct LookupMembership {
     season_id: u64,
 }
 
+/// A region whose key the caller chooses, so a row may have the key `0`, such as a system row
+/// written at startup.
+#[spacetimedsl::dsl(plural_name = lookup_regions, method(update = false, delete = false))]
+#[spacetimedb::table(accessor = lookup_region)]
+pub struct LookupRegion {
+    #[primary_key]
+    #[create_wrapper]
+    #[referenced_by(path = crate::referenced_row_method_test, table = lookup_shop)]
+    id: u64,
+}
+
+#[spacetimedsl::dsl(plural_name = lookup_shops, method(update = false, delete = false))]
+#[spacetimedb::table(accessor = lookup_shop)]
+pub struct LookupShop {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    #[index(btree)]
+    #[use_wrapper(LookupRegionId)]
+    #[foreign_key(path = crate::referenced_row_method_test, table = lookup_region, column = id)]
+    region_id: u64,
+}
+
 pub(crate) fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
     a_chain_of_foreign_keys_is_followed_from_a_wrapper(dsl)?;
     a_column_referencing_no_row_finds_no_row(dsl)?;
+    a_column_referencing_no_row_finds_no_row_even_where_its_key_exists(dsl)?;
     each_of_several_foreign_keys_to_one_table_is_followed(dsl)?;
     a_unique_foreign_key_to_its_own_table_is_followed_both_ways(dsl)?;
     a_struct_with_several_tables_keeps_its_methods_for_referencing_rows(dsl)?;
@@ -174,6 +200,28 @@ fn a_column_referencing_no_row_finds_no_row<T: WriteContext>(
         }
         other => Err(format!(
             "An alliance whose server_id is 0 should find no server! Got: {other:?}"
+        )),
+    }
+}
+
+/// A foreign key column holding `0` references no row, as create and update treat it, also
+/// while the referenced table holds a row with the key `0`.
+fn a_column_referencing_no_row_finds_no_row_even_where_its_key_exists<T: WriteContext>(
+    dsl: &DSL<'_, T>,
+) -> Result<(), String> {
+    dsl.create_lookup_region(CreateLookupRegion { id: 0 })?;
+    let shop = dsl.create_lookup_shop(CreateLookupShop {
+        region_id: LookupRegionId::new(0),
+    })?;
+
+    match shop.get_id().get_lookup_region(dsl) {
+        Err(SpacetimeDSLError::NotFoundError { table_name, .. })
+            if &*table_name == "lookup_region" =>
+        {
+            Ok(())
+        }
+        other => Err(format!(
+            "A shop whose region_id is 0 should find no region, although a region has the key 0! Got: {other:?}"
         )),
     }
 }

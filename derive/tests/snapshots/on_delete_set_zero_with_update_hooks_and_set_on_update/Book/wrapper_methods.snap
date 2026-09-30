@@ -25,6 +25,12 @@ Use it like `book_id.get_author(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let book = dsl.get_book_by_id(self)?;
+        if book.author_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "author".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_author_by_id(book.get_author_id())
     }
 }

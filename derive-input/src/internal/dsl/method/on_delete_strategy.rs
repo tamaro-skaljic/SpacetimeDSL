@@ -11,6 +11,7 @@ use {
         disallow::{self, GuardedWrite},
         hook_call::hook_use_and_call,
         naming::{cascade_binding, referenced_table_function_name},
+        reference_integrity,
         removal::Removal,
         soft_delete,
         upsert::{rebind_row_as_mutable_after_hook, set_updated_at_on_update},
@@ -27,7 +28,6 @@ use {
         internal::{
             column::ColumnTypeKind,
             dsl::{one_or_multiple::OneOrMultiple, singleton},
-            spacetimedb,
         },
     },
     proc_macro2::TokenStream,
@@ -668,8 +668,10 @@ pub fn on_delete_strategy_implementation(
                 };
             }
             OnDeleteStrategy::SetZero => {
-                let value_referencing_no_row =
-                    value_referencing_no_row(&column.rust_field.type_name_or_path);
+                let value_referencing_no_row = reference_integrity::value_referencing_no_row(
+                    ColumnTypeKind::of(&column.rust_field.type_name_or_path),
+                )
+                .expect(SET_ZERO_ONLY_WITH_A_VALUE_REFERENCING_NO_ROW);
                 let row = format_ident!("row");
 
                 // Clearing the column is an update of the row, so the update hooks run around
@@ -960,14 +962,10 @@ fn referenced_table_function_call_for_strategy_implementation(
     }
 }
 
-/// What `SetZero` writes into a foreign key column: `Uuid::NIL` for a `Uuid`, `0` for an
-/// unsigned integer - the value create and update treat as referencing no row.
-fn value_referencing_no_row(column_type: &syn::Path) -> TokenStream {
-    match ColumnTypeKind::of(column_type) {
-        ColumnTypeKind::UUID => spacetimedb::uuid_nil(),
-        _ => quote! { 0 },
-    }
-}
+/// Why `SetZero` always has a value to write: it writes the value create and update treat as
+/// referencing no row, and `internal/dsl/foreign_key.rs` allows it only where there is one.
+const SET_ZERO_ONLY_WITH_A_VALUE_REFERENCING_NO_ROW: &str =
+    "`internal/dsl/foreign_key.rs` allows `SetZero` only on unsigned integer and `Uuid` columns";
 
 // Why the lookups in the generated cascades cannot fail. Each starts the panic message of the
 // lookup that relies on it, which goes on to name the key the invariant broke for.

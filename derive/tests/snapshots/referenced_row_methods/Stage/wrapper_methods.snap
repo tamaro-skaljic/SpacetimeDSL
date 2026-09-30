@@ -25,6 +25,12 @@ Use it like `stage_id.get_next_stage(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let stage = dsl.get_stage_by_id(self)?;
+        if stage.next_stage_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "stage".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_stage_by_id(stage.get_next_stage_id())
     }
 }

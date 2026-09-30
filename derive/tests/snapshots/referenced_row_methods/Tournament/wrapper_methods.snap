@@ -42,6 +42,12 @@ Use it like `tournament_id.get_opening_season(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let tournament = dsl.get_tournament_by_id(self)?;
+        if tournament.opening_season_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "season".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_season_by_id(tournament.get_opening_season_id())
     }
 }
@@ -58,6 +64,12 @@ Use it like `tournament_id.get_closing_season(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let tournament = dsl.get_tournament_by_id(self)?;
+        if tournament.closing_season_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "season".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_season_by_id(tournament.get_closing_season_id())
     }
 }

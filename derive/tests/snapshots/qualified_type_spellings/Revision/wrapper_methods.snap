@@ -25,6 +25,12 @@ Use it like `revision_id.get_draft(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let revision = dsl.get_revision_by_id(self)?;
+        if revision.draft_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "draft".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_draft_by_id(revision.get_draft_id())
     }
 }

@@ -25,6 +25,15 @@ Use it like `gadget_id.get_owner(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let gadget = dsl.get_gadget_by_id(self)?;
+        if gadget.owner_id == ::spacetimedb::Uuid::NIL {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "owner".into(),
+                column_names_and_row_values: format!(
+                    "{{ id : {} }}", ::spacetimedb::Uuid::NIL
+                )
+                    .into(),
+            });
+        }
         dsl.get_owner_by_id(gadget.get_owner_id())
     }
 }

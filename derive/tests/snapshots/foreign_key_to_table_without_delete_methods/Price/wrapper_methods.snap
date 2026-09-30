@@ -25,6 +25,12 @@ Use it like `price_id.get_currency(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let price = dsl.get_price_by_id(self)?;
+        if price.currency_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "currency".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_currency_by_id(price.get_currency_id())
     }
 }

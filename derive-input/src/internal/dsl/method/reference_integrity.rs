@@ -113,6 +113,17 @@ pub fn documented_value_referencing_no_row(kind: ColumnTypeKind) -> Option<&'sta
     }
 }
 
+/// The value a foreign key column of this kind holds when it references no row, as an
+/// expression: `0` or `Uuid::NIL`. `None` for a kind every value of which references a row,
+/// and for `Option`, whose `None` is not a value of the referenced key.
+pub fn value_referencing_no_row(kind: ColumnTypeKind) -> Option<TokenStream> {
+    match kind {
+        ColumnTypeKind::UnsignedInteger => Some(quote! { 0 }),
+        ColumnTypeKind::UUID => Some(spacetimedb::uuid_nil()),
+        _ => None,
+    }
+}
+
 pub fn reference_integrity_checks_on_create(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &[InternalColumn],

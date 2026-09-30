@@ -25,6 +25,12 @@ Use it like `member_id.get_guild(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let member = dsl.get_member_by_id(self)?;
+        if member.guild_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "guild".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_guild_by_id(member.get_guild_id())
     }
 }

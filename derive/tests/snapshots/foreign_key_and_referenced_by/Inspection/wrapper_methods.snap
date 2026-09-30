@@ -25,6 +25,12 @@ Use it like `inspection_id.get_warehouse(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let inspection = dsl.get_inspection_by_id(self)?;
+        if inspection.warehouse_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "warehouse".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_warehouse_by_id(inspection.get_warehouse_id())
     }
 }

@@ -25,6 +25,12 @@ Use it like `review_id.get_book(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let review = dsl.get_review_by_id(self)?;
+        if review.book_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "book".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_book_by_id(review.get_book_id())
     }
 }

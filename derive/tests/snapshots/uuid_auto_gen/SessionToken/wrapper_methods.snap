@@ -25,6 +25,15 @@ Use it like `session_token_id.get_account(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let session_token = dsl.get_session_token_by_id(self)?;
+        if session_token.account_id == ::spacetimedb::Uuid::NIL {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "account".into(),
+                column_names_and_row_values: format!(
+                    "{{ id : {} }}", ::spacetimedb::Uuid::NIL
+                )
+                    .into(),
+            });
+        }
         dsl.get_account_by_id(session_token.get_account_id())
     }
 }

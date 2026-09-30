@@ -25,6 +25,12 @@ Use it like `child_marker_id.get_parent_record(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let child_marker = dsl.get_child_marker_by_id(self)?;
+        if child_marker.parent_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "parent_record".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_parent_record_by_id(child_marker.get_parent_id())
     }
 }

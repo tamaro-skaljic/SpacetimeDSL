@@ -7,7 +7,10 @@
 //! key, which look up the row a foreign key column references.
 
 use {
-    super::{context::MethodGenerationContext, foreign_key::foreign_key_of, naming},
+    super::{
+        context::MethodGenerationContext, foreign_key::foreign_key_of, message, naming,
+        reference_integrity,
+    },
     crate::{
         api::{
             Column,
@@ -17,7 +20,7 @@ use {
             },
             runtime,
         },
-        internal::{error, spacetimedb},
+        internal::{column::ColumnTypeKind, error, spacetimedb},
     },
     ident_case::RenameRule,
     proc_macro2::TokenStream,
@@ -179,6 +182,28 @@ pub fn for_referenced_row_methods(
             let referenced_row_type =
                 spacetimedb::table_row_type(&foreign_key.path, &foreign_key.table_name);
 
+            // The value which references no row finds none, as create and update treat it,
+            // even where the referenced table holds a row under that key.
+            let no_row_for_the_value_referencing_no_row =
+                reference_integrity::value_referencing_no_row(ColumnTypeKind::of(
+                    &column.rust_field.type_name_or_path,
+                ))
+                .map(|value_referencing_no_row| {
+                    let not_found_error = runtime::not_found_error(
+                        &foreign_key.table_name.to_string(),
+                        &message::single_column_and_value(
+                            &foreign_key.primary_key_column_name,
+                            &value_referencing_no_row,
+                        ),
+                    );
+
+                    quote! {
+                        if #singular_table_name.#column_name == #value_referencing_no_row {
+                            return Err(#not_found_error);
+                        }
+                    }
+                });
+
             methods.push(WrapperMethod {
                 wrapper_type: wrapper_type_of(primary_key_wrapper),
                 doc_comment: format!(
@@ -189,6 +214,7 @@ pub fn for_referenced_row_methods(
                 method_impl: quote! {
                     let dsl = dsl.into();
                     let #singular_table_name = dsl.#get_this_row(self)?;
+                    #no_row_for_the_value_referencing_no_row
                     dsl.#get_referenced_row(#singular_table_name.#getter_name())
                 },
             });

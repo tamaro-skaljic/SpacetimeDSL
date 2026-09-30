@@ -25,6 +25,12 @@ Use it like `loan_id.get_branch(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let loan = dsl.get_loan_by_id(self)?;
+        if loan.branch_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "branch".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
         dsl.get_branch_by_id(loan.get_branch_id())
     }
 }
