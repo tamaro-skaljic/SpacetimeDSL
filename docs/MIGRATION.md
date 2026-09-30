@@ -330,3 +330,7 @@ runtime::error_from_hook_declaration(&quote! { error_from_hook }) // the binding
 #### `SpacetimeDSLTableMethods::referenced_row_methods`
 
 `SpacetimeDSLTableMethods` gained `referenced_row_methods: Vec<WrapperMethod>`: the methods a table adds to the wrapper type of its primary key, which look up the row each foreign key column references. Emit them only for a struct with a single `#[dsl]` attribute, as `spacetimedsl_derive` does: the tables of a struct with several share its wrapper types, and each would add the same methods. Their return type names the referenced struct through SpacetimeDB's `<accessor>__TableHandle`.
+
+#### `ForeignKey::referenced_row_method`
+
+`ForeignKey` gained `referenced_row_method: bool`, `false` when `#[foreign_key(..., referenced_row_method = false)]` switches off the method which looks up the referenced row. Such a column adds nothing to `SpacetimeDSLTableMethods::referenced_row_methods`.

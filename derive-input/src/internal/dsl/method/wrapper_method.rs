@@ -140,10 +140,12 @@ pub fn for_referenced_row_methods(
         let takes_the_column_stem =
             *referenced_table_name == singular_table_name || columns_with_foreign_key.len() > 1;
 
-        // A foreign key on the primary key references the row its own value names.
-        let columns = columns_with_foreign_key
-            .iter()
-            .filter(|column| !column.spacetimedb_column.is_primary_key);
+        // A foreign key on the primary key references the row its own value names, and
+        // `referenced_row_method = false` switches the method off.
+        let columns = columns_with_foreign_key.iter().filter(|column| {
+            !column.spacetimedb_column.is_primary_key
+                && foreign_key_of(column).referenced_row_method
+        });
 
         for column in columns {
             let foreign_key = foreign_key_of(column);

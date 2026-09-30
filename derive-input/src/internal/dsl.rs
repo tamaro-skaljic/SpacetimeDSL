@@ -53,6 +53,7 @@ symbol!(path);
 symbol!(column);
 symbol!(on_delete);
 symbol!(on_soft_delete);
+symbol!(referenced_row_method);
 symbol!(create_wrapper);
 symbol!(use_wrapper);
 symbol!(auto_gen);

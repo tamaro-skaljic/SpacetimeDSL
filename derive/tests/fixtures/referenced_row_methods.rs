@@ -12,6 +12,8 @@
 //! - `Circle` has a foreign key on its primary key, which adds no such method, and one on
 //!   `player_id`, which adds `get_player` to `EntityId`, the wrapper its key uses.
 //! - `Referee` is a singleton, whose injected primary key has no wrapper type: it adds none.
+//! - `Banner` switches its method off with `referenced_row_method = false`, which leaves only
+//!   `ServerId::get_banners`.
 //!
 //! A struct with several `#[dsl]` attributes adds none either; the `Membership` snapshots of
 //! the fixture `wrapper_methods` pin that.
@@ -34,6 +36,7 @@ pub struct Server {
     #[auto_inc]
     #[create_wrapper]
     #[referenced_by(path = self, table = alliance)]
+    #[referenced_by(path = self, table = banner)]
     id: u64,
 
     #[index(btree)]
@@ -53,6 +56,20 @@ pub struct Alliance {
     #[index(btree)]
     #[use_wrapper(ServerId)]
     #[foreign_key(path = self, table = server, column = id)]
+    server_id: u64,
+}
+
+#[spacetimedsl::dsl(plural_name = banners, method(update = false, delete = false))]
+#[spacetimedb::table(accessor = banner, public)]
+pub struct Banner {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    #[index(btree)]
+    #[use_wrapper(ServerId)]
+    #[foreign_key(path = self, table = server, column = id, referenced_row_method = false)]
     server_id: u64,
 }
 

@@ -19,6 +19,7 @@ pub mod hash_index_test;
 pub mod hook_trait_name_test;
 pub mod primary_key_foreign_key_cascade_test;
 pub mod reference_integrity_message_test;
+pub mod referenced_row_method_opt_out_test;
 pub mod referenced_row_method_test;
 pub mod referenced_table_without_delete_methods_test;
 pub mod self_referencing_cascade_test;
@@ -107,6 +108,10 @@ const TEST_GROUPS: &[(&str, TestGroup)] = &[
     (
         "referenced_row_method_test",
         referenced_row_method_test::run_tests,
+    ),
+    (
+        "referenced_row_method_opt_out_test",
+        referenced_row_method_opt_out_test::run_tests,
     ),
 ];
 

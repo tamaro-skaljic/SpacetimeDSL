@@ -964,6 +964,20 @@ pub fn foreign_key_columns_path_mismatch(column_name: &Ident) -> Error {
     )
 }
 
+pub fn referenced_row_method_on_singleton(argument: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        argument,
+        "`referenced_row_method` has no effect on a singleton table, whose injected primary key has no wrapper type to add the method to! Remove it.",
+    )
+}
+
+pub fn referenced_row_method_on_primary_key_column(argument: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        argument,
+        "`referenced_row_method` has no effect on a foreign key on the primary key, which adds no such method: the row it references has the key's own value! Remove it.",
+    )
+}
+
 // `#[referenced_by]`
 
 pub fn referenced_by_without_primary_key(referenced_by_attribute: &impl ToTokens) -> Error {

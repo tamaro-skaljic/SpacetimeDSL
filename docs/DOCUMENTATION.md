@@ -1548,6 +1548,8 @@ The two strategy parameters follow what the referenced table does. Set `on_delet
 
 A foreign key to a table with `method(delete = false)` and without `method(soft_delete = true)` sets neither: the rows it references are never removed. Create and update still check that it references a row.
 
+`referenced_row_method = false` keeps the column from adding the method which looks up the row it references; see [Look Up the Referenced Row From a Wrapper](#look-up-the-referenced-row-from-a-wrapper).
+
 ### Pairing Requirement
 
 Every `#[foreign_key]` needs a `#[referenced_by]` naming its table on the referenced table's primary key, and every `#[referenced_by]` needs a `#[foreign_key]` back in the table it names. A table with several foreign keys to the referenced table is named there once. Each foreign key declares a strategy for exactly the removals its referenced table performs: `on_delete` when it has a delete method, `on_soft_delete` when it is soft-deletable. The foreign keys of one table are checked one by one.
@@ -1752,6 +1754,7 @@ let max_alliance_level = dsl.get_season_by_id(server.get_season_id())?.get_max_a
 - The return type names the row as `<path::<table>__TableHandle as ::spacetimedb::Table>::Row`, the type SpacetimeDB generates for the referenced table: the foreign key names the table, not its struct. Its value is the table's struct.
 - A foreign key on the primary key adds no such method, and neither does a singleton, whose injected primary key has no wrapper type, nor a struct with several `#[dsl]` attributes, whose tables share the wrapper type.
 - The documentation of each method says which column it follows, so its direction is clear although both directions share the `get_` prefix.
+- `#[foreign_key(..., referenced_row_method = false)]` switches the method of one column off. It is rejected where the table adds none: on a foreign key on the primary key and on a singleton.
 
 ### Generated Documentation
 

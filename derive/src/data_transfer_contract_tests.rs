@@ -242,6 +242,7 @@ fn the_model_holds_what_a_table_declares() {
         foreign_key.on_delete_strategy,
         Some(OnDeleteStrategy::Delete)
     );
+    assert!(foreign_key.referenced_row_method);
     assert_eq!(
         owner_id
             .spacetimedsl_column
@@ -432,6 +433,41 @@ fn the_model_holds_what_a_table_declares() {
             .on_delete_strategies_of_this_table
             .is_empty(),
         "a foreign key without strategies has no strategy implementations"
+    );
+
+    let invoice = parse_table(
+        quote! { plural_name = invoices, method(update = false, delete = false) },
+        quote! {
+            #[spacetimedb::table(accessor = invoice, public)]
+            pub struct Invoice {
+                #[primary_key]
+                #[auto_inc]
+                #[create_wrapper]
+                id: u64,
+
+                #[index(btree)]
+                #[use_wrapper(crate::currency::CurrencyId)]
+                #[foreign_key(path = crate::currency, table = currency, column = id, referenced_row_method = false)]
+                currency_id: u64,
+            }
+        },
+    );
+    visit_table(&invoice);
+
+    assert!(
+        !column(&invoice, "currency_id")
+            .spacetimedsl_column
+            .foreign_key
+            .as_ref()
+            .expect("`currency_id` has `#[foreign_key]`")
+            .referenced_row_method
+    );
+    assert!(
+        invoice
+            .spacetimedsl_methods
+            .referenced_row_methods
+            .is_empty(),
+        "`referenced_row_method = false` switches the method off"
     );
 
     let cleanup_timer = parse_table(
@@ -696,6 +732,7 @@ fn visit_spacetimedsl_column(spacetimedsl_column: &SpacetimeDSLColumn) {
         primary_key_column_name: _,
         on_delete_strategy,
         on_soft_delete_strategy,
+        referenced_row_method: _,
     }) = foreign_key
     {
         [on_delete_strategy, on_soft_delete_strategy]
