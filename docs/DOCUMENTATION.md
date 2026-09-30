@@ -1504,7 +1504,7 @@ pub struct Player {
 Name several rules in one attribute, such as `#[disallow(zero, decreasing)]`.
 
 - Every write checks the rules after its before hook: `create_<table>`, `update_<table>_by_<key>`, both paths of `upsert_<table>`, `soft_delete_*`, and each row an `on_delete = SetZero` or `SoftDelete` cascade writes. So a hook may repair a value, and a value a hook writes is checked as well.
-- In a cascade, a broken rule stops the cascade like an error a hook raised: the delete or soft-delete method fails, and the `DeletionResult` in its error carries the rule's error in `error_from_hook`.
+- In a cascade, a broken rule stops the cascade like an error a hook raised: the delete or soft-delete method fails with a `SpacetimeDSLError::Error` whose message prints the `DeletionResult`, which starts with *Error which stopped the cascade:* and the rule's error.
 - `create_<table>` skips `zero` on an `#[auto_inc]` column: it writes `0` there, which SpacetimeDB replaces with a value of its sequence, never `0`. A row which reaches `0` another way, such as a system user written through raw SpacetimeDB access in the table's module, cannot be written through the DSL afterwards.
 - On a foreign key column, `zero` forbids a reference to no row.
 - The setter of the column and the documentation of each write method name the rules.
