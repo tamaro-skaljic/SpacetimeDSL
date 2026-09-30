@@ -1,0 +1,5 @@
+error: `#[creation_default]` is not allowed on an `#[auto_inc]` column, because SpacetimeDB fills it on create!
+  --> tests/ui/creation_default_on_auto_inc_column.rs:10:9
+   |
+10 |         #[creation_default(1)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^

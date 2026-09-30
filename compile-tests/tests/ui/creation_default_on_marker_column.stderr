@@ -1,0 +1,5 @@
+error: `#[creation_default]` is not allowed on the soft-delete marker column, because a new row always starts unmarked!
+  --> tests/ui/creation_default_on_marker_column.rs:15:9
+   |
+15 |         #[creation_default(false)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^

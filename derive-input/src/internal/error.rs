@@ -452,6 +452,68 @@ pub fn creation_default_without_expression(creation_default_attribute: &impl ToT
     )
 }
 
+pub fn creation_default_on_singleton_with_default(
+    creation_default_attribute: &impl ToTokens,
+) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on a `singleton(with_default)` table, because it has no create method! Its `DefaultSingleton::get_default` supplies the whole default row.",
+    )
+}
+
+pub fn creation_default_on_auto_inc_column(creation_default_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on an `#[auto_inc]` column, because SpacetimeDB fills it on create!",
+    )
+}
+
+pub fn creation_default_on_auto_gen_column(creation_default_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on an `#[auto_gen]` column, because the create method generates its UUID!",
+    )
+}
+
+pub fn creation_default_on_set_on_create_column(
+    creation_default_attribute: &impl ToTokens,
+) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on the column with the `set_on_create` role, because the create method sets it to the current time!",
+    )
+}
+
+pub fn creation_default_on_set_on_update_column(
+    creation_default_attribute: &impl ToTokens,
+) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on the column with the `set_on_update` role, because the create method fills it in!",
+    )
+}
+
+pub fn creation_default_on_marker_column(creation_default_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on the soft-delete marker column, because a new row always starts unmarked!",
+    )
+}
+
+pub fn creation_default_on_primary_key_column(creation_default_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on a primary key column! Every created row would get the same key, which SpacetimeDB rejects from the second row on.",
+    )
+}
+
+pub fn creation_default_on_unique_column(creation_default_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on a `#[unique]` column! Every created row would get the same value, which the unique constraint rejects from the second row on.",
+    )
+}
+
 // `set_on_create` and `set_on_update`
 
 pub fn set_on_create_and_set_on_update(column_name: &Ident) -> Error {

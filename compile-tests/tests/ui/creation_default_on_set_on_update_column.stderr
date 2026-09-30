@@ -1,0 +1,5 @@
+error: `#[creation_default]` is not allowed on the column with the `set_on_update` role, because the create method fills it in!
+  --> tests/ui/creation_default_on_set_on_update_column.rs:14:9
+   |
+14 |         #[creation_default(None)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^

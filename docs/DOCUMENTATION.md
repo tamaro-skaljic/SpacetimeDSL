@@ -1031,6 +1031,7 @@ let player = dsl.create_player(CreatePlayer { name: "Ada".to_string() })?;
 - The column may be private or public. A public one keeps its setter, so an update can change it later.
 - The `before_insert` hook receives `Create{Table}`, which does not hold the column; the row is built from the expression after the hook.
 - The documentation of `create_<table>` lists the defaulted columns under *Defaults*.
+- It is rejected on a `singleton(with_default)` table, which has no create method; on the columns create fills in already — `#[auto_inc]`, `#[auto_gen]`, the `set_on_create` and `set_on_update` columns and the soft-delete marker; and on a `#[primary_key]` or `#[unique]` column, where every created row would repeat the value.
 
 #### Usage
 
