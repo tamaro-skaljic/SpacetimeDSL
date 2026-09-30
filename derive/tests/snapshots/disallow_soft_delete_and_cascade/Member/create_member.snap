@@ -1,0 +1,87 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Create a row in the `member` table.
+
+# Disallowed values
+
+Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids:
+
+- `experience`: `0`
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `guild_id`: a row of the `guild` table (`self`), or `0`*/
+    pub fn create_member<'a>(
+        &'a self,
+        member: CreateMember,
+    ) -> Result<Member, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let guild_id = member.guild_id.value();
+        let experience = member.experience;
+        let deleted = false;
+        let member = Member {
+            id,
+            guild_id,
+            experience,
+            deleted,
+        };
+        if member.experience == 0 {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    "Disallowed Value Error while trying to create a row in the `member` table because `experience` is `0`, which `#[disallow(zero)]` forbids!"
+                        .to_string(),
+                ),
+            );
+        }
+        let mut the_same_or_another_member: Option<Member> = None;
+        if guild_id.ne(&0) {
+            match self.get_guild_by_id(member.get_guild_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "member".into(),
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                            column_names_and_row_values: format!(
+                                "{{ guild_id : {} }}", member.get_guild_id().value()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        let unique_column_values = (member.id.clone(),);
+        match self.db().member().try_insert(member) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "member".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", unique_column_values.0
+                            )
+                                .into(),
+                        })
+                    }
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "member".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,135 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `guest` table
+///
+/// - `guild_id` references the `id` column of the `guild` table (`self`).
+///   - On delete: `SetZero`
+///   - On soft delete: `SoftDelete`
+
+pub trait this_compilation_error_occurs_because_the_guest_table_has_no_foreign_key_attribute_referencing_the_guild_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_guild_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_guest_table;
+    use self::this_compilation_error_occurs_because_the_guild_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_guest_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct GuestId {
+    value: u64,
+}
+impl Default for GuestId {
+    fn default() -> GuestId {
+        GuestId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for GuestId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "GuestId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for GuestId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Guest> for GuestId {
+    fn from(value: &Guest) -> Self {
+        GuestId { value: value.id.clone() }
+    }
+}
+impl From<&Guest> for Option<GuestId> {
+    fn from(value: &Guest) -> Option<GuestId> {
+        Some(GuestId { value: value.id.clone() })
+    }
+}
+impl From<&GuestId> for Option<GuestId> {
+    fn from(value: &GuestId) -> Option<GuestId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(GuestId::new(value.value()))
+    }
+}
+impl From<&GuestId> for GuestId {
+    fn from(value: &GuestId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        GuestId::new(value.value())
+    }
+}
+impl Guest {
+    ///
+    pub fn get_id(&self) -> GuestId {
+        use crate::spacetimedsl::Wrapper;
+        GuestId::new(self.id.clone())
+    }
+    /**References the `id` column of the `guild` table (`self`).
+
+- On delete: `SetZero`
+- On soft delete: `SoftDelete`*/
+    pub fn get_guild_id(&self) -> GuildId {
+        use crate::spacetimedsl::Wrapper;
+        GuildId::new(self.guild_id.clone())
+    }
+    /**References the `id` column of the `guild` table (`self`).
+
+- On delete: `SetZero`
+- On soft delete: `SoftDelete`*/
+    pub fn set_guild_id(&mut self, guild_id: impl Into<GuildId>) -> GuildId {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.guild_id, guild_id.into().value());
+        GuildId::new(old_value)
+    }
+    ///
+    pub fn get_remaining_visits(&self) -> &u8 {
+        use crate::spacetimedsl::Wrapper;
+        &self.remaining_visits
+    }
+    ///
+    pub fn get_remaining_visits_mut(&mut self) -> &mut u8 {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.remaining_visits
+    }
+    ///Writing the row through the DSL fails with a *Disallowed Value Error* if this column increases (`#[disallow(increasing)]`).
+    pub fn set_remaining_visits(&mut self, remaining_visits: u8) -> u8 {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.remaining_visits, remaining_visits);
+        old_value
+    }
+    ///
+    pub fn get_deleted(&self) -> &bool {
+        use crate::spacetimedsl::Wrapper;
+        &self.deleted
+    }
+}
+///
+pub struct CreateGuest {
+    pub guild_id: GuildId,
+    pub remaining_visits: u8,
+}
+
+// Generated DSL methods:
+// count_of_all_guests
+// create_guest
+// execute_on_delete_strategies_of_the_guest_table_after_multiple_rows_of_the_guild_table_were_deleted
+// execute_on_delete_strategies_of_the_guest_table_after_multiple_rows_of_the_guild_table_were_soft_deleted
+// execute_on_delete_strategies_of_the_guest_table_after_one_row_of_the_guild_table_was_deleted
+// execute_on_delete_strategies_of_the_guest_table_after_one_row_of_the_guild_table_was_soft_deleted
+// get_all_guests
+// get_guest_by_id
+// get_guests_by_guild_id
+// soft_delete_guest_by_id
+// soft_delete_guests_by_guild_id
+// update_guest_by_id

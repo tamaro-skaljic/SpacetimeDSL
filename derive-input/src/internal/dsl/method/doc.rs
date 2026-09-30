@@ -6,12 +6,6 @@ use {
     std::borrow::Borrow,
 };
 
-/// `doc`, followed by `section` as a paragraph of its own, or `doc` alone when `section` is
-/// empty.
-pub fn with_section(doc: String, section: String) -> String {
-    paragraphs([doc, section])
-}
-
 /// The non-empty `parts` as paragraphs, each separated from the next by a blank line.
 pub fn paragraphs<Part: Borrow<str>>(parts: impl IntoIterator<Item = Part>) -> String {
     parts

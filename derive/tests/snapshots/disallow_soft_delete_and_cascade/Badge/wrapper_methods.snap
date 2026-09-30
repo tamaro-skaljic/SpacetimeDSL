@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl MemberId {
+    /**Get all `Badge` rows whose `member_id` column references this `MemberId`.
+
+Use it like `member_id.get_badges(&dsl)`.*/
+    pub fn get_badges<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Badge> {
+        dsl.into().get_badges_by_member_id(self).collect()
+    }
+}

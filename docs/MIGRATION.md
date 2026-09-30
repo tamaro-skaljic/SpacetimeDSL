@@ -94,6 +94,10 @@ A foreign key to such a table sets no strategy. *A `#[foreign_key]` must set `on
 
 ### Changed messages and generated code
 
+#### A `DeletionResult` prints *Error which stopped the cascade*
+
+`Display` of a `DeletionResult` whose `error_from_hook` is `Some` starts with *Error which stopped the cascade:* instead of *Error from a hook:*, because a `#[disallow]` rule which a row written by the cascade breaks stops the cascade the same way. The field keeps its name.
+
 #### The error of a failed soft-delete cascade says *Soft Delete*
 
 The error a `soft_delete_*` method returns when a cascade fails after the database already changed now starts with *Soft Delete One Error* / *Soft Delete Many Error* instead of *Delete One Error* / *Delete Many Error*.

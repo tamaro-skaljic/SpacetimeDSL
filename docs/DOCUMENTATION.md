@@ -1226,7 +1226,8 @@ pub struct DeletionResult {
     pub table_name: Box<str>,
     pub one_or_multiple: OneOrMultiple,
     pub entries: Vec<DeletionResultEntry>,
-    // The error a delete hook raised while the cascade ran. Boxed because
+    // The error which stopped the cascade: one a delete hook raised, or a broken
+    // `#[disallow]` rule of a row the cascade wrote. Boxed because
     // `SpacetimeDSLError::ReferenceIntegrityViolation` holds a `DeletionResult`, so an
     // unboxed field would make both types infinitely sized.
     pub error_from_hook: Option<Box<SpacetimeDSLError>>,
@@ -1251,7 +1252,7 @@ entry_id, parent_entry_id, table_name, column_name, strategy, row_value
 ```
 
 Printing the result with `Display` prints the same CSV, preceded by an
-`Error from a hook: <error>` line and a blank line when `error_from_hook` is `Some`.
+`Error which stopped the cascade: <error>` line and a blank line when `error_from_hook` is `Some`.
 
 ---
 
@@ -1502,7 +1503,8 @@ pub struct Player {
 
 Name several rules in one attribute, such as `#[disallow(zero, decreasing)]`.
 
-- `create_<table>`, `update_<table>_by_<key>` and both paths of `upsert_<table>` check the rules after their before hook, so a hook may repair a value, and a value a hook writes is checked as well.
+- Every write checks the rules after its before hook: `create_<table>`, `update_<table>_by_<key>`, both paths of `upsert_<table>`, `soft_delete_*`, and each row an `on_delete = SetZero` or `SoftDelete` cascade writes. So a hook may repair a value, and a value a hook writes is checked as well.
+- In a cascade, a broken rule stops the cascade like an error a hook raised: the delete or soft-delete method fails, and the `DeletionResult` in its error carries the rule's error in `error_from_hook`.
 - `create_<table>` skips `zero` on an `#[auto_inc]` column: it writes `0` there, which SpacetimeDB replaces with a value of its sequence, never `0`. A row which reaches `0` another way, such as a system user written through raw SpacetimeDB access in the table's module, cannot be written through the DSL afterwards.
 - On a foreign key column, `zero` forbids a reference to no row.
 - The setter of the column and the documentation of each write method name the rules.
@@ -1920,11 +1922,13 @@ returns an error. The hook's own error is carried on the `DeletionResult` as
 `error_from_hook`, and `Display` prints it above the CSV:
 
 ```txt
-Error from a hook: this lock holder is locked
+Error which stopped the cascade: this lock holder is locked
 
 entry_id, parent_entry_id, table_name, column_name, strategy, row_value,
 1,        0,               lock_holder, group_id,   Delete,   7
 ```
+
+A `#[disallow]` rule which a row written by the cascade breaks stops it the same way; see [Disallowed Values](#disallowed-values).
 
 Rows deleted before the hook refused are not rolled back by SpacetimeDSL. Return the error
 from your reducer so SpacetimeDB rolls the transaction back.
@@ -2026,9 +2030,10 @@ match dsl.delete_entity_by_id(&entity) {
         log::warn!("Cannot delete: referenced by other tables");
         // err contains the DeletionResult showing what would be affected
         log::warn!("Affected rows:\n{}", err.deletion_result.to_csv());
-        // The DeletionResult also carries `error_from_hook`, the error a delete hook of a
-        // referencing table raised while the cascade ran, if one did.
-        log::warn!("Affected rows and any hook error:\n{}", err.deletion_result);
+        // The DeletionResult also carries `error_from_hook`, the error which stopped the
+        // cascade, if one did: one a delete hook of a referencing table raised, or a broken
+        // `#[disallow]` rule of a row the cascade wrote.
+        log::warn!("Affected rows and any error which stopped the cascade:\n{}", err.deletion_result);
         // Still return error, otherwise the transaction will be committed and the integrity violation will be ignored!
         return Err(e);
     }
@@ -2080,7 +2085,7 @@ entry_id, parent_entry_id, table_name, column_name, strategy, row_value,
 **Delete with a hook that refused during the cascade:**
 
 ```txt
-Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: Error from a hook: this lock holder is locked
+Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: Error which stopped the cascade: this lock holder is locked
 
 entry_id, parent_entry_id, table_name, column_name, strategy, row_value,
 1,        0,               lock_holder, group_id,   Delete,   7

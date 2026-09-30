@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl GuildId {
+    /**Get all `Member` rows whose `guild_id` column references this `GuildId`.
+
+Use it like `guild_id.get_members(&dsl)`.*/
+    pub fn get_members<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Member> {
+        dsl.into().get_members_by_guild_id(self).collect()
+    }
+}

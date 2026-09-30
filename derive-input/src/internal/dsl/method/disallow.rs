@@ -5,7 +5,7 @@
 //! slip a forbidden one past them, and before the framework writes the columns it owns.
 
 use {
-    super::{context::MethodGenerationContext, doc, message},
+    super::{context::MethodGenerationContext, doc, message, naming::cascade_binding},
     crate::{
         api::{dsl::disallow::Disallowed, runtime},
         internal::{
@@ -32,6 +32,11 @@ pub enum GuardedWrite {
     /// `stored_row` is the row as it is stored, which `decreasing` and `increasing` compare
     /// with.
     Update {
+        row_key: TokenStream,
+        stored_row: TokenStream,
+    },
+    /// A soft deletion of a stored row, named and compared like an update.
+    SoftDelete {
         row_key: TokenStream,
         stored_row: TokenStream,
     },
@@ -82,6 +87,20 @@ pub fn return_the_error(error: &TokenStream) -> TokenStream {
     }
 }
 
+/// `error = true; error_from_hook = Some(Box::new(<error>)); break 'outer;`, how a cascade
+/// stops on a broken rule: the way it stops on an error a hook raised.
+pub fn stop_the_cascade(error: &TokenStream) -> TokenStream {
+    let error_flag = cascade_binding::error();
+    let error_from_hook = cascade_binding::error_from_hook();
+    let outer = cascade_binding::outer();
+
+    quote! {
+        #error_flag = true;
+        #error_from_hook = Some(Box::new(#error));
+        break #outer;
+    }
+}
+
 /// The expression which renders the primary key of the row `row` as `{ id : 7 }`, or the
 /// `{ id : 0 }` of a singleton, whose injected key has no getter.
 pub fn row_key(context: &MethodGenerationContext, row: &TokenStream) -> TokenStream {
@@ -115,9 +134,11 @@ pub fn checks(
 
             let check = match (forbidden_change(*rule), write) {
                 (None, _) => zero_check(internal_column, row),
-                (Some(change), GuardedWrite::Update { stored_row, .. }) => {
-                    change_check(internal_column, change, row, stored_row)
-                }
+                (
+                    Some(change),
+                    GuardedWrite::Update { stored_row, .. }
+                    | GuardedWrite::SoftDelete { stored_row, .. },
+                ) => change_check(internal_column, change, row, stored_row),
                 (Some(_), GuardedWrite::Create) => continue,
             };
 
@@ -143,7 +164,7 @@ fn is_checked(rule: Disallowed, internal_column: &InternalColumn, write: &Guarde
     match (rule, write) {
         (Disallowed::Zero, GuardedWrite::Create) => !internal_column.spacetimedb_column_is_auto_inc,
         (Disallowed::Decreasing | Disallowed::Increasing, GuardedWrite::Create) => false,
-        (_, GuardedWrite::Update { .. }) => true,
+        (_, GuardedWrite::Update { .. } | GuardedWrite::SoftDelete { .. }) => true,
     }
 }
 
@@ -231,6 +252,9 @@ fn disallowed_value_error(
     let (attempted, mut arguments) = match write {
         GuardedWrite::Create => ("create a row in", vec![]),
         GuardedWrite::Update { row_key, .. } => ("update the row `{}` in", vec![row_key.clone()]),
+        GuardedWrite::SoftDelete { row_key, .. } => {
+            ("soft delete the row `{}` in", vec![row_key.clone()])
+        }
     };
     arguments.extend(check.reason_arguments.iter().cloned());
 

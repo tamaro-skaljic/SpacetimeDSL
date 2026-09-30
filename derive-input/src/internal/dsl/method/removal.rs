@@ -9,6 +9,7 @@
 use {
     super::{
         context::{self, MethodGenerationContext},
+        disallow::{self, CheckedRules, GuardedWrite},
         doc,
         hook_call::hook_tokens,
         index::{IndexColumnArguments, IndexShape, index_accessor, index_column_arguments},
@@ -180,13 +181,25 @@ fn marker_of(spacetimedsl_table: &SpacetimeDSLTable) -> &SoftDeleteMarker {
 ///
 /// `updated_at` is deliberately left alone: the marker records the retirement, and
 /// `updated_at` keeps meaning the last ordinary edit.
-fn retire_row(
-    row: &syn::Ident,
-    spacetimedsl_table: &SpacetimeDSLTable,
-    singular_table_name: &syn::Ident,
-    primary_key_column_name: &syn::Ident,
-) -> TokenStream {
+fn retire_row(row: &syn::Ident, context: &MethodGenerationContext) -> TokenStream {
+    let MethodGenerationContext {
+        spacetimedsl_table,
+        singular_table_name,
+        primary_key_column_name,
+        ..
+    } = context;
+
     let new_row = format_ident!("new_row");
+
+    let disallow_checks = disallow::checks(
+        context,
+        &GuardedWrite::SoftDelete {
+            row_key: disallow::row_key(context, &quote! { #new_row }),
+            stored_row: quote! { #row },
+        },
+        &quote! { #new_row },
+        disallow::return_the_error,
+    );
     let set_marker =
         soft_delete::set_marker(marker_of(spacetimedsl_table), &quote! { self }, &new_row);
 
@@ -237,6 +250,8 @@ fn retire_row(
         #clone_row
 
         #before_hook
+
+        #disallow_checks
 
         #rebind_row
 
@@ -489,6 +504,7 @@ fn removal_method(
 ) -> SpacetimeDSLMethod {
     let MethodGenerationContext {
         spacetimedsl_table,
+        internal_columns,
         primary_key_column,
         struct_name,
         singular_table_name,
@@ -615,12 +631,7 @@ fn removal_method(
         }
         (Removal::Soft, _) => {
             let old_row = format_ident!("old_row");
-            let retire_row = retire_row(
-                &old_row,
-                spacetimedsl_table,
-                singular_table_name,
-                primary_key_column_name,
-            );
+            let retire_row = retire_row(&old_row, context);
 
             match one_or_multiple {
                 OneOrMultiple::One => quote! {
@@ -742,10 +753,14 @@ fn removal_method(
         ),
     };
 
-    let doc_comment = doc::with_section(
+    let doc_comment = doc::paragraphs([
         doc_comment,
+        match removal {
+            Removal::Hard => String::new(),
+            Removal::Soft => disallow::section(internal_columns, CheckedRules::Overwrite),
+        },
         relationship_doc::cascade(removal, &spacetimedsl_table.referencing_tables),
-    );
+    ]);
 
     SpacetimeDSLMethod {
         doc_comment,

@@ -8,6 +8,7 @@
 use {
     super::{
         context::{self, MethodGenerationContext},
+        disallow::{self, GuardedWrite},
         hook_call::hook_use_and_call,
         naming::{cascade_binding, referenced_table_function_name},
         removal::Removal,
@@ -115,6 +116,8 @@ pub fn on_delete_strategy_implementation(
     let mut strategy_after_all = TokenStream::default();
 
     let is_singleton = spacetimedsl_table.is_singleton();
+
+    let compares_with_the_stored_row = disallow::compares_with_the_stored_row(internal_columns);
 
     for column in &columns_by_on_delete_strategy {
         let column_name = &column.rust_field.name;
@@ -422,6 +425,16 @@ pub fn on_delete_strategy_implementation(
 
                 let set_marker = soft_delete::set_marker(marker, &quote! { #dsl }, &row);
 
+                let disallow_checks = disallow::checks(
+                    context,
+                    &GuardedWrite::SoftDelete {
+                        row_key: disallow::row_key(context, &quote! { row }),
+                        stored_row: quote! { old_row },
+                    },
+                    &quote! { row },
+                    disallow::stop_the_cascade,
+                );
+
                 // The two imports have to escape the per-row loop their guard sits in, so
                 // they are hoisted the way the `Delete` arm hoists its own.
                 let build_hooks = |old_row: TokenStream| {
@@ -473,7 +486,7 @@ pub fn on_delete_strategy_implementation(
                         let a_hook_runs = !before_soft_delete_hook.is_empty()
                             || !after_soft_delete_hook.is_empty();
 
-                        let clone_old_row = match a_hook_runs {
+                        let clone_old_row = match a_hook_runs || compares_with_the_stored_row {
                             true => quote! { let old_row = row.clone(); },
                             false => TokenStream::default(),
                         };
@@ -494,6 +507,8 @@ pub fn on_delete_strategy_implementation(
                                     #clone_old_row
 
                                     #before_soft_delete_hook
+
+                                    #disallow_checks
 
                                     #rebind_row
 
@@ -617,6 +632,8 @@ pub fn on_delete_strategy_implementation(
 
                                 #before_soft_delete_hook
 
+                                #disallow_checks
+
                                 #rebind_row
 
                                 #set_marker
@@ -677,12 +694,25 @@ pub fn on_delete_strategy_implementation(
                 strategy_for_before_hook = use_before_update_hook_trait;
                 strategy_for_after_hook = use_after_update_hook_trait;
 
-                // The hooks see the row as it was before the column was cleared.
-                let clone_old_row =
-                    match before_update_hook.is_empty() && after_update_hook.is_empty() {
-                        true => TokenStream::default(),
-                        false => quote! { let old_row = row.clone(); },
-                    };
+                // The hooks and the change rules see the row as it was before the column was
+                // cleared.
+                let clone_old_row = match before_update_hook.is_empty()
+                    && after_update_hook.is_empty()
+                    && !compares_with_the_stored_row
+                {
+                    true => TokenStream::default(),
+                    false => quote! { let old_row = row.clone(); },
+                };
+
+                let disallow_checks = disallow::checks(
+                    context,
+                    &GuardedWrite::Update {
+                        row_key: disallow::row_key(context, &quote! { row }),
+                        stored_row: quote! { old_row },
+                    },
+                    &quote! { row },
+                    disallow::stop_the_cascade,
+                );
 
                 // Written after the before hook, as `update_<table>_by_<key>` does, so the
                 // framework has the last word on the timestamp.
@@ -715,6 +745,8 @@ pub fn on_delete_strategy_implementation(
                         #create_entry_and_add_it_to_entries
 
                         #before_update_hook
+
+                        #disallow_checks
 
                         #rebind_row
                         #set_updated_at

@@ -10,6 +10,7 @@ pub mod cascade_hook_error_test;
 pub mod component;
 pub mod creation_default_test;
 pub mod disallow_change_test;
+pub mod disallow_soft_delete_and_cascade_test;
 pub mod disallow_zero_test;
 pub mod entity;
 pub mod err_macro_test;
@@ -98,6 +99,10 @@ const TEST_GROUPS: &[(&str, TestGroup)] = &[
     ("creation_default_test", creation_default_test::run_tests),
     ("disallow_zero_test", disallow_zero_test::run_tests),
     ("disallow_change_test", disallow_change_test::run_tests),
+    (
+        "disallow_soft_delete_and_cascade_test",
+        disallow_soft_delete_and_cascade_test::run_tests,
+    ),
 ];
 
 /// Runs every test group, also after one of them failed, and fails with the messages of all

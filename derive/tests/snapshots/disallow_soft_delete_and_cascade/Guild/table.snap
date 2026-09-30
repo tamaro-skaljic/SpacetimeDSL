@@ -1,0 +1,97 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Tables referencing the `guild` table
+///
+/// - the `member` table (`self`)
+/// - the `guest` table (`self`)
+
+pub trait this_compilation_error_occurs_because_the_guild_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_guest_table {}
+pub trait this_compilation_error_occurs_because_the_guild_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_member_table {}
+pub trait this_compilation_error_occurs_because_the_guild_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_guest_table {}
+pub trait this_compilation_error_occurs_because_the_guild_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_member_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_member_table_has_no_foreign_key_attribute_referencing_the_guild_table;
+    use self::this_compilation_error_occurs_because_the_guest_table_has_no_foreign_key_attribute_referencing_the_guild_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct GuildId {
+    value: u64,
+}
+impl Default for GuildId {
+    fn default() -> GuildId {
+        GuildId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for GuildId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "GuildId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for GuildId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Guild> for GuildId {
+    fn from(value: &Guild) -> Self {
+        GuildId { value: value.id.clone() }
+    }
+}
+impl From<&Guild> for Option<GuildId> {
+    fn from(value: &Guild) -> Option<GuildId> {
+        Some(GuildId { value: value.id.clone() })
+    }
+}
+impl From<&GuildId> for Option<GuildId> {
+    fn from(value: &GuildId) -> Option<GuildId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(GuildId::new(value.value()))
+    }
+}
+impl From<&GuildId> for GuildId {
+    fn from(value: &GuildId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        GuildId::new(value.value())
+    }
+}
+impl Guild {
+    ///
+    pub fn get_id(&self) -> GuildId {
+        use crate::spacetimedsl::Wrapper;
+        GuildId::new(self.id.clone())
+    }
+    ///
+    pub fn get_deleted(&self) -> &bool {
+        use crate::spacetimedsl::Wrapper;
+        &self.deleted
+    }
+}
+
+// Generated DSL methods:
+// count_of_all_guilds
+// create_guild
+// delete_guild_by_id
+// execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_guild_table_were_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_guild_table_were_soft_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_guild_table_was_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_guild_table_was_soft_deleted
+// get_all_guilds
+// get_guild_by_id
+// soft_delete_guild_by_id

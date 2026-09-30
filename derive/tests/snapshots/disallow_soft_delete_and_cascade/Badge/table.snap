@@ -1,0 +1,101 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `badge` table
+///
+/// - `member_id` references the `id` column of the `member` table (`self`).
+///   - On delete: none, the `member` table is not deletable
+///   - On soft delete: `Ignore`
+
+pub trait this_compilation_error_occurs_because_the_badge_table_has_no_foreign_key_attribute_referencing_the_member_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_member_table_needs_to_define_a_strategy_for_on_delete_or_the_member_table_has_no_referenced_by_attribute_referencing_the_badge_table;
+    use self::this_compilation_error_occurs_because_the_member_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_badge_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct BadgeId {
+    value: u64,
+}
+impl Default for BadgeId {
+    fn default() -> BadgeId {
+        BadgeId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for BadgeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "BadgeId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for BadgeId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Badge> for BadgeId {
+    fn from(value: &Badge) -> Self {
+        BadgeId { value: value.id.clone() }
+    }
+}
+impl From<&Badge> for Option<BadgeId> {
+    fn from(value: &Badge) -> Option<BadgeId> {
+        Some(BadgeId { value: value.id.clone() })
+    }
+}
+impl From<&BadgeId> for Option<BadgeId> {
+    fn from(value: &BadgeId) -> Option<BadgeId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(BadgeId::new(value.value()))
+    }
+}
+impl From<&BadgeId> for BadgeId {
+    fn from(value: &BadgeId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        BadgeId::new(value.value())
+    }
+}
+impl Badge {
+    ///
+    pub fn get_id(&self) -> BadgeId {
+        use crate::spacetimedsl::Wrapper;
+        BadgeId::new(self.id.clone())
+    }
+    /**References the `id` column of the `member` table (`self`).
+
+- On delete: none, the `member` table is not deletable
+- On soft delete: `Ignore`*/
+    pub fn get_member_id(&self) -> MemberId {
+        use crate::spacetimedsl::Wrapper;
+        MemberId::new(self.member_id.clone())
+    }
+}
+///
+pub struct CreateBadge {
+    pub member_id: MemberId,
+}
+
+// Generated DSL methods:
+// count_of_all_badges
+// create_badge
+// delete_badge_by_id
+// delete_badges_by_member_id
+// execute_on_delete_strategies_of_the_badge_table_after_multiple_rows_of_the_member_table_were_soft_deleted
+// execute_on_delete_strategies_of_the_badge_table_after_one_row_of_the_member_table_was_soft_deleted
+// get_all_badges
+// get_badge_by_id
+// get_badges_by_member_id
