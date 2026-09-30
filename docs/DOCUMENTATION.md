@@ -575,12 +575,12 @@ A column's type has to be a path, such as `u64`, `String`, `Option<T>`, `spaceti
 
 Where **SpacetimeDSL** checks or treats a column's type specially, it accepts every spelling of that type:
 
-| Type                  | Accepted spellings                                                            |
-| --------------------- | ----------------------------------------------------------------------------- |
-| `String`              | `String`, `std::string::String`, `alloc::string::String`                      |
-| `Option<T>`           | `Option<T>`, `std::option::Option<T>`, `core::option::Option<T>`              |
-| `u8`–`u128`, `bool`   | bare, `core::primitive::u64`, `std::primitive::u64` (likewise for the others) |
-| `Timestamp`, `Uuid`   | bare, `spacetimedb::Timestamp`, `spacetimedb::Uuid`                           |
+| Type                                           | Accepted spellings                                                            |
+| ---------------------------------------------- | ----------------------------------------------------------------------------- |
+| `String`                                       | `String`, `std::string::String`, `alloc::string::String`                      |
+| `Option<T>`                                    | `Option<T>`, `std::option::Option<T>`, `core::option::Option<T>`              |
+| `u8`–`u128`, `i8`–`i128`, `f32`, `f64`, `bool` | bare, `core::primitive::u64`, `std::primitive::u64` (likewise for the others) |
+| `Timestamp`, `Uuid`                            | bare, `spacetimedb::Timestamp`, `spacetimedb::Uuid`                           |
 
 Each rooted spelling may also start with `::`, such as `::spacetimedb::Timestamp`. A path to a type of your own crate with the same last name, such as `my_crate::String`, is a different type.
 

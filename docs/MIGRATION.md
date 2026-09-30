@@ -114,6 +114,8 @@ A foreign key column counts as indexed through every single-column index on it, 
 
 Qualified spellings of the types SpacetimeDSL checks are accepted where they used to be rejected: `::spacetimedb::Timestamp` and `std::option::Option<spacetimedb::Timestamp>` for `#[set_on_create]` / `#[set_on_update]`, and `core::primitive::u64` / `std::primitive::u64` count as unsigned integers (so a foreign key spelled that way skips its reference-integrity check for `0`, like `u64`). See *Column Type Spellings* in the documentation. This is not breaking.
 
+Likewise `core::primitive::i64` / `std::primitive::f64` count as the signed integers and floats they name, so two foreign keys of one table to the same table which spell `i64` both ways are no longer rejected as mismatched.
+
 #### The missing-update-method diagnostic names `#[set_on_update]`
 
 The diagnostic for a missing `method(update = …)` on a table with only private columns names `#[set_on_update]` next to the conventional `modified_at` / `updated_at` as a way to make the table mutable.

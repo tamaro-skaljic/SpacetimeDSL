@@ -85,7 +85,9 @@ fn reference_integrity_checks(
             ColumnTypeKind::String
             | ColumnTypeKind::Bool
             | ColumnTypeKind::Timestamp
-            | ColumnTypeKind::Other => quote! {
+            | ColumnTypeKind::Other
+            | ColumnTypeKind::SignedInteger
+            | ColumnTypeKind::Float => quote! {
                 #check
             },
         });
@@ -105,7 +107,9 @@ pub fn documented_value_referencing_no_row(kind: ColumnTypeKind) -> Option<&'sta
         ColumnTypeKind::String
         | ColumnTypeKind::Bool
         | ColumnTypeKind::Timestamp
-        | ColumnTypeKind::Other => None,
+        | ColumnTypeKind::Other
+        | ColumnTypeKind::SignedInteger
+        | ColumnTypeKind::Float => None,
     }
 }
 
