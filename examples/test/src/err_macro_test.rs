@@ -29,6 +29,9 @@ pub(crate) fn run_tests<T: WriteContext>(_dsl: &DSL<'_, T>) -> Result<(), String
 
     expect_message(err!(MAXIMUM_LEVEL), "10")?;
 
+    // A literal followed by anything but its format arguments is an expression like any other.
+    expect_message(err!("No level given".to_string()), "No level given")?;
+
     Ok(())
 }
 

@@ -29,17 +29,17 @@ pub mod error;
 /// return err!("Level {level} is above the maximum of {}", MAXIMUM_LEVEL);
 /// ```
 ///
-/// A first argument which is not a literal is the whole message, turned into a `String`
-/// with `ToString`, so a message kept in a variable or a constant needs no `"{}"`:
+/// Any other single expression is the whole message, turned into a `String` with
+/// `ToString`, so a message kept in a variable or a constant needs no `"{}"`:
 ///
 /// ```rust,ignore
 /// return err!(LOCKED_MESSAGE);
 /// ```
 #[macro_export]
 macro_rules! err {
-    ($format_string:literal $($format_arguments:tt)*) => {
+    ($format_string:literal $(, $($format_arguments:tt)*)?) => {
         ::core::result::Result::Err($crate::error::SpacetimeDSLError::Error(::std::format!(
-            $format_string $($format_arguments)*
+            $format_string $(, $($format_arguments)*)?
         )))
     };
     ($message:expr $(,)?) => {
