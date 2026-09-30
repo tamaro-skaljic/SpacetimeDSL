@@ -215,7 +215,7 @@ impl SpacetimeDSLTableMethods {
             referenced_row_methods: for_referenced_row_methods(
                 context,
                 &foreign_key_columns_by_referenced_table,
-            ),
+            )?,
         };
 
         Ok((methods, contributions))

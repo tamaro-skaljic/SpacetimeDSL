@@ -82,6 +82,16 @@ Every `#[foreign_key]` has to set `on_delete` when the referenced table has a de
 
 `SetZero` writes `0` or `Uuid::NIL` into the foreign key column and writes the row back through its primary key. On a primary key column that write finds no row or another one; on a `#[unique]` column, or a column of a `unique_index(name = …)` index, a second cleared row repeats the value. SpacetimeDB's `update` panicked inside the cascade in the first two cases, and the third silently broke the index's uniqueness. All three are rejected at the `#[foreign_key]` attribute. Choose another strategy, such as `Delete`, or remove the uniqueness.
 
+#### Two wrapper-type methods of the same name
+
+Every `#[foreign_key]` column besides the primary key now adds a method to the wrapper type of its table's primary key, which looks up the row it references (*Look Up the Referenced Row From a Wrapper* in the documentation). Where that method takes a name another method of the wrapper type already has, the build fails:
+
+- Two tables which reference each other through unique foreign keys, and two tables which share a primary key wrapper and reference the same table: rustc's *duplicate definitions with name `get_…`* (E0592).
+- A method of your own on a wrapper type with the name of such a method: E0592.
+- Two foreign keys of one table to the same table whose columns differ only in the key suffix, such as `owner_id` and `owner`: *The foreign key columns `owner_id` and `owner` would both add `get_owner` to `GameId`!*
+
+Add `referenced_row_method = false` to the `#[foreign_key]` whose method you do not need, or rename the column.
+
 ### Newly accepted inputs
 
 #### `#[referenced_by]` on a table without delete and soft-delete methods

@@ -1756,6 +1756,22 @@ let max_alliance_level = dsl.get_season_by_id(server.get_season_id())?.get_max_a
 - The documentation of each method says which column it follows, so its direction is clear although both directions share the `get_` prefix.
 - `#[foreign_key(..., referenced_row_method = false)]` switches the method of one column off. It is rejected where the table adds none: on a foreign key on the primary key and on a singleton.
 
+#### When Two Methods Take the Same Name
+
+The methods of both directions share the wrapper types, so two of them can take the same name, which rustc rejects as *duplicate definitions with name `get_…`* (E0592):
+
+- Two tables reference each other through unique foreign keys: `player_account.player_character_id` and `player_character.player_account_id` add `get_player_account` to `PlayerCharacterId` and `get_player_character` to `PlayerAccountId`, once in each direction.
+- Two tables share a primary key wrapper and reference the same table, such as `circle` and `food`, both keyed by `EntityId`, with a `player_id` each: both add `get_player` to `EntityId`.
+- A method you wrote on the wrapper type yourself has the name already.
+
+Add `referenced_row_method = false` to the `#[foreign_key]` whose method for the referenced row you do not need:
+
+```rust
+#[foreign_key(path = crate::character, table = player_character, column = id, referenced_row_method = false)]
+```
+
+Within one table, SpacetimeDSL reports two foreign key columns whose methods would take the same name itself, such as `owner_id` and `owner` referencing the same table.
+
 ### Generated Documentation
 
 The generated code documents the relationships it acts on:

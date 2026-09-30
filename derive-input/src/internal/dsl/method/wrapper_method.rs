@@ -17,7 +17,7 @@ use {
             },
             runtime,
         },
-        internal::spacetimedb,
+        internal::{error, spacetimedb},
     },
     ident_case::RenameRule,
     proc_macro2::TokenStream,
@@ -106,7 +106,7 @@ pub fn for_wrapper_methods(
 pub fn for_referenced_row_methods(
     context: &MethodGenerationContext,
     foreign_key_columns_by_referenced_table: &BTreeMap<&Ident, Vec<&Column>>,
-) -> Vec<WrapperMethod> {
+) -> syn::Result<Vec<WrapperMethod>> {
     let MethodGenerationContext {
         spacetimedsl_table,
         primary_key_column,
@@ -118,7 +118,7 @@ pub fn for_referenced_row_methods(
 
     // A singleton's injected primary key has no wrapper type to add a method to.
     if spacetimedsl_table.is_singleton() {
-        return vec![];
+        return Ok(vec![]);
     }
 
     let primary_key_wrapper = primary_key_column
@@ -134,6 +134,7 @@ pub fn for_referenced_row_methods(
         naming::get_by_index_method_name(singular_table_name, primary_key_column_name);
 
     let mut methods = vec![];
+    let mut column_by_method_name: BTreeMap<String, &Ident> = BTreeMap::new();
 
     for (referenced_table_name, columns_with_foreign_key) in foreign_key_columns_by_referenced_table
     {
@@ -159,6 +160,17 @@ pub fn for_referenced_row_methods(
                 ),
             };
 
+            if let Some(other_column_name) =
+                column_by_method_name.insert(method_name.to_string(), column_name)
+            {
+                return Err(error::referenced_row_methods_with_the_same_name(
+                    column_name,
+                    other_column_name,
+                    &method_name,
+                    &primary_key_wrapper_struct_name,
+                ));
+            }
+
             let get_referenced_row = naming::get_by_index_method_name(
                 &foreign_key.table_name,
                 &foreign_key.primary_key_column_name,
@@ -183,7 +195,7 @@ pub fn for_referenced_row_methods(
         }
     }
 
-    methods
+    Ok(methods)
 }
 
 /// The name of a foreign key column without the suffix which names the key it holds: without

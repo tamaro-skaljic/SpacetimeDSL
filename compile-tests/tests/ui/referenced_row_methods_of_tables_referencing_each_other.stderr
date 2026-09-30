@@ -1,0 +1,21 @@
+error[E0592]: duplicate definitions with name `get_player_character`
+  --> tests/ui/referenced_row_methods_of_tables_referencing_each_other.rs:16:5
+   |
+16 |     #[spacetimedsl::dsl(plural_name = player_accounts, method(update = false, delete = false))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ duplicate definitions for `get_player_character`
+...
+33 |     #[spacetimedsl::dsl(plural_name = player_characters, method(update = false, delete = false))]
+   |     --------------------------------------------------------------------------------------------- other definition for `get_player_character`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0592]: duplicate definitions with name `get_player_account`
+  --> tests/ui/referenced_row_methods_of_tables_referencing_each_other.rs:16:5
+   |
+16 |     #[spacetimedsl::dsl(plural_name = player_accounts, method(update = false, delete = false))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ duplicate definitions for `get_player_account`
+...
+33 |     #[spacetimedsl::dsl(plural_name = player_characters, method(update = false, delete = false))]
+   |     --------------------------------------------------------------------------------------------- other definition for `get_player_account`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

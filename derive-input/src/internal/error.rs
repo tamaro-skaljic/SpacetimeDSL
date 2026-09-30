@@ -978,6 +978,20 @@ pub fn referenced_row_method_on_primary_key_column(argument: &impl ToTokens) -> 
     )
 }
 
+pub fn referenced_row_methods_with_the_same_name(
+    column_name: &Ident,
+    other_column_name: &Ident,
+    method_name: &Ident,
+    wrapper_struct_name: &Ident,
+) -> Error {
+    Error::new_spanned(
+        column_name,
+        format!(
+            "The foreign key columns `{other_column_name}` and `{column_name}` would both add `{method_name}` to `{wrapper_struct_name}`! Rename one of them, or add `referenced_row_method = false` to the `#[foreign_key]` of one."
+        ),
+    )
+}
+
 // `#[referenced_by]`
 
 pub fn referenced_by_without_primary_key(referenced_by_attribute: &impl ToTokens) -> Error {
