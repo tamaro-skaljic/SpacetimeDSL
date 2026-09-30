@@ -92,6 +92,7 @@ use crate::spacetimedsl::prelude::*;
   - `Wrapper` — trait for wrapper types
   - `DeletionResult`, `DeletionResultEntry`, `OnDeleteStrategy`, `OnDeleteStrategyFailure` — deletion types
   - `SpacetimeDSLError`, `ReferenceIntegrityViolationError` — error types
+  - `err!` — `Err(SpacetimeDSLError::Error(…))` with a message built like `format!`
   - `GetAuth`, `GetSender`, `GetTimestamp`, `NewUUID`, `GetConnectionId`, `GetModuleIdentity`, `GetRandom`, `GetRandomNumberGenerator`, `GetImmutableDatabase`, `GetMutableDatabase`, `AsReducerContext`, `AsViewContext`, `AsAnonymousViewContext` — context accessor traits
   - `Itertools` — re-exported from `itertools` crate
 - `AnonymousViewContext`, `Identity`, `ProcedureContext`, `ReducerContext`, `ScheduleAt`, `SpacetimeType`, `Table`, `TimeDuration`, `Timestamp`, `ViewContext`, `rand::Rng` — re-exported from `spacetimedb`
@@ -278,7 +279,7 @@ pub fn send_message(ctx: &ReducerContext, text: String) -> Result<(), SpacetimeD
     let dsl = dsl(ctx);
 
     if text.is_empty() {
-        return Err(SpacetimeDSLError::Error("Message cannot be empty".to_string()));
+        return err!("Message cannot be empty");
     }
 
     // Use DSL methods for all database operations
@@ -1915,6 +1916,20 @@ pub fn my_reducer(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
     Ok(())
 }
 ```
+
+### Refusing With `err!`
+
+`err!` is the shortcut for `Err(SpacetimeDSLError::Error(…))`. It builds the message like `format!`, inline arguments included, and a single argument which is not a literal becomes the whole message through `ToString`:
+
+```rust
+if level > MAXIMUM_LEVEL {
+    return err!("Level {level} is above the maximum of {MAXIMUM_LEVEL}");
+}
+
+return err!(LOCKED_MESSAGE);
+```
+
+It evaluates to the `Err`, so return it or let it end a function.
 
 ### Explicit Matching for ReferenceIntegrityViolation
 

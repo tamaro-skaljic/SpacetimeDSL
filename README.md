@@ -188,9 +188,7 @@ fn before_position_hook_helper(
 ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
     if *x < -WORLD_BOUNDARY || *x > WORLD_BOUNDARY || *y < -WORLD_BOUNDARY || *y > WORLD_BOUNDARY
     {
-        return Err(spacetimedsl::SpacetimeDSLError::Error(
-            "Position out of bounds".to_string(),
-        ));
+        return spacetimedsl::err!("Position out of bounds");
     }
 
     Ok(())

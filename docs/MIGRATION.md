@@ -130,6 +130,10 @@ A `#[dsl]` without a `#[table]` attribute below it is rejected with *Haven't fou
 
 The root of the `spacetimedsl` crate re-exports everything in the new `spacetimedsl::prelude`, which adds the context accessor traits, `OnDeleteStrategyFailure`, `NewUUID` and `Itertools` to what `spacetimedsl::X` reaches. This is additive.
 
+#### The preludes export `err!`
+
+`spacetimedsl::prelude`, and with it the prelude `spacetimedsl!()` generates, exports the new macro `err!`. A macro of your own called `err` which another glob import brings into the same scope becomes ambiguous where it is called; import that one by name, which takes precedence over a glob.
+
 #### Attributes spelled with a leading `::` are recognised
 
 `#[::spacetimedsl::dsl(…)]` and `#[::spacetimedb::table(…)]`, spelled with a leading `::`, are recognised like `#[spacetimedsl::dsl(…)]` and `#[spacetimedb::table(…)]`. Before, a `::spacetimedb::table` attribute was not found, so the struct was rejected for missing a table attribute.
