@@ -12,3 +12,25 @@ Use it like `shelf_id.get_shelved_books(&dsl)`.*/
         dsl.into().get_shelved_books_by_by_shelf(self).collect()
     }
 }
+impl ShelvedBookId {
+    /**Get the row of the `shelf` table which the `shelf_id` column of the `ShelvedBook` row with this `ShelvedBookId` references.
+
+Use it like `shelved_book_id.get_shelf(&dsl)`.*/
+    pub fn get_shelf<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::shelf__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let shelved_book = dsl.get_shelved_book_by_id(self)?;
+        if shelved_book.shelf_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "shelf".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
+        dsl.get_shelf_by_id(shelved_book.get_shelf_id())
+    }
+}

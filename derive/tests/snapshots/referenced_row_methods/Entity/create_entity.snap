@@ -1,0 +1,40 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Create a row in the `entity` table.
+    pub fn create_entity<'a>(
+        &'a self,
+    ) -> Result<Entity, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let entity = Entity { id };
+        let unique_column_values = (entity.id.clone(),);
+        match self.db().entity().try_insert(entity) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "entity".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", unique_column_values.0
+                            )
+                                .into(),
+                        })
+                    }
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "entity".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,45 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `referee` table
+///
+/// - `player_id` references the `id` column of the `player` table (`self`).
+///   - On delete: none, the `player` table is not deletable
+///   - On soft delete: none, the `player` table is not soft-deletable
+
+pub trait this_compilation_error_occurs_because_the_referee_table_has_no_foreign_key_attribute_referencing_the_player_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_player_table_needs_to_define_a_strategy_for_on_delete_or_the_player_table_has_no_referenced_by_attribute_referencing_the_referee_table;
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_player_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_player_table_has_no_referenced_by_attribute_referencing_the_referee_table;
+};
+impl Referee {
+    /**References the `id` column of the `player` table (`self`).
+
+- On delete: none, the `player` table is not deletable
+- On soft delete: none, the `player` table is not soft-deletable*/
+    pub fn get_player_id(&self) -> PlayerId {
+        use crate::spacetimedsl::Wrapper;
+        PlayerId::new(self.player_id.clone())
+    }
+    /**References the `id` column of the `player` table (`self`).
+
+- On delete: none, the `player` table is not deletable
+- On soft delete: none, the `player` table is not soft-deletable*/
+    pub fn set_player_id(&mut self, player_id: impl Into<PlayerId>) -> PlayerId {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.player_id, player_id.into().value());
+        PlayerId::new(old_value)
+    }
+}
+///
+pub struct CreateReferee {
+    pub player_id: PlayerId,
+}
+
+// Generated DSL methods:
+// create_referee
+// delete_referee
+// get_referee
+// update_referee

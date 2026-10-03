@@ -1,9 +1,11 @@
 use {
     super::{
         context::MethodGenerationContext,
+        disallow::{self, CheckedRules, GuardedWrite},
+        doc,
         index::IndexShape,
         reference_integrity::{
-            Action, multi_column_index_checks, reference_integrity_checks_on_update,
+            self, Action, multi_column_index_checks, reference_integrity_checks_on_update,
         },
         relationship_doc,
         upsert::{
@@ -88,8 +90,11 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
         is_singleton_pk,
     );
 
+    let compares_with_the_stored_row = disallow::compares_with_the_stored_row(internal_columns);
+
     let let_field_name_for_found_value = if multi_column_index_checks.is_empty()
         && reference_integrity_checks.is_empty()
+        && !compares_with_the_stored_row
         && spacetimedsl_table
             .hooks
             .get(HookKind::BEFORE_UPDATE)
@@ -159,8 +164,37 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
         })
         .collect_vec();
 
+    let look_up_the_stored_row = match compares_with_the_stored_row {
+        false => TokenStream::default(),
+        true => {
+            let look_up = reference_integrity::look_up_the_stored_row(
+                singular_table_name,
+                field_name_for_found_value,
+                primary_key_column,
+                is_singleton_pk,
+            );
+            let stored_row = reference_integrity::stored_row(field_name_for_found_value);
+
+            quote! {
+                #look_up
+                let stored_row = #stored_row;
+            }
+        }
+    };
+
+    let row = quote! { #singular_table_name };
+    let disallow_checks = disallow::checks(
+        context,
+        &GuardedWrite::Update {
+            row_key: disallow::row_key(context, &row),
+            stored_row: quote! { stored_row },
+        },
+        &row,
+        disallow::return_the_error,
+    );
+
     SpacetimeDSLMethod {
-        doc_comment: relationship_doc::with_section(
+        doc_comment: doc::paragraphs([
             match is_singleton_pk {
                 true => format!(
                     "Try to update the `{struct_name}` row of the singleton `{singular_table_name}` table."
@@ -169,11 +203,12 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
                     "{unique_multi_column_index_hint}\n\nTry to update a `{struct_name}` row of the `{singular_table_name}` table {described_as}."
                 ),
             },
+            disallow::section(internal_columns, CheckedRules::Overwrite),
             relationship_doc::reference_checks(
                 "Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:",
                 &columns_with_a_setter,
             ),
-        ),
+        ]),
         method_name: match is_singleton_pk {
             true => format_ident!("update_{singular_table_name}"),
             false => format_ident!("update_{singular_table_name}_by_{index_name}"),
@@ -194,6 +229,9 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
             #(#reference_integrity_checks)*
 
             #before_update_hook
+
+            #look_up_the_stored_row
+            #disallow_checks
 
             #rebind_row_as_mutable
             #on_update_set_current_timestamp

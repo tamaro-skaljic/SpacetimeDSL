@@ -5,6 +5,18 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**Create a row in the `gadget` table.
 
+# Defaults
+
+Fills these columns with their `#[creation_default]` instead of asking for them:
+
+- `rating`: `1`
+
+# Disallowed values
+
+Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids:
+
+- `rating`: `0`
+
 # Foreign keys
 
 Fails with `ReferenceIntegrityViolation` unless each column references a row:
@@ -18,6 +30,7 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
         let id = u64::default();
         let owner_id = gadget.owner_id.value();
+        let rating: u8 = 1;
         let created_at = self
             .ctx()
             .timestamp()
@@ -27,10 +40,19 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         let gadget = Gadget {
             id,
             owner_id,
+            rating,
             created_at,
             modified_at,
             retired_at,
         };
+        if gadget.rating == 0 {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    "Disallowed Value Error while trying to create a row in the `gadget` table because `rating` is `0`, which `#[disallow(zero)]` forbids!"
+                        .to_string(),
+                ),
+            );
+        }
         let mut the_same_or_another_gadget: Option<Gadget> = None;
         if owner_id.ne(&::spacetimedb::Uuid::NIL) {
             match self.get_owner_by_id(gadget.get_owner_id()) {

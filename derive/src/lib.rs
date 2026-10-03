@@ -91,10 +91,9 @@ fn expand_dsl_attribute_parts(
     );
 
     // Build the output, possibly using quasi-quotation
-    let generated_output = output::build(&input, first_dsl_attribute)?;
-
-    // Check if this is the last #[dsl] attribute by counting remaining ones
-    let _is_last_dsl_attribute = is_last_dsl_attribute(&derive_input);
+    let pass =
+        output::DSLAttributePass::of(first_dsl_attribute, is_last_dsl_attribute(&derive_input));
+    let generated_output = output::build(&input, pass)?;
 
     // If this is the last #[dsl] attribute, make all struct fields private
     // We do this AFTER parsing and generating methods so the setter logic works correctly
@@ -142,7 +141,9 @@ fn append_documentation(derive_input: &mut syn::DeriveInput, documentation: &str
         set_on_create,
         set_on_update,
         set_on_soft_delete,
-        auto_gen
+        auto_gen,
+        creation_default,
+        disallow
     )
 )]
 pub fn table_helper(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {

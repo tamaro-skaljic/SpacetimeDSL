@@ -1,0 +1,27 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Circle` iterator that contains all rows in the `circle` table whose value matches the value from the single-column btree index on the `player_id` column.
+    pub fn get_circles_by_player_id<'a>(
+        &'a self,
+        player_id: impl Into<PlayerId>,
+    ) -> impl Iterator<Item = Circle> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().circle().player_id().filter(player_id.into().value())
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Circle` iterator that contains all rows in the `circle` table whose value matches the value from the single-column btree index on the `player_id` column.
+    pub fn get_circles_by_player_id<'a>(
+        &'a self,
+        player_id: impl Into<PlayerId>,
+    ) -> impl Iterator<Item = Circle> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().circle().player_id().filter(player_id.into().value())
+    }
+}

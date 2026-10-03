@@ -1,0 +1,63 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Create a row in the `score` table.
+
+# Disallowed values
+
+Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids:
+
+- `points`: `0`*/
+    pub fn create_score<'a>(
+        &'a self,
+        score: CreateScore,
+    ) -> Result<Score, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let points = score.points;
+        let remaining_attempts = score.remaining_attempts;
+        let rating = score.rating;
+        let score = Score {
+            id,
+            points,
+            remaining_attempts,
+            rating,
+        };
+        if score.points == 0 {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    "Disallowed Value Error while trying to create a row in the `score` table because `points` is `0`, which `#[disallow(zero)]` forbids!"
+                        .to_string(),
+                ),
+            );
+        }
+        let unique_column_values = (score.id.clone(),);
+        match self.db().score().try_insert(score) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "score".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", unique_column_values.0
+                            )
+                                .into(),
+                        })
+                    }
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "score".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

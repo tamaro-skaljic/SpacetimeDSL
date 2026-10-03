@@ -229,12 +229,12 @@ pub fn connect(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
         Ok(mut player) => {
             match player.get_login_status() {
                 LoginStatus::LoggedIn => {
-                    return Err(SpacetimeDSLError::Error(format!(
+                    return err!(
                         "Player (ID: {}, Identity: {}, Name: {}) is already logged in!",
                         player.get_id(),
                         player.get_identity(),
                         player.get_name()
-                    )));
+                    );
                 }
                 LoginStatus::LoggedOut => {
                     player.set_login_status(LoginStatus::LoggedIn);
@@ -283,12 +283,12 @@ pub fn disconnect(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
             dsl.update_player_by_id(player)?;
         }
         LoginStatus::LoggedOut => {
-            return Err(SpacetimeDSLError::Error(format!(
+            return err!(
                 "Player (ID: {}, Identity: {}, Name: {}) is not logged in!",
                 player.get_id(),
                 player.get_identity(),
                 player.get_name()
-            )));
+            );
         }
     };
 

@@ -1,0 +1,5 @@
+error: `#[creation_default]` is not allowed on the column with the `set_on_create` role, because the create method sets it to the current time!
+  --> tests/ui/creation_default_on_set_on_create_column.rs:12:9
+   |
+12 |         #[creation_default(spacetimedb::Timestamp::UNIX_EPOCH)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

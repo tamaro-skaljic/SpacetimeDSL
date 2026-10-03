@@ -1,0 +1,86 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Tables referencing the `entity` table
+///
+/// - the `circle` table (`self`)
+
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_entity_table_needs_to_define_a_strategy_for_on_delete_or_the_entity_table_has_no_referenced_by_attribute_referencing_the_circle_table {}
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_entity_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_entity_table_has_no_referenced_by_attribute_referencing_the_circle_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_circle_table_has_no_foreign_key_attribute_referencing_the_entity_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct EntityId {
+    value: u64,
+}
+impl Default for EntityId {
+    fn default() -> EntityId {
+        EntityId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for EntityId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "EntityId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for EntityId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Entity> for EntityId {
+    fn from(value: &Entity) -> Self {
+        EntityId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Entity> for Option<EntityId> {
+    fn from(value: &Entity) -> Option<EntityId> {
+        Some(EntityId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&EntityId> for Option<EntityId> {
+    fn from(value: &EntityId) -> Option<EntityId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(EntityId::new(value.value()))
+    }
+}
+impl From<&EntityId> for EntityId {
+    fn from(value: &EntityId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        EntityId::new(value.value())
+    }
+}
+impl Entity {
+    ///
+    pub fn get_id(&self) -> EntityId {
+        use crate::spacetimedsl::Wrapper;
+        EntityId::new(self.id.clone())
+    }
+}
+
+// Generated DSL methods:
+// count_of_all_entities
+// create_entity
+// get_all_entities
+// get_entity_by_id

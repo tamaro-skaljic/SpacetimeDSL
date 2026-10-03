@@ -1,0 +1,77 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Season` row of the `season` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Disallowed values
+
+Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids:
+
+- `number`: a decrease*/
+    pub fn update_season_by_id<'a>(
+        &'a self,
+        season: Season,
+    ) -> Result<Season, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut season = season;
+        let mut the_same_or_another_season: Option<Season> = None;
+        if the_same_or_another_season.is_none() {
+            the_same_or_another_season = Some(
+                self
+                    .db()
+                    .season()
+                    .id()
+                    .find(season.id)
+                    .expect("Row should exist for update"),
+            );
+        }
+        use self::BeforeSeasonUpdateHook;
+        let season = crate::spacetimedsl::DSLMethodHooks::before_season_update(
+            self,
+            the_same_or_another_season.as_ref().unwrap(),
+            season,
+        )?;
+        if the_same_or_another_season.is_none() {
+            the_same_or_another_season = match self
+                .db()
+                .season()
+                .id()
+                .find(season.get_id().value())
+            {
+                Some(season) => Some(season),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "season".into(),
+                        column_names_and_row_values: format!(
+                            "{{ id : {} }}", season.get_id().value()
+                        )
+                            .into(),
+                    });
+                }
+            };
+        }
+        let stored_row = the_same_or_another_season
+            .as_ref()
+            .expect(
+                "the stored row is looked up by its primary key before the row to write is compared with it",
+            );
+        if season.number < stored_row.number {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Disallowed Value Error while trying to update the row `{}` in the `season` table because `number` would decrease from `{}` to `{}`, which `#[disallow(decreasing)]` forbids!",
+                        format!("{{ id : {} }}", season.id), stored_row.number, season
+                        .number
+                    ),
+                ),
+            );
+        }
+        let season = self.db().season().id().update(season);
+        Ok(season)
+    }
+}

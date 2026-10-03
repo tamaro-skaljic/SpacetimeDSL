@@ -12,3 +12,25 @@ Use it like `book_id.get_reviews(&dsl)`.*/
         dsl.into().get_reviews_by_book_id(self).collect()
     }
 }
+impl ReviewId {
+    /**Get the row of the `book` table which the `book_id` column of the `Review` row with this `ReviewId` references.
+
+Use it like `review_id.get_book(&dsl)`.*/
+    pub fn get_book<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::book__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let review = dsl.get_review_by_id(self)?;
+        if review.book_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "book".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
+        dsl.get_book_by_id(review.get_book_id())
+    }
+}

@@ -1,0 +1,86 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Tables referencing the `branch` table
+///
+/// - the `loan` table (`self`)
+
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_branch_table_needs_to_define_a_strategy_for_on_delete_or_the_branch_table_has_no_referenced_by_attribute_referencing_the_loan_table {}
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_branch_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_branch_table_has_no_referenced_by_attribute_referencing_the_loan_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_loan_table_has_no_foreign_key_attribute_referencing_the_branch_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct BranchId {
+    value: u64,
+}
+impl Default for BranchId {
+    fn default() -> BranchId {
+        BranchId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for BranchId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "BranchId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for BranchId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Branch> for BranchId {
+    fn from(value: &Branch) -> Self {
+        BranchId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Branch> for Option<BranchId> {
+    fn from(value: &Branch) -> Option<BranchId> {
+        Some(BranchId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&BranchId> for Option<BranchId> {
+    fn from(value: &BranchId) -> Option<BranchId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(BranchId::new(value.value()))
+    }
+}
+impl From<&BranchId> for BranchId {
+    fn from(value: &BranchId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        BranchId::new(value.value())
+    }
+}
+impl Branch {
+    ///
+    pub fn get_id(&self) -> BranchId {
+        use crate::spacetimedsl::Wrapper;
+        BranchId::new(self.id.clone())
+    }
+}
+
+// Generated DSL methods:
+// count_of_all_branches
+// create_branch
+// get_all_branches
+// get_branch_by_id

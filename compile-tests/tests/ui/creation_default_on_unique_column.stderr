@@ -1,0 +1,5 @@
+error: `#[creation_default]` is not allowed on a `#[unique]` column! Every created row would get the same value, which the unique constraint rejects from the second row on.
+  --> tests/ui/creation_default_on_unique_column.rs:13:9
+   |
+13 |         #[creation_default(String::new())]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

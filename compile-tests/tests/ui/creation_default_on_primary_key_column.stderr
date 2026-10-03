@@ -1,0 +1,5 @@
+error: `#[creation_default]` is not allowed on a primary key column! Every created row would get the same key, which SpacetimeDB rejects from the second row on.
+ --> tests/ui/creation_default_on_primary_key_column.rs:9:9
+  |
+9 |         #[creation_default(1)]
+  |         ^^^^^^^^^^^^^^^^^^^^^^

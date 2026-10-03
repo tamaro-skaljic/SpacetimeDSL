@@ -12,3 +12,28 @@ Use it like `owner_id.get_gadgets(&dsl)`.*/
         dsl.into().get_gadgets_by_owner_id(self).collect()
     }
 }
+impl GadgetId {
+    /**Get the row of the `owner` table which the `owner_id` column of the `Gadget` row with this `GadgetId` references.
+
+Use it like `gadget_id.get_owner(&dsl)`.*/
+    pub fn get_owner<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::owner__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let gadget = dsl.get_gadget_by_id(self)?;
+        if gadget.owner_id == ::spacetimedb::Uuid::NIL {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "owner".into(),
+                column_names_and_row_values: format!(
+                    "{{ id : {} }}", ::spacetimedb::Uuid::NIL
+                )
+                    .into(),
+            });
+        }
+        dsl.get_owner_by_id(gadget.get_owner_id())
+    }
+}

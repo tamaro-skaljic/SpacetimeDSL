@@ -7,7 +7,7 @@
 //! table.
 
 use {
-    super::relationship_doc,
+    super::doc,
     crate::{
         api::{
             db::table::SpacetimeDBTable,
@@ -102,7 +102,7 @@ impl TableContributions {
         self.compile_error_checks.extend(other.compile_error_checks);
         self.compile_error_check_imports
             .extend(other.compile_error_check_imports);
-        self.struct_doc_comment = relationship_doc::paragraphs([
+        self.struct_doc_comment = doc::paragraphs([
             self.struct_doc_comment.as_str(),
             other.struct_doc_comment.as_str(),
         ]);
@@ -119,7 +119,7 @@ impl TableContributions {
         spacetimedsl_table
             .compile_error_check_imports
             .extend(self.compile_error_check_imports);
-        spacetimedsl_table.struct_doc_comment = relationship_doc::paragraphs([
+        spacetimedsl_table.struct_doc_comment = doc::paragraphs([
             spacetimedsl_table.struct_doc_comment.as_str(),
             self.struct_doc_comment.as_str(),
         ]);

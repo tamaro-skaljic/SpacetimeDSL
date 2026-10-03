@@ -1,0 +1,5 @@
+error: `zero` is given twice in `#[disallow(...)]`! Remove this one.
+  --> tests/ui/disallow_rule_repeated.rs:12:26
+   |
+12 |         #[disallow(zero, zero)]
+   |                          ^^^^

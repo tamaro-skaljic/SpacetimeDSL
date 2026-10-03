@@ -1,0 +1,130 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct ScoreId {
+    value: u64,
+}
+impl Default for ScoreId {
+    fn default() -> ScoreId {
+        ScoreId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for ScoreId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "ScoreId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for ScoreId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Score> for ScoreId {
+    fn from(value: &Score) -> Self {
+        ScoreId { value: value.id.clone() }
+    }
+}
+impl From<&Score> for Option<ScoreId> {
+    fn from(value: &Score) -> Option<ScoreId> {
+        Some(ScoreId { value: value.id.clone() })
+    }
+}
+impl From<&ScoreId> for Option<ScoreId> {
+    fn from(value: &ScoreId) -> Option<ScoreId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(ScoreId::new(value.value()))
+    }
+}
+impl From<&ScoreId> for ScoreId {
+    fn from(value: &ScoreId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        ScoreId::new(value.value())
+    }
+}
+impl Score {
+    ///
+    pub fn get_id(&self) -> ScoreId {
+        use crate::spacetimedsl::Wrapper;
+        ScoreId::new(self.id.clone())
+    }
+    ///
+    pub fn get_points(&self) -> &u64 {
+        use crate::spacetimedsl::Wrapper;
+        &self.points
+    }
+    ///
+    pub fn get_points_mut(&mut self) -> &mut u64 {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.points
+    }
+    ///Writing the row through the DSL fails with a *Disallowed Value Error* if this column is `0` or decreases (`#[disallow(zero, decreasing)]`).
+    pub fn set_points(&mut self, points: u64) -> u64 {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.points, points);
+        old_value
+    }
+    ///
+    pub fn get_remaining_attempts(&self) -> &i8 {
+        use crate::spacetimedsl::Wrapper;
+        &self.remaining_attempts
+    }
+    ///
+    pub fn get_remaining_attempts_mut(&mut self) -> &mut i8 {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.remaining_attempts
+    }
+    ///Writing the row through the DSL fails with a *Disallowed Value Error* if this column increases (`#[disallow(increasing)]`).
+    pub fn set_remaining_attempts(&mut self, remaining_attempts: i8) -> i8 {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(
+            &mut self.remaining_attempts,
+            remaining_attempts,
+        );
+        old_value
+    }
+    ///
+    pub fn get_rating(&self) -> &f64 {
+        use crate::spacetimedsl::Wrapper;
+        &self.rating
+    }
+    ///
+    pub fn get_rating_mut(&mut self) -> &mut f64 {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.rating
+    }
+    ///Writing the row through the DSL fails with a *Disallowed Value Error* if this column decreases (`#[disallow(decreasing)]`).
+    pub fn set_rating(&mut self, rating: f64) -> f64 {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.rating, rating);
+        old_value
+    }
+}
+///
+pub struct CreateScore {
+    pub points: u64,
+    pub remaining_attempts: i8,
+    pub rating: f64,
+}
+
+// Generated DSL methods:
+// count_of_all_scores
+// create_score
+// delete_score_by_id
+// get_all_scores
+// get_score_by_id
+// update_score_by_id

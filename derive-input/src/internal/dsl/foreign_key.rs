@@ -7,7 +7,7 @@ use {
         },
         internal::{
             column::ColumnTypeKind,
-            dsl::{on_delete, on_soft_delete, path, table},
+            dsl::{on_delete, on_soft_delete, path, referenced_row_method, table},
             error,
         },
     },
@@ -51,6 +51,7 @@ impl ForeignKey {
             let mut primary_key_column_name: Option<Ident> = None;
             let mut on_delete_strategy = None;
             let mut on_soft_delete_strategy = None;
+            let mut referenced_row_method_argument: Option<(Path, bool)> = None;
 
             attr.parse_nested_meta(|meta| {
                 match_meta!(match meta {
@@ -77,6 +78,12 @@ impl ForeignKey {
                         on_soft_delete_strategy = Some(
                             OnDeleteStrategy::try_parse_for_on_soft_delete(&meta, &attr.meta)?,
                         );
+                    }
+                    referenced_row_method => {
+                        check_duplicate(&referenced_row_method_argument, &meta)?;
+                        let argument = meta.path.clone();
+                        let value = meta.value()?.parse::<syn::LitBool>()?.value;
+                        referenced_row_method_argument = Some((argument, value));
                     }
                 });
                 Ok(())
@@ -145,12 +152,25 @@ impl ForeignKey {
                 ));
             }
 
+            // Where the table adds no such method, the argument would switch off nothing.
+            if let Some((argument, _)) = &referenced_row_method_argument {
+                if is_singleton {
+                    return Err(error::referenced_row_method_on_singleton(argument));
+                }
+
+                if spacetimedb_column.is_primary_key {
+                    return Err(error::referenced_row_method_on_primary_key_column(argument));
+                }
+            }
+
             foreign_key_value = Some(ForeignKey {
                 path: path_value,
                 table_name,
                 primary_key_column_name,
                 on_delete_strategy,
                 on_soft_delete_strategy,
+                referenced_row_method: referenced_row_method_argument
+                    .is_none_or(|(_, is_generated)| is_generated),
             });
         }
 

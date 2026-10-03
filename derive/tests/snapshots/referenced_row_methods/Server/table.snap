@@ -1,0 +1,112 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `server` table
+///
+/// - `season_id` references the `id` column of the `season` table (`self`).
+///   - On delete: none, the `season` table is not deletable
+///   - On soft delete: none, the `season` table is not soft-deletable
+///
+/// # Tables referencing the `server` table
+///
+/// - the `alliance` table (`self`)
+/// - the `banner` table (`self`)
+
+pub trait this_compilation_error_occurs_because_the_server_table_has_no_foreign_key_attribute_referencing_the_season_table {}
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_server_table_needs_to_define_a_strategy_for_on_delete_or_the_server_table_has_no_referenced_by_attribute_referencing_the_alliance_table {}
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_server_table_needs_to_define_a_strategy_for_on_delete_or_the_server_table_has_no_referenced_by_attribute_referencing_the_banner_table {}
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_server_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_server_table_has_no_referenced_by_attribute_referencing_the_alliance_table {}
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_server_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_server_table_has_no_referenced_by_attribute_referencing_the_banner_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_alliance_table_has_no_foreign_key_attribute_referencing_the_server_table;
+    use self::this_compilation_error_occurs_because_the_banner_table_has_no_foreign_key_attribute_referencing_the_server_table;
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_season_table_needs_to_define_a_strategy_for_on_delete_or_the_season_table_has_no_referenced_by_attribute_referencing_the_server_table;
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_season_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_season_table_has_no_referenced_by_attribute_referencing_the_server_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct ServerId {
+    value: u64,
+}
+impl Default for ServerId {
+    fn default() -> ServerId {
+        ServerId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for ServerId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "ServerId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for ServerId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Server> for ServerId {
+    fn from(value: &Server) -> Self {
+        ServerId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Server> for Option<ServerId> {
+    fn from(value: &Server) -> Option<ServerId> {
+        Some(ServerId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&ServerId> for Option<ServerId> {
+    fn from(value: &ServerId) -> Option<ServerId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(ServerId::new(value.value()))
+    }
+}
+impl From<&ServerId> for ServerId {
+    fn from(value: &ServerId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        ServerId::new(value.value())
+    }
+}
+impl Server {
+    ///
+    pub fn get_id(&self) -> ServerId {
+        use crate::spacetimedsl::Wrapper;
+        ServerId::new(self.id.clone())
+    }
+    /**References the `id` column of the `season` table (`self`).
+
+- On delete: none, the `season` table is not deletable
+- On soft delete: none, the `season` table is not soft-deletable*/
+    pub fn get_season_id(&self) -> SeasonId {
+        use crate::spacetimedsl::Wrapper;
+        SeasonId::new(self.season_id.clone())
+    }
+}
+///
+pub struct CreateServer {
+    pub season_id: SeasonId,
+}
+
+// Generated DSL methods:
+// count_of_all_servers
+// create_server
+// get_all_servers
+// get_server_by_id
+// get_servers_by_season_id

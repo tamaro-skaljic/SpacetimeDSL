@@ -1,0 +1,157 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `pallet` table
+///
+/// - `warehouse_id` references the `id` column of the `warehouse` table (`self`).
+///   - On delete: none, the `warehouse` table is not deletable
+///   - On soft delete: none, the `warehouse` table is not soft-deletable
+
+pub trait this_compilation_error_occurs_because_the_pallet_table_has_no_foreign_key_attribute_referencing_the_warehouse_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_warehouse_table_needs_to_define_a_strategy_for_on_delete_or_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_pallet_table;
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_warehouse_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_pallet_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct PalletId {
+    value: u64,
+}
+impl Default for PalletId {
+    fn default() -> PalletId {
+        PalletId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for PalletId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "PalletId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for PalletId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Pallet> for PalletId {
+    fn from(value: &Pallet) -> Self {
+        PalletId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Pallet> for Option<PalletId> {
+    fn from(value: &Pallet) -> Option<PalletId> {
+        Some(PalletId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&PalletId> for Option<PalletId> {
+    fn from(value: &PalletId) -> Option<PalletId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(PalletId::new(value.value()))
+    }
+}
+impl From<&PalletId> for PalletId {
+    fn from(value: &PalletId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        PalletId::new(value.value())
+    }
+}
+impl Pallet {
+    ///
+    pub fn get_id(&self) -> PalletId {
+        use crate::spacetimedsl::Wrapper;
+        PalletId::new(self.id.clone())
+    }
+    ///
+    pub fn get_quantity(&self) -> &u32 {
+        use crate::spacetimedsl::Wrapper;
+        &self.quantity
+    }
+    ///
+    pub fn get_quantity_mut(&mut self) -> &mut u32 {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.quantity
+    }
+    ///Writing the row through the DSL fails with a *Disallowed Value Error* if this column is `0` (`#[disallow(zero)]`).
+    pub fn set_quantity(&mut self, quantity: u32) -> u32 {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.quantity, quantity);
+        old_value
+    }
+    ///
+    pub fn get_tracking_code(&self) -> &spacetimedb::Uuid {
+        use crate::spacetimedsl::Wrapper;
+        &self.tracking_code
+    }
+    /**References the `id` column of the `warehouse` table (`self`).
+
+- On delete: none, the `warehouse` table is not deletable
+- On soft delete: none, the `warehouse` table is not soft-deletable*/
+    pub fn get_warehouse_id(&self) -> WarehouseId {
+        use crate::spacetimedsl::Wrapper;
+        WarehouseId::new(self.warehouse_id.clone())
+    }
+    /**References the `id` column of the `warehouse` table (`self`).
+
+- On delete: none, the `warehouse` table is not deletable
+- On soft delete: none, the `warehouse` table is not soft-deletable
+
+Writing the row through the DSL fails with a *Disallowed Value Error* if this column is `0` (`#[disallow(zero)]`).*/
+    pub fn set_warehouse_id(
+        &mut self,
+        warehouse_id: impl Into<WarehouseId>,
+    ) -> WarehouseId {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(
+            &mut self.warehouse_id,
+            warehouse_id.into().value(),
+        );
+        WarehouseId::new(old_value)
+    }
+}
+///
+pub struct CreatePallet {
+    pub quantity: u32,
+    pub tracking_code: spacetimedb::Uuid,
+    pub warehouse_id: WarehouseId,
+}
+pub trait BeforePalletInsertHook<T: crate::spacetimedsl::WriteContext> {
+    fn before_pallet_insert(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        create_pallet_request: CreatePallet,
+    ) -> Result<CreatePallet, crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+pub trait BeforePalletUpdateHook<T: crate::spacetimedsl::WriteContext> {
+    fn before_pallet_update(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_pallet: &Pallet,
+        new_pallet: Pallet,
+    ) -> Result<Pallet, crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+
+// Generated DSL methods:
+// count_of_all_pallets
+// create_pallet
+// delete_pallet_by_id
+// delete_pallets_by_warehouse_id
+// get_all_pallets
+// get_pallet_by_id
+// get_pallets_by_warehouse_id
+// update_pallet_by_id

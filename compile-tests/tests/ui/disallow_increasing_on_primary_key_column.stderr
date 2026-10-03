@@ -1,0 +1,5 @@
+error: `#[disallow(increasing)]` is not allowed on a primary key column, which an update never changes, because it finds the row by it! Remove `increasing`.
+  --> tests/ui/disallow_increasing_on_primary_key_column.rs:10:9
+   |
+10 |         #[disallow(increasing)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^

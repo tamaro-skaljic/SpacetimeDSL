@@ -7,6 +7,12 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
 
 Try to update a `Gadget` row of the `gadget` table whose value matches the value from the unique single-column btree index on the `id` column.
 
+# Disallowed values
+
+Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids:
+
+- `rating`: `0`
+
 # Foreign keys
 
 Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
@@ -44,7 +50,7 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
             if the_same_or_another_gadget
                 .as_ref()
                 .expect(
-                    "the stored row is looked up by its primary key before its foreign key columns are compared",
+                    "the stored row is looked up by its primary key before the row to write is compared with it",
                 )
                 .get_owner_id()
                 .ne(&gadget.get_owner_id())
@@ -65,6 +71,16 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                     }
                 };
             }
+        }
+        if gadget.rating == 0 {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Disallowed Value Error while trying to update the row `{}` in the `gadget` table because `rating` is `0`, which `#[disallow(zero)]` forbids!",
+                        format!("{{ id : {} }}", gadget.id)
+                    ),
+                ),
+            );
         }
         gadget
             .modified_at = Some(

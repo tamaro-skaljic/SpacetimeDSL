@@ -5,7 +5,13 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
     /**
 
-Try to soft-delete a `Gadget` row in the `gadget` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+Try to soft-delete a `Gadget` row in the `gadget` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Disallowed values
+
+Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids:
+
+- `rating`: `0`*/
     pub fn soft_delete_gadget_by_id<'a>(
         &'a self,
         id: impl Into<GadgetId> + Clone,
@@ -44,6 +50,16 @@ Try to soft-delete a `Gadget` row in the `gadget` table whose value matches the 
         };
         let old_row = &row_to_delete;
         let mut new_row = old_row.clone();
+        if new_row.rating == 0 {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Disallowed Value Error while trying to soft delete the row `{}` in the `gadget` table because `rating` is `0`, which `#[disallow(zero)]` forbids!",
+                        format!("{{ id : {} }}", new_row.id)
+                    ),
+                ),
+            );
+        }
         new_row
             .retired_at = Some(
             self.ctx().timestamp().expect("a `WriteContext` always has a timestamp"),

@@ -1,0 +1,13 @@
+error: The foreign key columns `owner_id` and `owner` would both add `get_owner` to `GameId`! Rename one of them, or add `referenced_row_method = false` to the `#[foreign_key]` of one.
+  --> tests/ui/referenced_row_methods_with_the_same_name.rs:39:9
+   |
+39 |         owner: u64,
+   |         ^^^^^
+
+error[E0432]: unresolved import `crate::game::this_compilation_error_occurs_because_the_game_table_has_no_foreign_key_attribute_referencing_the_player_table`
+  --> tests/ui/referenced_row_methods_with_the_same_name.rs:11:5
+   |
+11 |     #[spacetimedsl::dsl(plural_name = players, method(update = false, delete = false))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `this_compilation_error_occurs_because_the_game_table_has_no_foreign_key_attribute_referencing_the_player_table` in `game`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

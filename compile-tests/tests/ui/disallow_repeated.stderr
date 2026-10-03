@@ -1,0 +1,5 @@
+error: Only one `#[disallow]` is allowed per column! Name all its rules in one list.
+  --> tests/ui/disallow_repeated.rs:13:9
+   |
+13 |         #[disallow(zero)]
+   |         ^^^^^^^^^^^^^^^^^

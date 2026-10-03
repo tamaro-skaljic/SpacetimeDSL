@@ -14,7 +14,7 @@ use {
     },
     proc_macro2::Span,
     quote::ToTokens,
-    syn::{Error, Ident, Type, Visibility, meta::ParseNestedMeta},
+    syn::{Error, Ident, Path, Type, Visibility, meta::ParseNestedMeta},
 };
 
 /// Why a singleton is never soft-deletable, shared by the three shapes it is rejected in.
@@ -436,6 +436,194 @@ pub fn auto_gen_without_wrapper(auto_gen_attribute: &impl ToTokens) -> Error {
     )
 }
 
+// `#[creation_default]`
+
+pub fn multiple_creation_default_attributes(creation_default_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "Only one `#[creation_default]` is allowed per column!",
+    )
+}
+
+pub fn creation_default_without_expression(creation_default_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "Expected an expression in `#[creation_default(...)]`, e.g. `#[creation_default(0)]` or `#[creation_default(String::new())]`: the value `create_<table>` fills this column with!",
+    )
+}
+
+pub fn creation_default_on_singleton_with_default(
+    creation_default_attribute: &impl ToTokens,
+) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on a `singleton(with_default)` table, because it has no create method! Its `DefaultSingleton::get_default` supplies the whole default row.",
+    )
+}
+
+pub fn creation_default_on_auto_inc_column(creation_default_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on an `#[auto_inc]` column, because SpacetimeDB fills it on create!",
+    )
+}
+
+pub fn creation_default_on_auto_gen_column(creation_default_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on an `#[auto_gen]` column, because the create method generates its UUID!",
+    )
+}
+
+pub fn creation_default_on_set_on_create_column(
+    creation_default_attribute: &impl ToTokens,
+) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on the column with the `set_on_create` role, because the create method sets it to the current time!",
+    )
+}
+
+pub fn creation_default_on_set_on_update_column(
+    creation_default_attribute: &impl ToTokens,
+) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on the column with the `set_on_update` role, because the create method fills it in!",
+    )
+}
+
+pub fn creation_default_on_marker_column(creation_default_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on the soft-delete marker column, because a new row always starts unmarked!",
+    )
+}
+
+pub fn creation_default_on_primary_key_column(creation_default_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on a primary key column! Every created row would get the same key, which SpacetimeDB rejects from the second row on.",
+    )
+}
+
+pub fn creation_default_on_unique_column(creation_default_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        creation_default_attribute,
+        "`#[creation_default]` is not allowed on a `#[unique]` column! Every created row would get the same value, which the unique constraint rejects from the second row on.",
+    )
+}
+
+// `#[disallow]`
+
+pub fn multiple_disallow_attributes(disallow_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        disallow_attribute,
+        "Only one `#[disallow]` is allowed per column! Name all its rules in one list.",
+    )
+}
+
+pub fn disallow_without_rules(disallow_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        disallow_attribute,
+        "`#[disallow(...)]` has to name at least one rule, e.g. `#[disallow(zero)]`!",
+    )
+}
+
+pub fn repeated_disallow_rule(rule: &Path) -> Error {
+    Error::new_spanned(
+        rule,
+        format!(
+            "`{}` is given twice in `#[disallow(...)]`! Remove this one.",
+            rule.to_token_stream()
+        ),
+    )
+}
+
+pub fn disallow_zero_on_unsupported_type(column_type: &Type) -> Error {
+    Error::new_spanned(
+        column_type,
+        format!(
+            "`#[disallow(zero)]` is only allowed on unsigned integer and `Uuid` columns, whose `0` or `Uuid::NIL` it forbids! Found: {}",
+            column_type.to_token_stream()
+        ),
+    )
+}
+
+pub fn disallow_zero_with_set_zero_strategy(disallow_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        disallow_attribute,
+        "`#[disallow(zero)]` is not allowed together with `on_delete = SetZero`, which writes `0` or `Uuid::NIL` into this column when the referenced row is deleted! Remove `zero`, or choose another strategy, such as `on_delete = Delete`.",
+    )
+}
+
+pub fn disallow_zero_with_zero_creation_default(
+    creation_default: &impl ToTokens,
+    written_creation_default: &str,
+    zero_value: &str,
+) -> Error {
+    Error::new_spanned(
+        creation_default,
+        format!(
+            "`#[creation_default({written_creation_default})]` fills this column with `{zero_value}`, which `#[disallow(zero)]` forbids! Choose another default, or remove `zero`."
+        ),
+    )
+}
+
+pub fn disallow_change_on_unsupported_type(column_type: &Type) -> Error {
+    Error::new_spanned(
+        column_type,
+        format!(
+            "`#[disallow(decreasing)]` and `#[disallow(increasing)]` are only allowed on the integer and float columns `u8`–`u128`, `i8`–`i128`, `f32` and `f64`, whose values are ordered! Found: {}",
+            column_type.to_token_stream()
+        ),
+    )
+}
+
+pub fn disallow_decreasing_and_increasing(
+    disallow_attribute: &impl ToTokens,
+    column_name: &Ident,
+) -> Error {
+    Error::new_spanned(
+        disallow_attribute,
+        format!(
+            "`decreasing` and `increasing` together forbid every change of `{column_name}`! Remove both and make the column private (no visibility modifier), so it has no setter and does not change."
+        ),
+    )
+}
+
+pub fn disallow_change_on_primary_key_column(
+    disallow_attribute: &impl ToTokens,
+    rule: &str,
+) -> Error {
+    Error::new_spanned(
+        disallow_attribute,
+        format!(
+            "`#[disallow({rule})]` is not allowed on a primary key column, which an update never changes, because it finds the row by it! Remove `{rule}`."
+        ),
+    )
+}
+
+pub fn disallow_change_on_private_column(
+    disallow_attribute: &impl ToTokens,
+    rule: &str,
+    column_name: &Ident,
+) -> Error {
+    Error::new_spanned(
+        disallow_attribute,
+        format!(
+            "`#[disallow({rule})]` needs a column with a setter, but `{column_name}` is private, so no DSL method changes it! Make the column `pub`, or remove `{rule}`."
+        ),
+    )
+}
+
+pub fn disallow_decreasing_with_set_zero_strategy(disallow_attribute: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        disallow_attribute,
+        "`#[disallow(decreasing)]` is not allowed together with `on_delete = SetZero`, which lowers this column to `0` when the referenced row is deleted! Remove `decreasing`, or choose another strategy, such as `on_delete = Delete`.",
+    )
+}
+
 // `set_on_create` and `set_on_update`
 
 pub fn set_on_create_and_set_on_update(column_name: &Ident) -> Error {
@@ -773,6 +961,34 @@ pub fn foreign_key_columns_path_mismatch(column_name: &Ident) -> Error {
     Error::new_spanned(
         column_name,
         "All foreign key columns which reference the same primary key of another table should have the same path! Spell both paths the same way; a leading `::` makes no difference.",
+    )
+}
+
+pub fn referenced_row_method_on_singleton(argument: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        argument,
+        "`referenced_row_method` has no effect on a singleton table, whose injected primary key has no wrapper type to add the method to! Remove it.",
+    )
+}
+
+pub fn referenced_row_method_on_primary_key_column(argument: &impl ToTokens) -> Error {
+    Error::new_spanned(
+        argument,
+        "`referenced_row_method` has no effect on a foreign key on the primary key, which adds no such method: the row it references has the key's own value! Remove it.",
+    )
+}
+
+pub fn referenced_row_methods_with_the_same_name(
+    column_name: &Ident,
+    other_column_name: &Ident,
+    method_name: &Ident,
+    wrapper_struct_name: &Ident,
+) -> Error {
+    Error::new_spanned(
+        column_name,
+        format!(
+            "The foreign key columns `{other_column_name}` and `{column_name}` would both add `{method_name}` to `{wrapper_struct_name}`! Rename one of them, or add `referenced_row_method = false` to the `#[foreign_key]` of one."
+        ),
     )
 }
 

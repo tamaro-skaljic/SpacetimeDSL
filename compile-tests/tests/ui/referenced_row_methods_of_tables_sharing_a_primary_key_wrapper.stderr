@@ -1,0 +1,10 @@
+error[E0592]: duplicate definitions with name `get_player`
+  --> tests/ui/referenced_row_methods_of_tables_sharing_a_primary_key_wrapper.rs:40:5
+   |
+40 |     #[spacetimedsl::dsl(plural_name = circles, method(update = false, delete = false))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ duplicate definitions for `get_player`
+...
+56 |     #[spacetimedsl::dsl(plural_name = foods, method(update = false, delete = false))]
+   |     --------------------------------------------------------------------------------- other definition for `get_player`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

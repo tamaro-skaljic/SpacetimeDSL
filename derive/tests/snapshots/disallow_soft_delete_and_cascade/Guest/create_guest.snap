@@ -1,0 +1,73 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Create a row in the `guest` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `guild_id`: a row of the `guild` table (`self`), or `0`*/
+    pub fn create_guest<'a>(
+        &'a self,
+        guest: CreateGuest,
+    ) -> Result<Guest, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let guild_id = guest.guild_id.value();
+        let remaining_visits = guest.remaining_visits;
+        let deleted = false;
+        let guest = Guest {
+            id,
+            guild_id,
+            remaining_visits,
+            deleted,
+        };
+        let mut the_same_or_another_guest: Option<Guest> = None;
+        if guild_id.ne(&0) {
+            match self.get_guild_by_id(guest.get_guild_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "guest".into(),
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                            column_names_and_row_values: format!(
+                                "{{ guild_id : {} }}", guest.get_guild_id().value()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        let unique_column_values = (guest.id.clone(),);
+        match self.db().guest().try_insert(guest) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "guest".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", unique_column_values.0
+                            )
+                                .into(),
+                        })
+                    }
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "guest".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

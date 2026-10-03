@@ -1,0 +1,66 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Create a row in the `referee` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `player_id`: a row of the `player` table (`self`), or `0`*/
+    pub fn create_referee<'a>(
+        &'a self,
+        referee: CreateReferee,
+    ) -> Result<Referee, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = 0u8;
+        let player_id = referee.player_id.value();
+        let referee = Referee { id, player_id };
+        let mut the_same_or_another_referee: Option<Referee> = None;
+        if player_id.ne(&0) {
+            match self.get_player_by_id(referee.get_player_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "referee".into(),
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                            column_names_and_row_values: format!(
+                                "{{ player_id : {} }}", referee.get_player_id().value()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        let unique_column_values = (referee.id.clone(),);
+        match self.db().referee().try_insert(referee) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "referee".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", unique_column_values.0
+                            )
+                                .into(),
+                        })
+                    }
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "referee".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

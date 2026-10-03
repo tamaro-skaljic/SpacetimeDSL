@@ -1,0 +1,115 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Transfer` row of the `transfer` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `source_ledger_id`: a row of the `ledger` table (`::other_crate::tables`)
+- `target_ledger_id`: a row of the `ledger` table (`other_crate::tables`)*/
+    pub fn update_transfer_by_id<'a>(
+        &'a self,
+        transfer: Transfer,
+    ) -> Result<Transfer, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut transfer = transfer;
+        let mut the_same_or_another_transfer: Option<Transfer> = None;
+        let source_ledger_id = transfer.get_source_ledger_id().value();
+        let target_ledger_id = transfer.get_target_ledger_id().value();
+        if the_same_or_another_transfer.is_none() {
+            the_same_or_another_transfer = match self
+                .db()
+                .transfer()
+                .id()
+                .find(transfer.get_id().value())
+            {
+                Some(transfer) => Some(transfer),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "transfer".into(),
+                        column_names_and_row_values: format!(
+                            "{{ id : {} }}", transfer.get_id().value()
+                        )
+                            .into(),
+                    });
+                }
+            };
+        }
+        if the_same_or_another_transfer
+            .as_ref()
+            .expect(
+                "the stored row is looked up by its primary key before the row to write is compared with it",
+            )
+            .get_source_ledger_id()
+            .ne(&transfer.get_source_ledger_id())
+        {
+            match self.get_ledger_by_id(transfer.get_source_ledger_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "transfer".into(),
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
+                            column_names_and_row_values: format!(
+                                "{{ source_ledger_id : {} }}", source_ledger_id
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        if the_same_or_another_transfer.is_none() {
+            the_same_or_another_transfer = match self
+                .db()
+                .transfer()
+                .id()
+                .find(transfer.get_id().value())
+            {
+                Some(transfer) => Some(transfer),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "transfer".into(),
+                        column_names_and_row_values: format!(
+                            "{{ id : {} }}", transfer.get_id().value()
+                        )
+                            .into(),
+                    });
+                }
+            };
+        }
+        if the_same_or_another_transfer
+            .as_ref()
+            .expect(
+                "the stored row is looked up by its primary key before the row to write is compared with it",
+            )
+            .get_target_ledger_id()
+            .ne(&transfer.get_target_ledger_id())
+        {
+            match self.get_ledger_by_id(transfer.get_target_ledger_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "transfer".into(),
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
+                            column_names_and_row_values: format!(
+                                "{{ target_ledger_id : {} }}", target_ledger_id
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        let transfer = self.db().transfer().id().update(transfer);
+        Ok(transfer)
+    }
+}

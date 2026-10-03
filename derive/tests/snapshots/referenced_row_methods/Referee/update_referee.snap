@@ -1,0 +1,63 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Try to update the `Referee` row of the singleton `referee` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `player_id`: a row of the `player` table (`self`), or `0`*/
+    pub fn update_referee<'a>(
+        &'a self,
+        referee: Referee,
+    ) -> Result<Referee, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut referee = referee;
+        referee.id = 0u8;
+        let mut the_same_or_another_referee: Option<Referee> = None;
+        let player_id = referee.get_player_id().value();
+        if player_id.ne(&0) {
+            if the_same_or_another_referee.is_none() {
+                the_same_or_another_referee = match self.db().referee().id().find(&0u8) {
+                    Some(referee) => Some(referee),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "referee".into(),
+                            column_names_and_row_values: "{ id : 0 }".into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_referee
+                .as_ref()
+                .expect(
+                    "the stored row is looked up by its primary key before the row to write is compared with it",
+                )
+                .get_player_id()
+                .ne(&referee.get_player_id())
+            {
+                match self.get_player_by_id(referee.get_player_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "referee".into(),
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ player_id : {} }}", player_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        let referee = self.db().referee().id().update(referee);
+        Ok(referee)
+    }
+}

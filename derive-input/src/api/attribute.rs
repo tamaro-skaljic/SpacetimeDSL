@@ -22,7 +22,7 @@ pub fn is_dsl_attribute(attribute: &Attribute) -> bool {
 /// Public because the `SpacetimeDSL` derive of `spacetimedsl_derive` declares the same names
 /// as its helper attributes, so the compiler accepts them on the fields. Its test
 /// `helper_attributes_match_field_attributes` keeps the two lists equal.
-pub const FIELD_ATTRIBUTE_NAMES: [&str; 8] = [
+pub const FIELD_ATTRIBUTE_NAMES: [&str; 10] = [
     dsl::create_wrapper.0,
     dsl::use_wrapper.0,
     dsl::foreign_key.0,
@@ -31,4 +31,6 @@ pub const FIELD_ATTRIBUTE_NAMES: [&str; 8] = [
     dsl::set_on_update.0,
     dsl::set_on_soft_delete.0,
     dsl::auto_gen.0,
+    dsl::creation_default.0,
+    dsl::disallow.0,
 ];

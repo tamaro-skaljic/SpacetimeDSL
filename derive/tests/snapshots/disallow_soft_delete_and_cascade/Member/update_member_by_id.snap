@@ -1,0 +1,139 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Member` row of the `member` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Disallowed values
+
+Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids:
+
+- `experience`: `0`, a decrease
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `guild_id`: a row of the `guild` table (`self`), or `0`*/
+    pub fn update_member_by_id<'a>(
+        &'a self,
+        member: Member,
+    ) -> Result<Member, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut member = member;
+        let mut the_same_or_another_member: Option<Member> = None;
+        let guild_id = member.get_guild_id().value();
+        if guild_id.ne(&0) {
+            if the_same_or_another_member.is_none() {
+                the_same_or_another_member = match self
+                    .db()
+                    .member()
+                    .id()
+                    .find(member.get_id().value())
+                {
+                    Some(member) => Some(member),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "member".into(),
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", member.get_id().value()
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_member
+                .as_ref()
+                .expect(
+                    "the stored row is looked up by its primary key before the row to write is compared with it",
+                )
+                .get_guild_id()
+                .ne(&member.get_guild_id())
+            {
+                match self.get_guild_by_id(member.get_guild_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "member".into(),
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ guild_id : {} }}", guild_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        if the_same_or_another_member.is_none() {
+            the_same_or_another_member = Some(
+                self
+                    .db()
+                    .member()
+                    .id()
+                    .find(member.id)
+                    .expect("Row should exist for update"),
+            );
+        }
+        use self::BeforeMemberUpdateHook;
+        let member = crate::spacetimedsl::DSLMethodHooks::before_member_update(
+            self,
+            the_same_or_another_member.as_ref().unwrap(),
+            member,
+        )?;
+        if the_same_or_another_member.is_none() {
+            the_same_or_another_member = match self
+                .db()
+                .member()
+                .id()
+                .find(member.get_id().value())
+            {
+                Some(member) => Some(member),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "member".into(),
+                        column_names_and_row_values: format!(
+                            "{{ id : {} }}", member.get_id().value()
+                        )
+                            .into(),
+                    });
+                }
+            };
+        }
+        let stored_row = the_same_or_another_member
+            .as_ref()
+            .expect(
+                "the stored row is looked up by its primary key before the row to write is compared with it",
+            );
+        if member.experience == 0 {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Disallowed Value Error while trying to update the row `{}` in the `member` table because `experience` is `0`, which `#[disallow(zero)]` forbids!",
+                        format!("{{ id : {} }}", member.id)
+                    ),
+                ),
+            );
+        }
+        if member.experience < stored_row.experience {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    format!(
+                        "Disallowed Value Error while trying to update the row `{}` in the `member` table because `experience` would decrease from `{}` to `{}`, which `#[disallow(decreasing)]` forbids!",
+                        format!("{{ id : {} }}", member.id), stored_row.experience,
+                        member.experience
+                    ),
+                ),
+            );
+        }
+        let member = self.db().member().id().update(member);
+        Ok(member)
+    }
+}

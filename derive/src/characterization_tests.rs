@@ -224,6 +224,11 @@ fn wrapper_methods() {
 }
 
 #[test]
+fn referenced_row_methods() {
+    snapshot_fixture("referenced_row_methods");
+}
+
+#[test]
 fn soft_delete_flag() {
     snapshot_fixture("soft_delete_flag");
 }
@@ -271,6 +276,26 @@ fn absolute_attribute_paths() {
 #[test]
 fn every_field_attribute() {
     snapshot_fixture("every_field_attribute");
+}
+
+#[test]
+fn creation_default() {
+    snapshot_fixture("creation_default");
+}
+
+#[test]
+fn disallow_zero() {
+    snapshot_fixture("disallow_zero");
+}
+
+#[test]
+fn disallow_change() {
+    snapshot_fixture("disallow_change");
+}
+
+#[test]
+fn disallow_soft_delete_and_cascade() {
+    snapshot_fixture("disallow_soft_delete_and_cascade");
 }
 
 /// `proc_macro_derive(attributes(...))` needs literal identifiers, so the helper

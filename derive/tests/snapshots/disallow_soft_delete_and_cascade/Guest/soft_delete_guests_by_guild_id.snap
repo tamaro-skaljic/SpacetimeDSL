@@ -1,0 +1,77 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Try to soft-delete all `Guest` rows in the `guest` table whose value matches the value from the single-column btree index on the `guild_id` column.
+
+# Disallowed values
+
+Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids:
+
+- `remaining_visits`: an increase*/
+    pub fn soft_delete_guests_by_guild_id<'a>(
+        &'a self,
+        guild_id: impl Into<GuildId>,
+    ) -> Result<
+        crate::spacetimedsl::delete::DeletionResult,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use crate::spacetimedsl::itertools::Itertools;
+        let guild_id = guild_id.into().value();
+        let rows_to_delete: Vec<Guest> = self
+            .db()
+            .guest()
+            .guild_id()
+            .filter(guild_id)
+            .filter(|row| !(row.deleted))
+            .collect();
+        if rows_to_delete.is_empty() {
+            return Ok(crate::spacetimedsl::delete::DeletionResult {
+                table_name: "guest".into(),
+                one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+                entries: vec![],
+                error_from_hook: None,
+            });
+        }
+        let mut deletion_result_entries = std::collections::HashMap::new();
+        for row_to_delete in &rows_to_delete {
+            deletion_result_entries
+                .insert(
+                    &row_to_delete.id,
+                    crate::spacetimedsl::delete::DeletionResultEntry {
+                        table_name: "guest".into(),
+                        column_name: "id".into(),
+                        strategy: crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
+                        row_value: format!("{}", GuestId::new(row_to_delete.id.clone()))
+                            .into(),
+                        child_entries: vec![],
+                    },
+                );
+        }
+        for old_row in &rows_to_delete {
+            let mut new_row = old_row.clone();
+            if new_row.remaining_visits > old_row.remaining_visits {
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                        format!(
+                            "Disallowed Value Error while trying to soft delete the row `{}` in the `guest` table because `remaining_visits` would increase from `{}` to `{}`, which `#[disallow(increasing)]` forbids!",
+                            format!("{{ id : {} }}", new_row.id), old_row
+                            .remaining_visits, new_row.remaining_visits
+                        ),
+                    ),
+                );
+            }
+            new_row.deleted = true;
+            self.db().guest().id().update(new_row);
+        }
+        return Ok(crate::spacetimedsl::delete::DeletionResult {
+            table_name: "guest".into(),
+            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::Multiple,
+            entries: deletion_result_entries.into_values().collect_vec(),
+            error_from_hook: None,
+        });
+    }
+}

@@ -1,0 +1,162 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `member` table
+///
+/// - `guild_id` references the `id` column of the `guild` table (`self`).
+///   - On delete: `SetZero`
+///   - On soft delete: `SoftDelete`
+///
+/// # Tables referencing the `member` table
+///
+/// - the `badge` table (`self`)
+
+pub trait this_compilation_error_occurs_because_the_member_table_has_no_foreign_key_attribute_referencing_the_guild_table {}
+pub trait this_compilation_error_occurs_because_the_member_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_badge_table {}
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_member_table_needs_to_define_a_strategy_for_on_delete_or_the_member_table_has_no_referenced_by_attribute_referencing_the_badge_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_badge_table_has_no_foreign_key_attribute_referencing_the_member_table;
+    use self::this_compilation_error_occurs_because_the_guild_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_member_table;
+    use self::this_compilation_error_occurs_because_the_guild_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_member_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct MemberId {
+    value: u64,
+}
+impl Default for MemberId {
+    fn default() -> MemberId {
+        MemberId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for MemberId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "MemberId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for MemberId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Member> for MemberId {
+    fn from(value: &Member) -> Self {
+        MemberId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Member> for Option<MemberId> {
+    fn from(value: &Member) -> Option<MemberId> {
+        Some(MemberId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&MemberId> for Option<MemberId> {
+    fn from(value: &MemberId) -> Option<MemberId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(MemberId::new(value.value()))
+    }
+}
+impl From<&MemberId> for MemberId {
+    fn from(value: &MemberId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        MemberId::new(value.value())
+    }
+}
+impl Member {
+    ///
+    pub fn get_id(&self) -> MemberId {
+        use crate::spacetimedsl::Wrapper;
+        MemberId::new(self.id.clone())
+    }
+    /**References the `id` column of the `guild` table (`self`).
+
+- On delete: `SetZero`
+- On soft delete: `SoftDelete`*/
+    pub fn get_guild_id(&self) -> GuildId {
+        use crate::spacetimedsl::Wrapper;
+        GuildId::new(self.guild_id.clone())
+    }
+    /**References the `id` column of the `guild` table (`self`).
+
+- On delete: `SetZero`
+- On soft delete: `SoftDelete`*/
+    pub fn set_guild_id(&mut self, guild_id: impl Into<GuildId>) -> GuildId {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.guild_id, guild_id.into().value());
+        GuildId::new(old_value)
+    }
+    ///
+    pub fn get_experience(&self) -> &u32 {
+        use crate::spacetimedsl::Wrapper;
+        &self.experience
+    }
+    ///
+    pub fn get_experience_mut(&mut self) -> &mut u32 {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.experience
+    }
+    ///Writing the row through the DSL fails with a *Disallowed Value Error* if this column is `0` or decreases (`#[disallow(zero, decreasing)]`).
+    pub fn set_experience(&mut self, experience: u32) -> u32 {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.experience, experience);
+        old_value
+    }
+    ///
+    pub fn get_deleted(&self) -> &bool {
+        use crate::spacetimedsl::Wrapper;
+        &self.deleted
+    }
+}
+///
+pub struct CreateMember {
+    pub guild_id: GuildId,
+    pub experience: u32,
+}
+pub trait BeforeMemberUpdateHook<T: crate::spacetimedsl::WriteContext> {
+    fn before_member_update(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_member: &Member,
+        new_member: Member,
+    ) -> Result<Member, crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+pub trait BeforeMemberSoftDeleteHook<T: crate::spacetimedsl::WriteContext> {
+    fn before_member_soft_delete(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_member: &Member,
+        new_member: Member,
+    ) -> Result<Member, crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+
+// Generated DSL methods:
+// count_of_all_members
+// create_member
+// execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_member_table_were_soft_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_member_table_was_soft_deleted
+// execute_on_delete_strategies_of_the_member_table_after_multiple_rows_of_the_guild_table_were_deleted
+// execute_on_delete_strategies_of_the_member_table_after_multiple_rows_of_the_guild_table_were_soft_deleted
+// execute_on_delete_strategies_of_the_member_table_after_one_row_of_the_guild_table_was_deleted
+// execute_on_delete_strategies_of_the_member_table_after_one_row_of_the_guild_table_was_soft_deleted
+// get_all_members
+// get_member_by_id
+// get_members_by_guild_id
+// soft_delete_member_by_id
+// soft_delete_members_by_guild_id
+// update_member_by_id

@@ -25,6 +25,8 @@ pub mod one_or_multiple;
 pub mod singleton;
 
 pub mod auto_gen;
+pub mod creation_default;
+pub mod disallow;
 
 pub mod soft_delete;
 
@@ -51,9 +53,15 @@ symbol!(path);
 symbol!(column);
 symbol!(on_delete);
 symbol!(on_soft_delete);
+symbol!(referenced_row_method);
 symbol!(create_wrapper);
 symbol!(use_wrapper);
 symbol!(auto_gen);
+symbol!(creation_default);
+symbol!(disallow);
+symbol!(zero);
+symbol!(decreasing);
+symbol!(increasing);
 symbol!(set_on_create);
 symbol!(set_on_update);
 symbol!(set_on_soft_delete);

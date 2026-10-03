@@ -1,0 +1,5 @@
+error: `#[creation_default(0)]` fills this column with `0`, which `#[disallow(zero)]` forbids! Choose another default, or remove `zero`.
+  --> tests/ui/disallow_zero_with_creation_default_zero.rs:12:28
+   |
+12 |         #[creation_default(0)]
+   |                            ^

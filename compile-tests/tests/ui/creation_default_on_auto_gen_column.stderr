@@ -1,0 +1,5 @@
+error: `#[creation_default]` is not allowed on an `#[auto_gen]` column, because the create method generates its UUID!
+  --> tests/ui/creation_default_on_auto_gen_column.rs:14:9
+   |
+14 |         #[creation_default(spacetimedb::Uuid::NIL)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -69,7 +69,7 @@ impl Display for OnDeleteStrategy {
 }
 
 /// What a cascade returns when it refused: the entries it built before it stopped, and the
-/// error a delete hook raised, if one did.
+/// error which stopped it, if one did.
 ///
 /// `Entries` is a `Vec<DeletionResultEntry>` when one row of the referenced table was
 /// deleted and a `HashMap<&PrimaryKeyValue, Vec<DeletionResultEntry>>` when several were.
@@ -84,7 +84,8 @@ pub struct DeletionResult {
     pub table_name: Box<str>,
     pub one_or_multiple: OneOrMultiple,
     pub entries: Vec<DeletionResultEntry>,
-    /// The error a delete hook of a referencing table raised while the cascade ran.
+    /// The error which stopped the cascade, if one did: one a hook of a referencing table
+    /// raised, or a `#[disallow]` rule which a row the cascade wrote broke.
     ///
     /// Boxed because `SpacetimeDSLError::ReferenceIntegrityViolation` holds a
     /// `DeletionResult`, so an unboxed field would make both types infinitely sized.
@@ -135,7 +136,7 @@ impl Display for DeletionResult {
             Some(error_from_hook) => {
                 write!(
                     f,
-                    "Error from a hook: {error_from_hook}\n\n{}",
+                    "Error which stopped the cascade: {error_from_hook}\n\n{}",
                     self.to_csv()
                 )
             }

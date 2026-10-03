@@ -82,6 +82,16 @@ Every `#[foreign_key]` has to set `on_delete` when the referenced table has a de
 
 `SetZero` writes `0` or `Uuid::NIL` into the foreign key column and writes the row back through its primary key. On a primary key column that write finds no row or another one; on a `#[unique]` column, or a column of a `unique_index(name = …)` index, a second cleared row repeats the value. SpacetimeDB's `update` panicked inside the cascade in the first two cases, and the third silently broke the index's uniqueness. All three are rejected at the `#[foreign_key]` attribute. Choose another strategy, such as `Delete`, or remove the uniqueness.
 
+#### Two wrapper-type methods of the same name
+
+Every `#[foreign_key]` column besides the primary key now adds a method to the wrapper type of its table's primary key, which looks up the row it references (*Look Up the Referenced Row From a Wrapper* in the documentation). Where that method takes a name another method of the wrapper type already has, the build fails:
+
+- Two tables which reference each other through unique foreign keys, and two tables which share a primary key wrapper and reference the same table: rustc's *duplicate definitions with name `get_…`* (E0592).
+- A method of your own on a wrapper type with the name of such a method: E0592.
+- Two foreign keys of one table to the same table whose columns differ only in the key suffix, such as `owner_id` and `owner`: *The foreign key columns `owner_id` and `owner` would both add `get_owner` to `GameId`!*
+
+Add `referenced_row_method = false` to the `#[foreign_key]` whose method you do not need, or rename the column.
+
 ### Newly accepted inputs
 
 #### `#[referenced_by]` on a table without delete and soft-delete methods
@@ -93,6 +103,10 @@ A table with `method(delete = false)` and without `method(soft_delete = true)` m
 A foreign key to such a table sets no strategy. *A `#[foreign_key]` must set `on_delete`, `on_soft_delete`, or both* is gone; a foreign key to a table which performs a removal still has to set its strategy. Create and update still check that it references a row.
 
 ### Changed messages and generated code
+
+#### A `DeletionResult` prints *Error which stopped the cascade*
+
+`Display` of a `DeletionResult` whose `error_from_hook` is `Some` starts with *Error which stopped the cascade:* instead of *Error from a hook:*, because a `#[disallow]` rule which a row written by the cascade breaks stops the cascade the same way. The field keeps its name.
 
 #### The error of a failed soft-delete cascade says *Soft Delete*
 
@@ -114,6 +128,8 @@ A foreign key column counts as indexed through every single-column index on it, 
 
 Qualified spellings of the types SpacetimeDSL checks are accepted where they used to be rejected: `::spacetimedb::Timestamp` and `std::option::Option<spacetimedb::Timestamp>` for `#[set_on_create]` / `#[set_on_update]`, and `core::primitive::u64` / `std::primitive::u64` count as unsigned integers (so a foreign key spelled that way skips its reference-integrity check for `0`, like `u64`). See *Column Type Spellings* in the documentation. This is not breaking.
 
+Likewise `core::primitive::i64` / `std::primitive::f64` count as the signed integers and floats they name, so two foreign keys of one table to the same table which spell `i64` both ways are no longer rejected as mismatched.
+
 #### The missing-update-method diagnostic names `#[set_on_update]`
 
 The diagnostic for a missing `method(update = …)` on a table with only private columns names `#[set_on_update]` next to the conventional `modified_at` / `updated_at` as a way to make the table mutable.
@@ -129,6 +145,10 @@ A `#[dsl]` without a `#[table]` attribute below it is rejected with *Haven't fou
 #### The crate root re-exports `spacetimedsl::prelude`
 
 The root of the `spacetimedsl` crate re-exports everything in the new `spacetimedsl::prelude`, which adds the context accessor traits, `OnDeleteStrategyFailure`, `NewUUID` and `Itertools` to what `spacetimedsl::X` reaches. This is additive.
+
+#### The preludes export `err!`
+
+`spacetimedsl::prelude`, and with it the prelude `spacetimedsl!()` generates, exports the new macro `err!`. A macro of your own called `err` which another glob import brings into the same scope becomes ambiguous where it is called; import that one by name, which takes precedence over a glob.
 
 #### Attributes spelled with a leading `::` are recognised
 
@@ -203,7 +223,7 @@ The functions `derive-input` used to build the model — among them `RustField::
 
 #### `api::attribute::FIELD_ATTRIBUTE_NAMES` lists the field attributes
 
-`api::attribute::FIELD_ATTRIBUTE_NAMES` lists every field attribute `#[spacetimedsl::dsl]` reads (`create_wrapper`, `use_wrapper`, `foreign_key`, `referenced_by`, `set_on_create`, `set_on_update`, `set_on_soft_delete`, `auto_gen`). A derive of your own that has to accept them as helper attributes can check its list against it.
+`api::attribute::FIELD_ATTRIBUTE_NAMES` lists every field attribute `#[spacetimedsl::dsl]` reads (`create_wrapper`, `use_wrapper`, `foreign_key`, `referenced_by`, `set_on_create`, `set_on_update`, `set_on_soft_delete`, `auto_gen`, `creation_default`, `disallow`). A derive of your own that has to accept them as helper attributes can check its list against it.
 
 #### `api::attribute::is_dsl_attribute` recognises `#[dsl]` in every spelling
 
@@ -303,8 +323,24 @@ runtime::error_from_hook_declaration(&quote! { error_from_hook }) // the binding
 
 #### `Getter::doc_comment` and `Setter::doc_comment`
 
-`Getter` and `Setter` gained `doc_comment: String`: what a foreign key column references and the strategies it declares, empty for any other column. Put it in front of the accessor's documentation, as `spacetimedsl_derive` does.
+`Getter` and `Setter` gained `doc_comment: String`: what a foreign key column references and the strategies it declares, empty for any other column, followed by the values its `#[disallow]` rules forbid. Put it in front of the accessor's documentation, as `spacetimedsl_derive` does.
 
 #### `SpacetimeDSLTable::struct_doc_comment`
 
 `SpacetimeDSLTable::struct_doc_comment: String` holds the sections `#[spacetimedsl::dsl]` appends to the struct's documentation, empty for a table without foreign keys and without `#[referenced_by]`. Append it to the struct you emit as a `#[doc]` attribute after an empty one, as `spacetimedsl_derive` does.
+
+#### `SpacetimeDSLColumn::creation_default`
+
+`SpacetimeDSLColumn` gained `creation_default: Option<syn::Expr>`, the expression of `#[creation_default(...)]`, which `create_<table>` fills the column with. Such a column is not a member of `CreateDSLMethodArg::struct_members`.
+
+#### `SpacetimeDSLColumn::disallowed`
+
+`SpacetimeDSLColumn` gained `disallowed: BTreeSet<Disallowed>`, the rules of `#[disallow(...)]`, from the new `api::dsl::disallow::Disallowed` (`Zero`, `Decreasing`, `Increasing`). The checks they add live inside the `method_impl` of the write methods.
+
+#### `SpacetimeDSLTableMethods::referenced_row_methods`
+
+`SpacetimeDSLTableMethods` gained `referenced_row_methods: Vec<WrapperMethod>`: the methods a table adds to the wrapper type of its primary key, which look up the row each foreign key column references. Emit them only for a struct with a single `#[dsl]` attribute, as `spacetimedsl_derive` does: the tables of a struct with several share its wrapper types, and each would add the same methods. Their return type names the referenced struct through SpacetimeDB's `<accessor>__TableHandle`.
+
+#### `ForeignKey::referenced_row_method`
+
+`ForeignKey` gained `referenced_row_method: bool`, `false` when `#[foreign_key(..., referenced_row_method = false)]` switches off the method which looks up the referenced row. Such a column adds nothing to `SpacetimeDSLTableMethods::referenced_row_methods`.

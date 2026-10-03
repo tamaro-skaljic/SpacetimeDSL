@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl ServerId {
+    /**Get all `Banner` rows whose `server_id` column references this `ServerId`.
+
+Use it like `server_id.get_banners(&dsl)`.*/
+    pub fn get_banners<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Banner> {
+        dsl.into().get_banners_by_server_id(self).collect()
+    }
+}

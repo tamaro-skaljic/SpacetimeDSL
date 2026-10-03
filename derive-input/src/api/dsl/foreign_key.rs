@@ -16,6 +16,9 @@ pub struct ForeignKey {
     /// What happens to the rows of this table when a row of the referenced table is
     /// soft-deleted. `None` while the referenced table is not soft-deletable.
     pub on_soft_delete_strategy: Option<OnDeleteStrategy>,
+    /// Whether the table adds the method which looks up the referenced row to the wrapper type
+    /// of its primary key: `false` with `referenced_row_method = false`.
+    pub referenced_row_method: bool,
 }
 
 // This enum is copy+paste of the enum in the SpacetimeDSL crate (which is the public API of the DSL).
