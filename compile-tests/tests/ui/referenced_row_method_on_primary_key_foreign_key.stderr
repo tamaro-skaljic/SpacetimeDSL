@@ -1,0 +1,13 @@
+error: `referenced_row_method` has no effect on a foreign key on the primary key, which adds no such method: the row it references has the key's own value! Remove it.
+  --> tests/ui/referenced_row_method_on_primary_key_foreign_key.rs:27:76
+   |
+27 |         #[foreign_key(path = crate::account, table = account, column = id, referenced_row_method = false)]
+   |                                                                            ^^^^^^^^^^^^^^^^^^^^^
+
+error[E0432]: unresolved import `crate::profile::this_compilation_error_occurs_because_the_profile_table_has_no_foreign_key_attribute_referencing_the_account_table`
+  --> tests/ui/referenced_row_method_on_primary_key_foreign_key.rs:10:5
+   |
+10 |     #[spacetimedsl::dsl(plural_name = accounts, method(update = false, delete = false))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `this_compilation_error_occurs_because_the_profile_table_has_no_foreign_key_attribute_referencing_the_account_table` in `profile`
+   |
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -1,0 +1,5 @@
+error: Only one `#[creation_default]` is allowed per column!
+  --> tests/ui/creation_default_repeated.rs:13:9
+   |
+13 |         #[creation_default(200)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^

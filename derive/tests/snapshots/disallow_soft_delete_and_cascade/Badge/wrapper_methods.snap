@@ -1,0 +1,36 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl MemberId {
+    /**Get all `Badge` rows whose `member_id` column references this `MemberId`.
+
+Use it like `member_id.get_badges(&dsl)`.*/
+    pub fn get_badges<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Badge> {
+        dsl.into().get_badges_by_member_id(self).collect()
+    }
+}
+impl BadgeId {
+    /**Get the row of the `member` table which the `member_id` column of the `Badge` row with this `BadgeId` references.
+
+Use it like `badge_id.get_member(&dsl)`.*/
+    pub fn get_member<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::member__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let badge = dsl.get_badge_by_id(self)?;
+        if badge.member_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "member".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
+        dsl.get_member_by_id(badge.get_member_id())
+    }
+}

@@ -1,0 +1,41 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Try to get the `Referee` from the singleton `referee` table.
+    pub fn get_referee<'a>(
+        &'a self,
+    ) -> Result<Referee, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().referee().id().find(&0u8) {
+            Some(referee) => Ok(referee),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "referee".into(),
+                    column_names_and_row_values: "{ id : 0 }".into(),
+                });
+            }
+        }
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Try to get the `Referee` from the singleton `referee` table.
+    pub fn get_referee<'a>(
+        &'a self,
+    ) -> Result<Referee, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        match self.db().referee().id().find(&0u8) {
+            Some(referee) => Ok(referee),
+            None => {
+                return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                    table_name: "referee".into(),
+                    column_names_and_row_values: "{ id : 0 }".into(),
+                });
+            }
+        }
+    }
+}

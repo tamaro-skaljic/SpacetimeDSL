@@ -100,13 +100,13 @@ Recommendation: Resolve the mirrors the same way as `OnDeleteStrategy` (see `del
 
 The procedural macro entry points `#[dsl]` and `#[hook]`, the helper derive `SpacetimeDSL`, and the injection of a singleton's primary key.
 
-### `lib.rs`: `fn is_last_dsl_attribute(derive_input: &syn::DeriveInput) -> bool` and the commented-out `make_struct_fields_private`
+### `lib.rs`: the commented-out `make_struct_fields_private`
 
 **Violates:** YAGNI; Refactoring & Change Containment — "Unused scaffolding removed immediately"; Self-Documenting Code — don't document the past
 
-`expand_dsl_attribute_parts` computes `_is_last_dsl_attribute` and discards it, and the function exists only for that call. `make_struct_fields_private` and its call are commented out under a TODO saying they are temporarily disabled to allow public primary key columns.
+`make_struct_fields_private` and its call are commented out under a TODO saying they are temporarily disabled to allow public primary key columns.
 
-Recommendation: Dead code: the developers must decide whether making fields private is no longer needed (then delete the function, the commented-out block and the TODO, and keep the idea in the issue tracker if it is still wanted) or whether its being disabled is a bug (then re-enable it, with a snapshot fixture for a table with a public primary key and a runtime test that uses one).
+Recommendation: Dead code: the developers must decide whether making fields private is no longer needed (then delete the commented-out block and the TODO, and keep the idea in the issue tracker if it is still wanted) or whether its being disabled is a bug (then re-enable it, with a snapshot fixture for a table with a public primary key and a runtime test that uses one).
 
 ### `lib.rs`: `fn expand_dsl_attribute_parts(args, item) -> syn::Result<ExpandedDSLAttribute>`
 
@@ -128,13 +128,13 @@ Recommendation: Move the injection, its constants and its diagnostics into `deri
 
 Assembles everything the macro emits from the parsed `Table`.
 
-### `output.rs`: `pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedOutput>`
+### `output.rs`: `pub fn build(input: &Table, pass: DSLAttributePass) -> syn::Result<GeneratedOutput>`
 
 **Violates:** Code For The Maintainer; Law of Demeter — "Avoid chaining through returned collaborators"
 
-The comment saying that wrapper types are only generated for the last DSL attribute contradicts the condition `if first_dsl_attribute`. The function navigates deep into `derive-input`'s model (`column.spacetimedsl_column.getter`, `input.spacetimedsl_table.compile_error_checks`), coupling this crate to that model's layout. `format_ident!("{}", &input.rust_struct.name.to_string())` rebuilds an identifier it already has.
+The function navigates deep into `derive-input`'s model (`column.spacetimedsl_column.getter`, `input.spacetimedsl_table.compile_error_checks`), coupling this crate to that model's layout. `format_ident!("{}", &input.rust_struct.name.to_string())` rebuilds an identifier it already has.
 
-Recommendation: Correct the comment and use the identifier directly. The plan documents `Table` as a deliberate data-transfer structure (its Task 13); decide whether `build` should still navigate that structure this deeply or whether the parts it needs deserve intention-revealing accessors. This is a pure refactoring.
+Recommendation: Use the identifier directly. The plan documents `Table` as a deliberate data-transfer structure (its Task 13); decide whether `build` should still navigate that structure this deeply or whether the parts it needs deserve intention-revealing accessors. This is a pure refactoring.
 
 ## `derive/src/output/function.rs`
 

@@ -1,0 +1,87 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Create a row in the `transfer` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `source_ledger_id`: a row of the `ledger` table (`::other_crate::tables`)
+- `target_ledger_id`: a row of the `ledger` table (`other_crate::tables`)*/
+    pub fn create_transfer<'a>(
+        &'a self,
+        transfer: CreateTransfer,
+    ) -> Result<Transfer, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let source_ledger_id = transfer.source_ledger_id.value();
+        let target_ledger_id = transfer.target_ledger_id.value();
+        let transfer = Transfer {
+            id,
+            source_ledger_id,
+            target_ledger_id,
+        };
+        let mut the_same_or_another_transfer: Option<Transfer> = None;
+        match self.get_ledger_by_id(transfer.get_source_ledger_id()) {
+            Ok(_) => {}
+            Err(_) => {
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                        table_name: "transfer".into(),
+                        create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                        column_names_and_row_values: format!(
+                            "{{ source_ledger_id : {} }}", transfer
+                            .get_source_ledger_id().value()
+                        )
+                            .into(),
+                    }),
+                );
+            }
+        };
+        match self.get_ledger_by_id(transfer.get_target_ledger_id()) {
+            Ok(_) => {}
+            Err(_) => {
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                        table_name: "transfer".into(),
+                        create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                        column_names_and_row_values: format!(
+                            "{{ target_ledger_id : {} }}", transfer
+                            .get_target_ledger_id().value()
+                        )
+                            .into(),
+                    }),
+                );
+            }
+        };
+        let unique_column_values = (transfer.id.clone(),);
+        match self.db().transfer().try_insert(transfer) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "transfer".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", unique_column_values.0
+                            )
+                                .into(),
+                        })
+                    }
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "transfer".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

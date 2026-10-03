@@ -124,7 +124,8 @@ pub mod cascade_binding {
         format_ident!("error")
     }
 
-    /// The error a hook raised, if one did.
+    /// The error which stopped the cascade, if one did: one a hook raised, or a broken
+    /// `#[disallow]` rule of a row the cascade wrote.
     pub fn error_from_hook() -> Ident {
         format_ident!("error_from_hook")
     }

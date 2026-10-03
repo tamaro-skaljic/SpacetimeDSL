@@ -22,6 +22,33 @@ pub mod new_uuid;
 pub mod delete;
 pub mod error;
 
+/// `Err(SpacetimeDSLError::Error(message))`, the error a reducer, a hook or a helper refuses
+/// with, its message built like `format!` builds a `String`.
+///
+/// ```rust,ignore
+/// return err!("Level {level} is above the maximum of {}", MAXIMUM_LEVEL);
+/// ```
+///
+/// Any other single expression is the whole message, turned into a `String` with
+/// `ToString`, so a message kept in a variable or a constant needs no `"{}"`:
+///
+/// ```rust,ignore
+/// return err!(LOCKED_MESSAGE);
+/// ```
+#[macro_export]
+macro_rules! err {
+    ($format_string:literal $(, $($format_arguments:tt)*)?) => {
+        ::core::result::Result::Err($crate::error::SpacetimeDSLError::Error(::std::format!(
+            $format_string $(, $($format_arguments)*)?
+        )))
+    };
+    ($message:expr $(,)?) => {
+        ::core::result::Result::Err($crate::error::SpacetimeDSLError::Error(
+            ::std::string::ToString::to_string(&$message),
+        ))
+    };
+}
+
 /// Every runtime item a module or its generated code uses, listed once. The crate root and the
 /// module `spacetimedsl!()` generates re-export it, and so does the prelude of that module.
 pub mod prelude {
@@ -31,6 +58,7 @@ pub mod prelude {
         as_reducer_context::AsReducerContext,
         as_view_context::AsViewContext,
         delete::{DeletionResult, DeletionResultEntry, OnDeleteStrategy, OnDeleteStrategyFailure},
+        err,
         error::{ReferenceIntegrityViolationError, SpacetimeDSLError},
         get_auth::GetAuth,
         get_connection_id::GetConnectionId,

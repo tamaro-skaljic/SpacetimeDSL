@@ -1,0 +1,5 @@
+error: `#[disallow(decreasing)]` needs a column with a setter, but `score` is private, so no DSL method changes it! Make the column `pub`, or remove `decreasing`.
+  --> tests/ui/disallow_decreasing_on_private_column.rs:12:9
+   |
+12 |         #[disallow(decreasing)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^

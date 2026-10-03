@@ -1,0 +1,101 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `alliance` table
+///
+/// - `server_id` references the `id` column of the `server` table (`self`).
+///   - On delete: none, the `server` table is not deletable
+///   - On soft delete: none, the `server` table is not soft-deletable
+
+pub trait this_compilation_error_occurs_because_the_alliance_table_has_no_foreign_key_attribute_referencing_the_server_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_server_table_needs_to_define_a_strategy_for_on_delete_or_the_server_table_has_no_referenced_by_attribute_referencing_the_alliance_table;
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_server_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_server_table_has_no_referenced_by_attribute_referencing_the_alliance_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct AllianceId {
+    value: u64,
+}
+impl Default for AllianceId {
+    fn default() -> AllianceId {
+        AllianceId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for AllianceId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "AllianceId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for AllianceId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Alliance> for AllianceId {
+    fn from(value: &Alliance) -> Self {
+        AllianceId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Alliance> for Option<AllianceId> {
+    fn from(value: &Alliance) -> Option<AllianceId> {
+        Some(AllianceId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&AllianceId> for Option<AllianceId> {
+    fn from(value: &AllianceId) -> Option<AllianceId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(AllianceId::new(value.value()))
+    }
+}
+impl From<&AllianceId> for AllianceId {
+    fn from(value: &AllianceId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        AllianceId::new(value.value())
+    }
+}
+impl Alliance {
+    ///
+    pub fn get_id(&self) -> AllianceId {
+        use crate::spacetimedsl::Wrapper;
+        AllianceId::new(self.id.clone())
+    }
+    /**References the `id` column of the `server` table (`self`).
+
+- On delete: none, the `server` table is not deletable
+- On soft delete: none, the `server` table is not soft-deletable*/
+    pub fn get_server_id(&self) -> ServerId {
+        use crate::spacetimedsl::Wrapper;
+        ServerId::new(self.server_id.clone())
+    }
+}
+///
+pub struct CreateAlliance {
+    pub server_id: ServerId,
+}
+
+// Generated DSL methods:
+// count_of_all_alliances
+// create_alliance
+// get_all_alliances
+// get_alliance_by_id
+// get_alliances_by_server_id

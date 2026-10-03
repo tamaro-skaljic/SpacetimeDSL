@@ -1,0 +1,250 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `loan` table
+///
+/// - `branch_id` references the `id` column of the `branch` table (`self`).
+///   - On delete: none, the `branch` table is not deletable
+///   - On soft delete: none, the `branch` table is not soft-deletable
+
+pub trait this_compilation_error_occurs_because_the_loan_table_has_no_foreign_key_attribute_referencing_the_branch_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_branch_table_needs_to_define_a_strategy_for_on_delete_or_the_branch_table_has_no_referenced_by_attribute_referencing_the_loan_table;
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_branch_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_branch_table_has_no_referenced_by_attribute_referencing_the_loan_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct LoanId {
+    value: u64,
+}
+impl Default for LoanId {
+    fn default() -> LoanId {
+        LoanId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for LoanId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "LoanId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for LoanId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Loan> for LoanId {
+    fn from(value: &Loan) -> Self {
+        LoanId { value: value.id.clone() }
+    }
+}
+impl From<&Loan> for Option<LoanId> {
+    fn from(value: &Loan) -> Option<LoanId> {
+        Some(LoanId { value: value.id.clone() })
+    }
+}
+impl From<&LoanId> for Option<LoanId> {
+    fn from(value: &LoanId) -> Option<LoanId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(LoanId::new(value.value()))
+    }
+}
+impl From<&LoanId> for LoanId {
+    fn from(value: &LoanId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        LoanId::new(value.value())
+    }
+}
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct LoanPurpose {
+    value: String,
+}
+impl Default for LoanPurpose {
+    fn default() -> LoanPurpose {
+        LoanPurpose {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for LoanPurpose {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "LoanPurpose", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<String> for LoanPurpose {
+    fn new(value: String) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> String {
+        self.value.clone()
+    }
+}
+impl From<&Loan> for LoanPurpose {
+    fn from(value: &Loan) -> Self {
+        LoanPurpose {
+            value: value.purpose.clone(),
+        }
+    }
+}
+impl From<&Loan> for Option<LoanPurpose> {
+    fn from(value: &Loan) -> Option<LoanPurpose> {
+        Some(LoanPurpose {
+            value: value.purpose.clone(),
+        })
+    }
+}
+impl From<&LoanPurpose> for Option<LoanPurpose> {
+    fn from(value: &LoanPurpose) -> Option<LoanPurpose> {
+        use crate::spacetimedsl::Wrapper;
+        Some(LoanPurpose::new(value.value()))
+    }
+}
+impl From<&LoanPurpose> for LoanPurpose {
+    fn from(value: &LoanPurpose) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        LoanPurpose::new(value.value())
+    }
+}
+impl Loan {
+    ///
+    pub fn get_id(&self) -> LoanId {
+        use crate::spacetimedsl::Wrapper;
+        LoanId::new(self.id.clone())
+    }
+    ///
+    pub fn get_borrower(&self) -> &String {
+        use crate::spacetimedsl::Wrapper;
+        &self.borrower
+    }
+    ///
+    pub fn get_borrower_mut(&mut self) -> &mut String {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.borrower
+    }
+    ///
+    pub fn set_borrower(&mut self, borrower: String) -> String {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.borrower, borrower);
+        old_value
+    }
+    ///
+    pub fn get_priority(&self) -> &i32 {
+        use crate::spacetimedsl::Wrapper;
+        &self.priority
+    }
+    ///
+    pub fn get_priority_mut(&mut self) -> &mut i32 {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.priority
+    }
+    ///
+    pub fn set_priority(&mut self, priority: i32) -> i32 {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.priority, priority);
+        old_value
+    }
+    ///
+    pub fn get_state(&self) -> &LoanState {
+        use crate::spacetimedsl::Wrapper;
+        &self.state
+    }
+    ///
+    pub fn get_purpose(&self) -> LoanPurpose {
+        use crate::spacetimedsl::Wrapper;
+        LoanPurpose::new(self.purpose.clone())
+    }
+    ///
+    pub fn set_purpose(&mut self, purpose: String) -> LoanPurpose {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.purpose, purpose);
+        LoanPurpose::new(old_value)
+    }
+    /**References the `id` column of the `branch` table (`self`).
+
+- On delete: none, the `branch` table is not deletable
+- On soft delete: none, the `branch` table is not soft-deletable*/
+    pub fn get_branch_id(&self) -> BranchId {
+        use crate::spacetimedsl::Wrapper;
+        BranchId::new(self.branch_id.clone())
+    }
+    /**References the `id` column of the `branch` table (`self`).
+
+- On delete: none, the `branch` table is not deletable
+- On soft delete: none, the `branch` table is not soft-deletable*/
+    pub fn set_branch_id(&mut self, branch_id: impl Into<BranchId>) -> BranchId {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.branch_id, branch_id.into().value());
+        BranchId::new(old_value)
+    }
+    ///
+    pub fn get_reminder_days(&self) -> &Vec<u8> {
+        use crate::spacetimedsl::Wrapper;
+        &self.reminder_days
+    }
+    ///
+    pub fn get_reminder_days_mut(&mut self) -> &mut Vec<u8> {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.reminder_days
+    }
+    ///
+    pub fn set_reminder_days(&mut self, reminder_days: Vec<u8>) -> Vec<u8> {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.reminder_days, reminder_days);
+        old_value
+    }
+    ///
+    pub fn get_note(&self) -> &Option<String> {
+        use crate::spacetimedsl::Wrapper;
+        &self.note
+    }
+    ///
+    pub fn get_note_mut(&mut self) -> &mut Option<String> {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.note
+    }
+    ///
+    pub fn set_note(&mut self, note: Option<String>) -> Option<String> {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.note, note);
+        old_value
+    }
+}
+///
+pub struct CreateLoan {
+    pub borrower: String,
+}
+
+// Generated DSL methods:
+// count_of_all_loans
+// create_loan
+// delete_loan_by_id
+// delete_loans_by_branch_id
+// delete_loans_by_purpose
+// get_all_loans
+// get_loan_by_id
+// get_loans_by_branch_id
+// get_loans_by_purpose
+// update_loan_by_id

@@ -5,7 +5,11 @@
 //! the same relationships, so each fact is phrased once here.
 
 use {
-    super::{reference_integrity, removal::Removal},
+    super::{
+        doc::{paragraphs, section},
+        reference_integrity,
+        removal::Removal,
+    },
     crate::{
         api::{
             Column,
@@ -14,24 +18,8 @@ use {
         internal::column::InternalColumn,
     },
     quote::ToTokens,
-    std::borrow::Borrow,
     syn::{Ident, Path},
 };
-
-/// `doc`, followed by `section` as a paragraph of its own, or `doc` alone when `section` is
-/// empty.
-pub fn with_section(doc: String, section: String) -> String {
-    paragraphs([doc, section])
-}
-
-/// The non-empty `parts` as paragraphs, each separated from the next by a blank line.
-pub fn paragraphs<Part: Borrow<str>>(parts: impl IntoIterator<Item = Part>) -> String {
-    parts
-        .into_iter()
-        .filter(|part| !part.borrow().is_empty())
-        .collect::<Vec<_>>()
-        .join("\n\n")
-}
 
 /// The `# Foreign keys` section of a method which checks, before it writes, that the foreign
 /// keys among `checked_columns` reference a row. Empty when none of them has a foreign key.
@@ -163,18 +151,6 @@ fn strategies(foreign_key: &ForeignKey) -> [String; 2] {
         strategy(Removal::Hard, "On delete", "deletable"),
         strategy(Removal::Soft, "On soft delete", "soft-deletable"),
     ]
-}
-
-/// A doc comment section: its heading, a lead sentence when there is one, and its bullets.
-/// Nothing when there are no bullets.
-fn section(heading: &str, lead: Option<&str>, bullets: &[String]) -> String {
-    if bullets.is_empty() {
-        return String::new();
-    }
-
-    let lead = lead.map(|lead| format!("{lead}\n\n")).unwrap_or_default();
-
-    format!("# {heading}\n\n{lead}{}", bullets.join("\n"))
 }
 
 /// "the `warehouse` table (`self`)": a table and the module path its attribute names it by,

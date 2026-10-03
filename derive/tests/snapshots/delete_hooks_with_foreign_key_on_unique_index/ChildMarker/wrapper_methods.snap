@@ -12,3 +12,25 @@ Use it like `parent_record_id.get_child_marker(&dsl)`.*/
         dsl.into().get_child_marker_by_parent_id(self)
     }
 }
+impl ChildMarkerId {
+    /**Get the row of the `parent_record` table which the `parent_id` column of the `ChildMarker` row with this `ChildMarkerId` references.
+
+Use it like `child_marker_id.get_parent_record(&dsl)`.*/
+    pub fn get_parent_record<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::parent_record__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let child_marker = dsl.get_child_marker_by_id(self)?;
+        if child_marker.parent_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "parent_record".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
+        dsl.get_parent_record_by_id(child_marker.get_parent_id())
+    }
+}

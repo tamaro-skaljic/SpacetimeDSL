@@ -1,0 +1,92 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Create a row in the `loan` table.
+
+# Defaults
+
+Fills these columns with their `#[creation_default]` instead of asking for them:
+
+- `priority`: `-1`
+- `state`: `LoanState::Requested`
+- `purpose`: `String::from("general purpose")`
+- `branch_id`: `0`
+- `reminder_days`: `vec![1, 2]`
+- `note`: `None`
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `branch_id`: a row of the `branch` table (`self`), or `0`*/
+    pub fn create_loan<'a>(
+        &'a self,
+        loan: CreateLoan,
+    ) -> Result<Loan, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let borrower = loan.borrower;
+        let priority: i32 = -1;
+        let state: LoanState = LoanState::Requested;
+        let purpose: String = String::from("general purpose");
+        let branch_id: u64 = 0;
+        let reminder_days: Vec<u8> = vec![1, 2];
+        let note: Option<String> = None;
+        let loan = Loan {
+            id,
+            borrower,
+            priority,
+            state,
+            purpose,
+            branch_id,
+            reminder_days,
+            note,
+        };
+        let mut the_same_or_another_loan: Option<Loan> = None;
+        if branch_id.ne(&0) {
+            match self.get_branch_by_id(loan.get_branch_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "loan".into(),
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                            column_names_and_row_values: format!(
+                                "{{ branch_id : {} }}", loan.get_branch_id().value()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        let unique_column_values = (loan.id.clone(),);
+        match self.db().loan().try_insert(loan) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "loan".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", unique_column_values.0
+                            )
+                                .into(),
+                        })
+                    }
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "loan".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

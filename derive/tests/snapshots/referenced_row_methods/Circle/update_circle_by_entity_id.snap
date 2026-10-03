@@ -1,0 +1,72 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Circle` row of the `circle` table whose value matches the value from the unique single-column btree index on the `entity_id` column.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `player_id`: a row of the `player` table (`self`), or `0`*/
+    pub fn update_circle_by_entity_id<'a>(
+        &'a self,
+        circle: Circle,
+    ) -> Result<Circle, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut circle = circle;
+        let mut the_same_or_another_circle: Option<Circle> = None;
+        let player_id = circle.get_player_id().value();
+        if player_id.ne(&0) {
+            if the_same_or_another_circle.is_none() {
+                the_same_or_another_circle = match self
+                    .db()
+                    .circle()
+                    .entity_id()
+                    .find(circle.get_entity_id().value())
+                {
+                    Some(circle) => Some(circle),
+                    None => {
+                        return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                            table_name: "circle".into(),
+                            column_names_and_row_values: format!(
+                                "{{ entity_id : {} }}", circle.get_entity_id().value()
+                            )
+                                .into(),
+                        });
+                    }
+                };
+            }
+            if the_same_or_another_circle
+                .as_ref()
+                .expect(
+                    "the stored row is looked up by its primary key before the row to write is compared with it",
+                )
+                .get_player_id()
+                .ne(&circle.get_player_id())
+            {
+                match self.get_player_by_id(circle.get_player_id()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(
+                            crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                                table_name: "circle".into(),
+                                create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
+                                column_names_and_row_values: format!(
+                                    "{{ player_id : {} }}", player_id
+                                )
+                                    .into(),
+                            }),
+                        );
+                    }
+                };
+            }
+        }
+        let circle = self.db().circle().entity_id().update(circle);
+        Ok(circle)
+    }
+}

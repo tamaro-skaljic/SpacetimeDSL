@@ -1,0 +1,5 @@
+error: expected one of: `zero`, `decreasing`, `increasing`
+  --> tests/ui/disallow_unknown_rule.rs:12:20
+   |
+12 |         #[disallow(negative)]
+   |                    ^^^^^^^^

@@ -7,7 +7,7 @@ use {
             column::SpacetimeDSLColumnMethods,
             method::{SpacetimeDSLArg, SpacetimeDSLMethod},
             table::CascadeEntryPoints,
-            wrapper::WrapperType,
+            wrapper::{WrapperMethod, WrapperType},
         },
     },
     syn::Ident,
@@ -63,12 +63,46 @@ pub struct GeneratedDSLMethod {
     pub tokens: TokenStream,
 }
 
-pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedOutput> {
+/// Which of the struct's `#[dsl]` attributes an expansion is.
+///
+/// Every table of a struct shares the struct's wrapper types and accessors, so only its first
+/// expansion emits them. A method on the primary key's wrapper type which reads a row of the
+/// table would be ambiguous on a struct with several tables, because the key names a row in
+/// each of them, so only the expansion of a struct's only `#[dsl]` emits those.
+#[derive(Clone, Copy)]
+pub enum DSLAttributePass {
+    /// The struct's only `#[dsl]` attribute.
+    Only,
+    /// The first of several.
+    First,
+    /// A later one of several.
+    Later,
+}
+
+impl DSLAttributePass {
+    pub fn of(is_first: bool, is_last: bool) -> DSLAttributePass {
+        match (is_first, is_last) {
+            (true, true) => DSLAttributePass::Only,
+            (true, false) => DSLAttributePass::First,
+            (false, _) => DSLAttributePass::Later,
+        }
+    }
+
+    fn emits_the_struct_items(self) -> bool {
+        matches!(self, DSLAttributePass::Only | DSLAttributePass::First)
+    }
+
+    fn emits_the_referenced_row_methods(self) -> bool {
+        matches!(self, DSLAttributePass::Only)
+    }
+}
+
+pub fn build(input: &Table, pass: DSLAttributePass) -> syn::Result<GeneratedOutput> {
     let struct_name = format_ident!("{}", &input.rust_struct.name.to_string());
     let mut wrapper_types = vec![];
 
-    // Only generate wrapper types if this is the last DSL attribute to avoid conflicts
-    if first_dsl_attribute {
+    // Every table of the struct shares its wrapper types, so the first expansion emits them.
+    if pass.emits_the_struct_items() {
         for column in &input.columns {
             if let Some(WrapperType::Created(wrapper_type)) =
                 &column.spacetimedsl_column.wrapper_type
@@ -132,7 +166,7 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
     }
 
     for column in &input.columns {
-        if first_dsl_attribute {
+        if pass.emits_the_struct_items() {
             if let Some(getter) = &column.spacetimedsl_column.getter {
                 table_methods.push(accessor::build(accessor::Accessor::Getter(getter)));
             }
@@ -187,10 +221,16 @@ pub fn build(input: &Table, first_dsl_attribute: bool) -> syn::Result<GeneratedO
         .map(hook::build)
         .collect();
 
+    let referenced_row_methods: &[WrapperMethod] = match pass.emits_the_referenced_row_methods() {
+        true => &input.spacetimedsl_methods.referenced_row_methods,
+        false => &[],
+    };
+
     let wrapper_methods = input
         .spacetimedsl_methods
         .wrapper_methods
         .iter()
+        .chain(referenced_row_methods)
         .map(wrapper_method::build)
         .collect();
 

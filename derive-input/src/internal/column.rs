@@ -10,6 +10,7 @@ use {
             dsl::{
                 auto_gen::UUIDVersion,
                 column::{SpacetimeDSLColumn, SpacetimeDSLColumnMethods},
+                disallow::Disallowed,
                 foreign_key::ForeignKey,
                 table::SpacetimeDSLTable,
                 wrapper::WrapperType,
@@ -28,8 +29,8 @@ use {
     itertools::izip,
     quote::ToTokens,
     spacetime_bindings_macro_input::table::ColumnArgs,
-    std::collections::BTreeMap,
-    syn::{GenericArgument, Ident, Path, PathArguments, Type},
+    std::collections::{BTreeMap, BTreeSet},
+    syn::{Expr, GenericArgument, Ident, Path, PathArguments, Type},
 };
 
 /// Every column of a table, in the shape the public API exposes and in the shape the
@@ -134,6 +135,8 @@ pub fn try_parse(
             spacetimedsl_column_wrapper_type: spacetimedsl_column.wrapper_type.clone(),
             spacetimedsl_column_auto_generated_uuid_version: spacetimedsl_column
                 .auto_generated_uuid_version,
+            spacetimedsl_column_creation_default: spacetimedsl_column.creation_default.clone(),
+            spacetimedsl_column_disallowed: spacetimedsl_column.disallowed.clone(),
         };
 
         rust_fields.push(rust_field);
@@ -184,6 +187,8 @@ pub fn try_parse(
 pub enum ColumnTypeKind {
     String,
     UnsignedInteger,
+    SignedInteger,
+    Float,
     Bool,
     Timestamp,
     Optional,
@@ -198,8 +203,8 @@ impl ColumnTypeKind {
     ///
     /// - `String` and `Option<_>` bare or rooted in the standard library (`std`, `core`,
     ///   `alloc`), such as `std::string::String` or `core::option::Option<_>`;
-    /// - `u8`–`u128` and `bool` bare or as `core::primitive::X` / `std::primitive::X`, which
-    ///   name the same primitive;
+    /// - `u8`–`u128`, `i8`–`i128`, `f32`, `f64` and `bool` bare or as `core::primitive::X` /
+    ///   `std::primitive::X`, which name the same primitive;
     /// - `Timestamp` and `Uuid` bare or as `spacetimedb::X`.
     ///
     /// Every rooted path may start with `::`. Anything else, such as a user's own
@@ -228,6 +233,10 @@ impl ColumnTypeKind {
             "u8" | "u16" | "u32" | "u64" | "u128" if is_bare || is_primitive_path => {
                 ColumnTypeKind::UnsignedInteger
             }
+            "i8" | "i16" | "i32" | "i64" | "i128" if is_bare || is_primitive_path => {
+                ColumnTypeKind::SignedInteger
+            }
+            "f32" | "f64" if is_bare || is_primitive_path => ColumnTypeKind::Float,
             "bool" if is_bare || is_primitive_path => ColumnTypeKind::Bool,
             _ if !is_bare && !is_rooted_in_std => ColumnTypeKind::Other,
             "String" if !is_primitive_path => ColumnTypeKind::String,
@@ -334,6 +343,8 @@ pub struct InternalColumn {
     pub spacetimedsl_column_foreign_key: Option<ForeignKey>,
     pub spacetimedsl_column_wrapper_type: Option<WrapperType>,
     pub spacetimedsl_column_auto_generated_uuid_version: Option<UUIDVersion>,
+    pub spacetimedsl_column_creation_default: Option<Expr>,
+    pub spacetimedsl_column_disallowed: BTreeSet<Disallowed>,
 }
 
 fn get_auto_inc_column_names(column_args: &ColumnArgs<'_>) -> Vec<Ident> {

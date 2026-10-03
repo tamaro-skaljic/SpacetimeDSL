@@ -82,9 +82,7 @@ fn before_guild_member_update(
     new_guild_member: GuildMember,
 ) -> Result<GuildMember, SpacetimeDSLError> {
     if *old_guild_member.get_locked() {
-        return Err(SpacetimeDSLError::Error(
-            LOCKED_GUILD_MEMBER_MESSAGE.to_string(),
-        ));
+        return err!(LOCKED_GUILD_MEMBER_MESSAGE);
     }
 
     dsl.create_guild_member_hook_call(CreateGuildMemberHookCall {

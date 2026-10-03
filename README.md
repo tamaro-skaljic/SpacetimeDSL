@@ -188,9 +188,7 @@ fn before_position_hook_helper(
 ) -> Result<(), spacetimedsl::SpacetimeDSLError> {
     if *x < -WORLD_BOUNDARY || *x > WORLD_BOUNDARY || *y < -WORLD_BOUNDARY || *y > WORLD_BOUNDARY
     {
-        return Err(spacetimedsl::SpacetimeDSLError::Error(
-            "Position out of bounds".to_string(),
-        ));
+        return spacetimedsl::err!("Position out of bounds");
     }
 
     Ok(())
@@ -212,12 +210,14 @@ fn before_position_hook_helper(
 - ⏰ `created_at` is set automatically on create.
 - 🔄 `modified_at` is set to `None` on create and updated to `Some(ctx.timestamp)` on update.
 - 🏷️ Use `#[set_on_create]` or `#[set_on_update]` on private timestamp columns when their names differ from the conventional aliases.
+- 🧩 `#[creation_default(...)]` fills a column on create, so `Create{Table}` doesn't ask for it.
 
 **Data Integrity by Construction:**
 
 - 🏷️ Wrapper types (`#[create_wrapper]` + `#[use_wrapper(EntityId)]`) make cross-table ID misuse much harder.
-- 🧭 Foreign-key columns add lookups to their wrapper types, like `entity_id.get_position(&dsl)`.
+- 🧭 Foreign-key columns add lookups to wrapper types in both directions, like `entity_id.get_position(&dsl)` and `position_id.get_entity(&dsl)`.
 - 🔗 Foreign-key validation ensures referenced `Entity` exists on create (and update, if the `entity_id` column would be mutable).
+- 🚫 `#[disallow(zero)]`, `#[disallow(decreasing)]` and `#[disallow(increasing)]` refuse a forbidden value or change, whichever DSL method writes the row.
 - 🧹 Referential cleanup on delete keeps dependent `Position` rows in sync automatically when deleting their corresponding `Entity`.
 - 🎲 `unique_index(name = x_y)` enforces unique multi-column `(x, y)` positions.
 

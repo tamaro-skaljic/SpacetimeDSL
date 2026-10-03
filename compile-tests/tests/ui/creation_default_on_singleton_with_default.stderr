@@ -1,0 +1,28 @@
+error: `#[creation_default]` is not allowed on a `singleton(with_default)` table, because it has no create method! Its `DefaultSingleton::get_default` supplies the whole default row.
+  --> tests/ui/creation_default_on_singleton_with_default.rs:15:9
+   |
+15 |         #[creation_default(8)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0425]: cannot find type `Settings` in this scope
+  --> tests/ui/creation_default_on_singleton_with_default.rs:19:31
+   |
+19 |     impl DefaultSingleton for Settings {
+   |                               ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find type `Settings` in this scope
+  --> tests/ui/creation_default_on_singleton_with_default.rs:22:21
+   |
+22 |         ) -> Result<Settings, SpacetimeDSLError> {
+   |                     ^^^^^^^^ not found in this scope
+   |
+help: you might be missing a type parameter
+   |
+19 |     impl<Settings> DefaultSingleton for Settings {
+   |         ++++++++++
+
+error[E0422]: cannot find struct, variant or union type `Settings` in this scope
+  --> tests/ui/creation_default_on_singleton_with_default.rs:23:16
+   |
+23 |             Ok(Settings {
+   |                ^^^^^^^^ not found in this scope

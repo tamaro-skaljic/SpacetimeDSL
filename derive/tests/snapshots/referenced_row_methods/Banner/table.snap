@@ -1,0 +1,101 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `banner` table
+///
+/// - `server_id` references the `id` column of the `server` table (`self`).
+///   - On delete: none, the `server` table is not deletable
+///   - On soft delete: none, the `server` table is not soft-deletable
+
+pub trait this_compilation_error_occurs_because_the_banner_table_has_no_foreign_key_attribute_referencing_the_server_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_server_table_needs_to_define_a_strategy_for_on_delete_or_the_server_table_has_no_referenced_by_attribute_referencing_the_banner_table;
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_server_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_server_table_has_no_referenced_by_attribute_referencing_the_banner_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct BannerId {
+    value: u64,
+}
+impl Default for BannerId {
+    fn default() -> BannerId {
+        BannerId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for BannerId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "BannerId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for BannerId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Banner> for BannerId {
+    fn from(value: &Banner) -> Self {
+        BannerId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Banner> for Option<BannerId> {
+    fn from(value: &Banner) -> Option<BannerId> {
+        Some(BannerId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&BannerId> for Option<BannerId> {
+    fn from(value: &BannerId) -> Option<BannerId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(BannerId::new(value.value()))
+    }
+}
+impl From<&BannerId> for BannerId {
+    fn from(value: &BannerId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        BannerId::new(value.value())
+    }
+}
+impl Banner {
+    ///
+    pub fn get_id(&self) -> BannerId {
+        use crate::spacetimedsl::Wrapper;
+        BannerId::new(self.id.clone())
+    }
+    /**References the `id` column of the `server` table (`self`).
+
+- On delete: none, the `server` table is not deletable
+- On soft delete: none, the `server` table is not soft-deletable*/
+    pub fn get_server_id(&self) -> ServerId {
+        use crate::spacetimedsl::Wrapper;
+        ServerId::new(self.server_id.clone())
+    }
+}
+///
+pub struct CreateBanner {
+    pub server_id: ServerId,
+}
+
+// Generated DSL methods:
+// count_of_all_banners
+// create_banner
+// get_all_banners
+// get_banner_by_id
+// get_banners_by_server_id

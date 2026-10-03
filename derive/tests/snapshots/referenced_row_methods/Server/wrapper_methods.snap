@@ -1,0 +1,36 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl SeasonId {
+    /**Get all `Server` rows whose `season_id` column references this `SeasonId`.
+
+Use it like `season_id.get_servers(&dsl)`.*/
+    pub fn get_servers<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Server> {
+        dsl.into().get_servers_by_season_id(self).collect()
+    }
+}
+impl ServerId {
+    /**Get the row of the `season` table which the `season_id` column of the `Server` row with this `ServerId` references.
+
+Use it like `server_id.get_season(&dsl)`.*/
+    pub fn get_season<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::season__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let server = dsl.get_server_by_id(self)?;
+        if server.season_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "season".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
+        dsl.get_season_by_id(server.get_season_id())
+    }
+}

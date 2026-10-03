@@ -33,12 +33,14 @@ use {
     std::collections::BTreeMap,
     update::for_update,
     upsert::for_singleton_upsert,
-    wrapper_method::for_wrapper_methods,
+    wrapper_method::{for_referenced_row_methods, for_wrapper_methods},
 };
 
 mod context;
 mod create;
 mod delete;
+pub mod disallow;
+pub mod doc;
 mod foreign_key;
 mod get;
 mod hook_call;
@@ -210,6 +212,10 @@ impl SpacetimeDSLTableMethods {
             on_delete_strategies_of_this_table,
             multi_column_indices: multi_column_index_methods(context),
             wrapper_methods: wrapper_methods(context, &foreign_key_columns_by_referenced_table),
+            referenced_row_methods: for_referenced_row_methods(
+                context,
+                &foreign_key_columns_by_referenced_table,
+            )?,
         };
 
         Ok((methods, contributions))

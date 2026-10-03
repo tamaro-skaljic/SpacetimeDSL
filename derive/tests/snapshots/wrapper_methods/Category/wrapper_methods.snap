@@ -12,3 +12,25 @@ Use it like `category_id.get_categories_by_parent_category_id(&dsl)`.*/
         dsl.into().get_categories_by_parent_category_id(self).collect()
     }
 }
+impl CategoryId {
+    /**Get the row of the `category` table which the `parent_category_id` column of the `Category` row with this `CategoryId` references.
+
+Use it like `category_id.get_parent_category(&dsl)`.*/
+    pub fn get_parent_category<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::category__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let category = dsl.get_category_by_id(self)?;
+        if category.parent_category_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "category".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
+        dsl.get_category_by_id(category.get_parent_category_id())
+    }
+}

@@ -49,7 +49,7 @@ fn before_lock_holder_delete(
 ) -> Result<(), SpacetimeDSLError> {
     match row.get_locked() {
         false => Ok(()),
-        true => Err(SpacetimeDSLError::Error(LOCKED_MESSAGE.to_string())),
+        true => err!(LOCKED_MESSAGE),
     }
 }
 

@@ -12,3 +12,25 @@ Use it like `currency_id.get_prices(&dsl)`.*/
         dsl.into().get_prices_by_currency_id(self).collect()
     }
 }
+impl PriceId {
+    /**Get the row of the `currency` table which the `currency_id` column of the `Price` row with this `PriceId` references.
+
+Use it like `price_id.get_currency(&dsl)`.*/
+    pub fn get_currency<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::currency__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let price = dsl.get_price_by_id(self)?;
+        if price.currency_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "currency".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
+        dsl.get_currency_by_id(price.get_currency_id())
+    }
+}

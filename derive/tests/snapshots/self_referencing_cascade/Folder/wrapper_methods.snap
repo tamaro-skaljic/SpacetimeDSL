@@ -12,3 +12,25 @@ Use it like `folder_id.get_folders_by_parent_folder_id(&dsl)`.*/
         dsl.into().get_folders_by_parent_folder_id(self).collect()
     }
 }
+impl FolderId {
+    /**Get the row of the `folder` table which the `parent_folder_id` column of the `Folder` row with this `FolderId` references.
+
+Use it like `folder_id.get_parent_folder(&dsl)`.*/
+    pub fn get_parent_folder<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::folder__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let folder = dsl.get_folder_by_id(self)?;
+        if folder.parent_folder_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "folder".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
+        dsl.get_folder_by_id(folder.get_parent_folder_id())
+    }
+}

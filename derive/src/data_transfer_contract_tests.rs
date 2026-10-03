@@ -24,6 +24,7 @@ use {
                 SpacetimeDSLColumn, SpacetimeDSLColumnMethods, SpacetimeDSLColumnMethodsForIndex,
                 SpacetimeDSLColumnMethodsForUniqueIndex,
             },
+            disallow::Disallowed,
             foreign_key::{ForeignKey, OnDeleteStrategy},
             getter::Getter,
             hook::{HookKind, Operation, SpacetimeDSLMethodHook, SpacetimeDSLMethodHooks, Timing},
@@ -72,6 +73,10 @@ fn the_model_holds_what_a_table_declares() {
 
                 pub name: String,
 
+                #[creation_default(1)]
+                #[disallow(zero, decreasing)]
+                pub revision: u32,
+
                 #[unique]
                 #[create_wrapper]
                 #[auto_gen(v7)]
@@ -90,7 +95,7 @@ fn the_model_holds_what_a_table_declares() {
         gadget.rust_struct.visibility,
         RustVisibility::Public
     ));
-    assert_eq!(gadget.columns.len(), 6);
+    assert_eq!(gadget.columns.len(), 7);
     assert_eq!(gadget.primary_key_column.rust_field.name, "id");
 
     let spacetimedb_table = &gadget.spacetimedb_table;
@@ -237,6 +242,7 @@ fn the_model_holds_what_a_table_declares() {
         foreign_key.on_delete_strategy,
         Some(OnDeleteStrategy::Delete)
     );
+    assert!(foreign_key.referenced_row_method);
     assert_eq!(
         owner_id
             .spacetimedsl_column
@@ -291,6 +297,43 @@ fn the_model_holds_what_a_table_declares() {
         "set_name"
     );
 
+    let revision = column(&gadget, "revision");
+    assert_eq!(
+        revision
+            .spacetimedsl_column
+            .creation_default
+            .as_ref()
+            .expect("`revision` has `#[creation_default(1)]`")
+            .to_token_stream()
+            .to_string(),
+        "1"
+    );
+    assert!(
+        create_dsl_method_arg
+            .struct_members
+            .iter()
+            .all(|member| member.arg_name != "revision"),
+        "a column with `#[creation_default]` is not asked of the caller"
+    );
+    assert_eq!(
+        revision
+            .spacetimedsl_column
+            .disallowed
+            .iter()
+            .copied()
+            .collect::<Vec<_>>(),
+        [Disallowed::Zero, Disallowed::Decreasing]
+    );
+    assert_eq!(
+        revision
+            .spacetimedsl_column
+            .setter
+            .as_ref()
+            .expect("a public column has a setter")
+            .doc_comment,
+        "Writing the row through the DSL fails with a *Disallowed Value Error* if this column is `0` or decreases (`#[disallow(zero, decreasing)]`)."
+    );
+
     let serial_number = column(&gadget, "serial_number");
     assert!(matches!(
         serial_number
@@ -328,6 +371,19 @@ fn the_model_holds_what_a_table_declares() {
         panic!("the one foreign key column adds one method to its wrapper type");
     };
     assert_eq!(wrapper_method.method_name, "get_gadgets");
+    let [referenced_row_method] = spacetimedsl_methods.referenced_row_methods.as_slice() else {
+        panic!(
+            "the one foreign key column besides the primary key adds one method to the primary key's wrapper type"
+        );
+    };
+    assert_eq!(referenced_row_method.method_name, "get_owner");
+    assert_eq!(
+        referenced_row_method
+            .wrapper_type
+            .to_token_stream()
+            .to_string(),
+        "GadgetId"
+    );
 
     let currency = parse_table(
         quote! { plural_name = currencies, method(update = false, delete = false) },
@@ -377,6 +433,41 @@ fn the_model_holds_what_a_table_declares() {
             .on_delete_strategies_of_this_table
             .is_empty(),
         "a foreign key without strategies has no strategy implementations"
+    );
+
+    let invoice = parse_table(
+        quote! { plural_name = invoices, method(update = false, delete = false) },
+        quote! {
+            #[spacetimedb::table(accessor = invoice, public)]
+            pub struct Invoice {
+                #[primary_key]
+                #[auto_inc]
+                #[create_wrapper]
+                id: u64,
+
+                #[index(btree)]
+                #[use_wrapper(crate::currency::CurrencyId)]
+                #[foreign_key(path = crate::currency, table = currency, column = id, referenced_row_method = false)]
+                currency_id: u64,
+            }
+        },
+    );
+    visit_table(&invoice);
+
+    assert!(
+        !column(&invoice, "currency_id")
+            .spacetimedsl_column
+            .foreign_key
+            .as_ref()
+            .expect("`currency_id` has `#[foreign_key]`")
+            .referenced_row_method
+    );
+    assert!(
+        invoice
+            .spacetimedsl_methods
+            .referenced_row_methods
+            .is_empty(),
+        "`referenced_row_method = false` switches the method off"
     );
 
     let cleanup_timer = parse_table(
@@ -616,6 +707,8 @@ fn visit_spacetimedsl_column(spacetimedsl_column: &SpacetimeDSLColumn) {
         wrapper_type,
         foreign_key,
         auto_generated_uuid_version,
+        creation_default: _,
+        disallowed,
         getter,
         mut_getter,
         setter,
@@ -639,6 +732,7 @@ fn visit_spacetimedsl_column(spacetimedsl_column: &SpacetimeDSLColumn) {
         primary_key_column_name: _,
         on_delete_strategy,
         on_soft_delete_strategy,
+        referenced_row_method: _,
     }) = foreign_key
     {
         [on_delete_strategy, on_soft_delete_strategy]
@@ -648,6 +742,11 @@ fn visit_spacetimedsl_column(spacetimedsl_column: &SpacetimeDSLColumn) {
     }
     match auto_generated_uuid_version {
         None | Some(UUIDVersion::V4) | Some(UUIDVersion::V7) => {}
+    }
+    for rule in disallowed {
+        match rule {
+            Disallowed::Zero | Disallowed::Decreasing | Disallowed::Increasing => {}
+        }
     }
     if let Some(Getter {
         doc_comment: _,
@@ -754,6 +853,7 @@ fn visit_spacetimedsl_table_methods(spacetimedsl_methods: &SpacetimeDSLTableMeth
         on_delete_strategies_of_this_table,
         multi_column_indices,
         wrapper_methods,
+        referenced_row_methods,
     } = spacetimedsl_methods;
 
     [create, get_all, get_count]
@@ -788,6 +888,14 @@ fn visit_spacetimedsl_table_methods(spacetimedsl_methods: &SpacetimeDSLTableMeth
         return_type: _,
         method_impl: _,
     } in wrapper_methods
+    {}
+    for WrapperMethod {
+        wrapper_type: _,
+        doc_comment: _,
+        method_name: _,
+        return_type: _,
+        method_impl: _,
+    } in referenced_row_methods
     {}
 }
 

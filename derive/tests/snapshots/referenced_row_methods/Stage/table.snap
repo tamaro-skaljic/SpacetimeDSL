@@ -1,0 +1,104 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `stage` table
+///
+/// - `next_stage_id` references the `id` column of the `stage` table (`self`).
+///   - On delete: none, the `stage` table is not deletable
+///   - On soft delete: none, the `stage` table is not soft-deletable
+///
+/// # Tables referencing the `stage` table
+///
+/// - the `stage` table (`self`)
+
+pub trait this_compilation_error_occurs_because_the_stage_table_has_no_foreign_key_attribute_referencing_the_stage_table {}
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_stage_table_needs_to_define_a_strategy_for_on_delete_or_the_stage_table_has_no_referenced_by_attribute_referencing_the_stage_table {}
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_stage_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_stage_table_has_no_referenced_by_attribute_referencing_the_stage_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_stage_table_has_no_foreign_key_attribute_referencing_the_stage_table;
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_stage_table_needs_to_define_a_strategy_for_on_delete_or_the_stage_table_has_no_referenced_by_attribute_referencing_the_stage_table;
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_stage_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_stage_table_has_no_referenced_by_attribute_referencing_the_stage_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct StageId {
+    value: u64,
+}
+impl Default for StageId {
+    fn default() -> StageId {
+        StageId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for StageId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "StageId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for StageId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Stage> for StageId {
+    fn from(value: &Stage) -> Self {
+        StageId { value: value.id.clone() }
+    }
+}
+impl From<&Stage> for Option<StageId> {
+    fn from(value: &Stage) -> Option<StageId> {
+        Some(StageId { value: value.id.clone() })
+    }
+}
+impl From<&StageId> for Option<StageId> {
+    fn from(value: &StageId) -> Option<StageId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(StageId::new(value.value()))
+    }
+}
+impl From<&StageId> for StageId {
+    fn from(value: &StageId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        StageId::new(value.value())
+    }
+}
+impl Stage {
+    ///
+    pub fn get_id(&self) -> StageId {
+        use crate::spacetimedsl::Wrapper;
+        StageId::new(self.id.clone())
+    }
+    /**References the `id` column of the `stage` table (`self`).
+
+- On delete: none, the `stage` table is not deletable
+- On soft delete: none, the `stage` table is not soft-deletable*/
+    pub fn get_next_stage_id(&self) -> StageId {
+        use crate::spacetimedsl::Wrapper;
+        StageId::new(self.next_stage_id.clone())
+    }
+}
+///
+pub struct CreateStage {
+    pub next_stage_id: StageId,
+}
+
+// Generated DSL methods:
+// count_of_all_stages
+// create_stage
+// get_all_stages
+// get_stage_by_id
+// get_stage_by_next_stage_id

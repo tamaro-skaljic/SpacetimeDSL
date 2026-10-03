@@ -1,0 +1,110 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Create a row in the `pallet` table.
+
+# Disallowed values
+
+Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids:
+
+- `quantity`: `0`
+- `tracking_code`: `Uuid::NIL`
+- `warehouse_id`: `0`
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `warehouse_id`: a row of the `warehouse` table (`self`), or `0`*/
+    pub fn create_pallet<'a>(
+        &'a self,
+        pallet: CreatePallet,
+    ) -> Result<Pallet, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        use self::BeforePalletInsertHook;
+        let pallet = crate::spacetimedsl::DSLMethodHooks::before_pallet_insert(
+            self,
+            pallet,
+        )?;
+        let id = u64::default();
+        let quantity = pallet.quantity;
+        let tracking_code = pallet.tracking_code;
+        let warehouse_id = pallet.warehouse_id.value();
+        let pallet = Pallet {
+            id,
+            quantity,
+            tracking_code,
+            warehouse_id,
+        };
+        if pallet.quantity == 0 {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    "Disallowed Value Error while trying to create a row in the `pallet` table because `quantity` is `0`, which `#[disallow(zero)]` forbids!"
+                        .to_string(),
+                ),
+            );
+        }
+        if pallet.tracking_code == ::spacetimedb::Uuid::NIL {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    "Disallowed Value Error while trying to create a row in the `pallet` table because `tracking_code` is `Uuid::NIL`, which `#[disallow(zero)]` forbids!"
+                        .to_string(),
+                ),
+            );
+        }
+        if pallet.warehouse_id == 0 {
+            return Err(
+                crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                    "Disallowed Value Error while trying to create a row in the `pallet` table because `warehouse_id` is `0`, which `#[disallow(zero)]` forbids!"
+                        .to_string(),
+                ),
+            );
+        }
+        let mut the_same_or_another_pallet: Option<Pallet> = None;
+        if warehouse_id.ne(&0) {
+            match self.get_warehouse_by_id(pallet.get_warehouse_id()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "pallet".into(),
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                            column_names_and_row_values: format!(
+                                "{{ warehouse_id : {} }}", pallet.get_warehouse_id().value()
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        let unique_column_values = (pallet.id.clone(),);
+        match self.db().pallet().try_insert(pallet) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "pallet".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ id : {} }}", unique_column_values.0
+                            )
+                                .into(),
+                        })
+                    }
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "pallet".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

@@ -8,8 +8,10 @@
 use {
     super::{
         context::{self, MethodGenerationContext},
+        disallow::{self, GuardedWrite},
         hook_call::hook_use_and_call,
         naming::{cascade_binding, referenced_table_function_name},
+        reference_integrity,
         removal::Removal,
         soft_delete,
         upsert::{rebind_row_as_mutable_after_hook, set_updated_at_on_update},
@@ -26,7 +28,6 @@ use {
         internal::{
             column::ColumnTypeKind,
             dsl::{one_or_multiple::OneOrMultiple, singleton},
-            spacetimedb,
         },
     },
     proc_macro2::TokenStream,
@@ -115,6 +116,8 @@ pub fn on_delete_strategy_implementation(
     let mut strategy_after_all = TokenStream::default();
 
     let is_singleton = spacetimedsl_table.is_singleton();
+
+    let compares_with_the_stored_row = disallow::compares_with_the_stored_row(internal_columns);
 
     for column in &columns_by_on_delete_strategy {
         let column_name = &column.rust_field.name;
@@ -422,6 +425,16 @@ pub fn on_delete_strategy_implementation(
 
                 let set_marker = soft_delete::set_marker(marker, &quote! { #dsl }, &row);
 
+                let disallow_checks = disallow::checks(
+                    context,
+                    &GuardedWrite::SoftDelete {
+                        row_key: disallow::row_key(context, &quote! { row }),
+                        stored_row: quote! { old_row },
+                    },
+                    &quote! { row },
+                    disallow::stop_the_cascade,
+                );
+
                 // The two imports have to escape the per-row loop their guard sits in, so
                 // they are hoisted the way the `Delete` arm hoists its own.
                 let build_hooks = |old_row: TokenStream| {
@@ -473,7 +486,7 @@ pub fn on_delete_strategy_implementation(
                         let a_hook_runs = !before_soft_delete_hook.is_empty()
                             || !after_soft_delete_hook.is_empty();
 
-                        let clone_old_row = match a_hook_runs {
+                        let clone_old_row = match a_hook_runs || compares_with_the_stored_row {
                             true => quote! { let old_row = row.clone(); },
                             false => TokenStream::default(),
                         };
@@ -494,6 +507,8 @@ pub fn on_delete_strategy_implementation(
                                     #clone_old_row
 
                                     #before_soft_delete_hook
+
+                                    #disallow_checks
 
                                     #rebind_row
 
@@ -617,6 +632,8 @@ pub fn on_delete_strategy_implementation(
 
                                 #before_soft_delete_hook
 
+                                #disallow_checks
+
                                 #rebind_row
 
                                 #set_marker
@@ -651,8 +668,10 @@ pub fn on_delete_strategy_implementation(
                 };
             }
             OnDeleteStrategy::SetZero => {
-                let value_referencing_no_row =
-                    value_referencing_no_row(&column.rust_field.type_name_or_path);
+                let value_referencing_no_row = reference_integrity::value_referencing_no_row(
+                    ColumnTypeKind::of(&column.rust_field.type_name_or_path),
+                )
+                .expect(SET_ZERO_ONLY_WITH_A_VALUE_REFERENCING_NO_ROW);
                 let row = format_ident!("row");
 
                 // Clearing the column is an update of the row, so the update hooks run around
@@ -677,12 +696,25 @@ pub fn on_delete_strategy_implementation(
                 strategy_for_before_hook = use_before_update_hook_trait;
                 strategy_for_after_hook = use_after_update_hook_trait;
 
-                // The hooks see the row as it was before the column was cleared.
-                let clone_old_row =
-                    match before_update_hook.is_empty() && after_update_hook.is_empty() {
-                        true => TokenStream::default(),
-                        false => quote! { let old_row = row.clone(); },
-                    };
+                // The hooks and the change rules see the row as it was before the column was
+                // cleared.
+                let clone_old_row = match before_update_hook.is_empty()
+                    && after_update_hook.is_empty()
+                    && !compares_with_the_stored_row
+                {
+                    true => TokenStream::default(),
+                    false => quote! { let old_row = row.clone(); },
+                };
+
+                let disallow_checks = disallow::checks(
+                    context,
+                    &GuardedWrite::Update {
+                        row_key: disallow::row_key(context, &quote! { row }),
+                        stored_row: quote! { old_row },
+                    },
+                    &quote! { row },
+                    disallow::stop_the_cascade,
+                );
 
                 // Written after the before hook, as `update_<table>_by_<key>` does, so the
                 // framework has the last word on the timestamp.
@@ -715,6 +747,8 @@ pub fn on_delete_strategy_implementation(
                         #create_entry_and_add_it_to_entries
 
                         #before_update_hook
+
+                        #disallow_checks
 
                         #rebind_row
                         #set_updated_at
@@ -928,14 +962,10 @@ fn referenced_table_function_call_for_strategy_implementation(
     }
 }
 
-/// What `SetZero` writes into a foreign key column: `Uuid::NIL` for a `Uuid`, `0` for an
-/// unsigned integer - the value create and update treat as referencing no row.
-fn value_referencing_no_row(column_type: &syn::Path) -> TokenStream {
-    match ColumnTypeKind::of(column_type) {
-        ColumnTypeKind::UUID => spacetimedb::uuid_nil(),
-        _ => quote! { 0 },
-    }
-}
+/// Why `SetZero` always has a value to write: it writes the value create and update treat as
+/// referencing no row, and `internal/dsl/foreign_key.rs` allows it only where there is one.
+const SET_ZERO_ONLY_WITH_A_VALUE_REFERENCING_NO_ROW: &str =
+    "`internal/dsl/foreign_key.rs` allows `SetZero` only on unsigned integer and `Uuid` columns";
 
 // Why the lookups in the generated cascades cannot fail. Each starts the panic message of the
 // lookup that relies on it, which goes on to name the key the invariant broke for.

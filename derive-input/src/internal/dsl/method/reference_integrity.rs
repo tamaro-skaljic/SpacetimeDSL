@@ -85,7 +85,9 @@ fn reference_integrity_checks(
             ColumnTypeKind::String
             | ColumnTypeKind::Bool
             | ColumnTypeKind::Timestamp
-            | ColumnTypeKind::Other => quote! {
+            | ColumnTypeKind::Other
+            | ColumnTypeKind::SignedInteger
+            | ColumnTypeKind::Float => quote! {
                 #check
             },
         });
@@ -105,7 +107,20 @@ pub fn documented_value_referencing_no_row(kind: ColumnTypeKind) -> Option<&'sta
         ColumnTypeKind::String
         | ColumnTypeKind::Bool
         | ColumnTypeKind::Timestamp
-        | ColumnTypeKind::Other => None,
+        | ColumnTypeKind::Other
+        | ColumnTypeKind::SignedInteger
+        | ColumnTypeKind::Float => None,
+    }
+}
+
+/// The value a foreign key column of this kind holds when it references no row, as an
+/// expression: `0` or `Uuid::NIL`. `None` for a kind every value of which references a row,
+/// and for `Option`, whose `None` is not a value of the referenced key.
+pub fn value_referencing_no_row(kind: ColumnTypeKind) -> Option<TokenStream> {
+    match kind {
+        ColumnTypeKind::UnsignedInteger => Some(quote! { 0 }),
+        ColumnTypeKind::UUID => Some(spacetimedb::uuid_nil()),
+        _ => None,
     }
 }
 
@@ -150,15 +165,71 @@ pub fn reference_integrity_checks_on_create(
     })
 }
 
-/// Why the generated update may unwrap the stored row: the first foreign key check looks it up
-/// by its primary key and returns when it finds none.
+/// Why the generated update may unwrap the stored row: `look_up_the_stored_row` looks it up by
+/// its primary key and returns when it finds none, before anything is compared with it.
 const STORED_ROW_LOOKED_UP: &str =
-    "the stored row is looked up by its primary key before its foreign key columns are compared";
+    "the stored row is looked up by its primary key before the row to write is compared with it";
 
-/// `is_singleton` decides how the check finds the row it compares against. Every other table
-/// reads its primary key off the row through the key's wrapper, but a singleton's injected
-/// `id: u8` has neither a getter nor a wrapper, so the check names its only legal value
-/// instead.
+/// `if <found>.is_none() { <found> = <the stored row, or return a NotFoundError>; }`: look up
+/// the stored row of the row about to be written by its primary key, unless an earlier check
+/// did so already.
+///
+/// `is_singleton` decides how the lookup finds the row. Every other table reads its primary key
+/// off the row through the key's wrapper, but a singleton's injected `id: u8` has neither a
+/// getter nor a wrapper, so the lookup names its only legal value instead.
+pub fn look_up_the_stored_row(
+    singular_table_name: &Ident,
+    field_name_for_found_value: &Ident,
+    primary_key_column: &InternalColumn,
+    is_singleton: bool,
+) -> TokenStream {
+    let primary_key_column_name = &primary_key_column.rust_field_name;
+
+    // The stored row is looked up by the primary key value of the row to write, so a missing
+    // row is reported with that value.
+    let (primary_key_value, missing_row) = match is_singleton {
+        true => {
+            let primary_key_value = singleton::primary_key_value();
+
+            (
+                quote! { &#primary_key_value },
+                message::singleton_primary_key(),
+            )
+        }
+        false => {
+            let getter_name = naming::getter_name(primary_key_column_name);
+            let primary_key_value = quote! { #singular_table_name.#getter_name().value() };
+            let missing_row =
+                message::single_column_and_value(primary_key_column_name, &primary_key_value);
+
+            (primary_key_value, missing_row)
+        }
+    };
+
+    let not_found_error = runtime::not_found_error(&singular_table_name.to_string(), &missing_row);
+
+    quote! {
+        if #field_name_for_found_value.is_none() {
+            #field_name_for_found_value = match self.db().#singular_table_name().#primary_key_column_name().find(#primary_key_value) {
+                Some(#singular_table_name) => Some(#singular_table_name),
+                None => {
+                    return Err(#not_found_error);
+                }
+            };
+        }
+    }
+}
+
+/// `<found>.as_ref().expect(…)`: the stored row `look_up_the_stored_row` bound.
+pub fn stored_row(field_name_for_found_value: &Ident) -> TokenStream {
+    quote! {
+        #field_name_for_found_value.as_ref().expect(#STORED_ROW_LOOKED_UP)
+    }
+}
+
+/// The checks an update runs on each non-private foreign key column whose value changes: that
+/// the new value references a row. The stored row it compares with is looked up by
+/// `look_up_the_stored_row`.
 pub fn reference_integrity_checks_on_update(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &[InternalColumn],
@@ -166,6 +237,15 @@ pub fn reference_integrity_checks_on_update(
     primary_key_column: &InternalColumn,
     is_singleton: bool,
 ) -> Vec<TokenStream> {
+    let referencing_table_name = &spacetimedb_table.singular_name;
+    let stored_row_lookup = look_up_the_stored_row(
+        referencing_table_name,
+        field_name_for_found_value,
+        primary_key_column,
+        is_singleton,
+    );
+    let stored = stored_row(field_name_for_found_value);
+
     reference_integrity_checks(columns, true, |column, foreign_key| {
         let referenced_table_name = &foreign_key.table_name;
 
@@ -176,38 +256,10 @@ pub fn reference_integrity_checks_on_update(
                 primary_key_column_name_of_referenced_table,
             );
 
-        let referencing_table_name = &spacetimedb_table.singular_name;
         let referencing_table_name_as_string = referencing_table_name.to_string();
         let referencing_table_column_name = &column.rust_field_name;
-        let primary_key_column_name_of_referencing_table = &primary_key_column.rust_field_name;
         let referencing_table_column_getter_name =
             naming::getter_name(referencing_table_column_name);
-
-        // The stored row is looked up by the primary key value of the row to write, so a
-        // missing row is reported with that value.
-        let (primary_key_value_of_referencing_table, missing_row) = match is_singleton {
-            true => {
-                let primary_key_value = singleton::primary_key_value();
-
-                (
-                    quote! { &#primary_key_value },
-                    message::singleton_primary_key(),
-                )
-            }
-            false => {
-                let getter_name = naming::getter_name(primary_key_column_name_of_referencing_table);
-                let primary_key_value = quote! { #referencing_table_name.#getter_name().value() };
-                let missing_row = message::single_column_and_value(
-                    primary_key_column_name_of_referencing_table,
-                    &primary_key_value,
-                );
-
-                (primary_key_value, missing_row)
-            }
-        };
-
-        let not_found_error =
-            runtime::not_found_error(&referencing_table_name_as_string, &missing_row);
 
         let reference_integrity_violation_error =
             runtime::reference_integrity_violation_on_create_or_update(
@@ -220,15 +272,8 @@ pub fn reference_integrity_checks_on_update(
             );
 
         quote! {
-            if #field_name_for_found_value.is_none() {
-                #field_name_for_found_value = match self.db().#referencing_table_name().#primary_key_column_name_of_referencing_table().find(#primary_key_value_of_referencing_table) {
-                    Some(#referencing_table_name) => Some(#referencing_table_name),
-                    None => {
-                        return Err(#not_found_error);
-                    }
-                };
-            }
-            if #field_name_for_found_value.as_ref().expect(#STORED_ROW_LOOKED_UP).#referencing_table_column_getter_name().ne(&#referencing_table_name.#referencing_table_column_getter_name()) {
+            #stored_row_lookup
+            if #stored.#referencing_table_column_getter_name().ne(&#referencing_table_name.#referencing_table_column_getter_name()) {
                 match self.#get_row_of_referenced_table_by_primary_key_method_name(#referencing_table_name.#referencing_table_column_getter_name()) {
                     Ok(_) => {},
                     Err(_) => return Err(#reference_integrity_violation_error)

@@ -1,0 +1,150 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `transfer` table
+///
+/// - `source_ledger_id` references the `id` column of the `ledger` table (`::other_crate::tables`).
+///   - On delete: `Delete`
+///   - On soft delete: none, the `ledger` table is not soft-deletable
+/// - `target_ledger_id` references the `id` column of the `ledger` table (`other_crate::tables`).
+///   - On delete: `Delete`
+///   - On soft delete: none, the `ledger` table is not soft-deletable
+
+pub trait this_compilation_error_occurs_because_the_transfer_table_has_no_foreign_key_attribute_referencing_the_ledger_table {}
+const _: () = {
+    use ::other_crate::tables::this_compilation_error_occurs_because_the_ledger_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_transfer_table;
+    use ::other_crate::tables::this_compilation_error_occurs_because_your_foreign_key_referencing_the_ledger_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_ledger_table_has_no_referenced_by_attribute_referencing_the_transfer_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct TransferId {
+    value: u64,
+}
+impl Default for TransferId {
+    fn default() -> TransferId {
+        TransferId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for TransferId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "TransferId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for TransferId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Transfer> for TransferId {
+    fn from(value: &Transfer) -> Self {
+        TransferId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Transfer> for Option<TransferId> {
+    fn from(value: &Transfer) -> Option<TransferId> {
+        Some(TransferId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&TransferId> for Option<TransferId> {
+    fn from(value: &TransferId) -> Option<TransferId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(TransferId::new(value.value()))
+    }
+}
+impl From<&TransferId> for TransferId {
+    fn from(value: &TransferId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        TransferId::new(value.value())
+    }
+}
+impl Transfer {
+    ///
+    pub fn get_id(&self) -> TransferId {
+        use crate::spacetimedsl::Wrapper;
+        TransferId::new(self.id.clone())
+    }
+    /**References the `id` column of the `ledger` table (`::other_crate::tables`).
+
+- On delete: `Delete`
+- On soft delete: none, the `ledger` table is not soft-deletable*/
+    pub fn get_source_ledger_id(&self) -> ::other_crate::tables::LedgerId {
+        use crate::spacetimedsl::Wrapper;
+        ::other_crate::tables::LedgerId::new(self.source_ledger_id.clone())
+    }
+    /**References the `id` column of the `ledger` table (`::other_crate::tables`).
+
+- On delete: `Delete`
+- On soft delete: none, the `ledger` table is not soft-deletable*/
+    pub fn set_source_ledger_id(
+        &mut self,
+        source_ledger_id: impl Into<::other_crate::tables::LedgerId>,
+    ) -> ::other_crate::tables::LedgerId {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(
+            &mut self.source_ledger_id,
+            source_ledger_id.into().value(),
+        );
+        ::other_crate::tables::LedgerId::new(old_value)
+    }
+    /**References the `id` column of the `ledger` table (`other_crate::tables`).
+
+- On delete: `Delete`
+- On soft delete: none, the `ledger` table is not soft-deletable*/
+    pub fn get_target_ledger_id(&self) -> other_crate::tables::LedgerId {
+        use crate::spacetimedsl::Wrapper;
+        other_crate::tables::LedgerId::new(self.target_ledger_id.clone())
+    }
+    /**References the `id` column of the `ledger` table (`other_crate::tables`).
+
+- On delete: `Delete`
+- On soft delete: none, the `ledger` table is not soft-deletable*/
+    pub fn set_target_ledger_id(
+        &mut self,
+        target_ledger_id: impl Into<other_crate::tables::LedgerId>,
+    ) -> other_crate::tables::LedgerId {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(
+            &mut self.target_ledger_id,
+            target_ledger_id.into().value(),
+        );
+        other_crate::tables::LedgerId::new(old_value)
+    }
+}
+///
+pub struct CreateTransfer {
+    pub source_ledger_id: ::other_crate::tables::LedgerId,
+    pub target_ledger_id: other_crate::tables::LedgerId,
+}
+
+// Generated DSL methods:
+// count_of_all_transfers
+// create_transfer
+// delete_transfer_by_id
+// delete_transfers_by_source_ledger_id
+// delete_transfers_by_target_ledger_id
+// execute_on_delete_strategies_of_the_transfer_table_after_multiple_rows_of_the_ledger_table_were_deleted
+// execute_on_delete_strategies_of_the_transfer_table_after_one_row_of_the_ledger_table_was_deleted
+// get_all_transfers
+// get_transfer_by_id
+// get_transfers_by_source_ledger_id
+// get_transfers_by_target_ledger_id
+// update_transfer_by_id

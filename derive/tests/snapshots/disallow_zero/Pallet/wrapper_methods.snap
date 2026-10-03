@@ -1,0 +1,36 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl WarehouseId {
+    /**Get all `Pallet` rows whose `warehouse_id` column references this `WarehouseId`.
+
+Use it like `warehouse_id.get_pallets(&dsl)`.*/
+    pub fn get_pallets<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<Pallet> {
+        dsl.into().get_pallets_by_warehouse_id(self).collect()
+    }
+}
+impl PalletId {
+    /**Get the row of the `warehouse` table which the `warehouse_id` column of the `Pallet` row with this `PalletId` references.
+
+Use it like `pallet_id.get_warehouse(&dsl)`.*/
+    pub fn get_warehouse<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::warehouse__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let pallet = dsl.get_pallet_by_id(self)?;
+        if pallet.warehouse_id == 0 {
+            return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                table_name: "warehouse".into(),
+                column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
+            });
+        }
+        dsl.get_warehouse_by_id(pallet.get_warehouse_id())
+    }
+}

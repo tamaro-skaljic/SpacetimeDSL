@@ -1,0 +1,5 @@
+error: `#[disallow(decreasing)]` and `#[disallow(increasing)]` are only allowed on the integer and float columns `u8`–`u128`, `i8`–`i128`, `f32` and `f64`, whose values are ordered! Found: String
+  --> tests/ui/disallow_decreasing_on_string_column.rs:13:19
+   |
+13 |         pub name: String,
+   |                   ^^^^^^

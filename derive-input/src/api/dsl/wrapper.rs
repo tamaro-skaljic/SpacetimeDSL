@@ -35,8 +35,10 @@ pub struct UsedWrapper {
     pub wrapped_type_name_or_path: Path,
 }
 
-/// A method on the wrapper type of a foreign key column which looks up the rows that
-/// reference one value of that wrapper, like `entity_id.get_position(&dsl)`.
+/// A method a table adds to a wrapper type, which looks rows up through a foreign key: the
+/// rows which reference one value of the wrapper type of a foreign key column, like
+/// `entity_id.get_position(&dsl)`, or the row a foreign key column of the row with one value
+/// of the primary key's wrapper type references, like `position_id.get_entity(&dsl)`.
 ///
 /// `method_impl` reads the DSL from the argument `dsl`, which the code that renders this
 /// method declares.

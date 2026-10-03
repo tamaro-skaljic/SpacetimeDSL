@@ -1,0 +1,5 @@
+error: Expected an expression in `#[creation_default(...)]`, e.g. `#[creation_default(0)]` or `#[creation_default(String::new())]`: the value `create_<table>` fills this column with!
+  --> tests/ui/creation_default_without_expression.rs:12:9
+   |
+12 |         #[creation_default]
+   |         ^^^^^^^^^^^^^^^^^^^

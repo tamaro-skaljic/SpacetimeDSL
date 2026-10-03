@@ -150,4 +150,13 @@ pub struct SpacetimeDSLTableMethods {
     pub multi_column_indices: Vec<SpacetimeDSLColumnMethods>,
     /// Methods this table adds to the wrapper types of its foreign key columns.
     pub wrapper_methods: Vec<WrapperMethod>,
+    /// Methods this table adds to the wrapper type of its primary key, one per foreign key
+    /// column besides the primary key, which look up the row that column of the row with a key
+    /// references, such as `server_id.get_season(&dsl)`.
+    ///
+    /// Every table of a struct shares the struct's wrapper types, so the key names a row in
+    /// each of them and the lookup would be ambiguous: `spacetimedsl_derive` emits these methods
+    /// only for a struct with a single `#[dsl]` attribute. Empty for a singleton, whose
+    /// injected primary key has no wrapper type.
+    pub referenced_row_methods: Vec<WrapperMethod>,
 }

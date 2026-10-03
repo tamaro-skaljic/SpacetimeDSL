@@ -1,0 +1,114 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `tournament` table
+///
+/// - `opening_season_id` references the `id` column of the `season` table (`self`).
+///   - On delete: none, the `season` table is not deletable
+///   - On soft delete: none, the `season` table is not soft-deletable
+/// - `closing_season_id` references the `id` column of the `season` table (`self`).
+///   - On delete: none, the `season` table is not deletable
+///   - On soft delete: none, the `season` table is not soft-deletable
+
+pub trait this_compilation_error_occurs_because_the_tournament_table_has_no_foreign_key_attribute_referencing_the_season_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_season_table_needs_to_define_a_strategy_for_on_delete_or_the_season_table_has_no_referenced_by_attribute_referencing_the_tournament_table;
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_season_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_season_table_has_no_referenced_by_attribute_referencing_the_tournament_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct TournamentId {
+    value: u64,
+}
+impl Default for TournamentId {
+    fn default() -> TournamentId {
+        TournamentId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for TournamentId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "TournamentId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for TournamentId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Tournament> for TournamentId {
+    fn from(value: &Tournament) -> Self {
+        TournamentId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Tournament> for Option<TournamentId> {
+    fn from(value: &Tournament) -> Option<TournamentId> {
+        Some(TournamentId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&TournamentId> for Option<TournamentId> {
+    fn from(value: &TournamentId) -> Option<TournamentId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(TournamentId::new(value.value()))
+    }
+}
+impl From<&TournamentId> for TournamentId {
+    fn from(value: &TournamentId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        TournamentId::new(value.value())
+    }
+}
+impl Tournament {
+    ///
+    pub fn get_id(&self) -> TournamentId {
+        use crate::spacetimedsl::Wrapper;
+        TournamentId::new(self.id.clone())
+    }
+    /**References the `id` column of the `season` table (`self`).
+
+- On delete: none, the `season` table is not deletable
+- On soft delete: none, the `season` table is not soft-deletable*/
+    pub fn get_opening_season_id(&self) -> SeasonId {
+        use crate::spacetimedsl::Wrapper;
+        SeasonId::new(self.opening_season_id.clone())
+    }
+    /**References the `id` column of the `season` table (`self`).
+
+- On delete: none, the `season` table is not deletable
+- On soft delete: none, the `season` table is not soft-deletable*/
+    pub fn get_closing_season_id(&self) -> SeasonId {
+        use crate::spacetimedsl::Wrapper;
+        SeasonId::new(self.closing_season_id.clone())
+    }
+}
+///
+pub struct CreateTournament {
+    pub opening_season_id: SeasonId,
+    pub closing_season_id: SeasonId,
+}
+
+// Generated DSL methods:
+// count_of_all_tournaments
+// create_tournament
+// get_all_tournaments
+// get_tournament_by_id
+// get_tournaments_by_closing_season_id
+// get_tournaments_by_opening_season_id

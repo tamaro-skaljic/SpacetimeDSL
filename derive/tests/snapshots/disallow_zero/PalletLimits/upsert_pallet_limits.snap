@@ -1,0 +1,75 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Write the `PalletLimits` row of the singleton `pallet_limits` table, whether or not it exists yet.
+
+# Disallowed values
+
+Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` forbids:
+
+- `maximum_quantity`: `0`*/
+    pub fn upsert_pallet_limits<'a>(
+        &'a self,
+        pallet_limits: PalletLimits,
+    ) -> Result<PalletLimits, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut pallet_limits = pallet_limits;
+        pallet_limits.id = 0u8;
+        let the_same_or_another_pallet_limits: Option<PalletLimits> = self
+            .db()
+            .pallet_limits()
+            .id()
+            .find(&0u8);
+        if the_same_or_another_pallet_limits.is_some() {
+            if pallet_limits.maximum_quantity == 0 {
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                        format!(
+                            "Disallowed Value Error while trying to update the row `{}` in the `pallet_limits` table because `maximum_quantity` is `0`, which `#[disallow(zero)]` forbids!",
+                            "{ id : 0 }"
+                        ),
+                    ),
+                );
+            }
+            let pallet_limits = self.db().pallet_limits().id().update(pallet_limits);
+            Ok(pallet_limits)
+        } else {
+            if pallet_limits.maximum_quantity == 0 {
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::Error(
+                        "Disallowed Value Error while trying to create a row in the `pallet_limits` table because `maximum_quantity` is `0`, which `#[disallow(zero)]` forbids!"
+                            .to_string(),
+                    ),
+                );
+            }
+            let unique_column_values = (pallet_limits.id.clone(),);
+            match self.db().pallet_limits().try_insert(pallet_limits) {
+                Ok(entity) => Ok(entity),
+                Err(error) => {
+                    match error {
+                        ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                            Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                                table_name: "pallet_limits".into(),
+                                action: crate::spacetimedsl::error::Action::Create,
+                                error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                                one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                                column_names_and_row_values: format!(
+                                    "{{ id : {} }}", unique_column_values.0
+                                )
+                                    .into(),
+                            })
+                        }
+                        ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                            Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                                table_name: "pallet_limits".into(),
+                            })
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

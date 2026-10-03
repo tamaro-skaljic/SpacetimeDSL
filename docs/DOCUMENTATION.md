@@ -92,6 +92,7 @@ use crate::spacetimedsl::prelude::*;
   - `Wrapper` — trait for wrapper types
   - `DeletionResult`, `DeletionResultEntry`, `OnDeleteStrategy`, `OnDeleteStrategyFailure` — deletion types
   - `SpacetimeDSLError`, `ReferenceIntegrityViolationError` — error types
+  - `err!` — `Err(SpacetimeDSLError::Error(…))` with a message built like `format!`
   - `GetAuth`, `GetSender`, `GetTimestamp`, `NewUUID`, `GetConnectionId`, `GetModuleIdentity`, `GetRandom`, `GetRandomNumberGenerator`, `GetImmutableDatabase`, `GetMutableDatabase`, `AsReducerContext`, `AsViewContext`, `AsAnonymousViewContext` — context accessor traits
   - `Itertools` — re-exported from `itertools` crate
 - `AnonymousViewContext`, `Identity`, `ProcedureContext`, `ReducerContext`, `ScheduleAt`, `SpacetimeType`, `Table`, `TimeDuration`, `Timestamp`, `ViewContext`, `rand::Rng` — re-exported from `spacetimedb`
@@ -238,6 +239,8 @@ pub struct Task {
 #[referenced_by(path = self, table = position)]                               // Marks PK as referenced by another table's FK
 #[auto_gen(v4)]          // Fills a private `Uuid` column with a random UUID v4 on create (needs #[create_wrapper])
 #[auto_gen(v7)]          // Fills a private `Uuid` column with a sortable UUID v7 on create (needs #[create_wrapper])
+#[creation_default(0)]   // Fills the column on create instead of asking for it in Create{Table}
+#[disallow(zero)]        // Refuses to write 0, or Uuid::NIL, into the column
 ```
 
 ### ReducerContext API
@@ -278,7 +281,7 @@ pub fn send_message(ctx: &ReducerContext, text: String) -> Result<(), SpacetimeD
     let dsl = dsl(ctx);
 
     if text.is_empty() {
-        return Err(SpacetimeDSLError::Error("Message cannot be empty".to_string()));
+        return err!("Message cannot be empty");
     }
 
     // Use DSL methods for all database operations
@@ -573,12 +576,12 @@ A column's type has to be a path, such as `u64`, `String`, `Option<T>`, `spaceti
 
 Where **SpacetimeDSL** checks or treats a column's type specially, it accepts every spelling of that type:
 
-| Type                  | Accepted spellings                                                            |
-| --------------------- | ----------------------------------------------------------------------------- |
-| `String`              | `String`, `std::string::String`, `alloc::string::String`                      |
-| `Option<T>`           | `Option<T>`, `std::option::Option<T>`, `core::option::Option<T>`              |
-| `u8`–`u128`, `bool`   | bare, `core::primitive::u64`, `std::primitive::u64` (likewise for the others) |
-| `Timestamp`, `Uuid`   | bare, `spacetimedb::Timestamp`, `spacetimedb::Uuid`                           |
+| Type                                           | Accepted spellings                                                            |
+| ---------------------------------------------- | ----------------------------------------------------------------------------- |
+| `String`                                       | `String`, `std::string::String`, `alloc::string::String`                      |
+| `Option<T>`                                    | `Option<T>`, `std::option::Option<T>`, `core::option::Option<T>`              |
+| `u8`–`u128`, `i8`–`i128`, `f32`, `f64`, `bool` | bare, `core::primitive::u64`, `std::primitive::u64` (likewise for the others) |
+| `Timestamp`, `Uuid`                            | bare, `spacetimedb::Timestamp`, `spacetimedb::Uuid`                           |
 
 Each rooted spelling may also start with `::`, such as `::spacetimedb::Timestamp`. A path to a type of your own crate with the same last name, such as `my_crate::String`, is a different type.
 
@@ -959,6 +962,7 @@ You can see that the `consume_entity_timer`, `food` and `circle` tables each hav
 | `updated_at: Timestamp`          | `ctx.timestamp` on create                    |
 | `#[auto_gen(v4)]` columns        | A new random UUID v4                         |
 | `#[auto_gen(v7)]` columns        | A new sortable UUID v7                       |
+| `#[creation_default(<expression>)]` columns | The expression                       |
 
 Both `created_at`/`inserted_at` and `modified_at`/`updated_at` are recognized aliases. For other
 column names, use the bare `#[set_on_create]` or `#[set_on_update]` helper attribute:
@@ -997,6 +1001,38 @@ when they should reveal nothing about it. An `#[auto_gen]` column must have the 
 than one. `#[auto_gen]` works on ordinary and `#[dsl(singleton)]` tables, but not on
 `#[dsl(singleton(with_default))]` tables, because they have no create method. Generating a UUID
 fails outside reducers, like `ctx.timestamp` does.
+
+#### Defaults of Your Own: `#[creation_default(...)]`
+
+`#[creation_default(<expression>)]` leaves a column out of `Create{Table}` and fills it with the expression instead, each time `create_<table>` builds a row:
+
+```rust
+#[spacetimedsl::dsl(plural_name = players, method(update = true))]
+#[spacetimedb::table(accessor = player, public)]
+pub struct Player {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    pub name: String,
+
+    #[creation_default(100)]
+    pub coins: u32,
+
+    #[creation_default(Membership::Trial)]
+    membership: Membership,
+}
+
+// CreatePlayer has: name
+let player = dsl.create_player(CreatePlayer { name: "Ada".to_string() })?;
+```
+
+- The expression has the column's own type, also on a column with a wrapper type: `#[creation_default(0)]` on `#[use_wrapper(TeamId)] team_id: u64`. On a foreign key column, `0` and `Uuid::NIL` reference no row, so create skips the reference check for them.
+- The column may be private or public. A public one keeps its setter, so an update can change it later.
+- The `before_insert` hook receives `Create{Table}`, which does not hold the column; the row is built from the expression after the hook.
+- The documentation of `create_<table>` lists the defaulted columns under *Defaults*.
+- It is rejected on a `singleton(with_default)` table, which has no create method; on the columns create fills in already — `#[auto_inc]`, `#[auto_gen]`, the `set_on_create` and `set_on_update` columns and the soft-delete marker; and on a `#[primary_key]` or `#[unique]` column, where every created row would repeat the value.
 
 #### Usage
 
@@ -1190,7 +1226,8 @@ pub struct DeletionResult {
     pub table_name: Box<str>,
     pub one_or_multiple: OneOrMultiple,
     pub entries: Vec<DeletionResultEntry>,
-    // The error a delete hook raised while the cascade ran. Boxed because
+    // The error which stopped the cascade: one a delete hook raised, or a broken
+    // `#[disallow]` rule of a row the cascade wrote. Boxed because
     // `SpacetimeDSLError::ReferenceIntegrityViolation` holds a `DeletionResult`, so an
     // unboxed field would make both types infinitely sized.
     pub error_from_hook: Option<Box<SpacetimeDSLError>>,
@@ -1215,7 +1252,7 @@ entry_id, parent_entry_id, table_name, column_name, strategy, row_value
 ```
 
 Printing the result with `Display` prints the same CSV, preceded by an
-`Error from a hook: <error>` line and a blank line when `error_from_hook` is `Some`.
+`Error which stopped the cascade: <error>` line and a blank line when `error_from_hook` is `Some`.
 
 ---
 
@@ -1434,6 +1471,56 @@ player.set_position_id(&position);
 
 ---
 
+## Disallowed Values
+
+`#[disallow(...)]` on a column names what its value must not be. Every DSL method which writes the row refuses a value a rule forbids and fails with a `SpacetimeDSLError::Error` whose message starts with *Disallowed Value Error*:
+
+```rust
+#[spacetimedsl::dsl(plural_name = players, method(update = true))]
+#[spacetimedb::table(accessor = player, public)]
+pub struct Player {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    #[disallow(zero)]
+    pub level: u8,
+
+    #[disallow(decreasing)]
+    pub experience: u64,
+
+    #[disallow(increasing)]
+    pub remaining_lives: u8,
+}
+```
+
+| Rule         | Forbids                               | Column types                           |
+| ------------ | ------------------------------------- | -------------------------------------- |
+| `zero`       | the value `0`, or `Uuid::NIL`         | `u8`–`u128`, `Uuid`                    |
+| `decreasing` | a write which makes the value smaller | `u8`–`u128`, `i8`–`i128`, `f32`, `f64` |
+| `increasing` | a write which makes the value larger  | `u8`–`u128`, `i8`–`i128`, `f32`, `f64` |
+
+Name several rules in one attribute, such as `#[disallow(zero, decreasing)]`.
+
+- Every write checks the rules after its before hook: `create_<table>`, `update_<table>_by_<key>`, both paths of `upsert_<table>`, `soft_delete_*`, and each row an `on_delete = SetZero` or `SoftDelete` cascade writes. So a hook may repair a value, and a value a hook writes is checked as well.
+- In a cascade, a broken rule stops the cascade like an error a hook raised: the delete or soft-delete method fails with a `SpacetimeDSLError::Error` whose message prints the `DeletionResult`, which starts with *Error which stopped the cascade:* and the rule's error.
+- `create_<table>` skips `zero` on an `#[auto_inc]` column: it writes `0` there, which SpacetimeDB replaces with a value of its sequence, never `0`. A row which reaches `0` another way, such as a system user written through raw SpacetimeDB access in the table's module, cannot be written through the DSL afterwards.
+- On a foreign key column, `zero` forbids a reference to no row.
+- The setter of the column and the documentation of each write method name the rules.
+- `decreasing` and `increasing` compare the written value with the stored one, so `create_<table>` and the insert path of `upsert_<table>`, which have no stored row, do not check them.
+- `f32` and `f64` compare through `partial_cmp`: a change to or from NaN breaks both rules, while an unchanged value, NaN included, breaks neither.
+
+A second `#[disallow]` on a column, a rule named twice and a `#[disallow]` without a rule are rejected, and so are `zero` on a column that is not `u8`–`u128` or `Uuid`, `zero` on a column whose foreign key has `on_delete = SetZero`, which writes `0` into it, `zero` on a column whose `#[creation_default(...)]` is `0` or `Uuid::NIL`, `decreasing` or `increasing` on a column that is not an integer or a float, on the primary key, which an update never changes, or on a private column, which has no setter, `decreasing` together with `increasing`, which forbid every change — remove both and make the column private instead — and `decreasing` on a column whose foreign key has `on_delete = SetZero`.
+
+```txt
+Disallowed Value Error while trying to create a row in the `player` table because `level` is `0`, which `#[disallow(zero)]` forbids!
+Disallowed Value Error while trying to update the row `{ id : 7 }` in the `player` table because `level` is `0`, which `#[disallow(zero)]` forbids!
+Disallowed Value Error while trying to update the row `{ id : 7 }` in the `player` table because `experience` would decrease from `10` to `5`, which `#[disallow(decreasing)]` forbids!
+```
+
+---
+
 ## Foreign Keys & Referential Integrity
 
 ### Declaration
@@ -1460,6 +1547,8 @@ The two strategy parameters follow what the referenced table does. Set `on_delet
 - `on_soft_delete` — what happens to them when a referenced row is **soft-deleted**: `Error`, `SoftDelete`, or `Ignore`
 
 A foreign key to a table with `method(delete = false)` and without `method(soft_delete = true)` sets neither: the rows it references are never removed. Create and update still check that it references a row.
+
+`referenced_row_method = false` keeps the column from adding the method which looks up the row it references; see [Look Up the Referenced Row From a Wrapper](#look-up-the-referenced-row-from-a-wrapper).
 
 ### Pairing Requirement
 
@@ -1628,8 +1717,7 @@ Both columns reference `entity`, so `EntityId` gets `get_entity_relationships_by
 
 ### Look Up Referencing Rows From a Wrapper
 
-Every `#[foreign_key]` column with a single-column index adds a method to its `#[use_wrapper]`
-type. The method looks up the rows which reference one value of that wrapper. You do not have
+Every `#[foreign_key]` column with a single-column index adds a method to its `#[use_wrapper]` type, which looks up the rows referencing one value of that wrapper; the next section describes the method for the other direction. You do not have
 to add anything.
 
 ```rust
@@ -1646,6 +1734,43 @@ let circles: Vec<Circle> = player.get_id().get_circles(&dsl);
 - Two or more columns of one table reference the same table, or a column references its own table: each method takes the full name of the DSL method it calls, for example `get_entity_relationships_by_parent_entity_id`.
 - Multi-column indices and the foreign key columns of singleton tables add no method.
 - Pass `&dsl` from a reducer or `&read_only_dsl` from a view.
+
+### Look Up the Referenced Row From a Wrapper
+
+Every `#[foreign_key]` column besides the primary key also adds a method to the wrapper type of its own table's primary key. The method looks up the row the column of the row with that key references:
+
+```rust
+// Alliance has `#[use_wrapper(ServerId)] #[foreign_key(… table = server …)] server_id`,
+// Server has `#[use_wrapper(SeasonId)] #[foreign_key(… table = season …)] season_id`:
+let max_alliance_level = alliance.get_server_id().get_season(&dsl)?.get_max_alliance_level();
+
+// instead of
+let server = dsl.get_server_by_id(alliance.get_server_id())?;
+let max_alliance_level = dsl.get_season_by_id(server.get_season_id())?.get_max_alliance_level();
+```
+
+- The method is `get_<referenced table>` and returns `Result<Row, SpacetimeDSLError>`: a `NotFoundError` when no row has the key, or when the column holds `0` or `Uuid::NIL`, which reference no row.
+- When a table references the same table through several columns, or references itself, each method takes the name of its column without its `_<primary key>` or `_id` suffix: `parent_entity_id` adds `get_parent_entity`. A unique foreign key to the own table therefore gets both `get_<table>_by_<column>`, the row which references this one, and `get_<column stem>`, the row this one references.
+- The return type names the row as `<path::<table>__TableHandle as ::spacetimedb::Table>::Row`, the type SpacetimeDB generates for the referenced table: the foreign key names the table, not its struct. Its value is the table's struct.
+- A foreign key on the primary key adds no such method, and neither does a singleton, whose injected primary key has no wrapper type, nor a struct with several `#[dsl]` attributes, whose tables share the wrapper type.
+- The documentation of each method says which column it follows, so its direction is clear although both directions share the `get_` prefix.
+- `#[foreign_key(..., referenced_row_method = false)]` switches the method of one column off. It is rejected where the table adds none: on a foreign key on the primary key and on a singleton.
+
+#### When Two Methods Take the Same Name
+
+The methods of both directions share the wrapper types, so two of them can take the same name, which rustc rejects as *duplicate definitions with name `get_…`* (E0592):
+
+- Two tables reference each other through unique foreign keys: `player_account.player_character_id` and `player_character.player_account_id` add `get_player_account` to `PlayerCharacterId` and `get_player_character` to `PlayerAccountId`, once in each direction.
+- Two tables share a primary key wrapper and reference the same table, such as `circle` and `food`, both keyed by `EntityId`, with a `player_id` each: both add `get_player` to `EntityId`.
+- A method you wrote on the wrapper type yourself has the name already.
+
+Add `referenced_row_method = false` to the `#[foreign_key]` whose method for the referenced row you do not need:
+
+```rust
+#[foreign_key(path = crate::character, table = player_character, column = id, referenced_row_method = false)]
+```
+
+Within one table, SpacetimeDSL reports two foreign key columns whose methods would take the same name itself, such as `owner_id` and `owner` referencing the same table.
 
 ### Generated Documentation
 
@@ -1835,11 +1960,13 @@ returns an error. The hook's own error is carried on the `DeletionResult` as
 `error_from_hook`, and `Display` prints it above the CSV:
 
 ```txt
-Error from a hook: this lock holder is locked
+Error which stopped the cascade: this lock holder is locked
 
 entry_id, parent_entry_id, table_name, column_name, strategy, row_value,
 1,        0,               lock_holder, group_id,   Delete,   7
 ```
+
+A `#[disallow]` rule which a row written by the cascade breaks stops it the same way; see [Disallowed Values](#disallowed-values).
 
 Rows deleted before the hook refused are not rolled back by SpacetimeDSL. Return the error
 from your reducer so SpacetimeDB rolls the transaction back.
@@ -1916,6 +2043,20 @@ pub fn my_reducer(ctx: &ReducerContext) -> Result<(), SpacetimeDSLError> {
 }
 ```
 
+### Refusing With `err!`
+
+`err!` is the shortcut for `Err(SpacetimeDSLError::Error(…))`. It builds the message like `format!`, inline arguments included, and a single argument which is not a literal becomes the whole message through `ToString`:
+
+```rust
+if level > MAXIMUM_LEVEL {
+    return err!("Level {level} is above the maximum of {MAXIMUM_LEVEL}");
+}
+
+return err!(LOCKED_MESSAGE);
+```
+
+It evaluates to the `Err`, so return it or let it end a function.
+
 ### Explicit Matching for ReferenceIntegrityViolation
 
 ```rust
@@ -1927,9 +2068,10 @@ match dsl.delete_entity_by_id(&entity) {
         log::warn!("Cannot delete: referenced by other tables");
         // err contains the DeletionResult showing what would be affected
         log::warn!("Affected rows:\n{}", err.deletion_result.to_csv());
-        // The DeletionResult also carries `error_from_hook`, the error a delete hook of a
-        // referencing table raised while the cascade ran, if one did.
-        log::warn!("Affected rows and any hook error:\n{}", err.deletion_result);
+        // The DeletionResult also carries `error_from_hook`, the error which stopped the
+        // cascade, if one did: one a delete hook of a referencing table raised, or a broken
+        // `#[disallow]` rule of a row the cascade wrote.
+        log::warn!("Affected rows and any error which stopped the cascade:\n{}", err.deletion_result);
         // Still return error, otherwise the transaction will be committed and the integrity violation will be ignored!
         return Err(e);
     }
@@ -1981,7 +2123,7 @@ entry_id, parent_entry_id, table_name, column_name, strategy, row_value,
 **Delete with a hook that refused during the cascade:**
 
 ```txt
-Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: Error from a hook: this lock holder is locked
+Delete One Error: An error occurred after changing the database state! If the reducer running this doesn't return an error, the state changes are persisted and you have problems now! Here is the deletion result: Error which stopped the cascade: this lock holder is locked
 
 entry_id, parent_entry_id, table_name, column_name, strategy, row_value,
 1,        0,               lock_holder, group_id,   Delete,   7
