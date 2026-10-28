@@ -1,27 +1,18 @@
 error: `#[disallow(zero)]` is not allowed together with `on_delete = SetZero`, which writes `0` or `Uuid::NIL` into this column when the referenced row is deleted! Remove `zero`, or choose another strategy, such as `on_delete = Delete`.
-  --> tests/ui/disallow_zero_with_set_zero_strategy.rs:34:9
+  --> tests/ui/disallow_zero_with_set_zero_strategy.rs:33:9
    |
-34 |         #[disallow(zero)]
+33 |         #[disallow(zero)]
    |         ^^^^^^^^^^^^^^^^^
 
-error[E0599]: no associated function or constant named `execute_on_delete_strategies_of_the_shipment_table_after_one_row_of_the_warehouse_table_was_deleted` found for struct `DSLInternals` in the current scope
-  --> tests/ui/disallow_zero_with_set_zero_strategy.rs:11:5
+error[E0277]: the `shipment` table can't reference the `warehouse` table, because the `shipment` table has no accepted `#[spacetimedsl::dsl]`
+  --> tests/ui/disallow_zero_with_set_zero_strategy.rs:16:57
    |
- 8 | ::spacetimedsl::spacetimedsl!();
-   | ------------------------------- associated function or constant `execute_on_delete_strategies_of_the_shipment_table_after_one_row_of_the_warehouse_table_was_deleted` not found for this struct
-...
-11 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false, delete = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function or constant not found in `DSLInternals`
+16 |         #[referenced_by(path = crate::shipment, table = shipment)]
+   |                                                         ^^^^^^^^ fix the `#[spacetimedsl::dsl]` of the `shipment` table first, or add one
    |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0599]: no associated function or constant named `execute_on_delete_strategies_of_the_shipment_table_after_multiple_rows_of_the_warehouse_table_were_deleted` found for struct `DSLInternals` in the current scope
-  --> tests/ui/disallow_zero_with_set_zero_strategy.rs:11:5
+help: the trait `ShipmentTableIsAccepted` is not implemented for `shipment::shipment__TableHandle`
+  --> tests/ui/disallow_zero_with_set_zero_strategy.rs:23:5
    |
- 8 | ::spacetimedsl::spacetimedsl!();
-   | ------------------------------- associated function or constant `execute_on_delete_strategies_of_the_shipment_table_after_multiple_rows_of_the_warehouse_table_were_deleted` not found for this struct
-...
-11 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false, delete = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function or constant not found in `DSLInternals`
-   |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+23 |     #[spacetimedb::table(accessor = shipment, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -1,6 +1,13 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct SignedDocumentTable;
+impl crate::spacetimedsl::internal::AcceptedTable for signed_document__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for SignedDocumentTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for SignedDocumentTable {}
 #[derive(
     Clone,
     Debug,
@@ -98,5 +105,6 @@ pub struct CreateSignedDocument {
 // create_signed_document
 // delete_signed_document_by_id
 // get_all_signed_documents
+// get_by_primary_key
 // get_signed_document_by_id
 // update_signed_document_by_id

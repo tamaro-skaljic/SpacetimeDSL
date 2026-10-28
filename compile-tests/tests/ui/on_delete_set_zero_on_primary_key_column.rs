@@ -2,9 +2,8 @@
 //! When the foreign key column is the primary key, the write goes to the key `0`, where it
 //! finds no row or overwrites another one.
 //!
-//! The errors after the first follow from it: a rejected `#[dsl]` emits nothing else, so
-//! the `warehouse` table's expansion misses the trait and the two cascade functions the
-//! `dock` table would have generated for it.
+//! The error after the first follows from it: the `#[referenced_by]` of the `warehouse` table
+//! reports that the `dock` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

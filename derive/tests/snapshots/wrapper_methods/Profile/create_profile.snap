@@ -24,7 +24,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         };
         let mut the_same_or_another_profile: Option<Profile> = None;
         if account_id.ne(&0) {
-            match self.get_account_by_id(profile.get_account_id()) {
+            match self::AccountTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                profile.get_account_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

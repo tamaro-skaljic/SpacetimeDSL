@@ -1,5 +1,16 @@
 error: SpacetimeDSL supports only path types as column types, such as `u64`, `String` or `spacetimedb::Timestamp`! This column's type is a reference.
-  --> tests/ui/column_with_reference_type.rs:15:20
+  --> tests/ui/column_with_reference_type.rs:18:20
    |
-15 |         pub value: &'static str,
+18 |         pub value: &'static str,
    |                    ^^^^^^^^^^^^
+
+error: lifetime may not live long enough
+  --> tests/ui/column_with_reference_type.rs:11:5
+   |
+11 |     #[spacetimedb::table(accessor = thing, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     lifetime `'de` defined here
+   |     requires that `'de` must outlive `'static`
+   |
+   = note: this error originates in the derive macro `spacetimedb::__TableHelper` (in Nightly builds, run with -Z macro-backtrace for more info)

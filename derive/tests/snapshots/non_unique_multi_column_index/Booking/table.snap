@@ -1,6 +1,13 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct BookingTable;
+impl crate::spacetimedsl::internal::AcceptedTable for booking__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for BookingTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for BookingTable {}
 #[derive(
     Clone,
     Debug,
@@ -113,4 +120,5 @@ pub struct CreateBooking {
 // get_all_bookings
 // get_booking_by_id
 // get_bookings_by_day_and_room
+// get_by_primary_key
 // update_booking_by_id

@@ -31,6 +31,9 @@ Use it like `account_note_id.get_account(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_account_by_id(account_note.get_account_id())
+        crate::accounts::AccountTable::get_by_primary_key(
+            &dsl,
+            account_note.get_account_id(),
+        )
     }
 }

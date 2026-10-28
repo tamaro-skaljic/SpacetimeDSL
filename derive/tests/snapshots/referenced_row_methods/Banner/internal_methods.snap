@@ -1,0 +1,17 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// ServerTable
+impl crate::spacetimedsl::internal::References<self::ServerTable, u64> for BannerTable {}
+
+// get_by_primary_key
+impl BannerTable {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Look a row of the `banner` table up by its primary key, for the tables whose foreign keys reference it.
+    pub fn get_by_primary_key<'a, T: crate::spacetimedsl::ReadContext>(
+        dsl: &crate::spacetimedsl::ReadOnlyDSL<'_, T>,
+        id: impl Into<BannerId> + Clone,
+    ) -> Result<Banner, crate::spacetimedsl::error::SpacetimeDSLError> {
+        dsl.get_banner_by_id(id)
+    }
+}

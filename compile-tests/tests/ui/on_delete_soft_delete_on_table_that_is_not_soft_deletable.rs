@@ -1,9 +1,8 @@
 //! `OnDeleteStrategy::SoftDelete` retires the rows of *this* table, so this table needs a
 //! marker column for the DSL to write. Without `method(soft_delete = true)` there is none.
 //!
-//! The errors after the first follow from it: a rejected `#[dsl]` emits nothing else, so
-//! the `warehouse` table's expansion misses the trait and the two cascade functions the
-//! `shipment` table would have generated for it.
+//! The error after the first follows from it: the `#[referenced_by]` of the `warehouse` table
+//! reports that the `shipment` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

@@ -51,7 +51,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row. Wh
                     .get_region_id()
                     .ne(&active_tournament.get_region_id())
                 {
-                    match self.get_region_by_id(active_tournament.get_region_id()) {
+                    match self::RegionTable::get_by_primary_key(
+                        &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                        active_tournament.get_region_id(),
+                    ) {
                         Ok(_) => {}
                         Err(_) => {
                             return Err(
@@ -80,7 +83,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row. Wh
                 .get_qualifier_region_id()
                 .value();
             if region_id.ne(&0) {
-                match self.get_region_by_id(active_tournament.get_region_id()) {
+                match self::RegionTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    active_tournament.get_region_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(
@@ -98,8 +104,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row. Wh
                 };
             }
             if qualifier_region_id.ne(&0) {
-                match self.get_region_by_id(active_tournament.get_qualifier_region_id())
-                {
+                match self::RegionTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    active_tournament.get_qualifier_region_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(

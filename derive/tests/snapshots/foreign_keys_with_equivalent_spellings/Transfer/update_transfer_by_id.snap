@@ -50,7 +50,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
             .get_source_ledger_id()
             .ne(&transfer.get_source_ledger_id())
         {
-            match self.get_ledger_by_id(transfer.get_source_ledger_id()) {
+            match ::other_crate::tables::LedgerTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                transfer.get_source_ledger_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(
@@ -93,7 +96,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
             .get_target_ledger_id()
             .ne(&transfer.get_target_ledger_id())
         {
-            match self.get_ledger_by_id(transfer.get_target_ledger_id()) {
+            match other_crate::tables::LedgerTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                transfer.get_target_ledger_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

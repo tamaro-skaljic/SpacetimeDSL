@@ -1,32 +1,31 @@
 error: `#[referenced_by(table = shipment)]` is given twice! Name each table which references this one once, however many foreign keys it has to it.
-  --> tests/ui/referenced_by_repeated.rs:18:57
+  --> tests/ui/referenced_by_repeated.rs:17:57
    |
-18 |         #[referenced_by(path = crate::shipment, table = shipment)]
+17 |         #[referenced_by(path = crate::shipment, table = shipment)]
    |                                                         ^^^^^^^^
 
-error[E0599]: no method named `get_warehouse_by_id` found for reference `&'a DSL<'_, T>` in the current scope
-  --> tests/ui/referenced_by_repeated.rs:24:5
+error[E0277]: the `warehouse` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`
+  --> tests/ui/referenced_by_repeated.rs:33:56
    |
-24 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&'a DSL<'_, T>`
+33 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_delete = Delete)]
+   |                                                        ^^^^^^^^^ fix the `#[spacetimedsl::dsl]` of the `warehouse` table first, or add one
    |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
-help: you are looking for the module in `std`, not the primitive type
+help: the trait `shipment::_::_::WarehouseTableIsAccepted` is not implemented for `warehouse::warehouse__TableHandle`
+  --> tests/ui/referenced_by_repeated.rs:11:5
    |
-24 |     std::#[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
-   |     +++++
+11 |     #[spacetimedb::table(accessor = warehouse, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0599]: no method named `get_warehouse_by_id` found for struct `ReadOnlyDSL<'a, T>` in the current scope
-  --> tests/ui/referenced_by_repeated.rs:24:5
+error[E0277]: the `warehouse` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`
+  --> tests/ui/referenced_by_repeated.rs:38:56
    |
- 8 | ::spacetimedsl::spacetimedsl!();
-   | ------------------------------- method `get_warehouse_by_id` not found for this struct
-...
-24 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ReadOnlyDSL<'_, T>`
+38 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_delete = Delete)]
+   |                                                        ^^^^^^^^^ fix the `#[spacetimedsl::dsl]` of the `warehouse` table first, or add one
    |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
-help: you are looking for the module in `std`, not the primitive type
+help: the trait `shipment::_::_::WarehouseTableIsAccepted` is not implemented for `warehouse::warehouse__TableHandle`
+  --> tests/ui/referenced_by_repeated.rs:11:5
    |
-24 |     std::#[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
-   |     +++++
+11 |     #[spacetimedb::table(accessor = warehouse, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

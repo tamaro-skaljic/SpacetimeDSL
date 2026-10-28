@@ -1,9 +1,6 @@
 //! Every foreign key declares a strategy for each removal its referenced table performs.
 //! `warehouse` is soft-deletable, but the foreign key leaves out `on_soft_delete`, so retiring
 //! a warehouse would find no strategy for its shipments.
-//!
-//! The two errors after the first follow from the same gap: the soft-deletion cascade of
-//! `warehouse` calls the two functions an `on_soft_delete` strategy would have generated.
 
 ::spacetimedsl::spacetimedsl!();
 

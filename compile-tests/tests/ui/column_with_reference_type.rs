@@ -1,5 +1,8 @@
 //! SpacetimeDSL supports only path types as column types, so a column whose type is
 //! a reference gets a diagnostic.
+//!
+//! The error after the first is SpacetimeDB's own: a rejected `#[dsl]` emits its struct, and
+//! SpacetimeDB refuses the borrowed column as well.
 
 ::spacetimedsl::spacetimedsl!();
 

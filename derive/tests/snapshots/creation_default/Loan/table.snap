@@ -9,10 +9,72 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: none, the `branch` table is not deletable
 ///   - On soft delete: none, the `branch` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_loan_table_has_no_foreign_key_attribute_referencing_the_branch_table {}
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct LoanTable;
+impl crate::spacetimedsl::internal::AcceptedTable for loan__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for LoanTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for LoanTable {}
 const _: () = {
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_branch_table_needs_to_define_a_strategy_for_on_delete_or_the_branch_table_has_no_referenced_by_attribute_referencing_the_loan_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_branch_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_branch_table_has_no_referenced_by_attribute_referencing_the_loan_table;
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `branch` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `branch` table first, or add one"
+        )]
+        trait BranchTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> BranchTableIsAccepted
+        for T {}
+        const _: () = <self::branch__TableHandle as BranchTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `branch` table has no `#[referenced_by]` naming the `loan` table",
+            label = "the `branch` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = loan)]` to the primary key column of the `branch` table, or remove this `#[foreign_key]`"
+        )]
+        trait ReferencedByTheLoanTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<LoanTable>,
+        > ReferencedByTheLoanTable for T {}
+        const _: () = <self::BranchTable as ReferencedByTheLoanTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `branch` table has a delete method, so this foreign key needs `on_delete`",
+            label = "add `on_delete = …`, or add `delete = false` to the `branch`'s `#[dsl(method(...))]`",
+            note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
+        )]
+        trait BranchTableHasNoDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::HasNoDeleteMethod,
+        > BranchTableHasNoDeleteMethod for T {}
+        const _: () = <self::BranchTable as BranchTableHasNoDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `branch` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `branch`'s `#[dsl(method(...))]`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait BranchTableIsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > BranchTableIsNotSoftDeletable for T {}
+        const _: () = <self::BranchTable as BranchTableIsNotSoftDeletable>::HOLDS;
+    };
 };
 #[derive(
     Clone,
@@ -238,12 +300,14 @@ pub struct CreateLoan {
 }
 
 // Generated DSL methods:
+// BranchTable
 // count_of_all_loans
 // create_loan
 // delete_loan_by_id
 // delete_loans_by_branch_id
 // delete_loans_by_purpose
 // get_all_loans
+// get_by_primary_key
 // get_loan_by_id
 // get_loans_by_branch_id
 // get_loans_by_purpose

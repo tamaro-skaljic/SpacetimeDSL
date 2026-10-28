@@ -9,10 +9,71 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: none, the `member` table is not deletable
 ///   - On soft delete: `Ignore`
 
-pub trait this_compilation_error_occurs_because_the_badge_table_has_no_foreign_key_attribute_referencing_the_member_table {}
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct BadgeTable;
+impl crate::spacetimedsl::internal::AcceptedTable for badge__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for BadgeTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for BadgeTable {}
 const _: () = {
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_member_table_needs_to_define_a_strategy_for_on_delete_or_the_member_table_has_no_referenced_by_attribute_referencing_the_badge_table;
-    use self::this_compilation_error_occurs_because_the_member_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_badge_table;
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `member` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `member` table first, or add one"
+        )]
+        trait MemberTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> MemberTableIsAccepted
+        for T {}
+        const _: () = <self::member__TableHandle as MemberTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `member` table has no `#[referenced_by]` naming the `badge` table",
+            label = "the `member` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = badge)]` to the primary key column of the `member` table, or remove this `#[foreign_key]`"
+        )]
+        trait ReferencedByTheBadgeTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<BadgeTable>,
+        > ReferencedByTheBadgeTable for T {}
+        const _: () = <self::MemberTable as ReferencedByTheBadgeTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `member` table has a delete method, so this foreign key needs `on_delete`",
+            label = "add `on_delete = …`, or add `delete = false` to the `member`'s `#[dsl(method(...))]`",
+            note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
+        )]
+        trait MemberTableHasNoDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::HasNoDeleteMethod,
+        > MemberTableHasNoDeleteMethod for T {}
+        const _: () = <self::MemberTable as MemberTableHasNoDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `member` table isn't soft-deletable, so `on_soft_delete` can't apply",
+            label = "remove `on_soft_delete`, or add `soft_delete = true` to the `member`'s `#[dsl(method(...))]`"
+        )]
+        trait MemberTableIsSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::IsSoftDeletable,
+        > MemberTableIsSoftDeletable for T {}
+        const _: () = <self::MemberTable as MemberTableIsSoftDeletable>::HOLDS;
+    };
 };
 #[derive(
     Clone,
@@ -90,12 +151,12 @@ pub struct CreateBadge {
 }
 
 // Generated DSL methods:
+// MemberTable
 // count_of_all_badges
 // create_badge
 // delete_badge_by_id
 // delete_badges_by_member_id
-// execute_on_delete_strategies_of_the_badge_table_after_multiple_rows_of_the_member_table_were_soft_deleted
-// execute_on_delete_strategies_of_the_badge_table_after_one_row_of_the_member_table_was_soft_deleted
 // get_all_badges
 // get_badge_by_id
 // get_badges_by_member_id
+// get_by_primary_key

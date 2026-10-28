@@ -40,7 +40,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                 .get_player_id()
                 .ne(&referee.get_player_id())
             {
-                match self.get_player_by_id(referee.get_player_id()) {
+                match self::PlayerTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    referee.get_player_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(

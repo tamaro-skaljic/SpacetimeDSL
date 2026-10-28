@@ -1,6 +1,13 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct InvoiceTable;
+impl crate::spacetimedsl::internal::AcceptedTable for invoice__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for InvoiceTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for InvoiceTable {}
 #[derive(
     Clone,
     Debug,
@@ -148,6 +155,7 @@ pub struct CreateInvoice {
 // delete_invoice_by_id
 // delete_invoice_by_reference
 // get_all_invoices
+// get_by_primary_key
 // get_invoice_by_id
 // get_invoice_by_reference
 // update_invoice_by_id

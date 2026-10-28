@@ -31,6 +31,6 @@ Use it like `price_id.get_currency(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_currency_by_id(price.get_currency_id())
+        self::CurrencyTable::get_by_primary_key(&dsl, price.get_currency_id())
     }
 }

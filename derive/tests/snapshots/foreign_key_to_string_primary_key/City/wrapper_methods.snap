@@ -10,7 +10,9 @@ Use it like `country_code.get_cities(&dsl)`.*/
         dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
     ) -> Vec<City> {
         dsl.into()
-            .get_cities_by_country_code(&crate::spacetimedsl::Wrapper::value(self))
+            .get_cities_by_country_code(
+                &<Self as crate::spacetimedsl::Wrapper<String>>::value(self),
+            )
             .collect()
     }
 }
@@ -27,6 +29,6 @@ Use it like `city_id.get_country(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let city = dsl.get_city_by_id(self)?;
-        dsl.get_country_by_code(&city.country_code)
+        self::CountryTable::get_by_primary_key(&dsl, &city.country_code)
     }
 }

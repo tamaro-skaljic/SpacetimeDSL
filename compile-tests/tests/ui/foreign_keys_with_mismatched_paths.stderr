@@ -1,27 +1,18 @@
 error: All foreign key columns which reference the same primary key of another table should have the same path! Spell both paths the same way; a leading `::` makes no difference.
-  --> tests/ui/foreign_keys_with_mismatched_paths.rs:46:13
+  --> tests/ui/foreign_keys_with_mismatched_paths.rs:45:13
    |
-46 |         pub destination_warehouse_id: u64,
+45 |         pub destination_warehouse_id: u64,
    |             ^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E0599]: no associated function or constant named `execute_on_delete_strategies_of_the_shipment_table_after_one_row_of_the_warehouse_table_was_deleted` found for struct `DSLInternals` in the current scope
-  --> tests/ui/foreign_keys_with_mismatched_paths.rs:15:5
+error[E0277]: the `shipment` table can't reference the `warehouse` table, because the `shipment` table has no accepted `#[spacetimedsl::dsl]`
+  --> tests/ui/foreign_keys_with_mismatched_paths.rs:20:46
    |
-12 | ::spacetimedsl::spacetimedsl!();
-   | ------------------------------- associated function or constant `execute_on_delete_strategies_of_the_shipment_table_after_one_row_of_the_warehouse_table_was_deleted` not found for this struct
-...
-15 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function or constant not found in `DSLInternals`
+20 |         #[referenced_by(path = self, table = shipment)]
+   |                                              ^^^^^^^^ fix the `#[spacetimedsl::dsl]` of the `shipment` table first, or add one
    |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0599]: no associated function or constant named `execute_on_delete_strategies_of_the_shipment_table_after_multiple_rows_of_the_warehouse_table_were_deleted` found for struct `DSLInternals` in the current scope
-  --> tests/ui/foreign_keys_with_mismatched_paths.rs:15:5
+help: the trait `ShipmentTableIsAccepted` is not implemented for `warehouse::shipment__TableHandle`
+  --> tests/ui/foreign_keys_with_mismatched_paths.rs:25:5
    |
-12 | ::spacetimedsl::spacetimedsl!();
-   | ------------------------------- associated function or constant `execute_on_delete_strategies_of_the_shipment_table_after_multiple_rows_of_the_warehouse_table_were_deleted` not found for this struct
-...
-15 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function or constant not found in `DSLInternals`
-   |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+25 |     #[spacetimedb::table(accessor = shipment, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

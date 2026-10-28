@@ -83,9 +83,7 @@ pub fn for_wrapper_methods(
             let wrapper_struct_name = wrapper_type.struct_name();
             let wrapper_variable_name =
                 RenameRule::SnakeCase.apply_to_variant(wrapper_struct_name.to_string());
-            let this_key = index::lookup_argument_from_wrapper(ColumnTypeKind::of(
-                &column.rust_field.type_name_or_path,
-            ));
+            let this_key = index::lookup_argument_from_wrapper(&column.rust_field.type_name_or_path);
 
             Some(WrapperMethod {
                 wrapper_type: wrapper_type_of(wrapper_type),
@@ -138,7 +136,8 @@ pub fn for_referenced_row_methods(
         RenameRule::SnakeCase.apply_to_variant(primary_key_wrapper_struct_name.to_string());
     let get_this_row =
         naming::get_by_index_method_name(singular_table_name, primary_key_column_name);
-    let this_row_key = index::lookup_argument_from_wrapper(primary_key_column.rust_field_type_kind);
+    let this_row_key =
+        index::lookup_argument_from_wrapper(&primary_key_column.rust_field_type_name_or_path);
 
     let mut methods = vec![];
     let mut column_by_method_name: BTreeMap<String, &Ident> = BTreeMap::new();
@@ -178,13 +177,14 @@ pub fn for_referenced_row_methods(
                 ));
             }
 
-            let get_referenced_row = naming::get_by_index_method_name(
-                &foreign_key.table_name,
-                &foreign_key.primary_key_column_name,
-            );
             let column_type_kind = ColumnTypeKind::of(&column.rust_field.type_name_or_path);
             let referenced_primary_key =
                 index::lookup_argument_from_row(singular_table_name, column_name, column_type_kind);
+            let referenced_row_lookup = reference_integrity::referenced_row_lookup(
+                foreign_key,
+                &quote! { &dsl },
+                &referenced_primary_key,
+            );
             let referenced_row_type =
                 spacetimedb::table_row_type(&foreign_key.path, &foreign_key.table_name);
 
@@ -220,7 +220,7 @@ pub fn for_referenced_row_methods(
                     let dsl = dsl.into();
                     let #singular_table_name = dsl.#get_this_row(#this_row_key)?;
                     #no_row_for_the_value_referencing_no_row
-                    dsl.#get_referenced_row(#referenced_primary_key)
+                    #referenced_row_lookup
                 },
             });
         }

@@ -8,9 +8,10 @@
 use {
     super::{
         naming::{
-            cascade_binding, referenced_table_function_name, referencing_table_function_name,
+            cascade_binding, cascade_method_name, referenced_table_function_name, table_type_name,
         },
         on_delete_strategy::child_entries_of_a_row_to_delete_or_panic,
+        pairing::cascade_into,
         removal::{Removal, dispatcher_signature},
     },
     crate::{
@@ -173,20 +174,21 @@ pub fn for_referenced_by(
 
     let mut strategy_calls = vec![];
 
+    let cascade_method_name = cascade_method_name(removal, one_or_multiple);
+
     for referencing_table in &spacetimedsl_table.referencing_tables {
-        let referencing_table_name = &referencing_table.table_name;
+        let referencing_table_path = &referencing_table.path;
+        let referencing_table_type = table_type_name(&referencing_table.table_name);
+        let cascade = cascade_into(referencing_table, singular_table_name, &cascade_method_name);
 
-        let referencing_table_function_name = referencing_table_function_name(
-            removal,
-            one_or_multiple,
-            referencing_table_name,
-            singular_table_name,
-        );
-
-        let referencing_table_call = runtime::dsl_internals_call(
-            &referencing_table_function_name,
-            &quote! { dsl, &strategy, #arg_name },
-        );
+        let referencing_table_call = quote! {
+            #cascade(
+                &#referencing_table_path::#referencing_table_type,
+                dsl,
+                &strategy,
+                #arg_name,
+            )
+        };
 
         strategy_calls.push(
             match one_or_multiple {

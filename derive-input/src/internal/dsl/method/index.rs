@@ -16,13 +16,14 @@ use {
                 method::{SpacetimeDSLArg, SpacetimeDSLArgType},
                 wrapper::WrapperType,
             },
+            runtime,
         },
         internal::{column::ColumnTypeKind, dsl::one_or_multiple::OneOrMultiple},
     },
     proc_macro2::TokenStream,
     quote::{ToTokens, quote},
     std::collections::VecDeque,
-    syn::{Ident, parse_str},
+    syn::{Ident, Path, parse_str},
 };
 
 /// `self.db().<table>().<index>()`, where every index-based body starts.
@@ -325,11 +326,18 @@ pub fn lookup_argument_from_row(
 }
 
 /// What a method looking rows up through the index of a wrapped column takes for `self`, a
-/// wrapper of that column: `self`, or a `&str` for a `String` column, which
-/// [`index_column_arguments`] takes in place of its wrapper.
-pub fn lookup_argument_from_wrapper(column_type_kind: ColumnTypeKind) -> TokenStream {
-    match column_type_kind == ColumnTypeKind::String {
-        true => quote! { &crate::spacetimedsl::Wrapper::value(self) },
+/// wrapper of that column whose type is `column_type`: `self`, or a `&str` for a `String`
+/// column, which [`index_column_arguments`] takes in place of its wrapper.
+///
+/// The `&str` names the wrapped type. Inferred from the lookup's parameter, it would be `str`
+/// where the wrapper is missing because its table is rejected, and fail with `str: Clone`.
+pub fn lookup_argument_from_wrapper(column_type: &Path) -> TokenStream {
+    match ColumnTypeKind::of(column_type) == ColumnTypeKind::String {
+        true => {
+            let wrapper_trait = runtime::wrapper_trait(column_type);
+
+            quote! { &<Self as #wrapper_trait>::value(self) }
+        }
         false => quote! { self },
     }
 }

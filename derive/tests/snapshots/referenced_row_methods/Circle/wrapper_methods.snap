@@ -42,6 +42,6 @@ Use it like `entity_id.get_player(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_player_by_id(circle.get_player_id())
+        self::PlayerTable::get_by_primary_key(&dsl, circle.get_player_id())
     }
 }

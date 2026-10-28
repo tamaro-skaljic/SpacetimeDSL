@@ -1,0 +1,18 @@
+error: PluralName must be set in `#[dsl(plural_name = PluralName)]`
+  --> tests/ui/referenced_by_naming_a_rejected_table_on_a_table_without_delete_methods.rs:22:25
+   |
+22 |     #[spacetimedsl::dsl(method(update = false, delete = true))]
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the `gadget` table can't reference the `owner` table, because the `gadget` table has no accepted `#[spacetimedsl::dsl]`
+  --> tests/ui/referenced_by_naming_a_rejected_table_on_a_table_without_delete_methods.rs:16:55
+   |
+16 |         #[referenced_by(path = crate::gadget, table = gadget)]
+   |                                                       ^^^^^^ fix the `#[spacetimedsl::dsl]` of the `gadget` table first, or add one
+   |
+help: the trait `GadgetTableIsAccepted` is not implemented for `gadget::gadget__TableHandle`
+  --> tests/ui/referenced_by_naming_a_rejected_table_on_a_table_without_delete_methods.rs:23:5
+   |
+23 |     #[spacetimedb::table(accessor = gadget, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

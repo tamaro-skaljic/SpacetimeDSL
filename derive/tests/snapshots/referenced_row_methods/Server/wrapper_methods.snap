@@ -31,6 +31,6 @@ Use it like `server_id.get_season(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_season_by_id(server.get_season_id())
+        self::SeasonTable::get_by_primary_key(&dsl, server.get_season_id())
     }
 }

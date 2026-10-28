@@ -18,6 +18,7 @@ pub mod err_macro_test;
 pub mod hand_written_wrapper_test;
 pub mod hash_index_test;
 pub mod hook_trait_name_test;
+pub mod mutual_reference_cascade_test;
 pub mod primary_key_foreign_key_cascade_test;
 pub mod reference_integrity_message_test;
 pub mod referenced_row_method_opt_out_test;
@@ -86,6 +87,10 @@ const TEST_GROUPS: &[(&str, TestGroup)] = &[
     (
         "self_referencing_cascade_test",
         self_referencing_cascade_test::run_tests,
+    ),
+    (
+        "mutual_reference_cascade_test",
+        mutual_reference_cascade_test::run_tests,
     ),
     (
         "reference_integrity_message_test",

@@ -51,7 +51,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                 .get_origin_warehouse_id()
                 .ne(&shipment.get_origin_warehouse_id())
             {
-                match self.get_warehouse_by_id(shipment.get_origin_warehouse_id()) {
+                match ::other_crate::tables::WarehouseTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    shipment.get_origin_warehouse_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(
@@ -96,7 +99,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                 .get_destination_warehouse_id()
                 .ne(&shipment.get_destination_warehouse_id())
             {
-                match self.get_warehouse_by_id(shipment.get_destination_warehouse_id()) {
+                match other_crate::tables::WarehouseTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    shipment.get_destination_warehouse_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(

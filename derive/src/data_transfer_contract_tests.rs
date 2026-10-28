@@ -147,32 +147,30 @@ fn the_model_holds_what_a_table_declares() {
         panic!("one table references the table");
     };
     assert_eq!(referencing_table.table_name, "part");
-    let compile_error_check_imports: Vec<String> = spacetimedsl_table
-        .compile_error_check_imports
-        .iter()
-        .map(|path| path.to_token_stream().to_string())
-        .collect();
-    assert_eq!(
-        compile_error_check_imports,
-        [
-            "crate :: part :: this_compilation_error_occurs_because_the_part_table_has_no_foreign_key_attribute_referencing_the_gadget_table",
-            "crate :: owner :: this_compilation_error_occurs_because_the_owner_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_gadget_table",
-            "crate :: owner :: this_compilation_error_occurs_because_your_foreign_key_referencing_the_owner_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_owner_table_has_no_referenced_by_attribute_referencing_the_gadget_table",
-        ]
-    );
-    let compile_error_checks: Vec<String> = spacetimedsl_table
-        .compile_error_checks
-        .iter()
-        .map(ToString::to_string)
-        .collect();
-    assert_eq!(
-        compile_error_checks,
-        [
-            "this_compilation_error_occurs_because_the_gadget_table_has_no_foreign_key_attribute_referencing_the_owner_table",
-            "this_compilation_error_occurs_because_the_gadget_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_part_table",
-            "this_compilation_error_occurs_because_the_gadget_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_part_table",
-        ]
-    );
+    let pairing = spacetimedsl_table.pairing.to_string();
+    for fact in [
+        "impl crate :: spacetimedsl :: internal :: AcceptedTable for gadget__TableHandle { }",
+        "impl crate :: spacetimedsl :: internal :: HasDeleteMethod for GadgetTable { }",
+        "impl crate :: spacetimedsl :: internal :: IsSoftDeletable for GadgetTable { }",
+        "impl crate :: spacetimedsl :: internal :: ReferencedBy < crate :: part :: PartTable > for GadgetTable { }",
+    ] {
+        assert!(
+            pairing.contains(fact),
+            "the pairing states `{fact}`: {pairing}"
+        );
+    }
+    for check in [
+        "the `owner` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+        "the `owner` table has no `#[referenced_by]` naming the `gadget` table",
+        "the `owner` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+        "the `part` table can't reference the `gadget` table, because the `part` table has no accepted `#[spacetimedsl::dsl]`",
+        "the `part` table has no `#[foreign_key]` referencing the `gadget` table",
+    ] {
+        assert!(
+            pairing.contains(check),
+            "the pairing has a check whose message is `{check}`: {pairing}"
+        );
+    }
     assert_eq!(
         spacetimedsl_table.struct_doc_comment,
         "# Foreign keys of the `gadget` table\n\n- `owner_id` references the `id` column of the `owner` table (`crate::owner`).\n  - On delete: `Delete`\n  - On soft delete: none, the `owner` table is not soft-deletable\n\n# Tables referencing the `gadget` table\n\n- the `part` table (`crate::part`)"
@@ -366,6 +364,21 @@ fn the_model_holds_what_a_table_declares() {
         panic!("the table references one table");
     };
     assert!(strategies_for_owner.on_deletion.is_some());
+    assert_eq!(
+        strategies_for_owner
+            .referenced_table_type
+            .to_token_stream()
+            .to_string(),
+        "crate :: owner :: OwnerTable"
+    );
+    assert_eq!(
+        spacetimedsl_methods
+            .get_by_primary_key
+            .as_ref()
+            .expect("a table which is not a singleton offers its rows to referencing tables")
+            .method_name,
+        "get_by_primary_key"
+    );
     assert_eq!(spacetimedsl_methods.multi_column_indices.len(), 1);
     let [wrapper_method] = spacetimedsl_methods.wrapper_methods.as_slice() else {
         panic!("the one foreign key column adds one method to its wrapper type");
@@ -427,13 +440,31 @@ fn the_model_holds_what_a_table_declares() {
     );
     visit_table(&price);
 
-    assert!(
-        price
-            .spacetimedsl_methods
-            .on_delete_strategies_of_this_table
-            .is_empty(),
-        "a foreign key without strategies has no strategy implementations"
+    let [strategies_for_currency] = price
+        .spacetimedsl_methods
+        .on_delete_strategies_of_this_table
+        .as_slice()
+    else {
+        panic!(
+            "a foreign key without strategies still implements `References` for its table, whose default bodies stand in"
+        );
+    };
+    assert_eq!(
+        strategies_for_currency
+            .referenced_table_type
+            .to_token_stream()
+            .to_string(),
+        "crate :: currency :: CurrencyTable"
     );
+    assert_eq!(
+        strategies_for_currency
+            .referenced_primary_key_type
+            .to_token_stream()
+            .to_string(),
+        "u64"
+    );
+    assert!(strategies_for_currency.on_deletion.is_none());
+    assert!(strategies_for_currency.on_soft_deletion.is_none());
 
     let invoice = parse_table(
         quote! { plural_name = invoices, method(update = false, delete = false) },
@@ -521,6 +552,13 @@ fn the_model_holds_what_a_table_declares() {
         feature_flags.spacetimedsl_table.kind,
         SpacetimeDSLTableKind::Singleton(SingletonKind::WithDefault)
     ));
+    assert!(
+        feature_flags
+            .spacetimedsl_methods
+            .get_by_primary_key
+            .is_none(),
+        "no foreign key can reference a singleton, so its table type offers no lookup"
+    );
 }
 
 fn parse_table(args: TokenStream, item: TokenStream) -> Table {
@@ -611,8 +649,7 @@ fn visit_spacetimedsl_table(spacetimedsl_table: &SpacetimeDSLTable) {
         on_insert_set_current_timestamp_column_name: _,
         on_update_set_current_timestamp_column_name: _,
         referencing_tables,
-        compile_error_checks: _,
-        compile_error_check_imports: _,
+        pairing: _,
         create_dsl_method_arg,
         hooks,
         struct_doc_comment: _,
@@ -851,12 +888,13 @@ fn visit_spacetimedsl_table_methods(spacetimedsl_methods: &SpacetimeDSLTableMeth
         get_count,
         on_delete_strategies_of_referencing_tables,
         on_delete_strategies_of_this_table,
+        get_by_primary_key,
         multi_column_indices,
         wrapper_methods,
         referenced_row_methods,
     } = spacetimedsl_methods;
 
-    [create, get_all, get_count]
+    [create, get_all, get_count, get_by_primary_key]
         .into_iter()
         .flatten()
         .for_each(visit_method);
@@ -871,6 +909,8 @@ fn visit_spacetimedsl_table_methods(spacetimedsl_methods: &SpacetimeDSLTableMeth
             .for_each(visit_cascade_entry_points);
     }
     for OnDeleteStrategiesOfTheReferencedTable {
+        referenced_table_type: _,
+        referenced_primary_key_type: _,
         on_deletion,
         on_soft_deletion,
     } in on_delete_strategies_of_this_table

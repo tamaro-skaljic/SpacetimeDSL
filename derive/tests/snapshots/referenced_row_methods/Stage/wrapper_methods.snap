@@ -31,6 +31,6 @@ Use it like `stage_id.get_next_stage(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_stage_by_id(stage.get_next_stage_id())
+        self::StageTable::get_by_primary_key(&dsl, stage.get_next_stage_id())
     }
 }

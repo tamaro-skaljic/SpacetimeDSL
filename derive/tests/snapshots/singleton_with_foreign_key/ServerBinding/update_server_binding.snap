@@ -45,7 +45,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                 .get_region_id()
                 .ne(&server_binding.get_region_id())
             {
-                match self.get_region_by_id(server_binding.get_region_id()) {
+                match self::RegionTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    server_binding.get_region_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(

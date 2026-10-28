@@ -315,6 +315,62 @@ pub fn default_singleton_trait() -> TokenStream {
     }
 }
 
+/// `internal::AcceptedTable`, the fact the handle of every accepted table states.
+pub fn accepted_table_trait() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::internal::AcceptedTable
+    }
+}
+
+/// `internal::HasDeleteMethod`, the fact the table type of a table with a delete method states.
+pub fn has_delete_method_trait() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::internal::HasDeleteMethod
+    }
+}
+
+/// `internal::HasNoDeleteMethod`, the fact the table type of a table without a delete method
+/// states.
+pub fn has_no_delete_method_trait() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::internal::HasNoDeleteMethod
+    }
+}
+
+/// `internal::IsSoftDeletable`, the fact the table type of a soft-deletable table states.
+pub fn is_soft_deletable_trait() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::internal::IsSoftDeletable
+    }
+}
+
+/// `internal::IsNotSoftDeletable`, the fact the table type of a table which is not
+/// soft-deletable states.
+pub fn is_not_soft_deletable_trait() -> TokenStream {
+    quote! {
+        crate::spacetimedsl::internal::IsNotSoftDeletable
+    }
+}
+
+/// `internal::ReferencedBy<#referencing_table_type>`, the fact the table type of a table states
+/// for each table its `#[referenced_by]` attributes name.
+pub fn referenced_by_trait(referencing_table_type: &impl ToTokens) -> TokenStream {
+    quote! {
+        crate::spacetimedsl::internal::ReferencedBy<#referencing_table_type>
+    }
+}
+
+/// `internal::References<#referenced_table_type, #primary_key_type>`, the trait through which a
+/// referenced table runs the strategies of a table referencing it.
+pub fn references_trait(
+    referenced_table_type: &impl ToTokens,
+    primary_key_type: &impl ToTokens,
+) -> TokenStream {
+    quote! {
+        crate::spacetimedsl::internal::References<#referenced_table_type, #primary_key_type>
+    }
+}
+
 /// `internal::DSLInternals`, as a type rather than a call.
 pub fn dsl_internals_type() -> TokenStream {
     quote! {

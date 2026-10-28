@@ -34,6 +34,6 @@ Use it like `gadget_id.get_owner(&dsl)`.*/
                     .into(),
             });
         }
-        dsl.get_owner_by_id(gadget.get_owner_id())
+        self::OwnerTable::get_by_primary_key(&dsl, gadget.get_owner_id())
     }
 }

@@ -1,0 +1,25 @@
+error[E0603]: struct `ShipmentTable` is private
+  --> tests/ui/referenced_by_naming_a_private_struct_in_another_module.rs:16:57
+   |
+16 |         #[referenced_by(path = crate::shipment, table = shipment)]
+   |                                                         ^^^^^^^^ private struct
+   |
+note: the struct `ShipmentTable` is defined here
+  --> tests/ui/referenced_by_naming_a_private_struct_in_another_module.rs:22:5
+   |
+22 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = false, delete = true))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0603]: struct `shipment__TableHandle` is private
+  --> tests/ui/referenced_by_naming_a_private_struct_in_another_module.rs:16:57
+   |
+16 |         #[referenced_by(path = crate::shipment, table = shipment)]
+   |                                                         ^^^^^^^^ private struct
+   |
+note: the struct `shipment__TableHandle` is defined here
+  --> tests/ui/referenced_by_naming_a_private_struct_in_another_module.rs:23:5
+   |
+23 |     #[spacetimedb::table(accessor = shipment, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

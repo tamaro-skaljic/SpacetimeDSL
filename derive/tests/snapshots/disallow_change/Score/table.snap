@@ -1,6 +1,13 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct ScoreTable;
+impl crate::spacetimedsl::internal::AcceptedTable for score__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for ScoreTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for ScoreTable {}
 #[derive(
     Clone,
     Debug,
@@ -126,5 +133,6 @@ pub struct CreateScore {
 // create_score
 // delete_score_by_id
 // get_all_scores
+// get_by_primary_key
 // get_score_by_id
 // update_score_by_id

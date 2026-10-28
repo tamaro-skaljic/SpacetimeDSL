@@ -9,10 +9,71 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: `Delete`
 ///   - On soft delete: none, the `account` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_session_token_table_has_no_foreign_key_attribute_referencing_the_account_table {}
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct SessionTokenTable;
+impl crate::spacetimedsl::internal::AcceptedTable for session_token__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for SessionTokenTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for SessionTokenTable {}
 const _: () = {
-    use self::this_compilation_error_occurs_because_the_account_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_session_token_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_account_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_account_table_has_no_referenced_by_attribute_referencing_the_session_token_table;
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `account` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `account` table first, or add one"
+        )]
+        trait AccountTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> AccountTableIsAccepted
+        for T {}
+        const _: () = <self::account__TableHandle as AccountTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `account` table has no `#[referenced_by]` naming the `session_token` table",
+            label = "the `account` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = session_token)]` to the primary key column of the `account` table, or remove this `#[foreign_key]`"
+        )]
+        trait ReferencedByTheSessionTokenTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<SessionTokenTable>,
+        > ReferencedByTheSessionTokenTable for T {}
+        const _: () = <self::AccountTable as ReferencedByTheSessionTokenTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `account` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`, or add `delete = true` to the `account`'s `#[dsl(method(...))]`"
+        )]
+        trait AccountTableHasADeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > AccountTableHasADeleteMethod for T {}
+        const _: () = <self::AccountTable as AccountTableHasADeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `account` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `account`'s `#[dsl(method(...))]`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait AccountTableIsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > AccountTableIsNotSoftDeletable for T {}
+        const _: () = <self::AccountTable as AccountTableIsNotSoftDeletable>::HOLDS;
+    };
 };
 #[derive(
     Clone,
@@ -181,14 +242,14 @@ pub struct CreateSessionToken {
 }
 
 // Generated DSL methods:
+// AccountTable
 // count_of_all_session_tokens
 // create_session_token
 // delete_session_token_by_id
 // delete_session_token_by_token
 // delete_session_tokens_by_account_id
-// execute_on_delete_strategies_of_the_session_token_table_after_multiple_rows_of_the_account_table_were_deleted
-// execute_on_delete_strategies_of_the_session_token_table_after_one_row_of_the_account_table_was_deleted
 // get_all_session_tokens
+// get_by_primary_key
 // get_session_token_by_id
 // get_session_token_by_token
 // get_session_tokens_by_account_id

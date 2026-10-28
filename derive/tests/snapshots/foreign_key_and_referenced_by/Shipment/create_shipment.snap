@@ -27,7 +27,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         };
         let mut the_same_or_another_shipment: Option<Shipment> = None;
         if origin_warehouse_id.ne(&0) {
-            match self.get_warehouse_by_id(shipment.get_origin_warehouse_id()) {
+            match self::WarehouseTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                shipment.get_origin_warehouse_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(
@@ -45,7 +48,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
             };
         }
         if destination_warehouse_id.ne(&0) {
-            match self.get_warehouse_by_id(shipment.get_destination_warehouse_id()) {
+            match self::WarehouseTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                shipment.get_destination_warehouse_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

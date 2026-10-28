@@ -1,0 +1,18 @@
+error: PluralName must be set in `#[dsl(plural_name = PluralName)]`
+  --> tests/ui/foreign_key_to_a_rejected_table_in_the_same_module.rs:10:25
+   |
+10 |     #[spacetimedsl::dsl(method(update = false, delete = true))]
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the `parent` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`
+  --> tests/ui/foreign_key_to_a_rejected_table_in_the_same_module.rs:30:44
+   |
+30 |         #[foreign_key(path = self, table = parent, column = id, on_delete = Delete)]
+   |                                            ^^^^^^ fix the `#[spacetimedsl::dsl]` of the `parent` table first, or add one
+   |
+help: the trait `ParentTableIsAccepted` is not implemented for `family::parent__TableHandle`
+  --> tests/ui/foreign_key_to_a_rejected_table_in_the_same_module.rs:11:5
+   |
+11 |     #[spacetimedb::table(accessor = parent, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

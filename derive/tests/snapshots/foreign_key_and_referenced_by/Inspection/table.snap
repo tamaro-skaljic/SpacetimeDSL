@@ -9,10 +9,71 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: `SetZero`
 ///   - On soft delete: none, the `warehouse` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_inspection_table_has_no_foreign_key_attribute_referencing_the_warehouse_table {}
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct InspectionTable;
+impl crate::spacetimedsl::internal::AcceptedTable for inspection__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for InspectionTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for InspectionTable {}
 const _: () = {
-    use self::this_compilation_error_occurs_because_the_warehouse_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_inspection_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_warehouse_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_inspection_table;
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `warehouse` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `warehouse` table first, or add one"
+        )]
+        trait WarehouseTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> WarehouseTableIsAccepted
+        for T {}
+        const _: () = <self::warehouse__TableHandle as WarehouseTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `warehouse` table has no `#[referenced_by]` naming the `inspection` table",
+            label = "the `warehouse` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = inspection)]` to the primary key column of the `warehouse` table, or remove this `#[foreign_key]`"
+        )]
+        trait ReferencedByTheInspectionTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<InspectionTable>,
+        > ReferencedByTheInspectionTable for T {}
+        const _: () = <self::WarehouseTable as ReferencedByTheInspectionTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `warehouse` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`, or add `delete = true` to the `warehouse`'s `#[dsl(method(...))]`"
+        )]
+        trait WarehouseTableHasADeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > WarehouseTableHasADeleteMethod for T {}
+        const _: () = <self::WarehouseTable as WarehouseTableHasADeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `warehouse` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `warehouse`'s `#[dsl(method(...))]`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait WarehouseTableIsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > WarehouseTableIsNotSoftDeletable for T {}
+        const _: () = <self::WarehouseTable as WarehouseTableIsNotSoftDeletable>::HOLDS;
+    };
 };
 #[derive(
     Clone,
@@ -109,13 +170,13 @@ pub struct CreateInspection {
 }
 
 // Generated DSL methods:
+// WarehouseTable
 // count_of_all_inspections
 // create_inspection
 // delete_inspection_by_id
 // delete_inspections_by_warehouse_id
-// execute_on_delete_strategies_of_the_inspection_table_after_multiple_rows_of_the_warehouse_table_were_deleted
-// execute_on_delete_strategies_of_the_inspection_table_after_one_row_of_the_warehouse_table_was_deleted
 // get_all_inspections
+// get_by_primary_key
 // get_inspection_by_id
 // get_inspections_by_warehouse_id
 // update_inspection_by_id

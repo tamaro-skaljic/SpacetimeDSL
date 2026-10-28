@@ -9,10 +9,71 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: `Delete`
 ///   - On soft delete: none, the `owner` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_gadget_table_has_no_foreign_key_attribute_referencing_the_owner_table {}
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct GadgetTable;
+impl crate::spacetimedsl::internal::AcceptedTable for gadget__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for GadgetTable {}
+impl crate::spacetimedsl::internal::IsSoftDeletable for GadgetTable {}
 const _: () = {
-    use self::this_compilation_error_occurs_because_the_owner_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_gadget_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_owner_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_owner_table_has_no_referenced_by_attribute_referencing_the_gadget_table;
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `owner` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `owner` table first, or add one"
+        )]
+        trait OwnerTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> OwnerTableIsAccepted
+        for T {}
+        const _: () = <self::owner__TableHandle as OwnerTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `owner` table has no `#[referenced_by]` naming the `gadget` table",
+            label = "the `owner` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = gadget)]` to the primary key column of the `owner` table, or remove this `#[foreign_key]`"
+        )]
+        trait ReferencedByTheGadgetTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<GadgetTable>,
+        > ReferencedByTheGadgetTable for T {}
+        const _: () = <self::OwnerTable as ReferencedByTheGadgetTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `owner` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`, or add `delete = true` to the `owner`'s `#[dsl(method(...))]`"
+        )]
+        trait OwnerTableHasADeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > OwnerTableHasADeleteMethod for T {}
+        const _: () = <self::OwnerTable as OwnerTableHasADeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `owner` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `owner`'s `#[dsl(method(...))]`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait OwnerTableIsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > OwnerTableIsNotSoftDeletable for T {}
+        const _: () = <self::OwnerTable as OwnerTableIsNotSoftDeletable>::HOLDS;
+    };
 };
 #[derive(
     Clone,
@@ -134,13 +195,13 @@ pub struct CreateGadget {
 }
 
 // Generated DSL methods:
+// OwnerTable
 // count_of_all_gadgets
 // create_gadget
 // delete_gadget_by_id
 // delete_gadgets_by_owner_id
-// execute_on_delete_strategies_of_the_gadget_table_after_multiple_rows_of_the_owner_table_were_deleted
-// execute_on_delete_strategies_of_the_gadget_table_after_one_row_of_the_owner_table_was_deleted
 // get_all_gadgets
+// get_by_primary_key
 // get_gadget_by_id
 // get_gadgets_by_owner_id
 // soft_delete_gadget_by_id

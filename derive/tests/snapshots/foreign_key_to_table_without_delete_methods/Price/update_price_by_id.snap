@@ -49,7 +49,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                 .get_currency_id()
                 .ne(&price.get_currency_id())
             {
-                match self.get_currency_by_id(price.get_currency_id()) {
+                match self::CurrencyTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    price.get_currency_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(

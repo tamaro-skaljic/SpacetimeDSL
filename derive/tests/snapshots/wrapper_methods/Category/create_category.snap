@@ -21,7 +21,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         let category = Category { id, parent_category_id };
         let mut the_same_or_another_category: Option<Category> = None;
         if parent_category_id.ne(&0) {
-            match self.get_category_by_id(category.get_parent_category_id()) {
+            match self::CategoryTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                category.get_parent_category_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

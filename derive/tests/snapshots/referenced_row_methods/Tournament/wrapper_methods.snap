@@ -48,7 +48,7 @@ Use it like `tournament_id.get_opening_season(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_season_by_id(tournament.get_opening_season_id())
+        self::SeasonTable::get_by_primary_key(&dsl, tournament.get_opening_season_id())
     }
 }
 impl TournamentId {
@@ -70,6 +70,6 @@ Use it like `tournament_id.get_closing_season(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_season_by_id(tournament.get_closing_season_id())
+        self::SeasonTable::get_by_primary_key(&dsl, tournament.get_closing_season_id())
     }
 }

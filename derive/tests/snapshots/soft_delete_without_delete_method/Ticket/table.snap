@@ -1,6 +1,13 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct TicketTable;
+impl crate::spacetimedsl::internal::AcceptedTable for ticket__TableHandle {}
+impl crate::spacetimedsl::internal::HasNoDeleteMethod for TicketTable {}
+impl crate::spacetimedsl::internal::IsSoftDeletable for TicketTable {}
 #[derive(
     Clone,
     Debug,
@@ -97,6 +104,7 @@ pub struct CreateTicket {
 // count_of_all_tickets
 // create_ticket
 // get_all_tickets
+// get_by_primary_key
 // get_ticket_by_id
 // soft_delete_ticket_by_id
 // update_ticket_by_id

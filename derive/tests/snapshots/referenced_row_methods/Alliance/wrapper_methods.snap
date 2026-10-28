@@ -31,6 +31,6 @@ Use it like `alliance_id.get_server(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_server_by_id(alliance.get_server_id())
+        self::ServerTable::get_by_primary_key(&dsl, alliance.get_server_id())
     }
 }

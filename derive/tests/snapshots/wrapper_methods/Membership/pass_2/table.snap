@@ -9,10 +9,71 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: `Error`
 ///   - On soft delete: none, the `account` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_expired_membership_table_has_no_foreign_key_attribute_referencing_the_account_table {}
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct ExpiredMembershipTable;
+impl crate::spacetimedsl::internal::AcceptedTable for expired_membership__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for ExpiredMembershipTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for ExpiredMembershipTable {}
 const _: () = {
-    use self::this_compilation_error_occurs_because_the_account_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_expired_membership_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_account_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_account_table_has_no_referenced_by_attribute_referencing_the_expired_membership_table;
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `account` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `account` table first, or add one"
+        )]
+        trait AccountTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> AccountTableIsAccepted
+        for T {}
+        const _: () = <self::account__TableHandle as AccountTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `account` table has no `#[referenced_by]` naming the `expired_membership` table",
+            label = "the `account` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = expired_membership)]` to the primary key column of the `account` table, or remove this `#[foreign_key]`"
+        )]
+        trait ReferencedByTheExpiredMembershipTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<ExpiredMembershipTable>,
+        > ReferencedByTheExpiredMembershipTable for T {}
+        const _: () = <self::AccountTable as ReferencedByTheExpiredMembershipTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `account` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`, or add `delete = true` to the `account`'s `#[dsl(method(...))]`"
+        )]
+        trait AccountTableHasADeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > AccountTableHasADeleteMethod for T {}
+        const _: () = <self::AccountTable as AccountTableHasADeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `account` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `account`'s `#[dsl(method(...))]`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait AccountTableIsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > AccountTableIsNotSoftDeletable for T {}
+        const _: () = <self::AccountTable as AccountTableIsNotSoftDeletable>::HOLDS;
+    };
 };
 impl Membership {}
 ///
@@ -21,13 +82,13 @@ pub struct CreateExpiredMembership {
 }
 
 // Generated DSL methods:
+// AccountTable
 // count_of_all_expired_memberships
 // create_expired_membership
 // delete_expired_membership_by_account_id
 // delete_expired_membership_by_id
-// execute_on_delete_strategies_of_the_expired_membership_table_after_multiple_rows_of_the_account_table_were_deleted
-// execute_on_delete_strategies_of_the_expired_membership_table_after_one_row_of_the_account_table_was_deleted
 // get_all_expired_memberships
+// get_by_primary_key
 // get_expired_membership_by_account_id
 // get_expired_membership_by_id
 // update_expired_membership_by_id

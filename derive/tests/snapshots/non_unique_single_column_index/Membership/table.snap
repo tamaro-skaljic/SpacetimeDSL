@@ -1,6 +1,13 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct MembershipTable;
+impl crate::spacetimedsl::internal::AcceptedTable for membership__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for MembershipTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for MembershipTable {}
 #[derive(
     Clone,
     Debug,
@@ -94,6 +101,7 @@ pub struct CreateMembership {
 // delete_membership_by_id
 // delete_memberships_by_group_id
 // get_all_memberships
+// get_by_primary_key
 // get_membership_by_id
 // get_memberships_by_group_id
 // update_membership_by_id

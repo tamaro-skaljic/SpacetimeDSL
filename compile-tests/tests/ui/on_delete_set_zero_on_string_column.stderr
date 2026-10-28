@@ -1,27 +1,18 @@
 error: `OnDeleteStrategy::SetZero` is only allowed on unsigned integer and `Uuid` columns, which it sets to `0` or `Uuid::NIL`, the values that reference no row! Found: String
-  --> tests/ui/on_delete_set_zero_on_string_column.rs:31:25
+  --> tests/ui/on_delete_set_zero_on_string_column.rs:34:25
    |
-31 |         pub owner_name: String,
+34 |         pub owner_name: String,
    |                         ^^^^^^
 
-error[E0599]: no associated function or constant named `execute_on_delete_strategies_of_the_gadget_table_after_one_row_of_the_owner_table_was_deleted` found for struct `DSLInternals` in the current scope
- --> tests/ui/on_delete_set_zero_on_string_column.rs:7:5
-  |
-4 | ::spacetimedsl::spacetimedsl!();
-  | ------------------------------- associated function or constant `execute_on_delete_strategies_of_the_gadget_table_after_one_row_of_the_owner_table_was_deleted` not found for this struct
-...
-7 |     #[spacetimedsl::dsl(plural_name = owners, method(update = true))]
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function or constant not found in `DSLInternals`
-  |
-  = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0599]: no associated function or constant named `execute_on_delete_strategies_of_the_gadget_table_after_multiple_rows_of_the_owner_table_were_deleted` found for struct `DSLInternals` in the current scope
- --> tests/ui/on_delete_set_zero_on_string_column.rs:7:5
-  |
-4 | ::spacetimedsl::spacetimedsl!();
-  | ------------------------------- associated function or constant `execute_on_delete_strategies_of_the_gadget_table_after_multiple_rows_of_the_owner_table_were_deleted` not found for this struct
-...
-7 |     #[spacetimedsl::dsl(plural_name = owners, method(update = true))]
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function or constant not found in `DSLInternals`
-  |
-  = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+error[E0277]: the `gadget` table can't reference the `owner` table, because the `gadget` table has no accepted `#[spacetimedsl::dsl]`
+  --> tests/ui/on_delete_set_zero_on_string_column.rs:15:55
+   |
+15 |         #[referenced_by(path = crate::gadget, table = gadget)]
+   |                                                       ^^^^^^ fix the `#[spacetimedsl::dsl]` of the `gadget` table first, or add one
+   |
+help: the trait `GadgetTableIsAccepted` is not implemented for `gadget::gadget__TableHandle`
+  --> tests/ui/on_delete_set_zero_on_string_column.rs:24:5
+   |
+24 |     #[spacetimedb::table(accessor = gadget, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

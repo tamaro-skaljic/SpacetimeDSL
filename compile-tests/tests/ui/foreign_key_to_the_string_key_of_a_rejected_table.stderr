@@ -1,0 +1,18 @@
+error: PluralName must be set in `#[dsl(plural_name = PluralName)]`
+ --> tests/ui/foreign_key_to_the_string_key_of_a_rejected_table.rs:9:25
+  |
+9 |     #[spacetimedsl::dsl(method(update = false, delete = true))]
+  |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the `country` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`
+  --> tests/ui/foreign_key_to_the_string_key_of_a_rejected_table.rs:30:54
+   |
+30 |         #[foreign_key(path = crate::country, table = country, column = code, on_delete = Delete)]
+   |                                                      ^^^^^^^ fix the `#[spacetimedsl::dsl]` of the `country` table first, or add one
+   |
+help: the trait `CountryTableIsAccepted` is not implemented for `country::country__TableHandle`
+  --> tests/ui/foreign_key_to_the_string_key_of_a_rejected_table.rs:10:5
+   |
+10 |     #[spacetimedb::table(accessor = country, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

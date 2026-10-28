@@ -1,8 +1,5 @@
 //! A `#[referenced_by]` names a table which has a foreign key back. `shipment` has none, so
 //! the attribute claims a relationship that does not exist.
-//!
-//! The two errors after the first follow from the same gap: the deletion cascade of
-//! `warehouse` calls the two functions a foreign key of `shipment` would have generated.
 
 ::spacetimedsl::spacetimedsl!();
 

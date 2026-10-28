@@ -9,10 +9,71 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: `Delete`
 ///   - On soft delete: none, the `parent_record` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_child_marker_table_has_no_foreign_key_attribute_referencing_the_parent_record_table {}
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct ChildMarkerTable;
+impl crate::spacetimedsl::internal::AcceptedTable for child_marker__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for ChildMarkerTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for ChildMarkerTable {}
 const _: () = {
-    use self::this_compilation_error_occurs_because_the_parent_record_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_child_marker_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_parent_record_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_parent_record_table_has_no_referenced_by_attribute_referencing_the_child_marker_table;
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `parent_record` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `parent_record` table first, or add one"
+        )]
+        trait ParentRecordTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> ParentRecordTableIsAccepted
+        for T {}
+        const _: () = <self::parent_record__TableHandle as ParentRecordTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `parent_record` table has no `#[referenced_by]` naming the `child_marker` table",
+            label = "the `parent_record` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = child_marker)]` to the primary key column of the `parent_record` table, or remove this `#[foreign_key]`"
+        )]
+        trait ReferencedByTheChildMarkerTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<ChildMarkerTable>,
+        > ReferencedByTheChildMarkerTable for T {}
+        const _: () = <self::ParentRecordTable as ReferencedByTheChildMarkerTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `parent_record` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`, or add `delete = true` to the `parent_record`'s `#[dsl(method(...))]`"
+        )]
+        trait ParentRecordTableHasADeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > ParentRecordTableHasADeleteMethod for T {}
+        const _: () = <self::ParentRecordTable as ParentRecordTableHasADeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `parent_record` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `parent_record`'s `#[dsl(method(...))]`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait ParentRecordTableIsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > ParentRecordTableIsNotSoftDeletable for T {}
+        const _: () = <self::ParentRecordTable as ParentRecordTableIsNotSoftDeletable>::HOLDS;
+    };
 };
 #[derive(
     Clone,
@@ -144,13 +205,13 @@ pub trait AfterChildMarkerDeleteHook<T: crate::spacetimedsl::WriteContext> {
 }
 
 // Generated DSL methods:
+// ParentRecordTable
 // count_of_all_child_markers
 // create_child_marker
 // delete_child_marker_by_id
 // delete_child_marker_by_parent_id
-// execute_on_delete_strategies_of_the_child_marker_table_after_multiple_rows_of_the_parent_record_table_were_deleted
-// execute_on_delete_strategies_of_the_child_marker_table_after_one_row_of_the_parent_record_table_was_deleted
 // get_all_child_markers
+// get_by_primary_key
 // get_child_marker_by_id
 // get_child_marker_by_parent_id
 // update_child_marker_by_id

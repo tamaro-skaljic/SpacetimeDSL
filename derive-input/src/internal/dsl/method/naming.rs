@@ -3,9 +3,10 @@
 //! trait a hook function implements, and the identifiers two tables in a foreign key
 //! relationship share.
 //!
-//! A referencing table calls a function it does not see the definition of, so both sides
-//! have to build the same identifier from the same two table names. Both sides build it
-//! here. The marker traits which pair the two sides are named in [`super::pairing`].
+//! A table reaches a table on the other side of a foreign key through a type it does not see
+//! the definition of, so both sides have to build the same identifier from the same table
+//! name. Both sides build it here. The marker traits which pair the two sides are named in
+//! [`super::pairing`].
 //!
 //! These names are part of the generated API.
 
@@ -14,10 +15,54 @@ use {
     ident_case::RenameRule, quote::format_ident, syn::Ident,
 };
 
-/// `get_<table>_by_<index>`, the method that finds rows by an index. A referencing table
-/// calls it on the table its foreign key names, so both sides have to build it here.
+/// `get_<table>_by_<index>`, the method that finds rows by an index.
 pub fn get_by_index_method_name(table_name: &Ident, index_name: &Ident) -> Ident {
     format_ident!("get_{table_name}_by_{index_name}")
+}
+
+/// `<Table>Table`, the table type through which the tables on the other side of its foreign
+/// keys reach a table: the PascalCase form of `singular_table_name` followed by `Table`, such
+/// as `WarehouseTable` for `warehouse`.
+///
+/// A table emits it, and a table on the other side of a foreign key names it from the
+/// `table = …` of its `#[foreign_key]` or `#[referenced_by]`, so both have to call this one
+/// function. It is spanned like `singular_table_name`, so that an error about the table type,
+/// such as the privacy of a struct in another module, underlines that `table = …`.
+pub fn table_type_name(singular_table_name: &Ident) -> Ident {
+    format_ident!(
+        "{}Table",
+        RenameRule::PascalCase.apply_to_field(singular_table_name.to_string()),
+        span = singular_table_name.span()
+    )
+}
+
+/// `<Referencing>TableReferencesThe<Referenced>Table`, the check a referenced table makes that a
+/// table its `#[referenced_by]` names has a foreign key back. The check also carries the
+/// cascades of `internal::References`, through which the referenced table reaches that table.
+pub fn foreign_key_back_check_name(
+    referencing_table_name: &Ident,
+    referenced_table_name: &Ident,
+) -> Ident {
+    format_ident!(
+        "{}ReferencesThe{}",
+        table_type_name(referencing_table_name),
+        table_type_name(referenced_table_name)
+    )
+}
+
+/// `get_by_primary_key`, the lookup a table type offers the tables whose foreign keys reference
+/// its table.
+pub fn get_by_primary_key_method_name() -> Ident {
+    format_ident!("get_by_primary_key")
+}
+
+/// The method of `internal::References` which runs the strategies of a referencing table after
+/// rows of the referenced table were removed, such as `after_one_row_was_deleted`.
+pub fn cascade_method_name(removal: Removal, one_or_multiple: &OneOrMultiple) -> Ident {
+    let count = one_row_or_multiple_rows(one_or_multiple);
+    let suffix = removal_suffix(removal, one_or_multiple);
+
+    format_ident!("after_{count}_{suffix}")
 }
 
 /// `get_<column>`, the getter of a column.
@@ -79,20 +124,6 @@ pub fn referenced_table_function_name(
 
     format_ident!(
         "execute_on_delete_strategies_of_referencing_tables_after_{count}_of_the_{referenced_table_name}_table_{suffix}"
-    )
-}
-
-pub fn referencing_table_function_name(
-    removal: Removal,
-    one_or_multiple: &OneOrMultiple,
-    referencing_table_name: &Ident,
-    referenced_table_name: &Ident,
-) -> Ident {
-    let count = one_row_or_multiple_rows(one_or_multiple);
-    let suffix = removal_suffix(removal, one_or_multiple);
-
-    format_ident!(
-        "execute_on_delete_strategies_of_the_{referencing_table_name}_table_after_{count}_of_the_{referenced_table_name}_table_{suffix}"
     )
 }
 

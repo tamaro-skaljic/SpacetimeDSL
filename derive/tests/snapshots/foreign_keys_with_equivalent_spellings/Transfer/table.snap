@@ -12,10 +12,128 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: `Delete`
 ///   - On soft delete: none, the `ledger` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_transfer_table_has_no_foreign_key_attribute_referencing_the_ledger_table {}
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct TransferTable;
+impl crate::spacetimedsl::internal::AcceptedTable for transfer__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for TransferTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for TransferTable {}
 const _: () = {
-    use ::other_crate::tables::this_compilation_error_occurs_because_the_ledger_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_transfer_table;
-    use ::other_crate::tables::this_compilation_error_occurs_because_your_foreign_key_referencing_the_ledger_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_ledger_table_has_no_referenced_by_attribute_referencing_the_transfer_table;
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `ledger` table first, or add one"
+        )]
+        trait LedgerTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> LedgerTableIsAccepted
+        for T {}
+        const _: () = <::other_crate::tables::ledger__TableHandle as LedgerTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table has no `#[referenced_by]` naming the `transfer` table",
+            label = "the `ledger` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = transfer)]` to the primary key column of the `ledger` table, or remove this `#[foreign_key]`"
+        )]
+        trait ReferencedByTheTransferTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<TransferTable>,
+        > ReferencedByTheTransferTable for T {}
+        const _: () = <::other_crate::tables::LedgerTable as ReferencedByTheTransferTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`, or add `delete = true` to the `ledger`'s `#[dsl(method(...))]`"
+        )]
+        trait LedgerTableHasADeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > LedgerTableHasADeleteMethod for T {}
+        const _: () = <::other_crate::tables::LedgerTable as LedgerTableHasADeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `ledger`'s `#[dsl(method(...))]`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait LedgerTableIsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > LedgerTableIsNotSoftDeletable for T {}
+        const _: () = <::other_crate::tables::LedgerTable as LedgerTableIsNotSoftDeletable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `ledger` table first, or add one"
+        )]
+        trait LedgerTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> LedgerTableIsAccepted
+        for T {}
+        const _: () = <other_crate::tables::ledger__TableHandle as LedgerTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table has no `#[referenced_by]` naming the `transfer` table",
+            label = "the `ledger` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = transfer)]` to the primary key column of the `ledger` table, or remove this `#[foreign_key]`"
+        )]
+        trait ReferencedByTheTransferTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<TransferTable>,
+        > ReferencedByTheTransferTable for T {}
+        const _: () = <other_crate::tables::LedgerTable as ReferencedByTheTransferTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`, or add `delete = true` to the `ledger`'s `#[dsl(method(...))]`"
+        )]
+        trait LedgerTableHasADeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > LedgerTableHasADeleteMethod for T {}
+        const _: () = <other_crate::tables::LedgerTable as LedgerTableHasADeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `ledger`'s `#[dsl(method(...))]`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait LedgerTableIsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > LedgerTableIsNotSoftDeletable for T {}
+        const _: () = <other_crate::tables::LedgerTable as LedgerTableIsNotSoftDeletable>::HOLDS;
+    };
 };
 #[derive(
     Clone,
@@ -136,14 +254,14 @@ pub struct CreateTransfer {
 }
 
 // Generated DSL methods:
+// LedgerTable
 // count_of_all_transfers
 // create_transfer
 // delete_transfer_by_id
 // delete_transfers_by_source_ledger_id
 // delete_transfers_by_target_ledger_id
-// execute_on_delete_strategies_of_the_transfer_table_after_multiple_rows_of_the_ledger_table_were_deleted
-// execute_on_delete_strategies_of_the_transfer_table_after_one_row_of_the_ledger_table_was_deleted
 // get_all_transfers
+// get_by_primary_key
 // get_transfer_by_id
 // get_transfers_by_source_ledger_id
 // get_transfers_by_target_ledger_id

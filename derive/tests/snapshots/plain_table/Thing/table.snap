@@ -1,6 +1,13 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct ThingTable;
+impl crate::spacetimedsl::internal::AcceptedTable for thing__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for ThingTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for ThingTable {}
 #[derive(
     Clone,
     Debug,
@@ -69,4 +76,5 @@ impl Thing {
 // create_thing
 // delete_thing_by_id
 // get_all_things
+// get_by_primary_key
 // get_thing_by_id

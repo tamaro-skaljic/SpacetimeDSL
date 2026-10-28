@@ -31,6 +31,6 @@ Use it like `shelved_book_id.get_shelf(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_shelf_by_id(shelved_book.get_shelf_id())
+        self::ShelfTable::get_by_primary_key(&dsl, shelved_book.get_shelf_id())
     }
 }

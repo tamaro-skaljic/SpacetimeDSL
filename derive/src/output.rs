@@ -6,9 +6,10 @@ use {
         dsl::{
             column::SpacetimeDSLColumnMethods,
             method::{SpacetimeDSLArg, SpacetimeDSLMethod},
-            table::CascadeEntryPoints,
+            table::{CascadeEntryPoints, OnDeleteStrategiesOfTheReferencedTable, table_type_name},
             wrapper::{WrapperMethod, WrapperType},
         },
+        runtime,
     },
     syn::Ident,
 };
@@ -139,26 +140,21 @@ pub fn build(input: &Table, pass: DSLAttributePass) -> syn::Result<GeneratedOutp
         }
     }
 
-    // Two loops, not one: every one-row method is emitted before any many-row method, and a
-    // single loop over the pairs would interleave them.
-    let entry_points_of_this_table = || {
-        input
-            .spacetimedsl_methods
-            .on_delete_strategies_of_this_table
-            .iter()
-            .flat_map(|strategies| {
-                held_entry_points(&strategies.on_deletion, &strategies.on_soft_deletion)
-            })
-    };
+    let table_type = table_type_name(&input.spacetimedb_table.singular_name);
 
-    for entry_points in entry_points_of_this_table() {
-        dsl_methods.push(build_internal_dsl_method(&entry_points.after_one_row)?);
+    for strategies in &input
+        .spacetimedsl_methods
+        .on_delete_strategies_of_this_table
+    {
+        dsl_methods.push(build_references_impl(&table_type, strategies)?);
     }
 
-    for entry_points in entry_points_of_this_table() {
-        dsl_methods.push(build_internal_dsl_method(
-            &entry_points.after_multiple_rows,
-        )?);
+    if let Some(method) = &input.spacetimedsl_methods.get_by_primary_key {
+        dsl_methods.push(GeneratedDSLMethod {
+            method_name: method.method_name.clone(),
+            is_internal: true,
+            tokens: function::build_table_type_function(&table_type, method)?,
+        });
     }
 
     for multi_column_index in &input.spacetimedsl_methods.multi_column_indices {
@@ -185,29 +181,11 @@ pub fn build(input: &Table, pass: DSLAttributePass) -> syn::Result<GeneratedOutp
         }
     }
 
-    let mut compile_error_checks = vec![];
+    let pairing = &input.spacetimedsl_table.pairing;
 
-    input
-        .spacetimedsl_table
-        .compile_error_checks
-        .iter()
-        .for_each(|compile_error_check| {
-            compile_error_checks.push(quote! {
-                pub trait #compile_error_check {}
-            });
-        });
-
-    let compile_error_check_imports = &input.spacetimedsl_table.compile_error_check_imports;
-
-    // A block scope, so the imports of two tables in one module cannot clash.
-    let compile_error_check_usages = match compile_error_check_imports.is_empty() {
-        true => TokenStream::default(),
-        false => quote! {
-            const _: () = {
-                #(use #compile_error_check_imports;)*
-            };
-        },
-    };
+    // As visible as the struct and its `<accessor>__TableHandle`, so that a lookup through it
+    // is no more public than the row it returns.
+    let table_type_visibility = &input.rust_struct.visibility;
 
     let create_dsl_method_arg = match &input.spacetimedsl_table.create_dsl_method_arg {
         Some(arg) => create_method_arg::build(&arg.struct_impl)?,
@@ -236,9 +214,12 @@ pub fn build(input: &Table, pass: DSLAttributePass) -> syn::Result<GeneratedOutp
 
     Ok(GeneratedOutput {
         items_outside_dsl_methods: quote! {
-            #(#compile_error_checks)*
+            /// The type through which the tables on the other side of this table's foreign keys
+            /// reach it.
+            #[doc(hidden)]
+            #table_type_visibility struct #table_type;
 
-            #compile_error_check_usages
+            #pairing
 
             #(#wrapper_types)*
 
@@ -262,6 +243,47 @@ fn held_entry_points<'a>(
     on_soft_deletion: &'a Option<CascadeEntryPoints>,
 ) -> impl Iterator<Item = &'a CascadeEntryPoints> {
     [on_deletion, on_soft_deletion].into_iter().flatten()
+}
+
+/// The impl of `internal::References` for one table this table references, holding the
+/// methods of the removals its foreign keys declare a strategy for. It is emitted even without
+/// any: the referenced table calls into it, and the trait's default bodies stand in.
+fn build_references_impl(
+    table_type: &Ident,
+    strategies: &OnDeleteStrategiesOfTheReferencedTable,
+) -> syn::Result<GeneratedDSLMethod> {
+    let methods = held_entry_points(&strategies.on_deletion, &strategies.on_soft_deletion)
+        .flat_map(|entry_points| {
+            [
+                &entry_points.after_one_row,
+                &entry_points.after_multiple_rows,
+            ]
+        })
+        .map(function::build_trait_method)
+        .collect::<syn::Result<Vec<_>>>()?;
+
+    let references_trait = runtime::references_trait(
+        &strategies.referenced_table_type,
+        &strategies.referenced_primary_key_type,
+    );
+
+    let Some(referenced_table_type) = strategies.referenced_table_type.segments.last() else {
+        return Err(syn::Error::new_spanned(
+            &strategies.referenced_table_type,
+            "SpacetimeDSL generated a table type without a name! This is a bug of SpacetimeDSL: please report it at https://github.com/tamaro-skaljic/SpacetimeDSL/issues.",
+        ));
+    };
+    let referenced_table_type_name = &referenced_table_type.ident;
+
+    Ok(GeneratedDSLMethod {
+        method_name: referenced_table_type_name.clone(),
+        is_internal: true,
+        tokens: quote! {
+            impl #references_trait for #table_type {
+                #(#methods)*
+            }
+        },
+    })
 }
 
 fn build_public_dsl_method(method: &SpacetimeDSLMethod) -> syn::Result<GeneratedDSLMethod> {

@@ -49,7 +49,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                 .get_author_id()
                 .ne(&book.get_author_id())
             {
-                match self.get_author_by_id(book.get_author_id()) {
+                match self::AuthorTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    book.get_author_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(

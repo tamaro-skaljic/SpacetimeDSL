@@ -43,9 +43,28 @@ pub fn uuid_nil() -> TokenStream {
 /// handle type `<accessor>__TableHandle` next to every table and implements `Table` for it with
 /// the struct as `Row`.
 pub fn table_row_type(module_path: &Path, table_accessor: &Ident) -> TokenStream {
-    let table_handle = format_ident!("{table_accessor}__TableHandle");
+    let table_handle = table_handle_type(module_path, table_accessor);
 
     quote! {
-        <#module_path::#table_handle as ::spacetimedb::Table>::Row
+        <#table_handle as ::spacetimedb::Table>::Row
+    }
+}
+
+/// `<accessor>__TableHandle`, the handle type SpacetimeDB generates next to the table
+/// `table_accessor`, with the visibility of its struct. Spanned like `table_accessor`, so that
+/// an error about the handle underlines the `table = …` which names it.
+pub fn table_handle_name(table_accessor: &Ident) -> Ident {
+    format_ident!(
+        "{table_accessor}__TableHandle",
+        span = table_accessor.span()
+    )
+}
+
+/// `#module_path::<accessor>__TableHandle`: [`table_handle_name`] in `module_path`.
+pub fn table_handle_type(module_path: &Path, table_accessor: &Ident) -> TokenStream {
+    let table_handle = table_handle_name(table_accessor);
+
+    quote! {
+        #module_path::#table_handle
     }
 }

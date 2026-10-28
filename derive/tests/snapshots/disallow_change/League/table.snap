@@ -1,6 +1,13 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct LeagueTable;
+impl crate::spacetimedsl::internal::AcceptedTable for league__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for LeagueTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for LeagueTable {}
 impl League {
     ///
     pub fn get_remaining_rounds(&self) -> &u16 {

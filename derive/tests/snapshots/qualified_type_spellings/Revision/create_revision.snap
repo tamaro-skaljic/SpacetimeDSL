@@ -31,7 +31,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         };
         let mut the_same_or_another_revision: Option<Revision> = None;
         if draft_id.ne(&0) {
-            match self.get_draft_by_id(revision.get_draft_id()) {
+            match self::DraftTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                revision.get_draft_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

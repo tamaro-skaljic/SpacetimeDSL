@@ -31,6 +31,6 @@ Use it like `review_id.get_book(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_book_by_id(review.get_book_id())
+        self::BookTable::get_by_primary_key(&dsl, review.get_book_id())
     }
 }

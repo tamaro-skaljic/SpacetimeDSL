@@ -1,6 +1,13 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct AuditedEntryTable;
+impl crate::spacetimedsl::internal::AcceptedTable for audited_entry__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for AuditedEntryTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for AuditedEntryTable {}
 #[derive(
     Clone,
     Debug,
@@ -113,4 +120,5 @@ pub trait AfterAuditedEntryUpdateHook<T: crate::spacetimedsl::WriteContext> {
 // delete_audited_entry_by_id
 // get_all_audited_entries
 // get_audited_entry_by_id
+// get_by_primary_key
 // update_audited_entry_by_id

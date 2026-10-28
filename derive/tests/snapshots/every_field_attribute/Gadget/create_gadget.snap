@@ -55,7 +55,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         }
         let mut the_same_or_another_gadget: Option<Gadget> = None;
         if owner_id.ne(&::spacetimedb::Uuid::NIL) {
-            match self.get_owner_by_id(gadget.get_owner_id()) {
+            match self::OwnerTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                gadget.get_owner_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

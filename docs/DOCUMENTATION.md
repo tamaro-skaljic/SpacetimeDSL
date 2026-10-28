@@ -570,6 +570,23 @@ Every `#[spacetimedsl::dsl]` attribute belongs to one `#[spacetimedb::table]` at
 pub struct Entity { ... }
 ```
 
+### When `#[spacetimedsl::dsl]` Rejects a Table
+
+A rejected `#[spacetimedsl::dsl]` reports why, at the attribute or column that has to change. It reports only its first error.
+
+- **The struct stays** when it carries a `#[spacetimedb::table]`: the table and its accessor `ctx.db.<table>()` keep existing, so code that uses them keeps compiling.
+- **Nothing generated exists**, so a call of the rejected table's DSL methods, such as `dsl.get_entity_by_id(…)`, fails as well.
+- **Each attribute that depends on it reports one error**: every `#[foreign_key]` that references the rejected table and every `#[referenced_by]` that names it says that the rejected table has to be fixed first. Nothing else of the generated code reports an error: the other tables reach the rejected one only through its [table type](#struct-naming-patterns), which the compiler leaves unreported in a module with a rejected table.
+- **A rejection that SpacetimeDB shares**, such as a column of an array, tuple or reference type, also shows **SpacetimeDB**'s own errors, on the column or on `#[spacetimedb::table]`.
+
+```txt
+error[E0277]: the `server` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`
+  --> src/channel.rs:14:49
+   |
+14 |     #[foreign_key(path = crate::server, table = server, column = id, on_delete = Delete)]
+   |                                                 ^^^^^^ fix the `#[spacetimedsl::dsl]` of the `server` table first, or add one
+```
+
 ### Column Type Spellings
 
 A column's type has to be a path, such as `u64`, `String`, `Option<T>`, `spacetimedb::Timestamp` or a type of your own. Arrays, tuples, references, slices, function pointers, trait objects, `impl Trait` and qualified paths such as `<T as Trait>::Type` are rejected with a diagnostic; wrap such a value in a type of your own, such as a struct deriving `SpacetimeType`.
@@ -951,18 +968,18 @@ You can see that the `consume_entity_timer`, `food` and `circle` tables each hav
 
 #### What Fields are Excluded (Auto-Defaulted)
 
-| Column Pattern                   | Default Value                                |
-| -------------------------------- | -------------------------------------------- |
-| `#[auto_inc]` columns            | `0` (SpacetimeDB generates the actual value) |
-| `created_at: Timestamp`          | `ctx.timestamp`                              |
-| `inserted_at: Timestamp`         | `ctx.timestamp`                              |
-| `modified_at: Option<Timestamp>` | `None` on create                             |
-| `updated_at: Option<Timestamp>`  | `None` on create                             |
-| `modified_at: Timestamp`         | `ctx.timestamp` on create                    |
-| `updated_at: Timestamp`          | `ctx.timestamp` on create                    |
-| `#[auto_gen(v4)]` columns        | A new random UUID v4                         |
-| `#[auto_gen(v7)]` columns        | A new sortable UUID v7                       |
-| `#[creation_default(<expression>)]` columns | The expression                       |
+| Column Pattern                              | Default Value                                |
+| ------------------------------------------- | -------------------------------------------- |
+| `#[auto_inc]` columns                       | `0` (SpacetimeDB generates the actual value) |
+| `created_at: Timestamp`                     | `ctx.timestamp`                              |
+| `inserted_at: Timestamp`                    | `ctx.timestamp`                              |
+| `modified_at: Option<Timestamp>`            | `None` on create                             |
+| `updated_at: Option<Timestamp>`             | `None` on create                             |
+| `modified_at: Timestamp`                    | `ctx.timestamp` on create                    |
+| `updated_at: Timestamp`                     | `ctx.timestamp` on create                    |
+| `#[auto_gen(v4)]` columns                   | A new random UUID v4                         |
+| `#[auto_gen(v7)]` columns                   | A new sortable UUID v7                       |
+| `#[creation_default(<expression>)]` columns | The expression                               |
 
 Both `created_at`/`inserted_at` and `modified_at`/`updated_at` are recognized aliases. For other
 column names, use the bare `#[set_on_create]` or `#[set_on_update]` helper attribute:
@@ -1556,19 +1573,30 @@ Every `#[foreign_key]` needs a `#[referenced_by]` naming its table on the refere
 
 A table which neither deletes nor soft-deletes rows is paired the same way: its `#[referenced_by]` names every table with a foreign key to it, and those foreign keys set no strategy.
 
-A broken rule is an unresolved import whose name says what to change:
+Tables paired across modules have to be visible to each other: a struct that a `#[foreign_key]` or a `#[referenced_by]` in another module names needs at least `pub(crate)`. A private one fails with `E0603` for its table type and its `<accessor>__TableHandle`.
+
+Each rule is checked on its own, and a broken rule reports one error, underlined on the `table = …` of the attribute it belongs to, with what to change:
+
+| Rule                                   | Error                                                                                                                          |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| The referenced table is accepted       | *the `entity` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`*                                    |
+| The referenced table names this table  | *the `entity` table has no `#[referenced_by]` naming the `position` table*                                                     |
+| A strategy can apply                   | *the `entity` table has no delete method, so `on_delete` can't apply*                                                          |
+| A strategy is set                      | *the `entity` table has a delete method, so this foreign key needs `on_delete`*                                                |
+| The named table is accepted            | *the `position` table can't reference the `entity` table, because the `position` table has no accepted `#[spacetimedsl::dsl]`* |
+| The named table has a foreign key back | *the `position` table has no `#[foreign_key]` referencing the `entity` table*                                                  |
+
+The first four are checked on each `#[foreign_key]`, the last two on each `#[referenced_by]`. Soft deletion is checked the same way, with *isn't soft-deletable*, *is soft-deletable* and `on_soft_delete`.
 
 ```txt
-unresolved import crate::entity::this_compilation_error_occurs_because_the_entity_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_position_table
-unresolved import crate::entity::this_compilation_error_occurs_because_your_foreign_key_referencing_the_entity_table_needs_to_define_a_strategy_for_on_delete_or_the_entity_table_has_no_referenced_by_attribute_referencing_the_position_table
-unresolved import crate::position::this_compilation_error_occurs_because_the_position_table_has_no_foreign_key_attribute_referencing_the_entity_table
+error[E0277]: the `entity` table has a delete method, so this foreign key needs `on_delete`
+  --> src/position.rs:14:49
+   |
+14 |     #[foreign_key(path = crate::entity, table = entity, column = id)]
+   |                                                 ^^^^^^ add `on_delete = …`, or add `delete = false` to the `entity`'s `#[dsl(method(...))]`
+   |
+   = note: `on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`
 ```
-
-- The first: a foreign key of `position` sets `on_delete`, but `entity` has no delete method, or no `#[referenced_by]` naming `position`.
-- The second: `entity` has a delete method, but a foreign key of `position` to it does not set `on_delete`, or `entity` has no `#[referenced_by]` naming `position`.
-- The third: `entity` names `position` in `#[referenced_by]`, but `position` has no foreign key to `entity`.
-
-Soft deletion is checked the same way, with `soft_deletable` and `on_soft_delete` in the names.
 
 ### `path` Parameter
 
@@ -2155,6 +2183,9 @@ All generated traits follow consistent naming patterns. The table name used in t
 | Create argument struct | `Create{Table}`   | `CreateEntity`, `CreatePosition`, `CreateUser`, `CreateGameConfig` |
 | Wrapper type (default) | `{Table}{Column}` | `EntityObjId`, `PositionId`, `UserProfilePublicId`, `TaskOwnerId`  |
 | Wrapper type (custom)  | User-specified    | `EntityId`, `PlayerId`, `CircleId`, `CleanupJobScheduledId`        |
+| Table type             | `{Table}Table`    | `EntityTable`, `PositionTable`, `UserTable`, `GameConfigTable`     |
+
+`{Table}` is the PascalCase form of the table's accessor. The table type is `#[doc(hidden)]` and as visible as its struct: the tables on the other side of a table's foreign keys reach it through its table type. A struct named like the table type of its own table, such as `struct EntityTable` with `accessor = entity`, is rejected, and any other item of that name in the table's module fails to compile.
 
 ### Hook Trait Naming Patterns
 
@@ -2284,6 +2315,7 @@ impl Config {
 | Missing `#[referenced_by]` for a `#[foreign_key]`      | Every foreign key needs a matching `referenced_by` on the referenced PK                                 |
 | Missing `#[foreign_key]` for a `#[referenced_by]`      | Every referenced table needs a matching `foreign_key` on the referencing table                          |
 | A foreign key without `on_delete` to a deletable table | Set `on_delete`; each foreign key reacts to every removal its referenced table performs                 |
+| A private struct paired with a table in another module | Make the struct `pub(crate)`; tables paired across modules have to be visible to each other             |
 | `update = true` without pub fields or timestamp        | Add a `pub` field or `modified_at`/`updated_at` column                                                  |
 | Omitting `update` parameter entirely                   | Compilation error — `update` is required (unlike `delete` which defaults to `true`)                     |
 | `unique_index(accessor = ...)`                         | Correct: `unique_index(name = ...)` — `accessor` is for **SpacetimeDB** `index`, not DSL `unique_index` |

@@ -1,0 +1,18 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// SeasonTable
+impl crate::spacetimedsl::internal::References<self::SeasonTable, u64>
+for TournamentTable {}
+
+// get_by_primary_key
+impl TournamentTable {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Look a row of the `tournament` table up by its primary key, for the tables whose foreign keys reference it.
+    pub fn get_by_primary_key<'a, T: crate::spacetimedsl::ReadContext>(
+        dsl: &crate::spacetimedsl::ReadOnlyDSL<'_, T>,
+        id: impl Into<TournamentId> + Clone,
+    ) -> Result<Tournament, crate::spacetimedsl::error::SpacetimeDSLError> {
+        dsl.get_tournament_by_id(id)
+    }
+}

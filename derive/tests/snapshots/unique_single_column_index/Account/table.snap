@@ -1,6 +1,13 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct AccountTable;
+impl crate::spacetimedsl::internal::AcceptedTable for account__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for AccountTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for AccountTable {}
 #[derive(
     Clone,
     Debug,
@@ -96,4 +103,5 @@ pub struct CreateAccount {
 // get_account_by_external_id
 // get_account_by_id
 // get_all_accounts
+// get_by_primary_key
 // update_account_by_id

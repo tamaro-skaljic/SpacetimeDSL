@@ -1,5 +1,5 @@
 error: `#[creation_default]` is not allowed on a `singleton(with_default)` table, because it has no create method! Its `DefaultSingleton::get_default` supplies the whole default row.
-  --> tests/ui/creation_default_on_singleton_with_default.rs:15:9
+  --> tests/ui/creation_default_on_singleton_with_default.rs:12:9
    |
-15 |         #[creation_default(8)]
+12 |         #[creation_default(8)]
    |         ^^^^^^^^^^^^^^^^^^^^^^

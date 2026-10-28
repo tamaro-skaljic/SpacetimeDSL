@@ -2,8 +2,8 @@
 //! take the stems of their columns, which are the same: both would add `get_owner` to
 //! `GameId`.
 //!
-//! The error after the first follows from it: a rejected `#[dsl]` emits nothing else, so the
-//! `player` table's expansion misses the trait the `game` table would have declared for it.
+//! The error after the first follows from it: the `#[referenced_by]` of the `player` table
+//! reports that the `game` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

@@ -26,7 +26,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         };
         let mut the_same_or_another_folder: Option<Folder> = None;
         if parent_folder_id.ne(&0) {
-            match self.get_folder_by_id(folder.get_parent_folder_id()) {
+            match self::FolderTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                folder.get_parent_folder_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

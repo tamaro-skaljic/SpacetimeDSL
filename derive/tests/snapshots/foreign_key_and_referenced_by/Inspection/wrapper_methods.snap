@@ -31,6 +31,6 @@ Use it like `inspection_id.get_warehouse(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_warehouse_by_id(inspection.get_warehouse_id())
+        self::WarehouseTable::get_by_primary_key(&dsl, inspection.get_warehouse_id())
     }
 }

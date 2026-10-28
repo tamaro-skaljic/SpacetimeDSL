@@ -31,6 +31,6 @@ Use it like `member_id.get_guild(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_guild_by_id(member.get_guild_id())
+        self::GuildTable::get_by_primary_key(&dsl, member.get_guild_id())
     }
 }

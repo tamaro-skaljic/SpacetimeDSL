@@ -1,0 +1,44 @@
+error: PluralName must be set in `#[dsl(plural_name = PluralName)]`
+  --> tests/ui/foreign_keys_to_a_rejected_table.rs:10:25
+   |
+10 |     #[spacetimedsl::dsl(method(update = false, delete = true))]
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the `server` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`
+  --> tests/ui/foreign_keys_to_a_rejected_table.rs:34:53
+   |
+34 |         #[foreign_key(path = crate::server, table = server, column = id, on_delete = Delete)]
+   |                                                     ^^^^^^ fix the `#[spacetimedsl::dsl]` of the `server` table first, or add one
+   |
+help: the trait `channel::_::_::ServerTableIsAccepted` is not implemented for `server::server__TableHandle`
+  --> tests/ui/foreign_keys_to_a_rejected_table.rs:11:5
+   |
+11 |     #[spacetimedb::table(accessor = server, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the `server` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`
+  --> tests/ui/foreign_keys_to_a_rejected_table.rs:39:53
+   |
+39 |         #[foreign_key(path = crate::server, table = server, column = id, on_delete = Delete)]
+   |                                                     ^^^^^^ fix the `#[spacetimedsl::dsl]` of the `server` table first, or add one
+   |
+help: the trait `channel::_::_::ServerTableIsAccepted` is not implemented for `server::server__TableHandle`
+  --> tests/ui/foreign_keys_to_a_rejected_table.rs:11:5
+   |
+11 |     #[spacetimedb::table(accessor = server, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the `server` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`
+  --> tests/ui/foreign_keys_to_a_rejected_table.rs:55:53
+   |
+55 |         #[foreign_key(path = crate::server, table = server, column = id, on_delete = Delete)]
+   |                                                     ^^^^^^ fix the `#[spacetimedsl::dsl]` of the `server` table first, or add one
+   |
+help: the trait `member::_::_::ServerTableIsAccepted` is not implemented for `server::server__TableHandle`
+  --> tests/ui/foreign_keys_to_a_rejected_table.rs:11:5
+   |
+11 |     #[spacetimedb::table(accessor = server, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

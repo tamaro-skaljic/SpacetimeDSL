@@ -1,13 +1,11 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
-// execute_on_delete_strategies_of_the_book_table_after_one_row_of_the_author_table_was_deleted
-impl crate::spacetimedsl::internal::DSLInternals {
+// AuthorTable
+impl crate::spacetimedsl::internal::References<self::AuthorTable, u64> for BookTable {
     ///Execute On Delete Strategies of the referencing table `book` after one row of the referenced table `author` was deleted.
-    pub fn execute_on_delete_strategies_of_the_book_table_after_one_row_of_the_author_table_was_deleted<
-        'a,
-        T: crate::spacetimedsl::WriteContext,
-    >(
+    fn after_one_row_was_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
         dsl: &crate::spacetimedsl::DSL<'_, T>,
         strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
         primary_key_value_of_a_row_of_another_table_to_delete: &u64,
@@ -62,15 +60,9 @@ impl crate::spacetimedsl::internal::DSLInternals {
             }
         }
     }
-}
-
-// execute_on_delete_strategies_of_the_book_table_after_multiple_rows_of_the_author_table_were_deleted
-impl crate::spacetimedsl::internal::DSLInternals {
     ///Execute On Delete Strategies of the referencing table `book` after multiple rows of the referenced table `author` were deleted.
-    pub fn execute_on_delete_strategies_of_the_book_table_after_multiple_rows_of_the_author_table_were_deleted<
-        'a,
-        T: crate::spacetimedsl::WriteContext,
-    >(
+    fn after_multiple_rows_were_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
         dsl: &crate::spacetimedsl::DSL<'_, T>,
         strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
         primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
@@ -147,5 +139,17 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 })
             }
         }
+    }
+}
+
+// get_by_primary_key
+impl BookTable {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Look a row of the `book` table up by its primary key, for the tables whose foreign keys reference it.
+    pub fn get_by_primary_key<'a, T: crate::spacetimedsl::ReadContext>(
+        dsl: &crate::spacetimedsl::ReadOnlyDSL<'_, T>,
+        id: impl Into<BookId> + Clone,
+    ) -> Result<Book, crate::spacetimedsl::error::SpacetimeDSLError> {
+        dsl.get_book_by_id(id)
     }
 }

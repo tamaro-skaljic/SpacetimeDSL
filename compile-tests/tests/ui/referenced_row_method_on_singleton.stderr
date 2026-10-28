@@ -1,5 +1,18 @@
 error: `referenced_row_method` has no effect on a singleton table, whose injected primary key has no wrapper type to add the method to! Remove it.
-  --> tests/ui/referenced_row_method_on_singleton.rs:27:74
+  --> tests/ui/referenced_row_method_on_singleton.rs:26:74
    |
-27 |         #[foreign_key(path = crate::region, table = region, column = id, referenced_row_method = false)]
+26 |         #[foreign_key(path = crate::region, table = region, column = id, referenced_row_method = false)]
    |                                                                          ^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the `server_binding` table can't reference the `region` table, because the `server_binding` table has no accepted `#[spacetimedsl::dsl]`
+  --> tests/ui/referenced_row_method_on_singleton.rs:16:56
+   |
+16 |         #[referenced_by(path = crate::binding, table = server_binding)]
+   |                                                        ^^^^^^^^^^^^^^ fix the `#[spacetimedsl::dsl]` of the `server_binding` table first, or add one
+   |
+help: the trait `ServerBindingTableIsAccepted` is not implemented for `binding::server_binding__TableHandle`
+  --> tests/ui/referenced_row_method_on_singleton.rs:23:5
+   |
+23 |     #[spacetimedb::table(accessor = server_binding, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

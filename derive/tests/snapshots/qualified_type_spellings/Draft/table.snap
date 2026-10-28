@@ -7,11 +7,195 @@ source: derive/src/characterization_tests.rs
 ///
 /// - the `revision` table (`self`)
 
-pub trait this_compilation_error_occurs_because_the_draft_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_revision_table {}
-pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_draft_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_draft_table_has_no_referenced_by_attribute_referencing_the_revision_table {}
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct DraftTable;
+impl crate::spacetimedsl::internal::AcceptedTable for draft__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for DraftTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for DraftTable {}
+impl crate::spacetimedsl::internal::ReferencedBy<self::RevisionTable> for DraftTable {}
 const _: () = {
-    use self::this_compilation_error_occurs_because_the_revision_table_has_no_foreign_key_attribute_referencing_the_draft_table;
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `revision` table can't reference the `draft` table, because the `revision` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `revision` table first, or add one"
+        )]
+        trait RevisionTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> RevisionTableIsAccepted
+        for T {}
+        const _: () = <self::revision__TableHandle as RevisionTableIsAccepted>::HOLDS;
+    };
 };
+#[diagnostic::on_unimplemented(
+    message = "the `revision` table has no `#[foreign_key]` referencing the `draft` table",
+    label = "remove this `#[referenced_by]`, or add the foreign key to the `revision` table"
+)]
+#[allow(dead_code, clippy::ptr_arg)]
+trait RevisionTableReferencesTheDraftTable {
+    const HOLDS: () = ();
+    fn after_one_row_was_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    >;
+    fn after_multiple_rows_were_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    >;
+    fn after_one_row_was_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    >;
+    fn after_multiple_rows_were_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    >;
+}
+#[diagnostic::do_not_recommend]
+impl<
+    Referencing: crate::spacetimedsl::internal::References<DraftTable, u64>,
+> RevisionTableReferencesTheDraftTable for Referencing {
+    fn after_one_row_was_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            DraftTable,
+            u64,
+        >>::after_one_row_was_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_value_of_a_row_of_another_table_to_delete,
+        )
+    }
+    fn after_multiple_rows_were_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            DraftTable,
+            u64,
+        >>::after_multiple_rows_were_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_values_of_rows_of_another_table_to_delete,
+        )
+    }
+    fn after_one_row_was_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            DraftTable,
+            u64,
+        >>::after_one_row_was_soft_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_value_of_a_row_of_another_table_to_delete,
+        )
+    }
+    fn after_multiple_rows_were_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            DraftTable,
+            u64,
+        >>::after_multiple_rows_were_soft_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_values_of_rows_of_another_table_to_delete,
+        )
+    }
+}
+const _: () = <self::RevisionTable as RevisionTableReferencesTheDraftTable>::HOLDS;
 #[derive(
     Clone,
     Debug,
@@ -82,4 +266,5 @@ impl Draft {
 // execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_draft_table_were_deleted
 // execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_draft_table_was_deleted
 // get_all_drafts
+// get_by_primary_key
 // get_draft_by_id

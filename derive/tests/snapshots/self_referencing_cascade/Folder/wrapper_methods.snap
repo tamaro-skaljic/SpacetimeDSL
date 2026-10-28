@@ -31,6 +31,6 @@ Use it like `folder_id.get_parent_folder(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_folder_by_id(folder.get_parent_folder_id())
+        self::FolderTable::get_by_primary_key(&dsl, folder.get_parent_folder_id())
     }
 }

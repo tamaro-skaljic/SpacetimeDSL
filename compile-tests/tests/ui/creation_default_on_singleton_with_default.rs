@@ -1,8 +1,5 @@
 //! A `singleton(with_default)` table has no create method: `upsert_settings` writes its row,
 //! and `DefaultSingleton::get_default` supplies the whole default row.
-//!
-//! The errors after the first follow from it: a rejected `#[dsl]` emits nothing else, so the
-//! `impl DefaultSingleton` names a `Settings` which does not exist.
 
 ::spacetimedsl::spacetimedsl!();
 

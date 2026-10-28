@@ -49,7 +49,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                 .get_branch_id()
                 .ne(&loan.get_branch_id())
             {
-                match self.get_branch_by_id(loan.get_branch_id()) {
+                match self::BranchTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    loan.get_branch_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(

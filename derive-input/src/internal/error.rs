@@ -77,6 +77,25 @@ pub fn missing_table_attribute(struct_name: &Ident) -> Error {
     )
 }
 
+/// A rule the generator relies on which does not hold: a bug of SpacetimeDSL, not of the table.
+pub fn generator_bug(struct_name: &Ident, broken_rule: &str) -> Error {
+    Error::new_spanned(
+        struct_name,
+        format!(
+            "SpacetimeDSL broke its own rule that {broken_rule}! This is a bug of SpacetimeDSL: please report it at https://github.com/tamaro-skaljic/SpacetimeDSL/issues."
+        ),
+    )
+}
+
+pub fn struct_named_like_its_table_type(struct_name: &Ident, singular_table_name: &Ident) -> Error {
+    Error::new_spanned(
+        struct_name,
+        format!(
+            "`#[dsl]` generates the type `{struct_name}` for the `{singular_table_name}` table, so the struct cannot be called `{struct_name}` as well! Rename the struct, or change `accessor = {singular_table_name}` in its `#[table]`."
+        ),
+    )
+}
+
 pub fn table_selector_missing(struct_name: &Ident, accessors: &[&Ident]) -> Error {
     Error::new_spanned(
         struct_name,

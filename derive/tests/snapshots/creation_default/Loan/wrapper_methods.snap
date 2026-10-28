@@ -31,6 +31,6 @@ Use it like `loan_id.get_branch(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_branch_by_id(loan.get_branch_id())
+        self::BranchTable::get_by_primary_key(&dsl, loan.get_branch_id())
     }
 }

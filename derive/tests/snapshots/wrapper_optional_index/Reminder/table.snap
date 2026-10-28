@@ -1,6 +1,13 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct ReminderTable;
+impl crate::spacetimedsl::internal::AcceptedTable for reminder__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for ReminderTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for ReminderTable {}
 #[derive(
     Clone,
     Debug,
@@ -175,6 +182,7 @@ pub struct CreateReminder {
 // delete_reminders_by_acknowledged_at
 // delete_reminders_by_due_at
 // get_all_reminders
+// get_by_primary_key
 // get_reminder_by_id
 // get_reminders_by_acknowledged_at
 // get_reminders_by_due_at

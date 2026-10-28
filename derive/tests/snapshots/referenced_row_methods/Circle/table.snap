@@ -12,13 +12,130 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: none, the `player` table is not deletable
 ///   - On soft delete: none, the `player` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_circle_table_has_no_foreign_key_attribute_referencing_the_entity_table {}
-pub trait this_compilation_error_occurs_because_the_circle_table_has_no_foreign_key_attribute_referencing_the_player_table {}
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct CircleTable;
+impl crate::spacetimedsl::internal::AcceptedTable for circle__TableHandle {}
+impl crate::spacetimedsl::internal::HasNoDeleteMethod for CircleTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for CircleTable {}
 const _: () = {
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_entity_table_needs_to_define_a_strategy_for_on_delete_or_the_entity_table_has_no_referenced_by_attribute_referencing_the_circle_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_entity_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_entity_table_has_no_referenced_by_attribute_referencing_the_circle_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_player_table_needs_to_define_a_strategy_for_on_delete_or_the_player_table_has_no_referenced_by_attribute_referencing_the_circle_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_player_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_player_table_has_no_referenced_by_attribute_referencing_the_circle_table;
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `entity` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `entity` table first, or add one"
+        )]
+        trait EntityTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> EntityTableIsAccepted
+        for T {}
+        const _: () = <self::entity__TableHandle as EntityTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `entity` table has no `#[referenced_by]` naming the `circle` table",
+            label = "the `entity` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = circle)]` to the primary key column of the `entity` table, or remove this `#[foreign_key]`"
+        )]
+        trait ReferencedByTheCircleTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<CircleTable>,
+        > ReferencedByTheCircleTable for T {}
+        const _: () = <self::EntityTable as ReferencedByTheCircleTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `entity` table has a delete method, so this foreign key needs `on_delete`",
+            label = "add `on_delete = …`, or add `delete = false` to the `entity`'s `#[dsl(method(...))]`",
+            note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
+        )]
+        trait EntityTableHasNoDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::HasNoDeleteMethod,
+        > EntityTableHasNoDeleteMethod for T {}
+        const _: () = <self::EntityTable as EntityTableHasNoDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `entity` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `entity`'s `#[dsl(method(...))]`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait EntityTableIsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > EntityTableIsNotSoftDeletable for T {}
+        const _: () = <self::EntityTable as EntityTableIsNotSoftDeletable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `player` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `player` table first, or add one"
+        )]
+        trait PlayerTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> PlayerTableIsAccepted
+        for T {}
+        const _: () = <self::player__TableHandle as PlayerTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `player` table has no `#[referenced_by]` naming the `circle` table",
+            label = "the `player` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = circle)]` to the primary key column of the `player` table, or remove this `#[foreign_key]`"
+        )]
+        trait ReferencedByTheCircleTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<CircleTable>,
+        > ReferencedByTheCircleTable for T {}
+        const _: () = <self::PlayerTable as ReferencedByTheCircleTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `player` table has a delete method, so this foreign key needs `on_delete`",
+            label = "add `on_delete = …`, or add `delete = false` to the `player`'s `#[dsl(method(...))]`",
+            note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
+        )]
+        trait PlayerTableHasNoDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::HasNoDeleteMethod,
+        > PlayerTableHasNoDeleteMethod for T {}
+        const _: () = <self::PlayerTable as PlayerTableHasNoDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `player` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `player`'s `#[dsl(method(...))]`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait PlayerTableIsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > PlayerTableIsNotSoftDeletable for T {}
+        const _: () = <self::PlayerTable as PlayerTableIsNotSoftDeletable>::HOLDS;
+    };
 };
 impl Circle {
     /**References the `id` column of the `entity` table (`self`).
@@ -54,9 +171,12 @@ pub struct CreateCircle {
 }
 
 // Generated DSL methods:
+// EntityTable
+// PlayerTable
 // count_of_all_circles
 // create_circle
 // get_all_circles
+// get_by_primary_key
 // get_circle_by_entity_id
 // get_circles_by_player_id
 // update_circle_by_entity_id

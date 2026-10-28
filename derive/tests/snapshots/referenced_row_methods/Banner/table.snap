@@ -9,10 +9,72 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: none, the `server` table is not deletable
 ///   - On soft delete: none, the `server` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_banner_table_has_no_foreign_key_attribute_referencing_the_server_table {}
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct BannerTable;
+impl crate::spacetimedsl::internal::AcceptedTable for banner__TableHandle {}
+impl crate::spacetimedsl::internal::HasNoDeleteMethod for BannerTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for BannerTable {}
 const _: () = {
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_server_table_needs_to_define_a_strategy_for_on_delete_or_the_server_table_has_no_referenced_by_attribute_referencing_the_banner_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_server_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_server_table_has_no_referenced_by_attribute_referencing_the_banner_table;
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `server` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `server` table first, or add one"
+        )]
+        trait ServerTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> ServerTableIsAccepted
+        for T {}
+        const _: () = <self::server__TableHandle as ServerTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `server` table has no `#[referenced_by]` naming the `banner` table",
+            label = "the `server` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = banner)]` to the primary key column of the `server` table, or remove this `#[foreign_key]`"
+        )]
+        trait ReferencedByTheBannerTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<BannerTable>,
+        > ReferencedByTheBannerTable for T {}
+        const _: () = <self::ServerTable as ReferencedByTheBannerTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `server` table has a delete method, so this foreign key needs `on_delete`",
+            label = "add `on_delete = …`, or add `delete = false` to the `server`'s `#[dsl(method(...))]`",
+            note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
+        )]
+        trait ServerTableHasNoDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::HasNoDeleteMethod,
+        > ServerTableHasNoDeleteMethod for T {}
+        const _: () = <self::ServerTable as ServerTableHasNoDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `server` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `server`'s `#[dsl(method(...))]`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait ServerTableIsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > ServerTableIsNotSoftDeletable for T {}
+        const _: () = <self::ServerTable as ServerTableIsNotSoftDeletable>::HOLDS;
+    };
 };
 #[derive(
     Clone,
@@ -94,8 +156,10 @@ pub struct CreateBanner {
 }
 
 // Generated DSL methods:
+// ServerTable
 // count_of_all_banners
 // create_banner
 // get_all_banners
 // get_banner_by_id
 // get_banners_by_server_id
+// get_by_primary_key

@@ -47,7 +47,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         };
         let mut the_same_or_another_loan: Option<Loan> = None;
         if branch_id.ne(&0) {
-            match self.get_branch_by_id(loan.get_branch_id()) {
+            match self::BranchTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                loan.get_branch_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

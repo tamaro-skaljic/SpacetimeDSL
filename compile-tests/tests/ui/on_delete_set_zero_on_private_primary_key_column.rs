@@ -1,9 +1,8 @@
 //! A primary key column is usually private. `SetZero` on it is rejected as a primary key
 //! column, not as a private one: making the column `pub` would not make `SetZero` work.
 //!
-//! The errors after the first follow from it: a rejected `#[dsl]` emits nothing else, so
-//! the `warehouse` table's expansion misses the trait and the two cascade functions the
-//! `dock` table would have generated for it.
+//! The error after the first follows from it: the `#[referenced_by]` of the `warehouse` table
+//! reports that the `dock` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 
