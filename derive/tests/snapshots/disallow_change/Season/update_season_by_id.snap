@@ -26,7 +26,7 @@ Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` f
                     .db()
                     .season()
                     .id()
-                    .find(season.id)
+                    .find(&season.id)
                     .expect("Row should exist for update"),
             );
         }

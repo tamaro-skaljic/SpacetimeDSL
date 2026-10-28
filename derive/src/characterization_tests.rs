@@ -144,6 +144,11 @@ fn foreign_key_to_table_without_delete_methods() {
 }
 
 #[test]
+fn foreign_key_to_string_primary_key() {
+    snapshot_fixture("foreign_key_to_string_primary_key");
+}
+
+#[test]
 fn on_delete_error() {
     snapshot_fixture("on_delete_error");
 }

@@ -20,7 +20,7 @@ Try to update a `AuditedEntry` row of the `audited_entry` table whose value matc
                     .db()
                     .audited_entry()
                     .id()
-                    .find(audited_entry.id)
+                    .find(&audited_entry.id)
                     .expect("Row should exist for update"),
             );
         }

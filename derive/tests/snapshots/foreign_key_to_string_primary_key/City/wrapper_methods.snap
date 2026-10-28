@@ -1,0 +1,32 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl CountryCode {
+    /**Get all `City` rows whose `country_code` column references this `CountryCode`.
+
+Use it like `country_code.get_cities(&dsl)`.*/
+    pub fn get_cities<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Vec<City> {
+        dsl.into()
+            .get_cities_by_country_code(&crate::spacetimedsl::Wrapper::value(self))
+            .collect()
+    }
+}
+impl CityId {
+    /**Get the row of the `country` table which the `country_code` column of the `City` row with this `CityId` references.
+
+Use it like `city_id.get_country(&dsl)`.*/
+    pub fn get_country<'a, T: 'a + crate::spacetimedsl::ReadContext>(
+        &self,
+        dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
+    ) -> Result<
+        <self::country__TableHandle as ::spacetimedb::Table>::Row,
+        crate::spacetimedsl::error::SpacetimeDSLError,
+    > {
+        let dsl = dsl.into();
+        let city = dsl.get_city_by_id(self)?;
+        dsl.get_country_by_code(&city.country_code)
+    }
+}

@@ -72,7 +72,7 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                     .db()
                     .child_marker()
                     .id()
-                    .find(child_marker.id)
+                    .find(&child_marker.id)
                     .expect("Row should exist for update"),
             );
         }

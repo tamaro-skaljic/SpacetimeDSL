@@ -60,7 +60,7 @@ Runs the `on_soft_delete` strategies which the foreign keys of these tables decl
         match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_member_table_were_soft_deleted(
             self,
             crate::spacetimedsl::delete::OnDeleteStrategy::Error,
-            &rows_to_delete.iter().map(|row| row.id).collect_vec()[..],
+            &rows_to_delete.iter().map(|row| row.id.clone()).collect_vec()[..],
         ) {
             Err(failure) => {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure
@@ -143,7 +143,7 @@ Runs the `on_soft_delete` strategies which the foreign keys of these tables decl
         match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_member_table_were_soft_deleted(
             self,
             crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete,
-            &rows_to_delete.iter().map(|row| row.id).collect_vec()[..],
+            &rows_to_delete.iter().map(|row| row.id.clone()).collect_vec()[..],
         ) {
             Err(failure) => {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure
@@ -193,7 +193,7 @@ Runs the `on_soft_delete` strategies which the foreign keys of these tables decl
         match crate::spacetimedsl::internal::DSLInternals::execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_member_table_were_soft_deleted(
             self,
             crate::spacetimedsl::delete::OnDeleteStrategy::Ignore,
-            &rows_to_delete.iter().map(|row| row.id).collect_vec()[..],
+            &rows_to_delete.iter().map(|row| row.id.clone()).collect_vec()[..],
         ) {
             Err(failure) => {
                 for (primary_key_value_of_a_row_to_delete, mut child_entries) in failure

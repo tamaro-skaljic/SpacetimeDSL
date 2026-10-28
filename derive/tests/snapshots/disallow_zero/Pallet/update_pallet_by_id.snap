@@ -81,7 +81,7 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                     .db()
                     .pallet()
                     .id()
-                    .find(pallet.id)
+                    .find(&pallet.id)
                     .expect("Row should exist for update"),
             );
         }

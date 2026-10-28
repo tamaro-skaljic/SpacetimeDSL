@@ -78,7 +78,7 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                     .db()
                     .member()
                     .id()
-                    .find(member.id)
+                    .find(&member.id)
                     .expect("Row should exist for update"),
             );
         }

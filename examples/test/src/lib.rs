@@ -27,6 +27,7 @@ pub mod singleton_test;
 pub mod singleton_with_default_test;
 pub mod singleton_with_foreign_key_test;
 pub mod soft_deletion;
+pub mod string_reference_test;
 pub mod table_level_index_foreign_key_test;
 pub mod timestamp_helper_test;
 pub mod unique_constraint_message_test;
@@ -113,6 +114,7 @@ const TEST_GROUPS: &[(&str, TestGroup)] = &[
         "referenced_row_method_opt_out_test",
         referenced_row_method_opt_out_test::run_tests,
     ),
+    ("string_reference_test", string_reference_test::run_tests),
 ];
 
 /// Runs every test group, also after one of them failed, and fails with the messages of all

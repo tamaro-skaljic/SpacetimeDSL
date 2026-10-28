@@ -132,7 +132,7 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
             if #field_name_for_found_value.is_none() {
                 #field_name_for_found_value = Some(
                     self.db().#singular_table_name().#primary_key_column_name()
-                        .find(#singular_table_name.#primary_key_column_name)
+                        .find(&#singular_table_name.#primary_key_column_name)
                         .expect("Row should exist for update")
                 )
             }

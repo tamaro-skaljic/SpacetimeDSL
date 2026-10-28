@@ -1,0 +1,70 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Embassy` row of the `embassy` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `country_code`: a row of the `country` table (`self`)*/
+    pub fn update_embassy_by_id<'a>(
+        &'a self,
+        embassy: Embassy,
+    ) -> Result<Embassy, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut embassy = embassy;
+        let mut the_same_or_another_embassy: Option<Embassy> = None;
+        let country_code = embassy.get_country_code().value();
+        if the_same_or_another_embassy.is_none() {
+            the_same_or_another_embassy = match self
+                .db()
+                .embassy()
+                .id()
+                .find(embassy.get_id().value())
+            {
+                Some(embassy) => Some(embassy),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "embassy".into(),
+                        column_names_and_row_values: format!(
+                            "{{ id : {} }}", embassy.get_id().value()
+                        )
+                            .into(),
+                    });
+                }
+            };
+        }
+        if the_same_or_another_embassy
+            .as_ref()
+            .expect(
+                "the stored row is looked up by its primary key before the row to write is compared with it",
+            )
+            .get_country_code()
+            .ne(&embassy.get_country_code())
+        {
+            match self.get_country_by_code(&embassy.country_code) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "embassy".into(),
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
+                            column_names_and_row_values: format!(
+                                "{{ country_code : {} }}", country_code
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        let embassy = self.db().embassy().id().update(embassy);
+        Ok(embassy)
+    }
+}

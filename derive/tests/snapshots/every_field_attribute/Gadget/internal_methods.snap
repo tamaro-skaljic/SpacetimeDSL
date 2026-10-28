@@ -45,7 +45,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                 row_value: format!("{}", GadgetId::new(id.clone())).into(),
                                 child_entries: child_entries,
                             });
-                        dsl.db().gadget().id().delete(row.id);
+                        dsl.db().gadget().id().delete(&row.id);
                     }
                 }
                 crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete => {}
@@ -131,7 +131,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     row_value: format!("{}", GadgetId::new(id.clone())).into(),
                                     child_entries: child_entries,
                                 });
-                            dsl.db().gadget().id().delete(row.id);
+                            dsl.db().gadget().id().delete(&row.id);
                         }
                     }
                 }

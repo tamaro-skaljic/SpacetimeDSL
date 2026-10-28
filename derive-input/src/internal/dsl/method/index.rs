@@ -4,10 +4,11 @@
 //! primary key, and the prose fragments every generated doc comment ends with.
 //! [`index_column_arguments`] is the per-column analysis: the method argument, the row-value
 //! getter and the wrapper unwrapping for each column, built from one walk so the n-th of
-//! each belongs to the same column.
+//! each belongs to the same column. [`lookup_argument_from_row`] and
+//! [`lookup_argument_from_wrapper`] are what other generated code passes to such a method.
 
 use {
-    super::context::MethodGenerationContext,
+    super::{context::MethodGenerationContext, naming},
     crate::{
         api::{
             db::index::{Index, IndexType},
@@ -300,6 +301,37 @@ pub fn index_column_arguments(
     }
 
     arguments
+}
+
+/// What a method looking rows up through the index of a wrapped column takes for that column's
+/// value in the row `row`: the wrapper the column's getter returns, or a `&str` for a `String`
+/// column, which [`index_column_arguments`] takes in place of its wrapper.
+///
+/// A foreign key column shares the wrapper of the primary key it references, so its kind is
+/// also the kind of the referenced primary key.
+pub fn lookup_argument_from_row(
+    row: &Ident,
+    column_name: &Ident,
+    column_type_kind: ColumnTypeKind,
+) -> TokenStream {
+    match column_type_kind == ColumnTypeKind::String {
+        true => quote! { &#row.#column_name },
+        false => {
+            let getter_name = naming::getter_name(column_name);
+
+            quote! { #row.#getter_name() }
+        }
+    }
+}
+
+/// What a method looking rows up through the index of a wrapped column takes for `self`, a
+/// wrapper of that column: `self`, or a `&str` for a `String` column, which
+/// [`index_column_arguments`] takes in place of its wrapper.
+pub fn lookup_argument_from_wrapper(column_type_kind: ColumnTypeKind) -> TokenStream {
+    match column_type_kind == ColumnTypeKind::String {
+        true => quote! { &crate::spacetimedsl::Wrapper::value(self) },
+        false => quote! { self },
+    }
 }
 
 /// "`a`, `b` and `c`", as the doc comment of a multi-column index names its columns.

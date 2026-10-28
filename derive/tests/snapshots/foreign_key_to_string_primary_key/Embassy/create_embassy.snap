@@ -1,0 +1,65 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**Create a row in the `embassy` table.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each column references a row:
+
+- `country_code`: a row of the `country` table (`self`)*/
+    pub fn create_embassy<'a>(
+        &'a self,
+        embassy: CreateEmbassy,
+    ) -> Result<Embassy, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let id = u64::default();
+        let country_code = embassy.country_code.value();
+        let embassy = Embassy { id, country_code };
+        let mut the_same_or_another_embassy: Option<Embassy> = None;
+        match self.get_country_by_code(&embassy.country_code) {
+            Ok(_) => {}
+            Err(_) => {
+                return Err(
+                    crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                        table_name: "embassy".into(),
+                        create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Create,
+                        column_names_and_row_values: format!(
+                            "{{ country_code : {} }}", embassy.get_country_code().value()
+                        )
+                            .into(),
+                    }),
+                );
+            }
+        };
+        let unique_column_values = (embassy.id.clone(), embassy.country_code.clone());
+        match self.db().embassy().try_insert(embassy) {
+            Ok(entity) => Ok(entity),
+            Err(error) => {
+                match error {
+                    ::spacetimedb::TryInsertError::UniqueConstraintViolation(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::UniqueConstraintViolation {
+                            table_name: "embassy".into(),
+                            action: crate::spacetimedsl::error::Action::Create,
+                            error_from: crate::spacetimedsl::error::ErrorFrom::SpacetimeDB,
+                            one_or_multiple: crate::spacetimedsl::error::OneOrMultiple::One,
+                            column_names_and_row_values: format!(
+                                "{{ id : {}, country_code : {} }}", unique_column_values.0,
+                                unique_column_values.1
+                            )
+                                .into(),
+                        })
+                    }
+                    ::spacetimedb::TryInsertError::AutoIncOverflow(_) => {
+                        Err(crate::spacetimedsl::error::SpacetimeDSLError::AutoIncOverflow {
+                            table_name: "embassy".into(),
+                        })
+                    }
+                }
+            }
+        }
+    }
+}

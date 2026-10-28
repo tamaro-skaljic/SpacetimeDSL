@@ -68,7 +68,12 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
         }
         if the_same_or_another_book.is_none() {
             the_same_or_another_book = Some(
-                self.db().book().id().find(book.id).expect("Row should exist for update"),
+                self
+                    .db()
+                    .book()
+                    .id()
+                    .find(&book.id)
+                    .expect("Row should exist for update"),
             );
         }
         use self::BeforeBookUpdateHook;

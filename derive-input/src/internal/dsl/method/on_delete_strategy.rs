@@ -277,7 +277,7 @@ pub fn on_delete_strategy_implementation(
 
                             #spacetimedb_call_prefix
                                 .#primary_key_column_name()
-                                .delete(row.#primary_key_column_name);
+                                .delete(&row.#primary_key_column_name);
 
                             #after_delete_hook
                         },
@@ -286,7 +286,7 @@ pub fn on_delete_strategy_implementation(
                         let create_entries_and_add_them_to_entries = quote! {
                             for (#primary_key_value_of_a_row_of_another_table_to_delete, #primary_key_values_of_rows_to_delete) in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete {
                                 for #primary_key_column_name in &#primary_key_values_of_rows_to_delete {
-                                    let child_entries = #child_entries_by_primary_key_value_of_row_to_delete.remove(&#primary_key_column_name)#child_entry_list_or_panic;
+                                    let child_entries = #child_entries_by_primary_key_value_of_row_to_delete.remove(#primary_key_column_name)#child_entry_list_or_panic;
                                     #create_entry_and_add_it_to_entries
                                 }
                             }
@@ -362,11 +362,12 @@ pub fn on_delete_strategy_implementation(
                             }),
                         };
 
+                        // Each use clones the key, because a `String` key is not `Copy`.
                         let strategy_for_each_row = quote! {
                             if !#child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.#primary_key_column_name) {
-                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(#primary_key_value_of_a_row_of_another_table_to_delete)#row_list_or_panic.push(row.#primary_key_column_name);
-                                #child_entries_by_primary_key_value_of_row_to_delete.insert(row.#primary_key_column_name, vec![]);
-                            row_to_delete_by_primary_key_value.insert(row.#primary_key_column_name, row);
+                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(#primary_key_value_of_a_row_of_another_table_to_delete)#row_list_or_panic.push(row.#primary_key_column_name.clone());
+                                #child_entries_by_primary_key_value_of_row_to_delete.insert(row.#primary_key_column_name.clone(), vec![]);
+                            row_to_delete_by_primary_key_value.insert(row.#primary_key_column_name.clone(), row);
                             }
                         };
 
@@ -547,7 +548,7 @@ pub fn on_delete_strategy_implementation(
                         let create_entries_and_add_them_to_entries = quote! {
                             for (#primary_key_value_of_a_row_of_another_table_to_delete, #primary_key_values_of_rows_to_delete) in primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete {
                                 for #primary_key_column_name in &#primary_key_values_of_rows_to_delete {
-                                    let child_entries = #child_entries_by_primary_key_value_of_row_to_delete.remove(&#primary_key_column_name)#child_entry_list_or_panic;
+                                    let child_entries = #child_entries_by_primary_key_value_of_row_to_delete.remove(#primary_key_column_name)#child_entry_list_or_panic;
                                     #create_entry_and_add_it_to_entries
                                 }
                             }
@@ -607,11 +608,12 @@ pub fn on_delete_strategy_implementation(
                             }),
                         };
 
+                        // Each use clones the key, because a `String` key is not `Copy`.
                         let strategy_for_each_row = quote! {
                             if !(#is_row_marked) && !#child_entries_by_primary_key_value_of_row_to_delete.contains_key(&row.#primary_key_column_name) {
-                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(#primary_key_value_of_a_row_of_another_table_to_delete)#row_list_or_panic.push(row.#primary_key_column_name);
-                                #child_entries_by_primary_key_value_of_row_to_delete.insert(row.#primary_key_column_name, vec![]);
-                                row_to_delete_by_primary_key_value.insert(row.#primary_key_column_name, row);
+                                primary_key_values_of_rows_to_delete_by_primary_key_value_of_a_row_of_another_table_to_delete.get_mut(#primary_key_value_of_a_row_of_another_table_to_delete)#row_list_or_panic.push(row.#primary_key_column_name.clone());
+                                #child_entries_by_primary_key_value_of_row_to_delete.insert(row.#primary_key_column_name.clone(), vec![]);
+                                row_to_delete_by_primary_key_value.insert(row.#primary_key_column_name.clone(), row);
                             }
                         };
 

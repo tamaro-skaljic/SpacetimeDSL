@@ -20,7 +20,7 @@ Try to update a `Potion` row of the `potion` table whose value matches the value
                     .db()
                     .potion()
                     .id()
-                    .find(potion.id)
+                    .find(&potion.id)
                     .expect("Row should exist for update"),
             );
         }
