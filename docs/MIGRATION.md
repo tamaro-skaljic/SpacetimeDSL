@@ -14,40 +14,6 @@ Every table now gets a type `{Table}Table`, such as `EntityTable` for `accessor 
 
 Tables paired across modules have to be visible to each other. A struct which a `#[foreign_key]` or a `#[referenced_by]` in another module names fails with `E0603` for its table type and its `<accessor>__TableHandle` when it is private. A referencing struct used to need no visibility. Make the struct `pub(crate)` or `pub`.
 
-### Changed messages and generated code
-
-#### The pairing errors are trait errors that name the fix
-
-A broken pairing between `#[foreign_key]` and `#[referenced_by]` used to be an unresolved import of a trait named `this_compilation_error_occurs_because_…`. Each rule is now checked on its own, as an `E0277` with a message, a label and a note, underlined on the `table = …` of the attribute it belongs to:
-
-| Rule                                   | Message                                                                         |
-| -------------------------------------- | ------------------------------------------------------------------------------- |
-| The referenced table names this table  | *the `entity` table has no `#[referenced_by]` naming the `position` table*      |
-| A strategy can apply                   | *the `entity` table has no delete method, so `on_delete` can't apply*           |
-| A strategy is set                      | *the `entity` table has a delete method, so this foreign key needs `on_delete`* |
-| The named table has a foreign key back | *the `position` table has no `#[foreign_key]` referencing the `entity` table*   |
-
-The "or" of the old names is gone: a foreign key whose referenced table does not name its table reports only that.
-
-#### A rejected table reports once on each attribute that depends on it
-
-Every `#[foreign_key]` that references a rejected table reports *the `server` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`*, and every `#[referenced_by]` that names one reports *the `channel` table can't reference the `server` table, because the `channel` table has no accepted `#[spacetimedsl::dsl]`*. A table without any `#[spacetimedsl::dsl]` reports the same. Nothing else of the generated code reports an error about it.
-
-#### A rejected `#[dsl]` keeps its struct
-
-A rejected `#[spacetimedsl::dsl]` used to emit only its error. It now emits the struct as well, when the struct carries `#[spacetimedb::table]`: with the `derive(SpacetimeDSL)` helper and, for a singleton, the injected `#[primary_key] id: u8`. Code that uses the table or its accessor `ctx.db.<table>()` keeps compiling.
-
-A rejection that **SpacetimeDB** shares, such as a column of an array, tuple or reference type, now also shows **SpacetimeDB**'s own errors, on the column or on `#[spacetimedb::table]`.
-
-#### Tables reach each other through their table types
-
-Each table emits a `#[doc(hidden)]` unit struct `{Table}Table`, as visible as its struct, and generated code reaches the tables on the other side of a foreign key only through it:
-
-- The existence checks of `create_*`, `update_*_by_*` and `upsert_*` and the methods which look up the referenced row call `{path}::{Table}Table::get_by_primary_key(…)`, instead of `get_<table>_by_<key>` on the `DSL`.
-- The cascade a referencing table runs moved from `DSLInternals::execute_on_delete_strategies_of_the_<table>_table_after_…` to an impl of `internal::References<{path}::{Referenced}Table, <key type>>` for its table type. Its methods are `after_one_row_was_deleted`, `after_multiple_rows_were_deleted`, `after_one_row_was_soft_deleted` and `after_multiple_rows_were_soft_deleted`.
-
-So the tables on the other side of a rejected table's foreign keys no longer report `E0599` for the methods it would have generated, and a foreign key which leaves out the strategy of a removal its referenced table performs reports only that.
-
 ### For crates building on `spacetimedsl_derive-input`
 
 #### `SpacetimeDSLTable::pairing` replaces `compile_error_checks` and `compile_error_check_imports`
@@ -55,10 +21,6 @@ So the tables on the other side of a rejected table's foreign keys no longer rep
 `SpacetimeDSLTable::compile_error_checks` and `compile_error_check_imports` are gone. `SpacetimeDSLTable::pairing: TokenStream` holds the items which pair the table with the tables on the other side of its foreign keys: the facts it states about itself for their checks, the checks it makes of them, and the traits through which its cascades reach the tables referencing it. Emit it once per table at module level, as `spacetimedsl_derive` does. The cascades of `on_delete_strategies_of_referencing_tables` call into those traits, so they do not compile without it.
 
 The facts are traits of `crate::spacetimedsl::internal`, built by `runtime::accepted_table_trait`, `has_delete_method_trait`, `has_no_delete_method_trait`, `is_soft_deletable_trait`, `is_not_soft_deletable_trait` and `referenced_by_trait`.
-
-#### `api::attribute::is_table_attribute`
-
-`api::attribute::is_table_attribute(&Attribute) -> bool` tells whether an attribute is `#[spacetimedb::table]`, spelled `table`, `spacetimedb::table` or `::spacetimedb::table`.
 
 #### `api::dsl::table::table_type_name`
 

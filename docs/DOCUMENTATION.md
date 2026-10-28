@@ -577,7 +577,7 @@ A rejected `#[spacetimedsl::dsl]` reports why, at the attribute or column that h
 - **The struct stays** when it carries a `#[spacetimedb::table]`: the table and its accessor `ctx.db.<table>()` keep existing, so code that uses them keeps compiling.
 - **Nothing generated exists**, so a call of the rejected table's DSL methods, such as `dsl.get_entity_by_id(…)`, fails as well.
 - **Each attribute that depends on it reports one error**: every `#[foreign_key]` that references the rejected table and every `#[referenced_by]` that names it says that the rejected table has to be fixed first. Nothing else of the generated code reports an error: the other tables reach the rejected one only through its [table type](#struct-naming-patterns), which the compiler leaves unreported in a module with a rejected table.
-- **A rejection that SpacetimeDB shares**, such as a column of an array or tuple type, also shows **SpacetimeDB**'s own errors on that column.
+- **A rejection that SpacetimeDB shares**, such as a column of an array, tuple or reference type, also shows **SpacetimeDB**'s own errors, on the column or on `#[spacetimedb::table]`.
 
 ```txt
 error[E0277]: the `server` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`

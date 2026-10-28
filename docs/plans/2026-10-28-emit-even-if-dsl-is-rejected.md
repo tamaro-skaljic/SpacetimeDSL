@@ -58,6 +58,10 @@ Made by Claude, as the spec leaves them to the builder:
 - The lookup through the table type is an associated function, because its argument differs per table: a `&str` for a `String` primary key, the wrapper otherwise.
 - A struct named like its table type is rejected, rather than left to rustc's "defined multiple times".
 
+Made by the user, after the pull request was opened:
+
+- `docs/MIGRATION.md` holds only what existing code has to change, which narrows the global constraint on user-visible changes. The changed messages and generated code, and `api::attribute::is_table_attribute`, are named in the pull request's description instead, and `docs/DOCUMENTATION.md` describes them.
+
 ## Review Focus
 
 1. A struct named like its table's table type, such as `struct ServerTable` with `accessor = server`: a `syn::Error` that names the clash and the fix.
