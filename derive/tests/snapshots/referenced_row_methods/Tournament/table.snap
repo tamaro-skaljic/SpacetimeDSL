@@ -17,6 +17,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_season_table_needs_to_define_a_strategy_for_on_delete_or_the_season_table_has_no_referenced_by_attribute_referencing_the_tournament_table;
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_season_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_season_table_has_no_referenced_by_attribute_referencing_the_tournament_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct TournamentTable;
 #[derive(
     Clone,
     Debug,
@@ -106,9 +110,11 @@ pub struct CreateTournament {
 }
 
 // Generated DSL methods:
+// SeasonTable
 // count_of_all_tournaments
 // create_tournament
 // get_all_tournaments
+// get_by_primary_key
 // get_tournament_by_id
 // get_tournaments_by_closing_season_id
 // get_tournaments_by_opening_season_id

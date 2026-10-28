@@ -55,7 +55,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                 .get_guild_id()
                 .ne(&guest.get_guild_id())
             {
-                match self.get_guild_by_id(guest.get_guild_id()) {
+                match self::GuildTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    guest.get_guild_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(

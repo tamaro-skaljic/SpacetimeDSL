@@ -21,7 +21,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         let price = Price { id, currency_id };
         let mut the_same_or_another_price: Option<Price> = None;
         if currency_id.ne(&0) {
-            match self.get_currency_by_id(price.get_currency_id()) {
+            match self::CurrencyTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                price.get_currency_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

@@ -1,10 +1,6 @@
 //! `SetZero` clears the foreign key column and writes the row back through its primary key.
 //! When the foreign key column is the primary key, the write goes to the key `0`, where it
 //! finds no row or overwrites another one.
-//!
-//! The errors after the first follow from it: a rejected `#[dsl]` emits only its struct, so
-//! the `warehouse` table's expansion misses the two cascade functions the
-//! `dock` table would have generated for it.
 
 ::spacetimedsl::spacetimedsl!();
 

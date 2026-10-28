@@ -1,0 +1,5 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// PlayerTable
+impl crate::spacetimedsl::internal::References<self::PlayerTable, u64> for RefereeTable {}

@@ -1,6 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct SlotTable;
 #[derive(
     Clone,
     Debug,
@@ -90,6 +94,7 @@ pub struct CreateSlot {
 // delete_slot_by_id
 // delete_slot_by_position
 // get_all_slots
+// get_by_primary_key
 // get_slot_by_id
 // get_slot_by_position
 // update_slot_by_id

@@ -21,7 +21,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         let banner = Banner { id, server_id };
         let mut the_same_or_another_banner: Option<Banner> = None;
         if server_id.ne(&0) {
-            match self.get_server_by_id(banner.get_server_id()) {
+            match self::ServerTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                banner.get_server_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

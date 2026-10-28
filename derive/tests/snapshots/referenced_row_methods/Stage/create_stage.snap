@@ -21,7 +21,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         let stage = Stage { id, next_stage_id };
         let mut the_same_or_another_stage: Option<Stage> = None;
         if next_stage_id.ne(&0) {
-            match self.get_stage_by_id(stage.get_next_stage_id()) {
+            match self::StageTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                stage.get_next_stage_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

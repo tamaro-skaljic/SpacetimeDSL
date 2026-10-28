@@ -21,7 +21,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         let badge = Badge { id, member_id };
         let mut the_same_or_another_badge: Option<Badge> = None;
         if member_id.ne(&0) {
-            match self.get_member_by_id(badge.get_member_id()) {
+            match self::MemberTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                badge.get_member_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

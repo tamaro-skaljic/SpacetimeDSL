@@ -1,6 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct SessionTable;
 #[derive(
     Clone,
     Debug,
@@ -147,6 +151,7 @@ pub struct CreateSession {
 // delete_sessions_by_region_and_shard
 // delete_sessions_by_token
 // get_all_sessions
+// get_by_primary_key
 // get_session_by_device_id
 // get_session_by_id
 // get_sessions_by_region_and_shard

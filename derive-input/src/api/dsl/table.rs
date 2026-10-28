@@ -78,6 +78,10 @@ pub struct SpacetimeDSLTable {
     pub struct_doc_comment: String,
 }
 
+/// Public because `spacetimedsl_derive` emits the table type of every table it accepts, and the
+/// tables on the other side of its foreign keys name it.
+pub use crate::internal::dsl::method::naming::table_type_name;
+
 /// The `Create<Table>` struct the create method takes, with one field per column the caller
 /// supplies.
 #[derive(Clone)]
@@ -120,8 +124,18 @@ pub struct OnDeleteStrategiesOfReferencingTables {
 /// One of these per referenced table, which is why `SpacetimeDSLTableMethods` holds a
 /// `Vec` of them rather than parallel `Vec`s that could go out of step. Inside, one pair
 /// per kind of removal this table's foreign keys to that table declare a strategy for.
+///
+/// They are the methods of `internal::References<referenced_table_type,
+/// referenced_primary_key_type>`, which the table type of this table implements for every
+/// table it references: emit one impl per referenced table, even when both pairs are `None`,
+/// because the referenced table calls into it and the trait's default bodies stand in for the
+/// removals without a strategy.
 #[derive(Clone)]
 pub struct OnDeleteStrategiesOfTheReferencedTable {
+    /// The table type of the referenced table, such as `crate::warehouse::WarehouseTable`.
+    pub referenced_table_type: syn::Path,
+    /// The type of the referenced table's primary key, as the foreign key columns spell it.
+    pub referenced_primary_key_type: syn::Path,
     /// `Some` when the foreign keys declare an `on_delete` strategy.
     pub on_deletion: Option<CascadeEntryPoints>,
     /// `Some` when the foreign keys declare an `on_soft_delete` strategy.
@@ -142,9 +156,12 @@ pub struct SpacetimeDSLTableMethods {
     /// of this table is removed. `None` when no table references this one, or when this table
     /// neither deletes nor soft-deletes rows.
     pub on_delete_strategies_of_referencing_tables: Option<OnDeleteStrategiesOfReferencingTables>,
-    /// The strategy implementations for each table this table references with a foreign key
-    /// which declares a strategy.
+    /// The strategy implementations for each table this table references.
     pub on_delete_strategies_of_this_table: Vec<OnDeleteStrategiesOfTheReferencedTable>,
+    /// `get_by_primary_key`, the lookup the table type of this table offers the tables whose
+    /// foreign keys reference it. Emit it as an associated function of the table type. `None`
+    /// for a singleton, which no foreign key can reference.
+    pub get_by_primary_key: Option<SpacetimeDSLMethod>,
     /// The methods of each multi-column index, in the order of
     /// `SpacetimeDBTable::multi_column_indices`.
     pub multi_column_indices: Vec<SpacetimeDSLColumnMethods>,

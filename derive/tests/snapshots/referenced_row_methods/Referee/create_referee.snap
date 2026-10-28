@@ -21,7 +21,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         let referee = Referee { id, player_id };
         let mut the_same_or_another_referee: Option<Referee> = None;
         if player_id.ne(&0) {
-            match self.get_player_by_id(referee.get_player_id()) {
+            match self::PlayerTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                referee.get_player_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

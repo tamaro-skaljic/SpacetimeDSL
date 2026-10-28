@@ -24,6 +24,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_the_active_membership_table_has_no_foreign_key_attribute_referencing_the_account_table;
     use self::this_compilation_error_occurs_because_the_expired_membership_table_has_no_foreign_key_attribute_referencing_the_account_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct AccountTable;
 #[derive(
     Clone,
     Debug,
@@ -99,4 +103,5 @@ impl Account {
 // execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_account_table_was_deleted
 // get_account_by_id
 // get_all_accounts
+// get_by_primary_key
 // update_account_by_id

@@ -1,6 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct ThermostatTable;
 #[derive(
     Clone,
     Debug,
@@ -103,5 +107,6 @@ pub trait AfterThermostatUpdateHook<T: crate::spacetimedsl::WriteContext> {
 // create_thermostat
 // delete_thermostat_by_id
 // get_all_thermostats
+// get_by_primary_key
 // get_thermostat_by_id
 // update_thermostat_by_id

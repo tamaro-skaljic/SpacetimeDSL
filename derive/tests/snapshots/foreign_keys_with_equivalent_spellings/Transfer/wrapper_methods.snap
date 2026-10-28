@@ -36,7 +36,10 @@ Use it like `transfer_id.get_source_ledger(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let transfer = dsl.get_transfer_by_id(self)?;
-        dsl.get_ledger_by_id(transfer.get_source_ledger_id())
+        ::other_crate::tables::LedgerTable::get_by_primary_key(
+            &dsl,
+            transfer.get_source_ledger_id(),
+        )
     }
 }
 impl TransferId {
@@ -52,6 +55,9 @@ Use it like `transfer_id.get_target_ledger(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let transfer = dsl.get_transfer_by_id(self)?;
-        dsl.get_ledger_by_id(transfer.get_target_ledger_id())
+        other_crate::tables::LedgerTable::get_by_primary_key(
+            &dsl,
+            transfer.get_target_ledger_id(),
+        )
     }
 }

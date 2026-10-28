@@ -14,6 +14,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_the_owner_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_gadget_table;
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_owner_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_owner_table_has_no_referenced_by_attribute_referencing_the_gadget_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct GadgetTable;
 #[derive(
     Clone,
     Debug,
@@ -134,13 +138,13 @@ pub struct CreateGadget {
 }
 
 // Generated DSL methods:
+// OwnerTable
 // count_of_all_gadgets
 // create_gadget
 // delete_gadget_by_id
 // delete_gadgets_by_owner_id
-// execute_on_delete_strategies_of_the_gadget_table_after_multiple_rows_of_the_owner_table_were_deleted
-// execute_on_delete_strategies_of_the_gadget_table_after_one_row_of_the_owner_table_was_deleted
 // get_all_gadgets
+// get_by_primary_key
 // get_gadget_by_id
 // get_gadgets_by_owner_id
 // soft_delete_gadget_by_id

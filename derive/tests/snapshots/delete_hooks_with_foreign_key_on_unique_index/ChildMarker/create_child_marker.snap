@@ -26,7 +26,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         let child_marker = ChildMarker { id, parent_id };
         let mut the_same_or_another_child_marker: Option<ChildMarker> = None;
         if parent_id.ne(&0) {
-            match self.get_parent_record_by_id(child_marker.get_parent_id()) {
+            match self::ParentRecordTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                child_marker.get_parent_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

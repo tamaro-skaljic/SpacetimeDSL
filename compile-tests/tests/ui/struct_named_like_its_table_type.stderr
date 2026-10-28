@@ -1,0 +1,5 @@
+error: `#[dsl]` generates the type `ServerTable` for the `server` table, so the struct cannot be called `ServerTable` as well! Rename the struct, or change `accessor = server` in its `#[table]`.
+ --> tests/ui/struct_named_like_its_table_type.rs:9:16
+  |
+9 |     pub struct ServerTable {
+  |                ^^^^^^^^^^^

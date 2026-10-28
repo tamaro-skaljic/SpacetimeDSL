@@ -4,6 +4,12 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 
 ## 0.25 → 0.26
 
+### Newly rejected inputs
+
+#### A struct named like the table type of its table
+
+Every table now gets a type `{Table}Table`, such as `EntityTable` for `accessor = entity`, through which the tables on the other side of its foreign keys reach it. A struct with that name is rejected: *`#[dsl]` generates the type `EntityTable` for the `entity` table, so the struct cannot be called `EntityTable` as well!* Rename the struct, or change the table's `accessor`.
+
 ### Changed messages and generated code
 
 #### A rejected `#[dsl]` keeps its struct
@@ -12,11 +18,34 @@ A rejected `#[spacetimedsl::dsl]` used to emit only its error. It now emits the 
 
 A rejection that **SpacetimeDB** shares, such as a column of an array, tuple or reference type, now also shows **SpacetimeDB**'s own errors on that column.
 
+#### Tables reach each other through their table types
+
+Each table emits `#[doc(hidden)] pub struct {Table}Table;`, and generated code reaches the tables on the other side of a foreign key only through it:
+
+- The existence checks of `create_*`, `update_*_by_*` and `upsert_*` and the methods which look up the referenced row call `{path}::{Table}Table::get_by_primary_key(…)`, instead of `get_<table>_by_<key>` on the `DSL`.
+- The cascade a referencing table runs moved from `DSLInternals::execute_on_delete_strategies_of_the_<table>_table_after_…` to an impl of `internal::References<{path}::{Referenced}Table, <key type>>` for its table type. Its methods are `after_one_row_was_deleted`, `after_multiple_rows_were_deleted`, `after_one_row_was_soft_deleted` and `after_multiple_rows_were_soft_deleted`.
+
+So the tables on the other side of a rejected table's foreign keys no longer report `E0599` for the methods it would have generated, and a foreign key which leaves out the strategy of a removal its referenced table performs reports only that.
+
 ### For crates building on `spacetimedsl_derive-input`
 
 #### `api::attribute::is_table_attribute`
 
 `api::attribute::is_table_attribute(&Attribute) -> bool` tells whether an attribute is `#[spacetimedb::table]`, spelled `table`, `spacetimedb::table` or `::spacetimedb::table`.
+
+#### `api::dsl::table::table_type_name`
+
+`api::dsl::table::table_type_name(&Ident) -> Ident` builds the table type of a table from its accessor, such as `WarehouseTable` for `warehouse`. Emit `#[doc(hidden)] pub struct` of that name for every table.
+
+#### `SpacetimeDSLTableMethods::get_by_primary_key`
+
+`SpacetimeDSLTableMethods::get_by_primary_key: Option<SpacetimeDSLMethod>` is the lookup the table type offers the tables referencing it, `None` for a singleton. Its first parameter is the read-only DSL. Emit it as an associated function of the table type, generic over `T: ReadContext`.
+
+#### `OnDeleteStrategiesOfTheReferencedTable` is the impl of `internal::References`
+
+- `SpacetimeDSLTableMethods::on_delete_strategies_of_this_table` holds an entry for every table the foreign keys reference, also when they declare no strategy and both pairs are `None`.
+- `OnDeleteStrategiesOfTheReferencedTable` gained `referenced_table_type: syn::Path`, such as `crate::warehouse::WarehouseTable`, and `referenced_primary_key_type: syn::Path`.
+- Its `CascadeEntryPoints` are methods of `internal::References`, named `after_one_row_was_deleted` and so on, with `&self` before their parameters. Emit one `impl internal::References<referenced_table_type, referenced_primary_key_type> for {Table}Table` per entry, with the methods of both pairs, or empty. `runtime::references_trait` builds the trait's path.
 
 ## 0.23 → 0.24
 

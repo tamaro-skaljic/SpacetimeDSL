@@ -124,20 +124,35 @@ pub fn value_referencing_no_row(kind: ColumnTypeKind) -> Option<TokenStream> {
     }
 }
 
+/// `<path>::<Table>Table::get_by_primary_key(#dsl, #primary_key)`: the lookup of the row
+/// `foreign_key` references, through the table type of the referenced table, so that nothing
+/// reports a missing method when the referenced table is rejected.
+pub fn referenced_row_lookup(
+    foreign_key: &ForeignKey,
+    dsl: &TokenStream,
+    primary_key: &TokenStream,
+) -> TokenStream {
+    let referenced_table_path = &foreign_key.path;
+    let referenced_table_type = naming::table_type_name(&foreign_key.table_name);
+    let get_by_primary_key = naming::get_by_primary_key_method_name();
+
+    quote! {
+        #referenced_table_path::#referenced_table_type::#get_by_primary_key(#dsl, #primary_key)
+    }
+}
+
+/// `&read_only_dsl(self.ctx())`, the DSL a write method looks a referenced row up through.
+fn read_only_dsl_of_self() -> TokenStream {
+    let read_only_dsl = runtime::read_only_dsl_call(&quote! { self.ctx() });
+
+    quote! { &#read_only_dsl }
+}
+
 pub fn reference_integrity_checks_on_create(
     spacetimedb_table: &SpacetimeDBTable,
     columns: &[InternalColumn],
 ) -> Vec<TokenStream> {
     reference_integrity_checks(columns, false, |column, foreign_key| {
-        let referenced_table_name = &foreign_key.table_name;
-
-        let primary_key_column_name_of_referenced_table = &foreign_key.primary_key_column_name;
-        let get_row_of_referenced_table_by_primary_key_method_name =
-            naming::get_by_index_method_name(
-                referenced_table_name,
-                primary_key_column_name_of_referenced_table,
-            );
-
         let referencing_table_name = &spacetimedb_table.singular_name;
         let referencing_table_name_as_string = referencing_table_name.to_string();
         let referencing_table_column_name = &column.rust_field_name;
@@ -159,8 +174,14 @@ pub fn reference_integrity_checks_on_create(
                 ),
             );
 
+        let referenced_row_lookup = referenced_row_lookup(
+            foreign_key,
+            &read_only_dsl_of_self(),
+            &referenced_primary_key,
+        );
+
         quote! {
-            match self.#get_row_of_referenced_table_by_primary_key_method_name(#referenced_primary_key) {
+            match #referenced_row_lookup {
                 Ok(_) => {},
                 Err(_) => {
                     return Err(#reference_integrity_violation_error);
@@ -252,15 +273,6 @@ pub fn reference_integrity_checks_on_update(
     let stored = stored_row(field_name_for_found_value);
 
     reference_integrity_checks(columns, true, |column, foreign_key| {
-        let referenced_table_name = &foreign_key.table_name;
-
-        let primary_key_column_name_of_referenced_table = &foreign_key.primary_key_column_name;
-        let get_row_of_referenced_table_by_primary_key_method_name =
-            naming::get_by_index_method_name(
-                referenced_table_name,
-                primary_key_column_name_of_referenced_table,
-            );
-
         let referencing_table_name_as_string = referencing_table_name.to_string();
         let referencing_table_column_name = &column.rust_field_name;
         let referencing_table_column_getter_name =
@@ -281,10 +293,16 @@ pub fn reference_integrity_checks_on_update(
                 ),
             );
 
+        let referenced_row_lookup = referenced_row_lookup(
+            foreign_key,
+            &read_only_dsl_of_self(),
+            &referenced_primary_key,
+        );
+
         quote! {
             #stored_row_lookup
             if #stored.#referencing_table_column_getter_name().ne(&#referencing_table_name.#referencing_table_column_getter_name()) {
-                match self.#get_row_of_referenced_table_by_primary_key_method_name(#referenced_primary_key) {
+                match #referenced_row_lookup {
                     Ok(_) => {},
                     Err(_) => return Err(#reference_integrity_violation_error)
                 };

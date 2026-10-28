@@ -1,0 +1,17 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// StageTable
+impl crate::spacetimedsl::internal::References<self::StageTable, u64> for StageTable {}
+
+// get_by_primary_key
+impl StageTable {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Look a row of the `stage` table up by its primary key, for the tables whose foreign keys reference it.
+    pub fn get_by_primary_key<'a, T: crate::spacetimedsl::ReadContext>(
+        dsl: &crate::spacetimedsl::ReadOnlyDSL<'_, T>,
+        id: impl Into<StageId> + Clone,
+    ) -> Result<Stage, crate::spacetimedsl::error::SpacetimeDSLError> {
+        dsl.get_stage_by_id(id)
+    }
+}

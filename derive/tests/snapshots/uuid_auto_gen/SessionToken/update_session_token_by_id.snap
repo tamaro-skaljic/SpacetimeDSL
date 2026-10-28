@@ -49,7 +49,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                 .get_account_id()
                 .ne(&session_token.get_account_id())
             {
-                match self.get_account_by_id(session_token.get_account_id()) {
+                match self::AccountTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    session_token.get_account_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(

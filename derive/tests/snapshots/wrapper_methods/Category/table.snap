@@ -21,6 +21,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_the_category_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_category_table;
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_category_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_category_table_has_no_referenced_by_attribute_referencing_the_category_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct CategoryTable;
 #[derive(
     Clone,
     Debug,
@@ -116,15 +120,15 @@ pub struct CreateCategory {
 }
 
 // Generated DSL methods:
+// CategoryTable
 // count_of_all_categories
 // create_category
 // delete_categories_by_parent_category_id
 // delete_category_by_id
 // execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_category_table_were_deleted
 // execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_category_table_was_deleted
-// execute_on_delete_strategies_of_the_category_table_after_multiple_rows_of_the_category_table_were_deleted
-// execute_on_delete_strategies_of_the_category_table_after_one_row_of_the_category_table_was_deleted
 // get_all_categories
+// get_by_primary_key
 // get_categories_by_parent_category_id
 // get_category_by_id
 // update_category_by_id

@@ -1,6 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct GaugeTable;
 #[derive(
     Clone,
     Debug,
@@ -123,5 +127,6 @@ pub struct CreateGauge {
 // create_gauge
 // delete_gauge_by_id
 // get_all_gauges
+// get_by_primary_key
 // get_gauge_by_id
 // update_gauge_by_id

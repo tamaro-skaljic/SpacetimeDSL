@@ -14,6 +14,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_the_author_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_author_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_author_table_has_no_referenced_by_attribute_referencing_the_book_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct BookTable;
 #[derive(
     Clone,
     Debug,
@@ -118,13 +122,13 @@ pub trait AfterBookUpdateHook<T: crate::spacetimedsl::WriteContext> {
 }
 
 // Generated DSL methods:
+// AuthorTable
 // count_of_all_books
 // create_book
 // delete_book_by_id
 // delete_books_by_author_id
-// execute_on_delete_strategies_of_the_book_table_after_multiple_rows_of_the_author_table_were_deleted
-// execute_on_delete_strategies_of_the_book_table_after_one_row_of_the_author_table_was_deleted
 // get_all_books
 // get_book_by_id
 // get_books_by_author_id
+// get_by_primary_key
 // update_book_by_id

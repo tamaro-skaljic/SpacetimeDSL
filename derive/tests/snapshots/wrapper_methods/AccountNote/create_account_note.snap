@@ -21,7 +21,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         let account_note = AccountNote { id, account_id };
         let mut the_same_or_another_account_note: Option<AccountNote> = None;
         if account_id.ne(&0) {
-            match self.get_account_by_id(account_note.get_account_id()) {
+            match crate::accounts::AccountTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                account_note.get_account_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

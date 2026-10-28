@@ -12,6 +12,10 @@ pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the
 const _: () = {
     use self::this_compilation_error_occurs_because_the_loan_table_has_no_foreign_key_attribute_referencing_the_branch_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct BranchTable;
 #[derive(
     Clone,
     Debug,
@@ -84,3 +88,4 @@ impl Branch {
 // create_branch
 // get_all_branches
 // get_branch_by_id
+// get_by_primary_key

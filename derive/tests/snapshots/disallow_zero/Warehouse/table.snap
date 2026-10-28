@@ -12,6 +12,10 @@ pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the
 const _: () = {
     use self::this_compilation_error_occurs_because_the_pallet_table_has_no_foreign_key_attribute_referencing_the_warehouse_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct WarehouseTable;
 #[derive(
     Clone,
     Debug,
@@ -83,4 +87,5 @@ impl Warehouse {
 // count_of_all_warehouses
 // create_warehouse
 // get_all_warehouses
+// get_by_primary_key
 // get_warehouse_by_id

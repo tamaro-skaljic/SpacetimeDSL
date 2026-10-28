@@ -17,6 +17,10 @@ const _: () = {
     use ::other_crate::tables::this_compilation_error_occurs_because_the_warehouse_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_shipment_table;
     use ::other_crate::tables::this_compilation_error_occurs_because_your_foreign_key_referencing_the_warehouse_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_shipment_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct ShipmentTable;
 #[derive(
     Clone,
     Debug,
@@ -136,14 +140,14 @@ pub struct CreateShipment {
 }
 
 // Generated DSL methods:
+// WarehouseTable
 // count_of_all_shipments
 // create_shipment
 // delete_shipment_by_id
 // delete_shipments_by_destination_warehouse_id
 // delete_shipments_by_origin_warehouse_id
-// execute_on_delete_strategies_of_the_shipment_table_after_multiple_rows_of_the_warehouse_table_were_deleted
-// execute_on_delete_strategies_of_the_shipment_table_after_one_row_of_the_warehouse_table_was_deleted
 // get_all_shipments
+// get_by_primary_key
 // get_shipment_by_id
 // get_shipments_by_destination_warehouse_id
 // get_shipments_by_origin_warehouse_id

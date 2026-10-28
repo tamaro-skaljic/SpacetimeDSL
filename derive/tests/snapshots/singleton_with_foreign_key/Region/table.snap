@@ -16,6 +16,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_the_server_binding_table_has_no_foreign_key_attribute_referencing_the_region_table;
     use self::this_compilation_error_occurs_because_the_active_tournament_table_has_no_foreign_key_attribute_referencing_the_region_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct RegionTable;
 #[derive(
     Clone,
     Debug,
@@ -110,5 +114,6 @@ pub struct CreateRegion {
 // execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_region_table_were_deleted
 // execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_region_table_was_deleted
 // get_all_regions
+// get_by_primary_key
 // get_region_by_id
 // update_region_by_id

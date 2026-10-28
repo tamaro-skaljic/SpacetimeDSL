@@ -26,6 +26,6 @@ Use it like `embassy_id.get_country(&dsl)`.*/
     > {
         let dsl = dsl.into();
         let embassy = dsl.get_embassy_by_id(self)?;
-        dsl.get_country_by_code(&embassy.country_code)
+        self::CountryTable::get_by_primary_key(&dsl, &embassy.country_code)
     }
 }

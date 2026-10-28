@@ -1,32 +1,5 @@
 error: `#[referenced_by(table = shipment)]` is given twice! Name each table which references this one once, however many foreign keys it has to it.
-  --> tests/ui/referenced_by_repeated.rs:18:57
+  --> tests/ui/referenced_by_repeated.rs:14:57
    |
-18 |         #[referenced_by(path = crate::shipment, table = shipment)]
+14 |         #[referenced_by(path = crate::shipment, table = shipment)]
    |                                                         ^^^^^^^^
-
-error[E0599]: no method named `get_warehouse_by_id` found for reference `&'a DSL<'_, T>` in the current scope
-  --> tests/ui/referenced_by_repeated.rs:24:5
-   |
-24 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&'a DSL<'_, T>`
-   |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
-help: you are looking for the module in `std`, not the primitive type
-   |
-24 |     std::#[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
-   |     +++++
-
-error[E0599]: no method named `get_warehouse_by_id` found for struct `ReadOnlyDSL<'a, T>` in the current scope
-  --> tests/ui/referenced_by_repeated.rs:24:5
-   |
- 8 | ::spacetimedsl::spacetimedsl!();
-   | ------------------------------- method `get_warehouse_by_id` not found for this struct
-...
-24 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ReadOnlyDSL<'_, T>`
-   |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
-help: you are looking for the module in `std`, not the primitive type
-   |
-24 |     std::#[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
-   |     +++++

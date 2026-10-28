@@ -17,6 +17,10 @@ const _: () = {
     use ::other_crate::tables::this_compilation_error_occurs_because_the_ledger_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_transfer_table;
     use ::other_crate::tables::this_compilation_error_occurs_because_your_foreign_key_referencing_the_ledger_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_ledger_table_has_no_referenced_by_attribute_referencing_the_transfer_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct TransferTable;
 #[derive(
     Clone,
     Debug,
@@ -136,14 +140,14 @@ pub struct CreateTransfer {
 }
 
 // Generated DSL methods:
+// LedgerTable
 // count_of_all_transfers
 // create_transfer
 // delete_transfer_by_id
 // delete_transfers_by_source_ledger_id
 // delete_transfers_by_target_ledger_id
-// execute_on_delete_strategies_of_the_transfer_table_after_multiple_rows_of_the_ledger_table_were_deleted
-// execute_on_delete_strategies_of_the_transfer_table_after_one_row_of_the_ledger_table_was_deleted
 // get_all_transfers
+// get_by_primary_key
 // get_transfer_by_id
 // get_transfers_by_source_ledger_id
 // get_transfers_by_target_ledger_id

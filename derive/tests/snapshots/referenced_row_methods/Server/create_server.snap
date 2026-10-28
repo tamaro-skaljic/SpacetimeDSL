@@ -21,7 +21,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         let server = Server { id, season_id };
         let mut the_same_or_another_server: Option<Server> = None;
         if season_id.ne(&0) {
-            match self.get_season_by_id(server.get_season_id()) {
+            match self::SeasonTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                server.get_season_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

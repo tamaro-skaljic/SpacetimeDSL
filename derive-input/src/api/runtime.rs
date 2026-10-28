@@ -315,6 +315,17 @@ pub fn default_singleton_trait() -> TokenStream {
     }
 }
 
+/// `internal::References<#referenced_table_type, #primary_key_type>`, the trait through which a
+/// referenced table runs the strategies of a table referencing it.
+pub fn references_trait(
+    referenced_table_type: &impl ToTokens,
+    primary_key_type: &impl ToTokens,
+) -> TokenStream {
+    quote! {
+        crate::spacetimedsl::internal::References<#referenced_table_type, #primary_key_type>
+    }
+}
+
 /// `internal::DSLInternals`, as a type rather than a call.
 pub fn dsl_internals_type() -> TokenStream {
     quote! {

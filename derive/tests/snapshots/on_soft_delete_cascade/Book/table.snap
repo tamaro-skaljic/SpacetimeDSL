@@ -21,6 +21,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_the_author_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
     use self::this_compilation_error_occurs_because_the_author_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct BookTable;
 #[derive(
     Clone,
     Debug,
@@ -111,6 +115,7 @@ pub struct CreateBook {
 }
 
 // Generated DSL methods:
+// AuthorTable
 // count_of_all_books
 // create_book
 // delete_book_by_id
@@ -119,13 +124,10 @@ pub struct CreateBook {
 // execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_book_table_were_soft_deleted
 // execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_book_table_was_deleted
 // execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_book_table_was_soft_deleted
-// execute_on_delete_strategies_of_the_book_table_after_multiple_rows_of_the_author_table_were_deleted
-// execute_on_delete_strategies_of_the_book_table_after_multiple_rows_of_the_author_table_were_soft_deleted
-// execute_on_delete_strategies_of_the_book_table_after_one_row_of_the_author_table_was_deleted
-// execute_on_delete_strategies_of_the_book_table_after_one_row_of_the_author_table_was_soft_deleted
 // get_all_books
 // get_book_by_id
 // get_books_by_author_id
+// get_by_primary_key
 // soft_delete_book_by_id
 // soft_delete_books_by_author_id
 // update_book_by_id

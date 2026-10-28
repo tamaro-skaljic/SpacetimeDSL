@@ -49,7 +49,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                 .get_parent_folder_id()
                 .ne(&folder.get_parent_folder_id())
             {
-                match self.get_folder_by_id(folder.get_parent_folder_id()) {
+                match self::FolderTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    folder.get_parent_folder_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(

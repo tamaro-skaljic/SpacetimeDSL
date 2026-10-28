@@ -1,6 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct FeatureFlagsTable;
 impl FeatureFlags {
     ///
     pub fn get_tutorial_is_enabled(&self) -> &bool {

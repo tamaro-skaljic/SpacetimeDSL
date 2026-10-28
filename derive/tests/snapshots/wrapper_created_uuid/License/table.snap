@@ -1,6 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct LicenseTable;
 #[derive(
     Clone,
     Debug,
@@ -177,6 +181,7 @@ pub struct CreateLicense {
 // delete_license_by_external_reference
 // delete_license_by_id
 // get_all_licenses
+// get_by_primary_key
 // get_license_by_external_reference
 // get_license_by_id
 // update_license_by_id

@@ -28,7 +28,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         };
         let mut the_same_or_another_guest: Option<Guest> = None;
         if guild_id.ne(&0) {
-            match self.get_guild_by_id(guest.get_guild_id()) {
+            match self::GuildTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                guest.get_guild_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

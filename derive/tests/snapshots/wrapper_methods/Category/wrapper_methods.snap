@@ -31,6 +31,6 @@ Use it like `category_id.get_parent_category(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_category_by_id(category.get_parent_category_id())
+        self::CategoryTable::get_by_primary_key(&dsl, category.get_parent_category_id())
     }
 }

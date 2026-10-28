@@ -1,13 +1,14 @@
-//! The referencing side of a foreign key: the function a table generates for each table it
-//! references, which the referenced side calls when one of its rows is deleted.
+//! The referencing side of a foreign key: the methods of `internal::References` a table's table
+//! type implements for each table it references, which the referenced side calls when one of
+//! its rows is removed.
 //!
-//! One function per referenced table, holding a match arm per on-delete strategy. The
-//! referenced side is [`super::referenced_by`].
+//! One method per referenced table and kind of removal, holding a match arm per on-delete
+//! strategy. The referenced side is [`super::referenced_by`].
 
 use {
     super::{
         context::MethodGenerationContext,
-        naming::{cascade_binding, referencing_table_function_name},
+        naming::{cascade_binding, cascade_method_name},
         on_delete_strategy::{ReferencingTables, on_delete_strategy_implementation},
         removal::{Removal, dispatcher_signature},
     },
@@ -81,12 +82,7 @@ pub fn for_foreign_key(
     let singular_table_name = &context.singular_table_name;
     let referenced_table_name = format_ident!("{}", *referenced_table_name);
 
-    let function_name = referencing_table_function_name(
-        removal,
-        one_or_multiple,
-        singular_table_name,
-        &referenced_table_name,
-    );
+    let function_name = cascade_method_name(removal, one_or_multiple);
 
     let past_tense = removal.past_tense(one_or_multiple);
 

@@ -58,7 +58,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                 .get_warehouse_id()
                 .ne(&pallet.get_warehouse_id())
             {
-                match self.get_warehouse_by_id(pallet.get_warehouse_id()) {
+                match self::WarehouseTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    pallet.get_warehouse_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(

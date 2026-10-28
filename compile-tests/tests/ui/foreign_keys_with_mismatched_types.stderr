@@ -1,27 +1,5 @@
 error: All foreign key columns which reference the same primary key of another table should have the same type
-  --> tests/ui/foreign_keys_with_mismatched_types.rs:41:13
+  --> tests/ui/foreign_keys_with_mismatched_types.rs:37:13
    |
-41 |         pub destination_warehouse_id: u128,
+37 |         pub destination_warehouse_id: u128,
    |             ^^^^^^^^^^^^^^^^^^^^^^^^
-
-error[E0599]: no associated function or constant named `execute_on_delete_strategies_of_the_shipment_table_after_one_row_of_the_warehouse_table_was_deleted` found for struct `DSLInternals` in the current scope
-  --> tests/ui/foreign_keys_with_mismatched_types.rs:15:5
-   |
-12 | ::spacetimedsl::spacetimedsl!();
-   | ------------------------------- associated function or constant `execute_on_delete_strategies_of_the_shipment_table_after_one_row_of_the_warehouse_table_was_deleted` not found for this struct
-...
-15 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function or constant not found in `DSLInternals`
-   |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0599]: no associated function or constant named `execute_on_delete_strategies_of_the_shipment_table_after_multiple_rows_of_the_warehouse_table_were_deleted` found for struct `DSLInternals` in the current scope
-  --> tests/ui/foreign_keys_with_mismatched_types.rs:15:5
-   |
-12 | ::spacetimedsl::spacetimedsl!();
-   | ------------------------------- associated function or constant `execute_on_delete_strategies_of_the_shipment_table_after_multiple_rows_of_the_warehouse_table_were_deleted` not found for this struct
-...
-15 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ associated function or constant not found in `DSLInternals`
-   |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

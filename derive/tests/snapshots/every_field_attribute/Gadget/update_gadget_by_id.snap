@@ -55,7 +55,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                 .get_owner_id()
                 .ne(&gadget.get_owner_id())
             {
-                match self.get_owner_by_id(gadget.get_owner_id()) {
+                match self::OwnerTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    gadget.get_owner_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(

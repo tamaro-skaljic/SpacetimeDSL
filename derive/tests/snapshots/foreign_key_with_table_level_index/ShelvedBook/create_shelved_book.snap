@@ -21,7 +21,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         let shelved_book = ShelvedBook { id, shelf_id };
         let mut the_same_or_another_shelved_book: Option<ShelvedBook> = None;
         if shelf_id.ne(&0) {
-            match self.get_shelf_by_id(shelved_book.get_shelf_id()) {
+            match self::ShelfTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                shelved_book.get_shelf_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

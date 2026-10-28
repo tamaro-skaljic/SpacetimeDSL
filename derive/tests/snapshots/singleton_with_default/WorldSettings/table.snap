@@ -1,6 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct WorldSettingsTable;
 impl WorldSettings {
     ///
     pub fn get_maximum_player_count(&self) -> &u32 {

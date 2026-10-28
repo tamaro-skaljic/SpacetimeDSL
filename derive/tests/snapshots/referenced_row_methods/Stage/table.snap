@@ -21,6 +21,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_stage_table_needs_to_define_a_strategy_for_on_delete_or_the_stage_table_has_no_referenced_by_attribute_referencing_the_stage_table;
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_stage_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_stage_table_has_no_referenced_by_attribute_referencing_the_stage_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct StageTable;
 #[derive(
     Clone,
     Debug,
@@ -97,8 +101,10 @@ pub struct CreateStage {
 }
 
 // Generated DSL methods:
+// StageTable
 // count_of_all_stages
 // create_stage
 // get_all_stages
+// get_by_primary_key
 // get_stage_by_id
 // get_stage_by_next_stage_id

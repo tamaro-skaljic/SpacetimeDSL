@@ -49,7 +49,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
                 .get_draft_id()
                 .ne(&revision.get_draft_id())
             {
-                match self.get_draft_by_id(revision.get_draft_id()) {
+                match self::DraftTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    revision.get_draft_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(

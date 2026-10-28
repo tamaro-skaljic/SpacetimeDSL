@@ -20,7 +20,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         let country_code = city.country_code.value();
         let city = City { id, country_code };
         let mut the_same_or_another_city: Option<City> = None;
-        match self.get_country_by_code(&city.country_code) {
+        match self::CountryTable::get_by_primary_key(
+            &crate::spacetimedsl::read_only_dsl(self.ctx()),
+            &city.country_code,
+        ) {
             Ok(_) => {}
             Err(_) => {
                 return Err(

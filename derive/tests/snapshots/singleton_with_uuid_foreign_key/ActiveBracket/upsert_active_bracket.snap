@@ -51,7 +51,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row. Wh
                     .get_bracket_id()
                     .ne(&active_bracket.get_bracket_id())
                 {
-                    match self.get_bracket_by_id(active_bracket.get_bracket_id()) {
+                    match self::BracketTable::get_by_primary_key(
+                        &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                        active_bracket.get_bracket_id(),
+                    ) {
                         Ok(_) => {}
                         Err(_) => {
                             return Err(
@@ -74,7 +77,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row. Wh
             let bracket_id = active_bracket.get_bracket_id().value();
             let seed_bracket_id = active_bracket.get_seed_bracket_id().value();
             if bracket_id.ne(&::spacetimedb::Uuid::NIL) {
-                match self.get_bracket_by_id(active_bracket.get_bracket_id()) {
+                match self::BracketTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    active_bracket.get_bracket_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(
@@ -92,7 +98,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row. Wh
                 };
             }
             if seed_bracket_id.ne(&::spacetimedb::Uuid::NIL) {
-                match self.get_bracket_by_id(active_bracket.get_seed_bracket_id()) {
+                match self::BracketTable::get_by_primary_key(
+                    &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                    active_bracket.get_seed_bracket_id(),
+                ) {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(

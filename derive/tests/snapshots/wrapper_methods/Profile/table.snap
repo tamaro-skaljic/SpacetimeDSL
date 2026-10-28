@@ -14,6 +14,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_the_account_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_profile_table;
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_account_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_account_table_has_no_referenced_by_attribute_referencing_the_profile_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct ProfileTable;
 impl Profile {
     /**References the `id` column of the `account` table (`self`).
 
@@ -47,11 +51,11 @@ pub struct CreateProfile {
 }
 
 // Generated DSL methods:
+// AccountTable
 // count_of_all_profiles
 // create_profile
 // delete_profile_by_account_id
-// execute_on_delete_strategies_of_the_profile_table_after_multiple_rows_of_the_account_table_were_deleted
-// execute_on_delete_strategies_of_the_profile_table_after_one_row_of_the_account_table_was_deleted
 // get_all_profiles
+// get_by_primary_key
 // get_profile_by_account_id
 // update_profile_by_account_id

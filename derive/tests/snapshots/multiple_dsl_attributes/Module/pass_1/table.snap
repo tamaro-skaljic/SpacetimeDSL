@@ -1,6 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct Module1Table;
 #[derive(
     Clone,
     Debug,
@@ -111,6 +115,7 @@ pub struct CreateModule1 {
 // delete_module1_by_database_and_name
 // delete_module1_by_id
 // get_all_modules1
+// get_by_primary_key
 // get_module1_by_database_and_name
 // get_module1_by_id
 // update_module1_by_id

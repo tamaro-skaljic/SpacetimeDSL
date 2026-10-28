@@ -16,6 +16,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_the_circle_table_has_no_foreign_key_attribute_referencing_the_player_table;
     use self::this_compilation_error_occurs_because_the_referee_table_has_no_foreign_key_attribute_referencing_the_player_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct PlayerTable;
 #[derive(
     Clone,
     Debug,
@@ -87,4 +91,5 @@ impl Player {
 // count_of_all_players
 // create_player
 // get_all_players
+// get_by_primary_key
 // get_player_by_id

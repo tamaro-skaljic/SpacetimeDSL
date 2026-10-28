@@ -22,7 +22,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         let circle = Circle { entity_id, player_id };
         let mut the_same_or_another_circle: Option<Circle> = None;
         if entity_id.ne(&0) {
-            match self.get_entity_by_id(circle.get_entity_id()) {
+            match self::EntityTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                circle.get_entity_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(
@@ -39,7 +42,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
             };
         }
         if player_id.ne(&0) {
-            match self.get_player_by_id(circle.get_player_id()) {
+            match self::PlayerTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                circle.get_player_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

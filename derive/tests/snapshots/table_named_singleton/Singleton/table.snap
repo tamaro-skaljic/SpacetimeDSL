@@ -1,6 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct SingletonTable;
 #[derive(
     Clone,
     Debug,
@@ -73,4 +77,5 @@ impl Singleton {
 // create_singleton
 // delete_singleton_by_id
 // get_all_singletons
+// get_by_primary_key
 // get_singleton_by_id

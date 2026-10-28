@@ -1,6 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct HiddenNoteTable;
 #[derive(
     Clone,
     Debug,
@@ -98,6 +102,7 @@ pub struct CreateHiddenNote {
 // create_hidden_note
 // delete_hidden_note_by_id
 // get_all_hidden_notes
+// get_by_primary_key
 // get_hidden_note_by_id
 // soft_delete_hidden_note_by_id
 // update_hidden_note_by_id

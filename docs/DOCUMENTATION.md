@@ -576,6 +576,7 @@ A rejected `#[spacetimedsl::dsl]` reports why, at the attribute or column that h
 
 - **The struct stays** when it carries a `#[spacetimedb::table]`: the table and its accessor `ctx.db.<table>()` keep existing, so code that uses them keeps compiling.
 - **Nothing generated exists**, so a call of the rejected table's DSL methods, such as `dsl.get_entity_by_id(…)`, fails as well.
+- **The tables on the other side of its foreign keys report nothing about it**: they reach it only through its [table type](#struct-naming-patterns), which the compiler leaves unreported in a module with a rejected table.
 - **A rejection that SpacetimeDB shares**, such as a column of an array or tuple type, also shows **SpacetimeDB**'s own errors on that column.
 
 ### Column Type Spellings
@@ -2163,6 +2164,9 @@ All generated traits follow consistent naming patterns. The table name used in t
 | Create argument struct | `Create{Table}`   | `CreateEntity`, `CreatePosition`, `CreateUser`, `CreateGameConfig` |
 | Wrapper type (default) | `{Table}{Column}` | `EntityObjId`, `PositionId`, `UserProfilePublicId`, `TaskOwnerId`  |
 | Wrapper type (custom)  | User-specified    | `EntityId`, `PlayerId`, `CircleId`, `CleanupJobScheduledId`        |
+| Table type             | `{Table}Table`    | `EntityTable`, `PositionTable`, `UserTable`, `GameConfigTable`     |
+
+`{Table}` is the PascalCase form of the table's accessor. The table type is `#[doc(hidden)]`: the tables on the other side of a table's foreign keys reach it through its table type. A struct named like the table type of its own table, such as `struct EntityTable` with `accessor = entity`, is rejected.
 
 ### Hook Trait Naming Patterns
 

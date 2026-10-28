@@ -34,6 +34,6 @@ Use it like `book_id.get_author(&dsl)`.*/
                     .into(),
             });
         }
-        dsl.get_author_by_id(book.get_author_id())
+        self::AuthorTable::get_by_primary_key(&dsl, book.get_author_id())
     }
 }

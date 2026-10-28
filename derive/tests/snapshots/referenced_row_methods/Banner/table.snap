@@ -14,6 +14,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_server_table_needs_to_define_a_strategy_for_on_delete_or_the_server_table_has_no_referenced_by_attribute_referencing_the_banner_table;
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_server_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_server_table_has_no_referenced_by_attribute_referencing_the_banner_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct BannerTable;
 #[derive(
     Clone,
     Debug,
@@ -94,8 +98,10 @@ pub struct CreateBanner {
 }
 
 // Generated DSL methods:
+// ServerTable
 // count_of_all_banners
 // create_banner
 // get_all_banners
 // get_banner_by_id
 // get_banners_by_server_id
+// get_by_primary_key

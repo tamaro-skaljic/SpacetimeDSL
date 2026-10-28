@@ -48,7 +48,10 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
             .get_country_code()
             .ne(&embassy.get_country_code())
         {
-            match self.get_country_by_code(&embassy.country_code) {
+            match self::CountryTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                &embassy.country_code,
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

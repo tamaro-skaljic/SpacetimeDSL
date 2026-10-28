@@ -1,6 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct SeatTable;
 #[derive(
     Clone,
     Debug,
@@ -107,6 +111,7 @@ pub struct CreateSeat {
 // delete_seat_by_id
 // delete_seat_by_row_and_number
 // get_all_seats
+// get_by_primary_key
 // get_seat_by_id
 // get_seat_by_row_and_number
 // update_seat_by_id

@@ -1,0 +1,20 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// EntityTable
+impl crate::spacetimedsl::internal::References<self::EntityTable, u64> for CircleTable {}
+
+// PlayerTable
+impl crate::spacetimedsl::internal::References<self::PlayerTable, u64> for CircleTable {}
+
+// get_by_primary_key
+impl CircleTable {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Look a row of the `circle` table up by its primary key, for the tables whose foreign keys reference it.
+    pub fn get_by_primary_key<'a, T: crate::spacetimedsl::ReadContext>(
+        dsl: &crate::spacetimedsl::ReadOnlyDSL<'_, T>,
+        entity_id: impl Into<EntityId> + Clone,
+    ) -> Result<Circle, crate::spacetimedsl::error::SpacetimeDSLError> {
+        dsl.get_circle_by_entity_id(entity_id)
+    }
+}

@@ -16,6 +16,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_the_server_table_has_no_foreign_key_attribute_referencing_the_season_table;
     use self::this_compilation_error_occurs_because_the_tournament_table_has_no_foreign_key_attribute_referencing_the_season_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct SeasonTable;
 #[derive(
     Clone,
     Debug,
@@ -87,4 +91,5 @@ impl Season {
 // count_of_all_seasons
 // create_season
 // get_all_seasons
+// get_by_primary_key
 // get_season_by_id

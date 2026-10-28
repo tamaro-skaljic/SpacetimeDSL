@@ -21,7 +21,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         let review = Review { id, book_id };
         let mut the_same_or_another_review: Option<Review> = None;
         if book_id.ne(&0) {
-            match self.get_book_by_id(review.get_book_id()) {
+            match self::BookTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                review.get_book_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

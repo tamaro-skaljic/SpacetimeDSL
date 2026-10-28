@@ -231,6 +231,87 @@ macro_rules! spacetimedsl {
             #[doc(hidden)]
             pub mod internal {
                 pub struct DSLInternals;
+
+                /// Why the default bodies of [`References`] never run.
+                const A_FOREIGN_KEY_DECLARES_THIS_STRATEGY: &str = "a referenced table calls a cascade only for a removal it performs, and a foreign key to it which declares no strategy for that removal fails a pairing check";
+
+                /// Implemented by the table type of a table with foreign keys to the table whose
+                /// table type is `Referenced`, keyed by `PrimaryKey`. Its methods run the
+                /// strategies of those foreign keys after rows of the referenced table were removed.
+                ///
+                /// A table implements it for every table its foreign keys reference, and implements
+                /// the methods of the removals its foreign keys declare a strategy for. The default
+                /// bodies stand in for the other removals, which no program that compiles runs:
+                /// see [`A_FOREIGN_KEY_DECLARES_THIS_STRATEGY`].
+                pub trait References<Referenced, PrimaryKey> {
+                    fn after_one_row_was_deleted<'a, T: ::spacetimedsl::WriteContext>(
+                        &self,
+                        _dsl: &super::DSL<'_, T>,
+                        _strategy: &::spacetimedsl::delete::OnDeleteStrategy,
+                        _primary_key_value_of_a_row_of_another_table_to_delete: &PrimaryKey,
+                    ) -> Result<
+                        Vec<::spacetimedsl::delete::DeletionResultEntry>,
+                        ::spacetimedsl::delete::OnDeleteStrategyFailure<
+                            Vec<::spacetimedsl::delete::DeletionResultEntry>,
+                        >,
+                    > {
+                        unreachable!("{}", A_FOREIGN_KEY_DECLARES_THIS_STRATEGY)
+                    }
+
+                    fn after_multiple_rows_were_deleted<'a, T: ::spacetimedsl::WriteContext>(
+                        &self,
+                        _dsl: &super::DSL<'_, T>,
+                        _strategy: &::spacetimedsl::delete::OnDeleteStrategy,
+                        _primary_key_values_of_rows_of_another_table_to_delete: &'a [PrimaryKey],
+                    ) -> Result<
+                        ::std::collections::HashMap<
+                            &'a PrimaryKey,
+                            Vec<::spacetimedsl::delete::DeletionResultEntry>,
+                        >,
+                        ::spacetimedsl::delete::OnDeleteStrategyFailure<
+                            ::std::collections::HashMap<
+                                &'a PrimaryKey,
+                                Vec<::spacetimedsl::delete::DeletionResultEntry>,
+                            >,
+                        >,
+                    > {
+                        unreachable!("{}", A_FOREIGN_KEY_DECLARES_THIS_STRATEGY)
+                    }
+
+                    fn after_one_row_was_soft_deleted<'a, T: ::spacetimedsl::WriteContext>(
+                        &self,
+                        _dsl: &super::DSL<'_, T>,
+                        _strategy: &::spacetimedsl::delete::OnDeleteStrategy,
+                        _primary_key_value_of_a_row_of_another_table_to_delete: &PrimaryKey,
+                    ) -> Result<
+                        Vec<::spacetimedsl::delete::DeletionResultEntry>,
+                        ::spacetimedsl::delete::OnDeleteStrategyFailure<
+                            Vec<::spacetimedsl::delete::DeletionResultEntry>,
+                        >,
+                    > {
+                        unreachable!("{}", A_FOREIGN_KEY_DECLARES_THIS_STRATEGY)
+                    }
+
+                    fn after_multiple_rows_were_soft_deleted<'a, T: ::spacetimedsl::WriteContext>(
+                        &self,
+                        _dsl: &super::DSL<'_, T>,
+                        _strategy: &::spacetimedsl::delete::OnDeleteStrategy,
+                        _primary_key_values_of_rows_of_another_table_to_delete: &'a [PrimaryKey],
+                    ) -> Result<
+                        ::std::collections::HashMap<
+                            &'a PrimaryKey,
+                            Vec<::spacetimedsl::delete::DeletionResultEntry>,
+                        >,
+                        ::spacetimedsl::delete::OnDeleteStrategyFailure<
+                            ::std::collections::HashMap<
+                                &'a PrimaryKey,
+                                Vec<::spacetimedsl::delete::DeletionResultEntry>,
+                            >,
+                        >,
+                    > {
+                        unreachable!("{}", A_FOREIGN_KEY_DECLARES_THIS_STRATEGY)
+                    }
+                }
             }
 
             // The runtime items, reachable as `crate::spacetimedsl::X`, which is how

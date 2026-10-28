@@ -9,7 +9,7 @@ use {
                     SpacetimeDSLColumnMethods, SpacetimeDSLColumnMethodsForIndex,
                     SpacetimeDSLColumnMethodsForUniqueIndex,
                 },
-                method::SpacetimeDSLMethod,
+                method::{SpacetimeDSLArg, SpacetimeDSLArgType, SpacetimeDSLMethod},
                 table::{
                     CascadeEntryPoints, OnDeleteStrategiesOfReferencingTables,
                     OnDeleteStrategiesOfTheReferencedTable, SingletonKind, SpacetimeDSLTableKind,
@@ -17,12 +17,13 @@ use {
                 },
                 wrapper::WrapperMethod,
             },
+            runtime,
         },
         internal::{column::canonical_type, dsl::one_or_multiple::OneOrMultiple, error},
     },
     create::for_create,
     delete::{for_delete_many, for_delete_one},
-    foreign_key::{for_foreign_key, foreign_key_of},
+    foreign_key::{first_column_of, for_foreign_key, foreign_key_of},
     get::{for_get_all, for_get_count, for_get_many, for_get_one},
     index::IndexShape,
     on_delete_strategy::ReferencingTables,
@@ -178,6 +179,13 @@ impl SpacetimeDSLTableMethods {
         context: &MethodGenerationContext,
         columns: &[Column],
     ) -> syn::Result<(SpacetimeDSLTableMethods, TableContributions)> {
+        if context.struct_name == naming::table_type_name(&context.singular_table_name) {
+            return Err(error::struct_named_like_its_table_type(
+                &context.struct_name,
+                &context.singular_table_name,
+            ));
+        }
+
         let mut contributions = TableContributions::default();
 
         let (create, get_all, get_count) = table_level_methods(context, &mut contributions);
@@ -210,6 +218,7 @@ impl SpacetimeDSLTableMethods {
             get_count,
             on_delete_strategies_of_referencing_tables,
             on_delete_strategies_of_this_table,
+            get_by_primary_key: get_by_primary_key(context, columns),
             multi_column_indices: multi_column_index_methods(context),
             wrapper_methods: wrapper_methods(context, &foreign_key_columns_by_referenced_table),
             referenced_row_methods: for_referenced_row_methods(
@@ -384,6 +393,10 @@ fn canonical_path(path: &syn::Path) -> String {
 /// The entry points this table offers each table it references: one pair per kind of
 /// removal its foreign keys to that table declare a strategy for. A key that sets only
 /// `on_soft_delete` contributes nothing to the deletion pair, and the other way round.
+///
+/// Every referenced table gets its entry, even one no foreign key declares a strategy for: the
+/// table type implements `internal::References` for each, whose default bodies stand in for
+/// the removals without a strategy.
 fn referencing_side_entry_points(
     context: &MethodGenerationContext,
     foreign_key_columns_by_referenced_table: &BTreeMap<&syn::Ident, Vec<&Column>>,
@@ -395,7 +408,11 @@ fn referencing_side_entry_points(
 
     foreign_key_columns_by_referenced_table
         .iter()
-        .filter_map(|(referenced_table_name, columns_with_foreign_key)| {
+        .map(|(referenced_table_name, columns_with_foreign_key)| {
+            let first_column = first_column_of(columns_with_foreign_key);
+            let referenced_table_path = &foreign_key_of(first_column).path;
+            let referenced_table_type = naming::table_type_name(referenced_table_name);
+
             let removal_kinds = Removal::ALL.into_iter().filter(|removal| {
                 columns_with_foreign_key.iter().any(|column| {
                     removal
@@ -416,14 +433,67 @@ fn referencing_side_entry_points(
                     )
                 });
 
-            (on_deletion.is_some() || on_soft_deletion.is_some()).then_some(
-                OnDeleteStrategiesOfTheReferencedTable {
-                    on_deletion,
-                    on_soft_deletion,
-                },
-            )
+            OnDeleteStrategiesOfTheReferencedTable {
+                referenced_table_type: syn::parse_quote!(#referenced_table_path::#referenced_table_type),
+                referenced_primary_key_type: first_column.rust_field.type_name_or_path.clone(),
+                on_deletion,
+                on_soft_deletion,
+            }
         })
         .collect()
+}
+
+/// `get_by_primary_key`, the lookup the table type offers the tables whose foreign keys
+/// reference this table: the primary key's `get_<table>_by_<key>` of the read-only DSL, which
+/// it takes as its first argument. `None` for a singleton, which no foreign key can reference.
+fn get_by_primary_key(
+    context: &MethodGenerationContext,
+    columns: &[Column],
+) -> Option<SpacetimeDSLMethod> {
+    if context.spacetimedsl_table.is_singleton() {
+        return None;
+    }
+
+    let get_one_by_primary_key = columns
+        .iter()
+        .find(|column| column.spacetimedb_column.is_primary_key)
+        .and_then(|column| match &column.spacetimedsl_methods {
+            Some(SpacetimeDSLColumnMethods::ForUniqueIndex(methods)) => {
+                Some(&methods.get_one_option)
+            }
+            _ => None,
+        })
+        .expect(
+            "the primary key of a table which is not a singleton is a unique index with a getter",
+        );
+
+    let dsl = quote::format_ident!("dsl");
+    let read_only_dsl_type = runtime::read_only_dsl_type();
+    let get_one_method_name = &get_one_by_primary_key.method_name;
+    let primary_key_arg_names = get_one_by_primary_key
+        .method_args
+        .iter()
+        .map(|arg| &arg.arg_name);
+
+    let mut method_args = vec![SpacetimeDSLArg {
+        is_option: false,
+        arg_name: dsl.clone(),
+        arg_type: SpacetimeDSLArgType::Normal(quote::quote! { &#read_only_dsl_type }),
+    }];
+
+    method_args.extend(get_one_by_primary_key.method_args.iter().cloned());
+
+    Some(SpacetimeDSLMethod {
+        doc_comment: format!(
+            "Look a row of the `{}` table up by its primary key, for the tables whose foreign keys reference it.",
+            context.singular_table_name
+        ),
+        method_name: naming::get_by_primary_key_method_name(),
+        method_args,
+        return_type: get_one_by_primary_key.return_type.clone(),
+        method_impl: quote::quote! { #dsl.#get_one_method_name(#(#primary_key_arg_names),*) },
+        read_context_compatible: true,
+    })
 }
 
 /// The lookup methods each foreign key adds to its wrapper type.

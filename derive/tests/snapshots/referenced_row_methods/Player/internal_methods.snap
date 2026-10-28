@@ -1,0 +1,14 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// get_by_primary_key
+impl PlayerTable {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Look a row of the `player` table up by its primary key, for the tables whose foreign keys reference it.
+    pub fn get_by_primary_key<'a, T: crate::spacetimedsl::ReadContext>(
+        dsl: &crate::spacetimedsl::ReadOnlyDSL<'_, T>,
+        id: impl Into<PlayerId> + Clone,
+    ) -> Result<Player, crate::spacetimedsl::error::SpacetimeDSLError> {
+        dsl.get_player_by_id(id)
+    }
+}

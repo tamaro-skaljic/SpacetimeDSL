@@ -31,6 +31,6 @@ Use it like `revision_id.get_draft(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_draft_by_id(revision.get_draft_id())
+        self::DraftTable::get_by_primary_key(&dsl, revision.get_draft_id())
     }
 }

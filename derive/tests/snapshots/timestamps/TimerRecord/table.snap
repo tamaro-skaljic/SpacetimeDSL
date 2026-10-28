@@ -1,6 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct TimerRecordTable;
 #[derive(
     Clone,
     Debug,
@@ -83,5 +87,6 @@ impl TimerRecord {
 // create_timer_record
 // delete_timer_record_by_id
 // get_all_timer_records
+// get_by_primary_key
 // get_timer_record_by_id
 // update_timer_record_by_id

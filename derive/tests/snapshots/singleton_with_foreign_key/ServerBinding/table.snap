@@ -14,6 +14,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_the_region_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_server_binding_table;
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_region_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_region_table_has_no_referenced_by_attribute_referencing_the_server_binding_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct ServerBindingTable;
 impl ServerBinding {
     /**References the `id` column of the `region` table (`self`).
 
@@ -39,9 +43,8 @@ pub struct CreateServerBinding {
 }
 
 // Generated DSL methods:
+// RegionTable
 // create_server_binding
 // delete_server_binding
-// execute_on_delete_strategies_of_the_server_binding_table_after_multiple_rows_of_the_region_table_were_deleted
-// execute_on_delete_strategies_of_the_server_binding_table_after_one_row_of_the_region_table_was_deleted
 // get_server_binding
 // update_server_binding

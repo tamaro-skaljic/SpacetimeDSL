@@ -1,9 +1,5 @@
 //! Naming the same table twice in `#[referenced_by]` says nothing the first one did not: a
 //! table with several foreign keys to this one, like `shipment` here, is named once.
-//!
-//! The errors after the first follow from it: a rejected `#[dsl]` emits only its struct, so the
-//! `shipment` table's expansion misses `WarehouseId` and the items the `warehouse` table would
-//! have generated for it.
 
 ::spacetimedsl::spacetimedsl!();
 

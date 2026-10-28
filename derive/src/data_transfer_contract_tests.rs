@@ -366,6 +366,21 @@ fn the_model_holds_what_a_table_declares() {
         panic!("the table references one table");
     };
     assert!(strategies_for_owner.on_deletion.is_some());
+    assert_eq!(
+        strategies_for_owner
+            .referenced_table_type
+            .to_token_stream()
+            .to_string(),
+        "crate :: owner :: OwnerTable"
+    );
+    assert_eq!(
+        spacetimedsl_methods
+            .get_by_primary_key
+            .as_ref()
+            .expect("a table which is not a singleton offers its rows to referencing tables")
+            .method_name,
+        "get_by_primary_key"
+    );
     assert_eq!(spacetimedsl_methods.multi_column_indices.len(), 1);
     let [wrapper_method] = spacetimedsl_methods.wrapper_methods.as_slice() else {
         panic!("the one foreign key column adds one method to its wrapper type");
@@ -427,13 +442,31 @@ fn the_model_holds_what_a_table_declares() {
     );
     visit_table(&price);
 
-    assert!(
-        price
-            .spacetimedsl_methods
-            .on_delete_strategies_of_this_table
-            .is_empty(),
-        "a foreign key without strategies has no strategy implementations"
+    let [strategies_for_currency] = price
+        .spacetimedsl_methods
+        .on_delete_strategies_of_this_table
+        .as_slice()
+    else {
+        panic!(
+            "a foreign key without strategies still implements `References` for its table, whose default bodies stand in"
+        );
+    };
+    assert_eq!(
+        strategies_for_currency
+            .referenced_table_type
+            .to_token_stream()
+            .to_string(),
+        "crate :: currency :: CurrencyTable"
     );
+    assert_eq!(
+        strategies_for_currency
+            .referenced_primary_key_type
+            .to_token_stream()
+            .to_string(),
+        "u64"
+    );
+    assert!(strategies_for_currency.on_deletion.is_none());
+    assert!(strategies_for_currency.on_soft_deletion.is_none());
 
     let invoice = parse_table(
         quote! { plural_name = invoices, method(update = false, delete = false) },
@@ -521,6 +554,13 @@ fn the_model_holds_what_a_table_declares() {
         feature_flags.spacetimedsl_table.kind,
         SpacetimeDSLTableKind::Singleton(SingletonKind::WithDefault)
     ));
+    assert!(
+        feature_flags
+            .spacetimedsl_methods
+            .get_by_primary_key
+            .is_none(),
+        "no foreign key can reference a singleton, so its table type offers no lookup"
+    );
 }
 
 fn parse_table(args: TokenStream, item: TokenStream) -> Table {
@@ -851,12 +891,13 @@ fn visit_spacetimedsl_table_methods(spacetimedsl_methods: &SpacetimeDSLTableMeth
         get_count,
         on_delete_strategies_of_referencing_tables,
         on_delete_strategies_of_this_table,
+        get_by_primary_key,
         multi_column_indices,
         wrapper_methods,
         referenced_row_methods,
     } = spacetimedsl_methods;
 
-    [create, get_all, get_count]
+    [create, get_all, get_count, get_by_primary_key]
         .into_iter()
         .flatten()
         .for_each(visit_method);
@@ -871,6 +912,8 @@ fn visit_spacetimedsl_table_methods(spacetimedsl_methods: &SpacetimeDSLTableMeth
             .for_each(visit_cascade_entry_points);
     }
     for OnDeleteStrategiesOfTheReferencedTable {
+        referenced_table_type: _,
+        referenced_primary_key_type: _,
         on_deletion,
         on_soft_deletion,
     } in on_delete_strategies_of_this_table

@@ -31,6 +31,6 @@ Use it like `badge_id.get_member(&dsl)`.*/
                 column_names_and_row_values: format!("{{ id : {} }}", 0).into(),
             });
         }
-        dsl.get_member_by_id(badge.get_member_id())
+        self::MemberTable::get_by_primary_key(&dsl, badge.get_member_id())
     }
 }

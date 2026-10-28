@@ -3,6 +3,7 @@ use {
     proc_macro2::TokenStream,
     quote::quote,
     spacetimedsl_derive_input::api::{dsl::method::SpacetimeDSLMethod, runtime, spacetimedb},
+    syn::Ident,
 };
 
 // DSL Methods
@@ -33,17 +34,53 @@ pub fn build_public(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
     )
 }
 
-// Execute On Delete Strategies Of [ Referencing Tables | This Table ] After [ One Row | Multiple Rows ] Of [ This | The Referenced ] Table [ Was | Were ] Deleted
+// Execute On Delete Strategies Of Referencing Tables After [ One Row | Multiple Rows ] Of The Referenced Table [ Was | Were ] Deleted
 pub fn build_internal(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
-    let parts = MethodParts::new(method);
+    build_single_variant(
+        method,
+        MethodImplVariant {
+            context_bound: runtime::write_context(),
+            target: MethodImplTarget::InternalDslInternals,
+        },
+    )
+}
 
-    let impl_variant = MethodImplVariant::internal(runtime::write_context());
+/// An associated function of the table type `table_type`, such as `get_by_primary_key`.
+pub fn build_table_type_function(
+    table_type: &Ident,
+    method: &SpacetimeDSLMethod,
+) -> syn::Result<TokenStream> {
+    build_single_variant(
+        method,
+        MethodImplVariant {
+            context_bound: runtime::read_context(),
+            target: MethodImplTarget::TableType(table_type.clone()),
+        },
+    )
+}
 
+/// A method of `internal::References`, without the impl around it: the caller puts every method
+/// for one referenced table into one impl, because a trait's methods cannot be split over
+/// several.
+pub fn build_trait_method(method: &SpacetimeDSLMethod) -> syn::Result<TokenStream> {
+    build_single_variant(
+        method,
+        MethodImplVariant {
+            context_bound: runtime::write_context(),
+            target: MethodImplTarget::TraitMethod,
+        },
+    )
+}
+
+fn build_single_variant(
+    method: &SpacetimeDSLMethod,
+    variant: MethodImplVariant,
+) -> syn::Result<TokenStream> {
     build_with_config(
-        &parts,
+        &MethodParts::new(method),
         MethodGenerationConfig {
-            doc_variant: impl_variant.clone(),
-            output_variants: vec![impl_variant],
+            doc_variant: variant.clone(),
+            output_variants: vec![variant],
         },
     )
 }
@@ -66,6 +103,10 @@ impl<'a> MethodParts<'a> {
 enum MethodImplTarget {
     InternalDslInternals,
     AssociatedDsl(TokenStream),
+    /// An associated function of a table type.
+    TableType(Ident),
+    /// A method of a trait impl, which the caller wraps in the impl.
+    TraitMethod,
 }
 
 #[derive(Clone)]
@@ -75,13 +116,6 @@ struct MethodImplVariant {
 }
 
 impl MethodImplVariant {
-    fn internal(context_bound: TokenStream) -> Self {
-        Self {
-            context_bound,
-            target: MethodImplTarget::InternalDslInternals,
-        }
-    }
-
     fn associated(context_bound: TokenStream, dsl_type: TokenStream) -> Self {
         Self {
             context_bound,
@@ -134,19 +168,47 @@ fn render_impl(
 
     match &variant.target {
         MethodImplTarget::InternalDslInternals => {
-            let _context_bound = &variant.context_bound;
+            let context_bound = &variant.context_bound;
 
             let dsl_internals_type = runtime::dsl_internals_type();
-            let write_context = runtime::write_context();
 
             quote! {
                 impl #dsl_internals_type {
                     #doc_comment
-                    pub fn #method_name<'a, T: #write_context>(
+                    pub fn #method_name<'a, T: #context_bound>(
                         #(#method_args),*
                     ) -> #return_type {
                         #method_impl
                     }
+                }
+            }
+        }
+        MethodImplTarget::TableType(table_type) => {
+            let context_bound = &variant.context_bound;
+            let method_impl = &parts.method.method_impl;
+
+            quote! {
+                impl #table_type {
+                    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+                    #doc_comment
+                    pub fn #method_name<'a, T: #context_bound>(
+                        #(#method_args),*
+                    ) -> #return_type {
+                        #method_impl
+                    }
+                }
+            }
+        }
+        MethodImplTarget::TraitMethod => {
+            let context_bound = &variant.context_bound;
+
+            quote! {
+                #doc_comment
+                fn #method_name<'a, T: #context_bound>(
+                    &self,
+                    #(#method_args),*
+                ) -> #return_type {
+                    #method_impl
                 }
             }
         }

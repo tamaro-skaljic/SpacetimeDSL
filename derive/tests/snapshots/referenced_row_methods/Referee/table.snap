@@ -14,6 +14,10 @@ const _: () = {
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_player_table_needs_to_define_a_strategy_for_on_delete_or_the_player_table_has_no_referenced_by_attribute_referencing_the_referee_table;
     use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_player_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_player_table_has_no_referenced_by_attribute_referencing_the_referee_table;
 };
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct RefereeTable;
 impl Referee {
     /**References the `id` column of the `player` table (`self`).
 
@@ -39,6 +43,7 @@ pub struct CreateReferee {
 }
 
 // Generated DSL methods:
+// PlayerTable
 // create_referee
 // delete_referee
 // get_referee

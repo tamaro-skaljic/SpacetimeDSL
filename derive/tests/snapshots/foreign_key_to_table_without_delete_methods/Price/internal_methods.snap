@@ -1,0 +1,17 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// CurrencyTable
+impl crate::spacetimedsl::internal::References<self::CurrencyTable, u64> for PriceTable {}
+
+// get_by_primary_key
+impl PriceTable {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Look a row of the `price` table up by its primary key, for the tables whose foreign keys reference it.
+    pub fn get_by_primary_key<'a, T: crate::spacetimedsl::ReadContext>(
+        dsl: &crate::spacetimedsl::ReadOnlyDSL<'_, T>,
+        id: impl Into<PriceId> + Clone,
+    ) -> Result<Price, crate::spacetimedsl::error::SpacetimeDSLError> {
+        dsl.get_price_by_id(id)
+    }
+}

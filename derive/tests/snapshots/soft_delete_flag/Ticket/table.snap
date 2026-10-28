@@ -1,6 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct TicketTable;
 #[derive(
     Clone,
     Debug,
@@ -116,6 +120,7 @@ pub struct CreateTicket {
 // delete_ticket_by_id
 // delete_tickets_by_priority
 // get_all_tickets
+// get_by_primary_key
 // get_ticket_by_id
 // get_tickets_by_priority
 // soft_delete_ticket_by_id

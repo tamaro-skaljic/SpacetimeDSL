@@ -27,7 +27,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
         };
         let mut the_same_or_another_tournament: Option<Tournament> = None;
         if opening_season_id.ne(&0) {
-            match self.get_season_by_id(tournament.get_opening_season_id()) {
+            match self::SeasonTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                tournament.get_opening_season_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(
@@ -45,7 +48,10 @@ Fails with `ReferenceIntegrityViolation` unless each column references a row:
             };
         }
         if closing_season_id.ne(&0) {
-            match self.get_season_by_id(tournament.get_closing_season_id()) {
+            match self::SeasonTable::get_by_primary_key(
+                &crate::spacetimedsl::read_only_dsl(self.ctx()),
+                tournament.get_closing_season_id(),
+            ) {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(

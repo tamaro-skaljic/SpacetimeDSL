@@ -34,6 +34,6 @@ Use it like `session_token_id.get_account(&dsl)`.*/
                     .into(),
             });
         }
-        dsl.get_account_by_id(session_token.get_account_id())
+        self::AccountTable::get_by_primary_key(&dsl, session_token.get_account_id())
     }
 }

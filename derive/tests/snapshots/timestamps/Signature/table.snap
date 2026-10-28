@@ -1,6 +1,10 @@
 ---
 source: derive/src/characterization_tests.rs
 ---
+/// The type through which the tables on the other side of this table's foreign keys
+/// reach it.
+#[doc(hidden)]
+pub struct SignatureTable;
 #[derive(
     Clone,
     Debug,
@@ -152,6 +156,7 @@ pub struct CreateSignature {
 // delete_signature_by_id
 // delete_signatures_by_value
 // get_all_signatures
+// get_by_primary_key
 // get_signature_by_id
 // get_signatures_by_value
 // update_signature_by_id
