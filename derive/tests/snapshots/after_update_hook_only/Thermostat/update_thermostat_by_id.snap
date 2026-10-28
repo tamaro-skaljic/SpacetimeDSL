@@ -1,0 +1,45 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Thermostat` row of the `thermostat` table whose value matches the value from the unique single-column btree index on the `id` column.*/
+    pub fn update_thermostat_by_id<'a>(
+        &'a self,
+        thermostat: Thermostat,
+    ) -> Result<Thermostat, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut thermostat = thermostat;
+        let mut the_same_or_another_thermostat: Option<Thermostat> = None;
+        if the_same_or_another_thermostat.is_none() {
+            the_same_or_another_thermostat = match self
+                .db()
+                .thermostat()
+                .id()
+                .find(thermostat.get_id().value())
+            {
+                Some(thermostat) => Some(thermostat),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "thermostat".into(),
+                        column_names_and_row_values: format!(
+                            "{{ id : {} }}", thermostat.get_id().value()
+                        )
+                            .into(),
+                    });
+                }
+            };
+        }
+        let thermostat = self.db().thermostat().id().update(thermostat);
+        use self::AfterThermostatUpdateHook;
+        crate::spacetimedsl::DSLMethodHooks::after_thermostat_update(
+            self,
+            the_same_or_another_thermostat.as_ref().unwrap(),
+            &thermostat,
+        )?;
+        Ok(thermostat)
+    }
+}

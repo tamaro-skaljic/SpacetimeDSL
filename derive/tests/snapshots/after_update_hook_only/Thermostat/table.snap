@@ -1,0 +1,107 @@
+---
+source: derive/src/characterization_tests.rs
+---
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct ThermostatId {
+    value: u64,
+}
+impl Default for ThermostatId {
+    fn default() -> ThermostatId {
+        ThermostatId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for ThermostatId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "ThermostatId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for ThermostatId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&Thermostat> for ThermostatId {
+    fn from(value: &Thermostat) -> Self {
+        ThermostatId {
+            value: value.id.clone(),
+        }
+    }
+}
+impl From<&Thermostat> for Option<ThermostatId> {
+    fn from(value: &Thermostat) -> Option<ThermostatId> {
+        Some(ThermostatId {
+            value: value.id.clone(),
+        })
+    }
+}
+impl From<&ThermostatId> for Option<ThermostatId> {
+    fn from(value: &ThermostatId) -> Option<ThermostatId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(ThermostatId::new(value.value()))
+    }
+}
+impl From<&ThermostatId> for ThermostatId {
+    fn from(value: &ThermostatId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        ThermostatId::new(value.value())
+    }
+}
+impl Thermostat {
+    ///
+    pub fn get_id(&self) -> ThermostatId {
+        use crate::spacetimedsl::Wrapper;
+        ThermostatId::new(self.id.clone())
+    }
+    ///
+    pub fn get_target_temperature(&self) -> &u32 {
+        use crate::spacetimedsl::Wrapper;
+        &self.target_temperature
+    }
+    ///
+    pub fn get_target_temperature_mut(&mut self) -> &mut u32 {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.target_temperature
+    }
+    ///
+    pub fn set_target_temperature(&mut self, target_temperature: u32) -> u32 {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(
+            &mut self.target_temperature,
+            target_temperature,
+        );
+        old_value
+    }
+}
+///
+pub struct CreateThermostat {
+    pub target_temperature: u32,
+}
+pub trait AfterThermostatUpdateHook<T: crate::spacetimedsl::WriteContext> {
+    fn after_thermostat_update(
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        old_thermostat: &Thermostat,
+        new_thermostat: &Thermostat,
+    ) -> Result<(), crate::spacetimedsl::error::SpacetimeDSLError>;
+}
+
+// Generated DSL methods:
+// count_of_all_thermostats
+// create_thermostat
+// delete_thermostat_by_id
+// get_all_thermostats
+// get_thermostat_by_id
+// update_thermostat_by_id

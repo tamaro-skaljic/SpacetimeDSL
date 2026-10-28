@@ -6,6 +6,7 @@ use {
     spacetimedb::ReducerContext,
 };
 
+pub mod after_update_hook_test;
 pub mod cascade_hook_error_test;
 pub mod component;
 pub mod creation_default_test;
@@ -115,6 +116,7 @@ const TEST_GROUPS: &[(&str, TestGroup)] = &[
         referenced_row_method_opt_out_test::run_tests,
     ),
     ("string_reference_test", string_reference_test::run_tests),
+    ("after_update_hook_test", after_update_hook_test::run_tests),
 ];
 
 /// Runs every test group, also after one of them failed, and fails with the messages of all

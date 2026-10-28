@@ -67,14 +67,23 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
             }
         }
         if the_same_or_another_child_marker.is_none() {
-            the_same_or_another_child_marker = Some(
-                self
-                    .db()
-                    .child_marker()
-                    .id()
-                    .find(&child_marker.id)
-                    .expect("Row should exist for update"),
-            );
+            the_same_or_another_child_marker = match self
+                .db()
+                .child_marker()
+                .id()
+                .find(child_marker.get_id().value())
+            {
+                Some(child_marker) => Some(child_marker),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "child_marker".into(),
+                        column_names_and_row_values: format!(
+                            "{{ id : {} }}", child_marker.get_id().value()
+                        )
+                            .into(),
+                    });
+                }
+            };
         }
         use self::BeforeChildMarkerUpdateHook;
         let child_marker = crate::spacetimedsl::DSLMethodHooks::before_child_marker_update(

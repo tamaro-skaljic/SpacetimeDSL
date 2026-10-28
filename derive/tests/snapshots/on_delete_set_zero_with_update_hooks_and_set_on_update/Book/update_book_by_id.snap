@@ -67,14 +67,23 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
             }
         }
         if the_same_or_another_book.is_none() {
-            the_same_or_another_book = Some(
-                self
-                    .db()
-                    .book()
-                    .id()
-                    .find(&book.id)
-                    .expect("Row should exist for update"),
-            );
+            the_same_or_another_book = match self
+                .db()
+                .book()
+                .id()
+                .find(book.get_id().value())
+            {
+                Some(book) => Some(book),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "book".into(),
+                        column_names_and_row_values: format!(
+                            "{{ id : {} }}", book.get_id().value()
+                        )
+                            .into(),
+                    });
+                }
+            };
         }
         use self::BeforeBookUpdateHook;
         let book = crate::spacetimedsl::DSLMethodHooks::before_book_update(

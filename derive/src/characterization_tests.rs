@@ -184,6 +184,11 @@ fn insert_update_and_delete_hooks() {
 }
 
 #[test]
+fn after_update_hook_only() {
+    snapshot_fixture("after_update_hook_only");
+}
+
+#[test]
 fn methods_disabled() {
     snapshot_fixture("methods_disabled");
 }

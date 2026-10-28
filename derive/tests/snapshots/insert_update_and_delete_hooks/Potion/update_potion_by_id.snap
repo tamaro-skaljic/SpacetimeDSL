@@ -15,14 +15,23 @@ Try to update a `Potion` row of the `potion` table whose value matches the value
         let mut potion = potion;
         let mut the_same_or_another_potion: Option<Potion> = None;
         if the_same_or_another_potion.is_none() {
-            the_same_or_another_potion = Some(
-                self
-                    .db()
-                    .potion()
-                    .id()
-                    .find(&potion.id)
-                    .expect("Row should exist for update"),
-            );
+            the_same_or_another_potion = match self
+                .db()
+                .potion()
+                .id()
+                .find(potion.get_id().value())
+            {
+                Some(potion) => Some(potion),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "potion".into(),
+                        column_names_and_row_values: format!(
+                            "{{ id : {} }}", potion.get_id().value()
+                        )
+                            .into(),
+                    });
+                }
+            };
         }
         use self::BeforePotionUpdateHook;
         let potion = crate::spacetimedsl::DSLMethodHooks::before_potion_update(

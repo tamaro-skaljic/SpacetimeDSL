@@ -15,14 +15,23 @@ Try to update a `AuditedEntry` row of the `audited_entry` table whose value matc
         let mut audited_entry = audited_entry;
         let mut the_same_or_another_audited_entry: Option<AuditedEntry> = None;
         if the_same_or_another_audited_entry.is_none() {
-            the_same_or_another_audited_entry = Some(
-                self
-                    .db()
-                    .audited_entry()
-                    .id()
-                    .find(&audited_entry.id)
-                    .expect("Row should exist for update"),
-            );
+            the_same_or_another_audited_entry = match self
+                .db()
+                .audited_entry()
+                .id()
+                .find(audited_entry.get_id().value())
+            {
+                Some(audited_entry) => Some(audited_entry),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "audited_entry".into(),
+                        column_names_and_row_values: format!(
+                            "{{ id : {} }}", audited_entry.get_id().value()
+                        )
+                            .into(),
+                    });
+                }
+            };
         }
         use self::BeforeAuditedEntryUpdateHook;
         let audited_entry = crate::spacetimedsl::DSLMethodHooks::before_audited_entry_update(
