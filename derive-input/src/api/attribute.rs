@@ -16,6 +16,16 @@ pub fn is_dsl_attribute(attribute: &Attribute) -> bool {
     is_spelling_of(attribute.path(), "spacetimedsl", "dsl")
 }
 
+/// Whether `attribute` is `#[spacetimedb::table]`, spelled `table`, `spacetimedb::table` or
+/// `::spacetimedb::table`.
+///
+/// Public because `spacetimedsl_derive` emits a rejected struct again only when it carries
+/// one: without it, nothing declares `#[primary_key]` and SpacetimeDB's other field
+/// attributes.
+pub fn is_table_attribute(attribute: &Attribute) -> bool {
+    crate::internal::attribute::is_table_attribute(attribute)
+}
+
 /// Every field attribute `#[spacetimedsl::dsl]` reads, built from the symbols its parsers
 /// match against.
 ///

@@ -1,8 +1,5 @@
 //! A foreign key on the primary key adds no method for the referenced row: the row it
 //! references has the key's own value, so `referenced_row_method` would switch off nothing.
-//!
-//! The error after the first follows from it: a rejected `#[dsl]` emits nothing else, so the
-//! `account` table's expansion misses the trait the `profile` table would have declared for it.
 
 ::spacetimedsl::spacetimedsl!();
 

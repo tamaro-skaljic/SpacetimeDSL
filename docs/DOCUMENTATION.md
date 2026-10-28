@@ -570,6 +570,14 @@ Every `#[spacetimedsl::dsl]` attribute belongs to one `#[spacetimedb::table]` at
 pub struct Entity { ... }
 ```
 
+### When `#[spacetimedsl::dsl]` Rejects a Table
+
+A rejected `#[spacetimedsl::dsl]` reports why, at the attribute or column that has to change. It reports only its first error.
+
+- **The struct stays** when it carries a `#[spacetimedb::table]`: the table and its accessor `ctx.db.<table>()` keep existing, so code that uses them keeps compiling.
+- **Nothing generated exists**, so a call of the rejected table's DSL methods, such as `dsl.get_entity_by_id(…)`, fails as well.
+- **A rejection that SpacetimeDB shares**, such as a column of an array or tuple type, also shows **SpacetimeDB**'s own errors on that column.
+
 ### Column Type Spellings
 
 A column's type has to be a path, such as `u64`, `String`, `Option<T>`, `spacetimedb::Timestamp` or a type of your own. Arrays, tuples, references, slices, function pointers, trait objects, `impl Trait` and qualified paths such as `<T as Trait>::Type` are rejected with a diagnostic; wrap such a value in a type of your own, such as a struct deriving `SpacetimeType`.

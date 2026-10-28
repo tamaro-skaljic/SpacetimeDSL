@@ -619,9 +619,10 @@ fn expand_fixture(fixture_name: &str) -> Vec<FixtureExpansion> {
                 derive_input: echoed_item,
                 generated_output,
             } = expand_dsl_attribute_parts(dsl_attribute_args, derive_input.to_token_stream())
-                .unwrap_or_else(|error| {
+                .unwrap_or_else(|rejection| {
                     panic!(
-                        "`{fixture_name}.rs` / `{struct_name}` should expand in pass {pass_number}: {error}"
+                        "`{fixture_name}.rs` / `{struct_name}` should expand in pass {pass_number}: {}",
+                        rejection.error
                     )
                 });
 

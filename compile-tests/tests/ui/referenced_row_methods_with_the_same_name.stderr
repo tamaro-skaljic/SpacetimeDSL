@@ -1,5 +1,5 @@
 error: The foreign key columns `owner_id` and `owner` would both add `get_owner` to `GameId`! Rename one of them, or add `referenced_row_method = false` to the `#[foreign_key]` of one.
-  --> tests/ui/referenced_row_methods_with_the_same_name.rs:39:9
+  --> tests/ui/referenced_row_methods_with_the_same_name.rs:36:9
    |
-39 |         owner: u64,
+36 |         owner: u64,
    |         ^^^^^

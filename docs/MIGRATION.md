@@ -2,6 +2,22 @@
 
 What changes for a module, or for a crate building on `spacetimedsl_derive-input`, when it moves to a new release of **SpacetimeDSL**.
 
+## 0.25 → 0.26
+
+### Changed messages and generated code
+
+#### A rejected `#[dsl]` keeps its struct
+
+A rejected `#[spacetimedsl::dsl]` used to emit only its error. It now emits the struct as well, when the struct carries `#[spacetimedb::table]`: with the `derive(SpacetimeDSL)` helper and, for a singleton, the injected `#[primary_key] id: u8`. Code that uses the table or its accessor `ctx.db.<table>()` keeps compiling.
+
+A rejection that **SpacetimeDB** shares, such as a column of an array, tuple or reference type, now also shows **SpacetimeDB**'s own errors on that column.
+
+### For crates building on `spacetimedsl_derive-input`
+
+#### `api::attribute::is_table_attribute`
+
+`api::attribute::is_table_attribute(&Attribute) -> bool` tells whether an attribute is `#[spacetimedb::table]`, spelled `table`, `spacetimedb::table` or `::spacetimedb::table`.
+
 ## 0.23 → 0.24
 
 ### Breaking API changes

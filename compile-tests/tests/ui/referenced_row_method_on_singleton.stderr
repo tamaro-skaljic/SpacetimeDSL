@@ -1,5 +1,5 @@
 error: `referenced_row_method` has no effect on a singleton table, whose injected primary key has no wrapper type to add the method to! Remove it.
-  --> tests/ui/referenced_row_method_on_singleton.rs:27:74
+  --> tests/ui/referenced_row_method_on_singleton.rs:23:74
    |
-27 |         #[foreign_key(path = crate::region, table = region, column = id, referenced_row_method = false)]
+23 |         #[foreign_key(path = crate::region, table = region, column = id, referenced_row_method = false)]
    |                                                                          ^^^^^^^^^^^^^^^^^^^^^

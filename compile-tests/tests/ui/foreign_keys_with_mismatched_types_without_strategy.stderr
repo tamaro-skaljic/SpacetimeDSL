@@ -1,5 +1,5 @@
 error: All foreign key columns which reference the same primary key of another table should have the same type
-  --> tests/ui/foreign_keys_with_mismatched_types_without_strategy.rs:40:13
+  --> tests/ui/foreign_keys_with_mismatched_types_without_strategy.rs:36:13
    |
-40 |         pub destination_warehouse_id: u128,
+36 |         pub destination_warehouse_id: u128,
    |             ^^^^^^^^^^^^^^^^^^^^^^^^

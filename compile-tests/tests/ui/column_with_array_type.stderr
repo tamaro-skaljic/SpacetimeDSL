@@ -1,5 +1,43 @@
 error: SpacetimeDSL supports only path types as column types, such as `u64`, `String` or `spacetimedb::Timestamp`! This column's type is an array.
-  --> tests/ui/column_with_array_type.rs:15:20
+  --> tests/ui/column_with_array_type.rs:22:20
    |
-15 |         pub value: [u8; 4],
+22 |         pub value: [u8; 4],
    |                    ^^^^^^^
+
+error[E0277]: the trait bound `[u8; 4]: SpacetimeType` is not satisfied
+  --> tests/ui/column_with_array_type.rs:22:20
+   |
+22 |         pub value: [u8; 4],
+   |                    ^^^^^^^ the trait `SpacetimeType` is not implemented for `[u8; 4]`
+   |
+   = note: if you own the type, try adding `#[derive(SpacetimeType)]` to its definition
+help: the trait `SpacetimeType` is implemented for `[T]`
+  --> $CARGO/spacetimedb-sats-$VERSION/src/typespace.rs
+   |
+   | /         impl<$($generic_wrapped $($other_generics)*)?> $crate::SpacetimeType for $rty
+   | |             $(where $generic_wrapped: $crate::SpacetimeType)?
+   | |___________________________________________________________^
+...
+   |   impl_st!([T] [T], ts => AlgebraicType::array(T::make_type(ts)));
+   |   --------------------------------------------------------------- in this macro invocation
+   = note: this error originates in the macro `impl_st` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the column type `[u8; 4]` does not implement `SpacetimeType`
+  --> tests/ui/column_with_array_type.rs:22:20
+   |
+22 |         pub value: [u8; 4],
+   |                    ^^^^^^^ the trait `SpacetimeType` is not implemented for `[u8; 4]`
+   |
+   = note: table column types all must implement `SpacetimeType`
+   = note: if you own the type, try adding `#[derive(SpacetimeType)]` to its definition
+help: the trait `SpacetimeType` is implemented for `[T]`
+  --> $CARGO/spacetimedb-sats-$VERSION/src/typespace.rs
+   |
+   | /         impl<$($generic_wrapped $($other_generics)*)?> $crate::SpacetimeType for $rty
+   | |             $(where $generic_wrapped: $crate::SpacetimeType)?
+   | |___________________________________________________________^
+...
+   |   impl_st!([T] [T], ts => AlgebraicType::array(T::make_type(ts)));
+   |   --------------------------------------------------------------- in this macro invocation
+   = note: required for `[u8; 4]` to implement `spacetimedb::rt::TableColumn`
+   = note: this error originates in the macro `impl_st` (in Nightly builds, run with -Z macro-backtrace for more info)

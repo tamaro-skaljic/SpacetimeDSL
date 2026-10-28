@@ -2,7 +2,10 @@ use {
     proc_macro::TokenStream,
     quote::quote,
     spacetimedsl_derive_input::api::{
-        Table, attribute::is_dsl_attribute, dsl::hook::hook_trait_name, runtime,
+        Table,
+        attribute::{is_dsl_attribute, is_table_attribute},
+        dsl::hook::hook_trait_name,
+        runtime,
     },
 };
 
@@ -19,7 +22,10 @@ pub fn dsl(args: TokenStream, item: TokenStream) -> TokenStream {
     let args = proc_macro2::TokenStream::from(args);
     let item = proc_macro2::TokenStream::from(item);
 
-    ok_or_compile_error(|| expand_dsl_attribute(args, item))
+    match expand_dsl_attribute(args, item) {
+        Ok(expansion) => expansion.into(),
+        Err(rejection) => rejection.into_token_stream().into(),
+    }
 }
 
 /// The whole `#[dsl]` expansion on [`proc_macro2`] types, so it can be called
@@ -27,7 +33,7 @@ pub fn dsl(args: TokenStream, item: TokenStream) -> TokenStream {
 fn expand_dsl_attribute(
     args: proc_macro2::TokenStream,
     item: proc_macro2::TokenStream,
-) -> syn::Result<proc_macro2::TokenStream> {
+) -> Result<proc_macro2::TokenStream, Rejection> {
     let ExpandedDSLAttribute {
         derive_input,
         generated_output,
@@ -47,15 +53,70 @@ struct ExpandedDSLAttribute {
     generated_output: output::GeneratedOutput,
 }
 
+/// What a rejected `#[dsl]` emits: its error, and the struct as the expansion held it when
+/// it rejected it, so that code which uses the struct or its table still compiles.
+struct Rejection {
+    error: syn::Error,
+    /// `None` unless the item is a struct which carries `#[spacetimedb::table]`. Without that
+    /// attribute, nothing declares `#[primary_key]` and SpacetimeDB's other field attributes,
+    /// and SpacetimeDB refuses a table which is not a struct.
+    echoed_struct: Option<Box<syn::DeriveInput>>,
+}
+
+impl Rejection {
+    /// The rejection of an item which is not even a `DeriveInput`, so nothing is echoed.
+    fn of_unparsable_item(error: syn::Error) -> Rejection {
+        Rejection {
+            error,
+            echoed_struct: None,
+        }
+    }
+
+    /// The rejection of `derive_input`, as the expansion holds it when it rejects it.
+    fn of(error: syn::Error, derive_input: &syn::DeriveInput) -> Rejection {
+        let is_struct = matches!(derive_input.data, syn::Data::Struct(_));
+        let carries_table_attribute = derive_input.attrs.iter().any(is_table_attribute);
+
+        Rejection {
+            error,
+            echoed_struct: (is_struct && carries_table_attribute)
+                .then(|| Box::new(derive_input.clone())),
+        }
+    }
+
+    fn into_token_stream(self) -> proc_macro2::TokenStream {
+        let compile_error = self.error.into_compile_error();
+        let echoed_struct = self.echoed_struct;
+
+        quote! {
+            #compile_error
+
+            #echoed_struct
+        }
+    }
+}
+
 fn expand_dsl_attribute_parts(
     args: proc_macro2::TokenStream,
     item: proc_macro2::TokenStream,
-) -> syn::Result<ExpandedDSLAttribute> {
+) -> Result<ExpandedDSLAttribute, Rejection> {
     // put this on the struct so we don't get unknown attribute errors
     let derive_table_helper = derive_table_helper_attr();
 
     // Parse the input tokens into a syntax tree
-    let mut derive_input: syn::DeriveInput = syn::parse2(item)?;
+    let mut derive_input: syn::DeriveInput =
+        syn::parse2(item).map_err(Rejection::of_unparsable_item)?;
+
+    // Add `derive(SpacetimeDSL)` only if it's not already in the attributes of the item.
+    // If multiple `#[dsl]` attributes are applied to the same `struct` item,
+    // this will ensure that we don't emit multiple conflicting implementations.
+    // It comes first, so that a struct echoed after a rejection keeps its field attributes valid.
+    let first_dsl_attribute = if !derive_input.attrs.contains(&derive_table_helper) {
+        derive_input.attrs.push(derive_table_helper);
+        true
+    } else {
+        false
+    };
 
     // A singleton is declared by the top-level argument `singleton`, not by the word as the
     // value of another argument, such as `table = singleton`.
@@ -69,21 +130,12 @@ fn expand_dsl_attribute_parts(
     });
 
     // For singletons, inject `#[primary_key] id: u8` into the struct
-    if is_singleton {
-        inject_singleton_primary_key(&mut derive_input)?;
+    if is_singleton && let Err(error) = inject_singleton_primary_key(&mut derive_input) {
+        return Err(Rejection::of(error, &derive_input));
     }
 
-    // Add `derive(SpacetimeDSL)` only if it's not already in the attributes of the item.
-    // If multiple `#[dsl]` attributes are applied to the same `struct` item,
-    // this will ensure that we don't emit multiple conflicting implementations.
-    let first_dsl_attribute = if !derive_input.attrs.contains(&derive_table_helper) {
-        derive_input.attrs.push(derive_table_helper);
-        true
-    } else {
-        false
-    };
-
-    let input = Table::try_parse(args, &derive_input)?;
+    let input = Table::try_parse(args, &derive_input)
+        .map_err(|error| Rejection::of(error, &derive_input))?;
 
     append_documentation(
         &mut derive_input,
@@ -93,7 +145,8 @@ fn expand_dsl_attribute_parts(
     // Build the output, possibly using quasi-quotation
     let pass =
         output::DSLAttributePass::of(first_dsl_attribute, is_last_dsl_attribute(&derive_input));
-    let generated_output = output::build(&input, pass)?;
+    let generated_output =
+        output::build(&input, pass).map_err(|error| Rejection::of(error, &derive_input))?;
 
     // If this is the last #[dsl] attribute, make all struct fields private
     // We do this AFTER parsing and generating methods so the setter logic works correctly

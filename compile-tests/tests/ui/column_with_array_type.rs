@@ -1,5 +1,12 @@
 //! SpacetimeDSL supports only path types as column types, so a column whose type is
 //! an array gets a diagnostic.
+//!
+//! The errors after the first are SpacetimeDB's own: a rejected `#[dsl]` emits its struct,
+//! and SpacetimeDB refuses the column's type as well.
+//!
+//! Maintenance note: these errors quote source lines of SpacetimeDB's `spacetimedb-sats`
+//! crate, so this file churns on SpacetimeDB upgrades, and regenerating it with
+//! `TRYBUILD=overwrite` is part of the upgrade routine.
 
 ::spacetimedsl::spacetimedsl!();
 

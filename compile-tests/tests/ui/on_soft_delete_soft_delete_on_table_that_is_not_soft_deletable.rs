@@ -1,8 +1,8 @@
 //! The same rule through the other field: `on_soft_delete = SoftDelete` also retires the
 //! rows of this table, so it also needs this table to have a marker column.
 //!
-//! The errors after the first follow from it: a rejected `#[dsl]` emits nothing else, so
-//! the `warehouse` table's expansion misses the trait and the two cascade functions the
+//! The errors after the first follow from it: a rejected `#[dsl]` emits only its struct, so
+//! the `warehouse` table's expansion misses the two cascade functions the
 //! `shipment` table would have generated for it.
 
 ::spacetimedsl::spacetimedsl!();

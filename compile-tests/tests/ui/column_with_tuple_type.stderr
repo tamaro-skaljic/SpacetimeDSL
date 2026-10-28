@@ -1,5 +1,41 @@
 error: SpacetimeDSL supports only path types as column types, such as `u64`, `String` or `spacetimedb::Timestamp`! This column's type is a tuple.
-  --> tests/ui/column_with_tuple_type.rs:15:20
+  --> tests/ui/column_with_tuple_type.rs:22:20
    |
-15 |         pub value: (u8, u8),
+22 |         pub value: (u8, u8),
    |                    ^^^^^^^^
+
+error[E0277]: the trait bound `(u8, u8): SpacetimeType` is not satisfied
+  --> tests/ui/column_with_tuple_type.rs:22:20
+   |
+22 |         pub value: (u8, u8),
+   |                    ^^^^^^^^ the trait `SpacetimeType` is not implemented for `(u8, u8)`
+   |
+   = note: if you own the type, try adding `#[derive(SpacetimeType)]` to its definition
+help: the trait `SpacetimeType` is implemented for `()`
+  --> $CARGO/spacetimedb-sats-$VERSION/src/typespace.rs
+   |
+   |         impl<$($generic_wrapped $($other_generics)*)?> $crate::SpacetimeType for $rty
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+   | impl_st!([](), AlgebraicType::unit());
+   | ------------------------------------- in this macro invocation
+   = note: this error originates in the macro `impl_st` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the column type `(u8, u8)` does not implement `SpacetimeType`
+  --> tests/ui/column_with_tuple_type.rs:22:20
+   |
+22 |         pub value: (u8, u8),
+   |                    ^^^^^^^^ the trait `SpacetimeType` is not implemented for `(u8, u8)`
+   |
+   = note: table column types all must implement `SpacetimeType`
+   = note: if you own the type, try adding `#[derive(SpacetimeType)]` to its definition
+help: the trait `SpacetimeType` is implemented for `()`
+  --> $CARGO/spacetimedb-sats-$VERSION/src/typespace.rs
+   |
+   |         impl<$($generic_wrapped $($other_generics)*)?> $crate::SpacetimeType for $rty
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+   | impl_st!([](), AlgebraicType::unit());
+   | ------------------------------------- in this macro invocation
+   = note: required for `(u8, u8)` to implement `spacetimedb::rt::TableColumn`
+   = note: this error originates in the macro `impl_st` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -1,9 +1,5 @@
 //! A singleton's injected primary key has no wrapper type, so a singleton adds no method for
 //! the referenced row, and `referenced_row_method` would switch off nothing.
-//!
-//! The error after the first follows from it: a rejected `#[dsl]` emits nothing else, so the
-//! `region` table's expansion misses the trait the `server_binding` table would have declared
-//! for it.
 
 ::spacetimedsl::spacetimedsl!();
 
