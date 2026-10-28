@@ -147,32 +147,30 @@ fn the_model_holds_what_a_table_declares() {
         panic!("one table references the table");
     };
     assert_eq!(referencing_table.table_name, "part");
-    let compile_error_check_imports: Vec<String> = spacetimedsl_table
-        .compile_error_check_imports
-        .iter()
-        .map(|path| path.to_token_stream().to_string())
-        .collect();
-    assert_eq!(
-        compile_error_check_imports,
-        [
-            "crate :: part :: this_compilation_error_occurs_because_the_part_table_has_no_foreign_key_attribute_referencing_the_gadget_table",
-            "crate :: owner :: this_compilation_error_occurs_because_the_owner_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_gadget_table",
-            "crate :: owner :: this_compilation_error_occurs_because_your_foreign_key_referencing_the_owner_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_owner_table_has_no_referenced_by_attribute_referencing_the_gadget_table",
-        ]
-    );
-    let compile_error_checks: Vec<String> = spacetimedsl_table
-        .compile_error_checks
-        .iter()
-        .map(ToString::to_string)
-        .collect();
-    assert_eq!(
-        compile_error_checks,
-        [
-            "this_compilation_error_occurs_because_the_gadget_table_has_no_foreign_key_attribute_referencing_the_owner_table",
-            "this_compilation_error_occurs_because_the_gadget_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_part_table",
-            "this_compilation_error_occurs_because_the_gadget_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_part_table",
-        ]
-    );
+    let pairing = spacetimedsl_table.pairing.to_string();
+    for fact in [
+        "impl crate :: spacetimedsl :: internal :: AcceptedTable for gadget__TableHandle { }",
+        "impl crate :: spacetimedsl :: internal :: HasDeleteMethod for GadgetTable { }",
+        "impl crate :: spacetimedsl :: internal :: IsSoftDeletable for GadgetTable { }",
+        "impl crate :: spacetimedsl :: internal :: ReferencedBy < crate :: part :: PartTable > for GadgetTable { }",
+    ] {
+        assert!(
+            pairing.contains(fact),
+            "the pairing states `{fact}`: {pairing}"
+        );
+    }
+    for check in [
+        "the `owner` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
+        "the `owner` table has no `#[referenced_by]` naming the `gadget` table",
+        "the `owner` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+        "the `part` table can't reference the `gadget` table, because its `#[spacetimedsl::dsl]` is rejected",
+        "the `part` table has no `#[foreign_key]` referencing the `gadget` table",
+    ] {
+        assert!(
+            pairing.contains(check),
+            "the pairing has a check whose message is `{check}`: {pairing}"
+        );
+    }
     assert_eq!(
         spacetimedsl_table.struct_doc_comment,
         "# Foreign keys of the `gadget` table\n\n- `owner_id` references the `id` column of the `owner` table (`crate::owner`).\n  - On delete: `Delete`\n  - On soft delete: none, the `owner` table is not soft-deletable\n\n# Tables referencing the `gadget` table\n\n- the `part` table (`crate::part`)"
@@ -651,8 +649,7 @@ fn visit_spacetimedsl_table(spacetimedsl_table: &SpacetimeDSLTable) {
         on_insert_set_current_timestamp_column_name: _,
         on_update_set_current_timestamp_column_name: _,
         referencing_tables,
-        compile_error_checks: _,
-        compile_error_check_imports: _,
+        pairing: _,
         create_dsl_method_arg,
         hooks,
         struct_doc_comment: _,

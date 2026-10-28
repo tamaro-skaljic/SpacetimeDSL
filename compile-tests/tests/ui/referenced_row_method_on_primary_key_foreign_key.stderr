@@ -1,5 +1,18 @@
 error: `referenced_row_method` has no effect on a foreign key on the primary key, which adds no such method: the row it references has the key's own value! Remove it.
-  --> tests/ui/referenced_row_method_on_primary_key_foreign_key.rs:24:76
+  --> tests/ui/referenced_row_method_on_primary_key_foreign_key.rs:27:76
    |
-24 |         #[foreign_key(path = crate::account, table = account, column = id, referenced_row_method = false)]
+27 |         #[foreign_key(path = crate::account, table = account, column = id, referenced_row_method = false)]
    |                                                                            ^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the `profile` table can't reference the `account` table, because its `#[spacetimedsl::dsl]` is rejected
+  --> tests/ui/referenced_row_method_on_primary_key_foreign_key.rs:16:56
+   |
+16 |         #[referenced_by(path = crate::profile, table = profile)]
+   |                                                        ^^^^^^^ fix the error of the `profile` table first
+   |
+help: the trait `ProfileTableIsAccepted` is not implemented for `profile::profile__TableHandle`
+  --> tests/ui/referenced_row_method_on_primary_key_foreign_key.rs:23:5
+   |
+23 |     #[spacetimedb::table(accessor = profile, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

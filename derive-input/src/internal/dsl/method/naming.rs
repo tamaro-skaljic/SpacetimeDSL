@@ -34,6 +34,20 @@ pub fn table_type_name(singular_table_name: &Ident) -> Ident {
     )
 }
 
+/// `<Referencing>TableReferencesThe<Referenced>Table`, the check a referenced table makes that a
+/// table its `#[referenced_by]` names has a foreign key back. The check also carries the
+/// cascades of `internal::References`, through which the referenced table reaches that table.
+pub fn foreign_key_back_check_name(
+    referencing_table_name: &Ident,
+    referenced_table_name: &Ident,
+) -> Ident {
+    format_ident!(
+        "{}ReferencesThe{}",
+        table_type_name(referencing_table_name),
+        table_type_name(referenced_table_name)
+    )
+}
+
 /// `get_by_primary_key`, the lookup a table type offers the tables whose foreign keys reference
 /// its table.
 pub fn get_by_primary_key_method_name() -> Ident {

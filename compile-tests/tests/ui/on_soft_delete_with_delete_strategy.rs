@@ -1,6 +1,9 @@
 //! Soft-deleting a row must not physically remove the rows which reference it. That is
 //! what `on_delete = Delete` is for; reaching for it from `on_soft_delete` would turn a
 //! reversible retirement into an irreversible cascade.
+//!
+//! The error after the first follows from it: the `#[referenced_by]` of the `warehouse` table
+//! reports that the `shipment` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

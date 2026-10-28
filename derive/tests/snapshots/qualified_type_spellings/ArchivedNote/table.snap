@@ -5,6 +5,10 @@ source: derive/src/characterization_tests.rs
 /// reach it.
 #[doc(hidden)]
 pub struct ArchivedNoteTable;
+impl crate::spacetimedsl::internal::AcceptedTable for archived_note__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for ArchivedNoteTable {}
+impl crate::spacetimedsl::internal::IsSoftDeletable for ArchivedNoteTable {}
+const _: () = {};
 #[derive(
     Clone,
     Debug,

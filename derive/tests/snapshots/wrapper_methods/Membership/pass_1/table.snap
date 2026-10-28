@@ -9,15 +9,69 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: `Error`
 ///   - On soft delete: none, the `account` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_active_membership_table_has_no_foreign_key_attribute_referencing_the_account_table {}
-const _: () = {
-    use self::this_compilation_error_occurs_because_the_account_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_active_membership_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_account_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_account_table_has_no_referenced_by_attribute_referencing_the_active_membership_table;
-};
 /// The type through which the tables on the other side of this table's foreign keys
 /// reach it.
 #[doc(hidden)]
 pub struct ActiveMembershipTable;
+impl crate::spacetimedsl::internal::AcceptedTable for active_membership__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for ActiveMembershipTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for ActiveMembershipTable {}
+const _: () = {
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `account` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `account` table first"
+        )]
+        trait AccountTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> AccountTableIsAccepted
+        for T {}
+        const _: () = <self::account__TableHandle as AccountTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `account` table has no `#[referenced_by]` naming the `active_membership` table",
+            label = "the `account` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = active_membership)]` to the primary key column of the `account` table"
+        )]
+        trait ReferencedByTheActiveMembershipTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<ActiveMembershipTable>,
+        > ReferencedByTheActiveMembershipTable for T {}
+        const _: () = <self::AccountTable as ReferencedByTheActiveMembershipTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `account` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`"
+        )]
+        trait HasDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
+        const _: () = <self::AccountTable as HasDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `account` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait IsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
+        for T {}
+        const _: () = <self::AccountTable as IsNotSoftDeletable>::HOLDS;
+    };
+};
 #[derive(
     Clone,
     Debug,

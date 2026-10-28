@@ -11,6 +11,7 @@ use {
             cascade_binding, cascade_method_name, referenced_table_function_name, table_type_name,
         },
         on_delete_strategy::child_entries_of_a_row_to_delete_or_panic,
+        pairing::cascade_into,
         removal::{Removal, dispatcher_signature},
     },
     crate::{
@@ -173,18 +174,15 @@ pub fn for_referenced_by(
 
     let mut strategy_calls = vec![];
 
-    let references_trait = runtime::references_trait(
-        &table_type_name(singular_table_name),
-        primary_key_column_type,
-    );
     let cascade_method_name = cascade_method_name(removal, one_or_multiple);
 
     for referencing_table in &spacetimedsl_table.referencing_tables {
         let referencing_table_path = &referencing_table.path;
         let referencing_table_type = table_type_name(&referencing_table.table_name);
+        let cascade = cascade_into(referencing_table, singular_table_name, &cascade_method_name);
 
         let referencing_table_call = quote! {
-            <#referencing_table_path::#referencing_table_type as #references_trait>::#cascade_method_name(
+            #cascade(
                 &#referencing_table_path::#referencing_table_type,
                 dsl,
                 &strategy,

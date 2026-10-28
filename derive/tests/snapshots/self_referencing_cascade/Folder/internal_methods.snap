@@ -24,10 +24,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::FolderTable as crate::spacetimedsl::internal::References<
-            FolderTable,
-            u64,
-        >>::after_one_row_was_deleted(
+        match <self::FolderTable as FolderTableReferencesTheFolderTable>::after_one_row_was_deleted(
             &self::FolderTable,
             dsl,
             &strategy,
@@ -92,10 +89,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::FolderTable as crate::spacetimedsl::internal::References<
-            FolderTable,
-            u64,
-        >>::after_multiple_rows_were_deleted(
+        match <self::FolderTable as FolderTableReferencesTheFolderTable>::after_multiple_rows_were_deleted(
             &self::FolderTable,
             dsl,
             &strategy,
@@ -169,10 +163,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::FolderTable as crate::spacetimedsl::internal::References<
-            FolderTable,
-            u64,
-        >>::after_one_row_was_soft_deleted(
+        match <self::FolderTable as FolderTableReferencesTheFolderTable>::after_one_row_was_soft_deleted(
             &self::FolderTable,
             dsl,
             &strategy,
@@ -237,10 +228,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::FolderTable as crate::spacetimedsl::internal::References<
-            FolderTable,
-            u64,
-        >>::after_multiple_rows_were_soft_deleted(
+        match <self::FolderTable as FolderTableReferencesTheFolderTable>::after_multiple_rows_were_soft_deleted(
             &self::FolderTable,
             dsl,
             &strategy,

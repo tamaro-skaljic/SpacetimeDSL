@@ -1,6 +1,9 @@
 //! `SetZero` clears the foreign key column and writes the row back through its primary key.
 //! When the foreign key column is the primary key, the write goes to the key `0`, where it
 //! finds no row or overwrites another one.
+//!
+//! The error after the first follows from it: the `#[referenced_by]` of the `warehouse` table
+//! reports that the `dock` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

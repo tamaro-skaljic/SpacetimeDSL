@@ -1,5 +1,8 @@
 //! `on_delete = SetZero` writes `0` into `warehouse_id` when its warehouse is deleted, which
 //! `#[disallow(zero)]` forbids.
+//!
+//! The error after the first follows from it: the `#[referenced_by]` of the `warehouse` table
+//! reports that the `shipment` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

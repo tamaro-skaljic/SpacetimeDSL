@@ -232,6 +232,30 @@ macro_rules! spacetimedsl {
             pub mod internal {
                 pub struct DSLInternals;
 
+                // The facts a table states for the pairing checks of the tables on the other side
+                // of its foreign keys. Each check is a trait of its own, which the checking table
+                // implements for every implementer of one of these.
+
+                /// Implemented for the `<accessor>__TableHandle` of every table whose
+                /// `#[spacetimedsl::dsl]` is accepted.
+                pub trait AcceptedTable {}
+
+                /// Implemented by the table type of a table with a delete method.
+                pub trait HasDeleteMethod {}
+
+                /// Implemented by the table type of a table without a delete method.
+                pub trait HasNoDeleteMethod {}
+
+                /// Implemented by the table type of a soft-deletable table.
+                pub trait IsSoftDeletable {}
+
+                /// Implemented by the table type of a table which is not soft-deletable.
+                pub trait IsNotSoftDeletable {}
+
+                /// Implemented by the table type of a table for the table type of each table its
+                /// `#[referenced_by]` attributes name.
+                pub trait ReferencedBy<Referencing> {}
+
                 /// Why the default bodies of [`References`] never run.
                 const A_FOREIGN_KEY_DECLARES_THIS_STRATEGY: &str = "a referenced table calls a cascade only for a removal it performs, and a foreign key to it which declares no strategy for that removal fails a pairing check";
 

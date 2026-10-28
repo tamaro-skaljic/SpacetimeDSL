@@ -1,6 +1,9 @@
 //! Soft deletion preserves the row it retires. Clearing the foreign key column of the
 //! rows which reference it would destroy exactly what the retirement preserved, leaving
 //! no way to tell which row they once pointed at.
+//!
+//! The error after the first follows from it: the `#[referenced_by]` of the `warehouse` table
+//! reports that the `shipment` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

@@ -5,6 +5,10 @@ source: derive/src/characterization_tests.rs
 /// reach it.
 #[doc(hidden)]
 pub struct DialTable;
+impl crate::spacetimedsl::internal::AcceptedTable for dial__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for DialTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for DialTable {}
+const _: () = {};
 #[derive(
     Clone,
     Debug,

@@ -24,10 +24,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::ChildMarkerTable as crate::spacetimedsl::internal::References<
-            ParentRecordTable,
-            u64,
-        >>::after_one_row_was_deleted(
+        match <self::ChildMarkerTable as ChildMarkerTableReferencesTheParentRecordTable>::after_one_row_was_deleted(
             &self::ChildMarkerTable,
             dsl,
             &strategy,
@@ -92,10 +89,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::ChildMarkerTable as crate::spacetimedsl::internal::References<
-            ParentRecordTable,
-            u64,
-        >>::after_multiple_rows_were_deleted(
+        match <self::ChildMarkerTable as ChildMarkerTableReferencesTheParentRecordTable>::after_multiple_rows_were_deleted(
             &self::ChildMarkerTable,
             dsl,
             &strategy,

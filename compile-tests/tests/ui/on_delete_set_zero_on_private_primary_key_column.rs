@@ -1,5 +1,8 @@
 //! A primary key column is usually private. `SetZero` on it is rejected as a primary key
 //! column, not as a private one: making the column `pub` would not make `SetZero` work.
+//!
+//! The error after the first follows from it: the `#[referenced_by]` of the `warehouse` table
+//! reports that the `dock` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

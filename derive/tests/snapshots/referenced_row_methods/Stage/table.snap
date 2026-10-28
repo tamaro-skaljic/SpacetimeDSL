@@ -13,18 +13,251 @@ source: derive/src/characterization_tests.rs
 ///
 /// - the `stage` table (`self`)
 
-pub trait this_compilation_error_occurs_because_the_stage_table_has_no_foreign_key_attribute_referencing_the_stage_table {}
-pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_stage_table_needs_to_define_a_strategy_for_on_delete_or_the_stage_table_has_no_referenced_by_attribute_referencing_the_stage_table {}
-pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_stage_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_stage_table_has_no_referenced_by_attribute_referencing_the_stage_table {}
-const _: () = {
-    use self::this_compilation_error_occurs_because_the_stage_table_has_no_foreign_key_attribute_referencing_the_stage_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_stage_table_needs_to_define_a_strategy_for_on_delete_or_the_stage_table_has_no_referenced_by_attribute_referencing_the_stage_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_stage_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_stage_table_has_no_referenced_by_attribute_referencing_the_stage_table;
-};
 /// The type through which the tables on the other side of this table's foreign keys
 /// reach it.
 #[doc(hidden)]
 pub struct StageTable;
+impl crate::spacetimedsl::internal::AcceptedTable for stage__TableHandle {}
+impl crate::spacetimedsl::internal::HasNoDeleteMethod for StageTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for StageTable {}
+impl crate::spacetimedsl::internal::ReferencedBy<self::StageTable> for StageTable {}
+const _: () = {
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `stage` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `stage` table first"
+        )]
+        trait StageTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> StageTableIsAccepted
+        for T {}
+        const _: () = <self::stage__TableHandle as StageTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `stage` table has no `#[referenced_by]` naming the `stage` table",
+            label = "the `stage` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = stage)]` to the primary key column of the `stage` table"
+        )]
+        trait ReferencedByTheStageTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<StageTable>,
+        > ReferencedByTheStageTable for T {}
+        const _: () = <self::StageTable as ReferencedByTheStageTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `stage` table has a delete method, so this foreign key needs `on_delete`",
+            label = "add `on_delete = …`",
+            note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
+        )]
+        trait HasNoDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::HasNoDeleteMethod> HasNoDeleteMethod
+        for T {}
+        const _: () = <self::StageTable as HasNoDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `stage` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait IsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
+        for T {}
+        const _: () = <self::StageTable as IsNotSoftDeletable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `stage` table can't reference the `stage` table, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `stage` table first"
+        )]
+        trait StageTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> StageTableIsAccepted
+        for T {}
+        const _: () = <self::stage__TableHandle as StageTableIsAccepted>::HOLDS;
+    };
+};
+#[diagnostic::on_unimplemented(
+    message = "the `stage` table has no `#[foreign_key]` referencing the `stage` table",
+    label = "remove this `#[referenced_by]`, or add the foreign key to the `stage` table"
+)]
+#[allow(dead_code, clippy::ptr_arg)]
+trait StageTableReferencesTheStageTable {
+    const HOLDS: () = ();
+    fn after_one_row_was_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    >;
+    fn after_multiple_rows_were_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    >;
+    fn after_one_row_was_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    >;
+    fn after_multiple_rows_were_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    >;
+}
+#[diagnostic::do_not_recommend]
+impl<
+    Referencing: crate::spacetimedsl::internal::References<StageTable, u64>,
+> StageTableReferencesTheStageTable for Referencing {
+    fn after_one_row_was_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            StageTable,
+            u64,
+        >>::after_one_row_was_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_value_of_a_row_of_another_table_to_delete,
+        )
+    }
+    fn after_multiple_rows_were_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            StageTable,
+            u64,
+        >>::after_multiple_rows_were_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_values_of_rows_of_another_table_to_delete,
+        )
+    }
+    fn after_one_row_was_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            StageTable,
+            u64,
+        >>::after_one_row_was_soft_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_value_of_a_row_of_another_table_to_delete,
+        )
+    }
+    fn after_multiple_rows_were_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            StageTable,
+            u64,
+        >>::after_multiple_rows_were_soft_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_values_of_rows_of_another_table_to_delete,
+        )
+    }
+}
+const _: () = <self::StageTable as StageTableReferencesTheStageTable>::HOLDS;
 #[derive(
     Clone,
     Debug,

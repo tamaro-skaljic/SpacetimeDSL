@@ -1,25 +1,12 @@
-error[E0432]: unresolved import `crate::shipment::this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_referencing_the_warehouse_table`
-  --> tests/ui/referenced_by_without_foreign_key_back.rs:10:5
+error[E0277]: the `shipment` table has no `#[foreign_key]` referencing the `warehouse` table
+  --> tests/ui/referenced_by_without_foreign_key_back.rs:16:57
    |
-10 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false, delete = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `this_compilation_error_occurs_because_the_shipment_table_has_no_foreign_key_attribute_referencing_the_warehouse_table` in `shipment`
+16 |         #[referenced_by(path = crate::shipment, table = shipment)]
+   |                                                         ^^^^^^^^ remove this `#[referenced_by]`, or add the foreign key to the `shipment` table
    |
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0277]: the trait bound `ShipmentTable: References<WarehouseTable, u64>` is not satisfied
-  --> tests/ui/referenced_by_without_foreign_key_back.rs:10:5
-   |
-10 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false, delete = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
-   |
-help: the trait `References<WarehouseTable, u64>` is not implemented for `ShipmentTable`
+help: the trait `ShipmentTableReferencesTheWarehouseTable` is not implemented for `ShipmentTable`
   --> tests/ui/referenced_by_without_foreign_key_back.rs:22:5
    |
 22 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = false, delete = true))]
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-help: this trait has no implementations, consider adding one
-  --> tests/ui/referenced_by_without_foreign_key_back.rs:7:1
-   |
- 7 | ::spacetimedsl::spacetimedsl!();
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   = note: this error originates in the attribute macro `spacetimedsl::dsl` which comes from the expansion of the macro `::spacetimedsl::spacetimedsl` (in Nightly builds, run with -Z macro-backtrace for more info)
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

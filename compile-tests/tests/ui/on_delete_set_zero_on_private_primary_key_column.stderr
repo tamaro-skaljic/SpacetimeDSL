@@ -1,6 +1,19 @@
 error: `OnDeleteStrategy::SetZero` is not allowed on a primary key column!
        Clearing it would write the row back under the key `0` or `Uuid::NIL`, where the write finds no row or another one. Choose another strategy, such as `on_delete = Delete`.
-  --> tests/ui/on_delete_set_zero_on_private_primary_key_column.rs:24:11
+  --> tests/ui/on_delete_set_zero_on_private_primary_key_column.rs:27:11
    |
-24 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_delete = SetZero)]
+27 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_delete = SetZero)]
    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the `dock` table can't reference the `warehouse` table, because its `#[spacetimedsl::dsl]` is rejected
+  --> tests/ui/on_delete_set_zero_on_private_primary_key_column.rs:16:53
+   |
+16 |         #[referenced_by(path = crate::dock, table = dock)]
+   |                                                     ^^^^ fix the error of the `dock` table first
+   |
+help: the trait `DockTableIsAccepted` is not implemented for `dock::dock__TableHandle`
+  --> tests/ui/on_delete_set_zero_on_private_primary_key_column.rs:23:5
+   |
+23 |     #[spacetimedb::table(accessor = dock, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

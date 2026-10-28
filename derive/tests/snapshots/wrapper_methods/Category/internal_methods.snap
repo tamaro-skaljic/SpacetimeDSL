@@ -24,10 +24,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::CategoryTable as crate::spacetimedsl::internal::References<
-            CategoryTable,
-            u64,
-        >>::after_one_row_was_deleted(
+        match <self::CategoryTable as CategoryTableReferencesTheCategoryTable>::after_one_row_was_deleted(
             &self::CategoryTable,
             dsl,
             &strategy,
@@ -92,10 +89,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::CategoryTable as crate::spacetimedsl::internal::References<
-            CategoryTable,
-            u64,
-        >>::after_multiple_rows_were_deleted(
+        match <self::CategoryTable as CategoryTableReferencesTheCategoryTable>::after_multiple_rows_were_deleted(
             &self::CategoryTable,
             dsl,
             &strategy,

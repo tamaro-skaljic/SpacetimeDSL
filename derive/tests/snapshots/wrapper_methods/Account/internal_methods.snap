@@ -24,10 +24,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::ProfileTable as crate::spacetimedsl::internal::References<
-            AccountTable,
-            u64,
-        >>::after_one_row_was_deleted(
+        match <self::ProfileTable as ProfileTableReferencesTheAccountTable>::after_one_row_was_deleted(
             &self::ProfileTable,
             dsl,
             &strategy,
@@ -45,10 +42,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 entries.append(&mut child_entries);
             }
         };
-        match <self::AccountNoteTable as crate::spacetimedsl::internal::References<
-            AccountTable,
-            u64,
-        >>::after_one_row_was_deleted(
+        match <self::AccountNoteTable as AccountNoteTableReferencesTheAccountTable>::after_one_row_was_deleted(
             &self::AccountNoteTable,
             dsl,
             &strategy,
@@ -66,10 +60,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 entries.append(&mut child_entries);
             }
         };
-        match <self::ActiveMembershipTable as crate::spacetimedsl::internal::References<
-            AccountTable,
-            u64,
-        >>::after_one_row_was_deleted(
+        match <self::ActiveMembershipTable as ActiveMembershipTableReferencesTheAccountTable>::after_one_row_was_deleted(
             &self::ActiveMembershipTable,
             dsl,
             &strategy,
@@ -87,10 +78,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 entries.append(&mut child_entries);
             }
         };
-        match <self::ExpiredMembershipTable as crate::spacetimedsl::internal::References<
-            AccountTable,
-            u64,
-        >>::after_one_row_was_deleted(
+        match <self::ExpiredMembershipTable as ExpiredMembershipTableReferencesTheAccountTable>::after_one_row_was_deleted(
             &self::ExpiredMembershipTable,
             dsl,
             &strategy,
@@ -155,10 +143,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::ProfileTable as crate::spacetimedsl::internal::References<
-            AccountTable,
-            u64,
-        >>::after_multiple_rows_were_deleted(
+        match <self::ProfileTable as ProfileTableReferencesTheAccountTable>::after_multiple_rows_were_deleted(
             &self::ProfileTable,
             dsl,
             &strategy,
@@ -197,10 +182,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 }
             }
         };
-        match <self::AccountNoteTable as crate::spacetimedsl::internal::References<
-            AccountTable,
-            u64,
-        >>::after_multiple_rows_were_deleted(
+        match <self::AccountNoteTable as AccountNoteTableReferencesTheAccountTable>::after_multiple_rows_were_deleted(
             &self::AccountNoteTable,
             dsl,
             &strategy,
@@ -239,10 +221,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 }
             }
         };
-        match <self::ActiveMembershipTable as crate::spacetimedsl::internal::References<
-            AccountTable,
-            u64,
-        >>::after_multiple_rows_were_deleted(
+        match <self::ActiveMembershipTable as ActiveMembershipTableReferencesTheAccountTable>::after_multiple_rows_were_deleted(
             &self::ActiveMembershipTable,
             dsl,
             &strategy,
@@ -281,10 +260,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 }
             }
         };
-        match <self::ExpiredMembershipTable as crate::spacetimedsl::internal::References<
-            AccountTable,
-            u64,
-        >>::after_multiple_rows_were_deleted(
+        match <self::ExpiredMembershipTable as ExpiredMembershipTableReferencesTheAccountTable>::after_multiple_rows_were_deleted(
             &self::ExpiredMembershipTable,
             dsl,
             &strategy,

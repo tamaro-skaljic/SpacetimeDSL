@@ -24,10 +24,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::ActiveBracketTable as crate::spacetimedsl::internal::References<
-            BracketTable,
-            Uuid,
-        >>::after_one_row_was_deleted(
+        match <self::ActiveBracketTable as ActiveBracketTableReferencesTheBracketTable>::after_one_row_was_deleted(
             &self::ActiveBracketTable,
             dsl,
             &strategy,
@@ -92,10 +89,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::ActiveBracketTable as crate::spacetimedsl::internal::References<
-            BracketTable,
-            Uuid,
-        >>::after_multiple_rows_were_deleted(
+        match <self::ActiveBracketTable as ActiveBracketTableReferencesTheBracketTable>::after_multiple_rows_were_deleted(
             &self::ActiveBracketTable,
             dsl,
             &strategy,

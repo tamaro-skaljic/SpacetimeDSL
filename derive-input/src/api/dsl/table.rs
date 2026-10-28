@@ -8,7 +8,6 @@ use {
         wrapper::WrapperMethod,
     },
     proc_macro2::TokenStream,
-    std::collections::BTreeSet,
     syn::Ident,
 };
 
@@ -60,14 +59,12 @@ pub struct SpacetimeDSLTable {
     pub on_update_set_current_timestamp_column_name: Option<Ident>,
     /// The tables `#[referenced_by(...)]` on the primary key column names.
     pub referencing_tables: Vec<ReferencingTable>,
-    /// The names of the marker traits the expansion declares for the tables on the other side
-    /// of a foreign key. A table whose counterpart does not declare the trait it expects fails
-    /// to compile with an error naming the missing configuration.
-    pub compile_error_checks: BTreeSet<Ident>,
-    /// The marker traits the tables on the other side of a foreign key have to declare, as the
-    /// paths the expansion imports them from. A missing one is an unresolved import whose name
-    /// says what to change.
-    pub compile_error_check_imports: Vec<syn::Path>,
+    /// The items which pair the table with the tables on the other side of its foreign keys:
+    /// the facts it states about itself for their checks, the checks it makes of them, each a
+    /// trait whose `#[diagnostic::on_unimplemented]` says what to change, and the checks
+    /// through which its cascades reach the tables referencing it. Emit them once per table,
+    /// at module level.
+    pub pairing: TokenStream,
     /// The `Create<Table>` struct the create method takes. `None` when the table has no create
     /// method.
     pub create_dsl_method_arg: Option<CreateDSLMethodArg>,

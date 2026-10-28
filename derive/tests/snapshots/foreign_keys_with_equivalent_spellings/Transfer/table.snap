@@ -12,15 +12,123 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: `Delete`
 ///   - On soft delete: none, the `ledger` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_transfer_table_has_no_foreign_key_attribute_referencing_the_ledger_table {}
-const _: () = {
-    use ::other_crate::tables::this_compilation_error_occurs_because_the_ledger_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_transfer_table;
-    use ::other_crate::tables::this_compilation_error_occurs_because_your_foreign_key_referencing_the_ledger_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_ledger_table_has_no_referenced_by_attribute_referencing_the_transfer_table;
-};
 /// The type through which the tables on the other side of this table's foreign keys
 /// reach it.
 #[doc(hidden)]
 pub struct TransferTable;
+impl crate::spacetimedsl::internal::AcceptedTable for transfer__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for TransferTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for TransferTable {}
+const _: () = {
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `ledger` table first"
+        )]
+        trait LedgerTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> LedgerTableIsAccepted
+        for T {}
+        const _: () = <::other_crate::tables::ledger__TableHandle as LedgerTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table has no `#[referenced_by]` naming the `transfer` table",
+            label = "the `ledger` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = transfer)]` to the primary key column of the `ledger` table"
+        )]
+        trait ReferencedByTheTransferTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<TransferTable>,
+        > ReferencedByTheTransferTable for T {}
+        const _: () = <::other_crate::tables::LedgerTable as ReferencedByTheTransferTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`"
+        )]
+        trait HasDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
+        const _: () = <::other_crate::tables::LedgerTable as HasDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait IsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
+        for T {}
+        const _: () = <::other_crate::tables::LedgerTable as IsNotSoftDeletable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `ledger` table first"
+        )]
+        trait LedgerTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> LedgerTableIsAccepted
+        for T {}
+        const _: () = <other_crate::tables::ledger__TableHandle as LedgerTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table has no `#[referenced_by]` naming the `transfer` table",
+            label = "the `ledger` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = transfer)]` to the primary key column of the `ledger` table"
+        )]
+        trait ReferencedByTheTransferTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<TransferTable>,
+        > ReferencedByTheTransferTable for T {}
+        const _: () = <other_crate::tables::LedgerTable as ReferencedByTheTransferTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`"
+        )]
+        trait HasDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
+        const _: () = <other_crate::tables::LedgerTable as HasDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `ledger` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait IsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
+        for T {}
+        const _: () = <other_crate::tables::LedgerTable as IsNotSoftDeletable>::HOLDS;
+    };
+};
 #[derive(
     Clone,
     Debug,

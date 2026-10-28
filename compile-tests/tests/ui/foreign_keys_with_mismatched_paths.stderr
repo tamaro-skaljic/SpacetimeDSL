@@ -1,5 +1,18 @@
 error: All foreign key columns which reference the same primary key of another table should have the same path! Spell both paths the same way; a leading `::` makes no difference.
-  --> tests/ui/foreign_keys_with_mismatched_paths.rs:42:13
+  --> tests/ui/foreign_keys_with_mismatched_paths.rs:45:13
    |
-42 |         pub destination_warehouse_id: u64,
+45 |         pub destination_warehouse_id: u64,
    |             ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the `shipment` table can't reference the `warehouse` table, because its `#[spacetimedsl::dsl]` is rejected
+  --> tests/ui/foreign_keys_with_mismatched_paths.rs:20:46
+   |
+20 |         #[referenced_by(path = self, table = shipment)]
+   |                                              ^^^^^^^^ fix the error of the `shipment` table first
+   |
+help: the trait `ShipmentTableIsAccepted` is not implemented for `warehouse::shipment__TableHandle`
+  --> tests/ui/foreign_keys_with_mismatched_paths.rs:25:5
+   |
+25 |     #[spacetimedb::table(accessor = shipment, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

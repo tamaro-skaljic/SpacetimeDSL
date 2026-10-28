@@ -1,0 +1,13 @@
+error[E0277]: the `warehouse` table has no `#[referenced_by]` naming the `shipment` table
+  --> tests/ui/foreign_key_without_referenced_by_back.rs:29:56
+   |
+29 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id)]
+   |                                                        ^^^^^^^^^ the `warehouse` table doesn't know about this foreign key
+   |
+help: the trait `ReferencedByTheShipmentTable` is not implemented for `WarehouseTable`
+  --> tests/ui/foreign_key_without_referenced_by_back.rs:8:5
+   |
+ 8 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false, delete = false))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: add `#[referenced_by(path = …, table = shipment)]` to the primary key column of the `warehouse` table
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

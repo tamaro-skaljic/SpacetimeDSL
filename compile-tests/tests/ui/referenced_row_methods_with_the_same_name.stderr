@@ -1,5 +1,18 @@
 error: The foreign key columns `owner_id` and `owner` would both add `get_owner` to `GameId`! Rename one of them, or add `referenced_row_method = false` to the `#[foreign_key]` of one.
-  --> tests/ui/referenced_row_methods_with_the_same_name.rs:36:9
+  --> tests/ui/referenced_row_methods_with_the_same_name.rs:39:9
    |
-36 |         owner: u64,
+39 |         owner: u64,
    |         ^^^^^
+
+error[E0277]: the `game` table can't reference the `player` table, because its `#[spacetimedsl::dsl]` is rejected
+  --> tests/ui/referenced_row_methods_with_the_same_name.rs:17:53
+   |
+17 |         #[referenced_by(path = crate::game, table = game)]
+   |                                                     ^^^^ fix the error of the `game` table first
+   |
+help: the trait `GameTableIsAccepted` is not implemented for `game::game__TableHandle`
+  --> tests/ui/referenced_row_methods_with_the_same_name.rs:24:5
+   |
+24 |     #[spacetimedb::table(accessor = game, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

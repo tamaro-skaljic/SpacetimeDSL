@@ -9,15 +9,69 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: `Delete`
 ///   - On soft delete: none, the `owner` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_gadget_table_has_no_foreign_key_attribute_referencing_the_owner_table {}
-const _: () = {
-    use self::this_compilation_error_occurs_because_the_owner_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_gadget_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_owner_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_owner_table_has_no_referenced_by_attribute_referencing_the_gadget_table;
-};
 /// The type through which the tables on the other side of this table's foreign keys
 /// reach it.
 #[doc(hidden)]
 pub struct GadgetTable;
+impl crate::spacetimedsl::internal::AcceptedTable for gadget__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for GadgetTable {}
+impl crate::spacetimedsl::internal::IsSoftDeletable for GadgetTable {}
+const _: () = {
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `owner` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `owner` table first"
+        )]
+        trait OwnerTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> OwnerTableIsAccepted
+        for T {}
+        const _: () = <self::owner__TableHandle as OwnerTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `owner` table has no `#[referenced_by]` naming the `gadget` table",
+            label = "the `owner` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = gadget)]` to the primary key column of the `owner` table"
+        )]
+        trait ReferencedByTheGadgetTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<GadgetTable>,
+        > ReferencedByTheGadgetTable for T {}
+        const _: () = <self::OwnerTable as ReferencedByTheGadgetTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `owner` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`"
+        )]
+        trait HasDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
+        const _: () = <self::OwnerTable as HasDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `owner` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait IsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
+        for T {}
+        const _: () = <self::OwnerTable as IsNotSoftDeletable>::HOLDS;
+    };
+};
 #[derive(
     Clone,
     Debug,

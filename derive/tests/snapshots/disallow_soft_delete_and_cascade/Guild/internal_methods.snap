@@ -24,10 +24,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::MemberTable as crate::spacetimedsl::internal::References<
-            GuildTable,
-            u64,
-        >>::after_one_row_was_deleted(
+        match <self::MemberTable as MemberTableReferencesTheGuildTable>::after_one_row_was_deleted(
             &self::MemberTable,
             dsl,
             &strategy,
@@ -45,10 +42,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 entries.append(&mut child_entries);
             }
         };
-        match <self::GuestTable as crate::spacetimedsl::internal::References<
-            GuildTable,
-            u64,
-        >>::after_one_row_was_deleted(
+        match <self::GuestTable as GuestTableReferencesTheGuildTable>::after_one_row_was_deleted(
             &self::GuestTable,
             dsl,
             &strategy,
@@ -113,10 +107,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::MemberTable as crate::spacetimedsl::internal::References<
-            GuildTable,
-            u64,
-        >>::after_multiple_rows_were_deleted(
+        match <self::MemberTable as MemberTableReferencesTheGuildTable>::after_multiple_rows_were_deleted(
             &self::MemberTable,
             dsl,
             &strategy,
@@ -155,10 +146,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 }
             }
         };
-        match <self::GuestTable as crate::spacetimedsl::internal::References<
-            GuildTable,
-            u64,
-        >>::after_multiple_rows_were_deleted(
+        match <self::GuestTable as GuestTableReferencesTheGuildTable>::after_multiple_rows_were_deleted(
             &self::GuestTable,
             dsl,
             &strategy,
@@ -232,10 +220,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::MemberTable as crate::spacetimedsl::internal::References<
-            GuildTable,
-            u64,
-        >>::after_one_row_was_soft_deleted(
+        match <self::MemberTable as MemberTableReferencesTheGuildTable>::after_one_row_was_soft_deleted(
             &self::MemberTable,
             dsl,
             &strategy,
@@ -253,10 +238,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 entries.append(&mut child_entries);
             }
         };
-        match <self::GuestTable as crate::spacetimedsl::internal::References<
-            GuildTable,
-            u64,
-        >>::after_one_row_was_soft_deleted(
+        match <self::GuestTable as GuestTableReferencesTheGuildTable>::after_one_row_was_soft_deleted(
             &self::GuestTable,
             dsl,
             &strategy,
@@ -321,10 +303,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::MemberTable as crate::spacetimedsl::internal::References<
-            GuildTable,
-            u64,
-        >>::after_multiple_rows_were_soft_deleted(
+        match <self::MemberTable as MemberTableReferencesTheGuildTable>::after_multiple_rows_were_soft_deleted(
             &self::MemberTable,
             dsl,
             &strategy,
@@ -363,10 +342,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 }
             }
         };
-        match <self::GuestTable as crate::spacetimedsl::internal::References<
-            GuildTable,
-            u64,
-        >>::after_multiple_rows_were_soft_deleted(
+        match <self::GuestTable as GuestTableReferencesTheGuildTable>::after_multiple_rows_were_soft_deleted(
             &self::GuestTable,
             dsl,
             &strategy,

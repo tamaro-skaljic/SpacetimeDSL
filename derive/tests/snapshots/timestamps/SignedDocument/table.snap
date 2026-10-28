@@ -5,6 +5,10 @@ source: derive/src/characterization_tests.rs
 /// reach it.
 #[doc(hidden)]
 pub struct SignedDocumentTable;
+impl crate::spacetimedsl::internal::AcceptedTable for signed_document__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for SignedDocumentTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for SignedDocumentTable {}
+const _: () = {};
 #[derive(
     Clone,
     Debug,

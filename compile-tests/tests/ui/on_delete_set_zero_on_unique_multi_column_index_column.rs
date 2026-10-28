@@ -1,6 +1,9 @@
 //! `SetZero` writes `0` into the foreign key column. On a column of a unique multi-column
 //! index, two cleared rows which agree in the index's other columns repeat its values, and
 //! SpacetimeDSL checks that index only when a row is created or updated.
+//!
+//! The error after the first follows from it: the `#[referenced_by]` of the `warehouse` table
+//! reports that the `shipment` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

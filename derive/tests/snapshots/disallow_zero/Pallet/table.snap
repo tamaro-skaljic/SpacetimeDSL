@@ -9,15 +9,71 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: none, the `warehouse` table is not deletable
 ///   - On soft delete: none, the `warehouse` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_pallet_table_has_no_foreign_key_attribute_referencing_the_warehouse_table {}
-const _: () = {
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_warehouse_table_needs_to_define_a_strategy_for_on_delete_or_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_pallet_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_warehouse_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_pallet_table;
-};
 /// The type through which the tables on the other side of this table's foreign keys
 /// reach it.
 #[doc(hidden)]
 pub struct PalletTable;
+impl crate::spacetimedsl::internal::AcceptedTable for pallet__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for PalletTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for PalletTable {}
+const _: () = {
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `warehouse` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `warehouse` table first"
+        )]
+        trait WarehouseTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> WarehouseTableIsAccepted
+        for T {}
+        const _: () = <self::warehouse__TableHandle as WarehouseTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `warehouse` table has no `#[referenced_by]` naming the `pallet` table",
+            label = "the `warehouse` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = pallet)]` to the primary key column of the `warehouse` table"
+        )]
+        trait ReferencedByThePalletTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<PalletTable>,
+        > ReferencedByThePalletTable for T {}
+        const _: () = <self::WarehouseTable as ReferencedByThePalletTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `warehouse` table has a delete method, so this foreign key needs `on_delete`",
+            label = "add `on_delete = …`",
+            note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
+        )]
+        trait HasNoDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::HasNoDeleteMethod> HasNoDeleteMethod
+        for T {}
+        const _: () = <self::WarehouseTable as HasNoDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `warehouse` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait IsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
+        for T {}
+        const _: () = <self::WarehouseTable as IsNotSoftDeletable>::HOLDS;
+    };
+};
 #[derive(
     Clone,
     Debug,

@@ -5,6 +5,10 @@ source: derive/src/characterization_tests.rs
 /// reach it.
 #[doc(hidden)]
 pub struct ReminderTimerTable;
+impl crate::spacetimedsl::internal::AcceptedTable for reminder_timer__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for ReminderTimerTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for ReminderTimerTable {}
+const _: () = {};
 #[derive(
     Clone,
     Debug,

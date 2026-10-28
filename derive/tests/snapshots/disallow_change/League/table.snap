@@ -5,6 +5,10 @@ source: derive/src/characterization_tests.rs
 /// reach it.
 #[doc(hidden)]
 pub struct LeagueTable;
+impl crate::spacetimedsl::internal::AcceptedTable for league__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for LeagueTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for LeagueTable {}
+const _: () = {};
 impl League {
     ///
     pub fn get_remaining_rounds(&self) -> &u16 {

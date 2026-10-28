@@ -24,10 +24,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::BadgeTable as crate::spacetimedsl::internal::References<
-            MemberTable,
-            u64,
-        >>::after_one_row_was_soft_deleted(
+        match <self::BadgeTable as BadgeTableReferencesTheMemberTable>::after_one_row_was_soft_deleted(
             &self::BadgeTable,
             dsl,
             &strategy,
@@ -92,10 +89,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::BadgeTable as crate::spacetimedsl::internal::References<
-            MemberTable,
-            u64,
-        >>::after_multiple_rows_were_soft_deleted(
+        match <self::BadgeTable as BadgeTableReferencesTheMemberTable>::after_multiple_rows_were_soft_deleted(
             &self::BadgeTable,
             dsl,
             &strategy,

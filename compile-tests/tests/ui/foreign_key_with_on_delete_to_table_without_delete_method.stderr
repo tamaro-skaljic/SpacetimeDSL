@@ -1,7 +1,15 @@
-error[E0432]: unresolved import `crate::warehouse::this_compilation_error_occurs_because_the_warehouse_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_shipment_table`
-  --> tests/ui/foreign_key_with_on_delete_to_table_without_delete_method.rs:28:5
+error[E0277]: the `warehouse` table has no delete method, so `on_delete` can't apply
+  --> tests/ui/foreign_key_with_on_delete_to_table_without_delete_method.rs:38:56
    |
-28 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `this_compilation_error_occurs_because_the_warehouse_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_shipment_table` in `warehouse`
+38 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_delete = Delete)]
+   |                                                        ^^^^^^^^^ remove `on_delete`
    |
+help: the trait `shipment::_::_::HasDeleteMethod` is not implemented for `WarehouseTable`
+  --> tests/ui/foreign_key_with_on_delete_to_table_without_delete_method.rs:8:5
+   |
+ 8 | /     #[spacetimedsl::dsl(
+ 9 | |         plural_name = warehouses,
+10 | |         method(update = false, delete = false),
+11 | |     )]
+   | |______^
    = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

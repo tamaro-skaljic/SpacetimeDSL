@@ -9,15 +9,69 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: `SetZero`
 ///   - On soft delete: none, the `author` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_book_table_has_no_foreign_key_attribute_referencing_the_author_table {}
-const _: () = {
-    use self::this_compilation_error_occurs_because_the_author_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_book_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_author_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_author_table_has_no_referenced_by_attribute_referencing_the_book_table;
-};
 /// The type through which the tables on the other side of this table's foreign keys
 /// reach it.
 #[doc(hidden)]
 pub struct BookTable;
+impl crate::spacetimedsl::internal::AcceptedTable for book__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for BookTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for BookTable {}
+const _: () = {
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `author` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `author` table first"
+        )]
+        trait AuthorTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> AuthorTableIsAccepted
+        for T {}
+        const _: () = <self::author__TableHandle as AuthorTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `author` table has no `#[referenced_by]` naming the `book` table",
+            label = "the `author` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = book)]` to the primary key column of the `author` table"
+        )]
+        trait ReferencedByTheBookTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<BookTable>,
+        > ReferencedByTheBookTable for T {}
+        const _: () = <self::AuthorTable as ReferencedByTheBookTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `author` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`"
+        )]
+        trait HasDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
+        const _: () = <self::AuthorTable as HasDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `author` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait IsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
+        for T {}
+        const _: () = <self::AuthorTable as IsNotSoftDeletable>::HOLDS;
+    };
+};
 #[derive(
     Clone,
     Debug,

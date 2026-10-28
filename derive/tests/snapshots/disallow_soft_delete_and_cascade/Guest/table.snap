@@ -9,15 +9,67 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: `SetZero`
 ///   - On soft delete: `SoftDelete`
 
-pub trait this_compilation_error_occurs_because_the_guest_table_has_no_foreign_key_attribute_referencing_the_guild_table {}
-const _: () = {
-    use self::this_compilation_error_occurs_because_the_guild_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_guest_table;
-    use self::this_compilation_error_occurs_because_the_guild_table_is_not_soft_deletable_or_has_no_referenced_by_attribute_referencing_the_guest_table;
-};
 /// The type through which the tables on the other side of this table's foreign keys
 /// reach it.
 #[doc(hidden)]
 pub struct GuestTable;
+impl crate::spacetimedsl::internal::AcceptedTable for guest__TableHandle {}
+impl crate::spacetimedsl::internal::HasNoDeleteMethod for GuestTable {}
+impl crate::spacetimedsl::internal::IsSoftDeletable for GuestTable {}
+const _: () = {
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `guild` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `guild` table first"
+        )]
+        trait GuildTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> GuildTableIsAccepted
+        for T {}
+        const _: () = <self::guild__TableHandle as GuildTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `guild` table has no `#[referenced_by]` naming the `guest` table",
+            label = "the `guild` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = guest)]` to the primary key column of the `guild` table"
+        )]
+        trait ReferencedByTheGuestTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<GuestTable>,
+        > ReferencedByTheGuestTable for T {}
+        const _: () = <self::GuildTable as ReferencedByTheGuestTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `guild` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`"
+        )]
+        trait HasDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
+        const _: () = <self::GuildTable as HasDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `guild` table isn't soft-deletable, so `on_soft_delete` can't apply",
+            label = "remove `on_soft_delete`"
+        )]
+        trait IsSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::IsSoftDeletable> IsSoftDeletable for T {}
+        const _: () = <self::GuildTable as IsSoftDeletable>::HOLDS;
+    };
+};
 #[derive(
     Clone,
     Debug,

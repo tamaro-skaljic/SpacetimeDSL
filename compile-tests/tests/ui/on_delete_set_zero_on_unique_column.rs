@@ -1,5 +1,8 @@
 //! `SetZero` writes `0` into the foreign key column. On a `#[unique]` column, the second
 //! cleared row repeats that value, which the unique constraint rejects inside the cascade.
+//!
+//! The error after the first follows from it: the `#[referenced_by]` of the `warehouse` table
+//! reports that the `shipment` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

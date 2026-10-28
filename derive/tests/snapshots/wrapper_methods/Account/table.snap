@@ -10,24 +10,740 @@ source: derive/src/characterization_tests.rs
 /// - the `active_membership` table (`self`)
 /// - the `expired_membership` table (`self`)
 
-pub trait this_compilation_error_occurs_because_the_account_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_account_note_table {}
-pub trait this_compilation_error_occurs_because_the_account_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_active_membership_table {}
-pub trait this_compilation_error_occurs_because_the_account_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_expired_membership_table {}
-pub trait this_compilation_error_occurs_because_the_account_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_profile_table {}
-pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_account_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_account_table_has_no_referenced_by_attribute_referencing_the_account_note_table {}
-pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_account_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_account_table_has_no_referenced_by_attribute_referencing_the_active_membership_table {}
-pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_account_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_account_table_has_no_referenced_by_attribute_referencing_the_expired_membership_table {}
-pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_account_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_account_table_has_no_referenced_by_attribute_referencing_the_profile_table {}
-const _: () = {
-    use self::this_compilation_error_occurs_because_the_profile_table_has_no_foreign_key_attribute_referencing_the_account_table;
-    use self::this_compilation_error_occurs_because_the_account_note_table_has_no_foreign_key_attribute_referencing_the_account_table;
-    use self::this_compilation_error_occurs_because_the_active_membership_table_has_no_foreign_key_attribute_referencing_the_account_table;
-    use self::this_compilation_error_occurs_because_the_expired_membership_table_has_no_foreign_key_attribute_referencing_the_account_table;
-};
 /// The type through which the tables on the other side of this table's foreign keys
 /// reach it.
 #[doc(hidden)]
 pub struct AccountTable;
+impl crate::spacetimedsl::internal::AcceptedTable for account__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for AccountTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for AccountTable {}
+impl crate::spacetimedsl::internal::ReferencedBy<self::ProfileTable> for AccountTable {}
+impl crate::spacetimedsl::internal::ReferencedBy<self::AccountNoteTable>
+for AccountTable {}
+impl crate::spacetimedsl::internal::ReferencedBy<self::ActiveMembershipTable>
+for AccountTable {}
+impl crate::spacetimedsl::internal::ReferencedBy<self::ExpiredMembershipTable>
+for AccountTable {}
+const _: () = {
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `profile` table can't reference the `account` table, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `profile` table first"
+        )]
+        trait ProfileTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> ProfileTableIsAccepted
+        for T {}
+        const _: () = <self::profile__TableHandle as ProfileTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `account_note` table can't reference the `account` table, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `account_note` table first"
+        )]
+        trait AccountNoteTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> AccountNoteTableIsAccepted
+        for T {}
+        const _: () = <self::account_note__TableHandle as AccountNoteTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `active_membership` table can't reference the `account` table, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `active_membership` table first"
+        )]
+        trait ActiveMembershipTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::AcceptedTable,
+        > ActiveMembershipTableIsAccepted for T {}
+        const _: () = <self::active_membership__TableHandle as ActiveMembershipTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `expired_membership` table can't reference the `account` table, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `expired_membership` table first"
+        )]
+        trait ExpiredMembershipTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::AcceptedTable,
+        > ExpiredMembershipTableIsAccepted for T {}
+        const _: () = <self::expired_membership__TableHandle as ExpiredMembershipTableIsAccepted>::HOLDS;
+    };
+};
+#[diagnostic::on_unimplemented(
+    message = "the `profile` table has no `#[foreign_key]` referencing the `account` table",
+    label = "remove this `#[referenced_by]`, or add the foreign key to the `profile` table"
+)]
+#[allow(dead_code, clippy::ptr_arg)]
+trait ProfileTableReferencesTheAccountTable {
+    const HOLDS: () = ();
+    fn after_one_row_was_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    >;
+    fn after_multiple_rows_were_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    >;
+    fn after_one_row_was_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    >;
+    fn after_multiple_rows_were_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    >;
+}
+#[diagnostic::do_not_recommend]
+impl<
+    Referencing: crate::spacetimedsl::internal::References<AccountTable, u64>,
+> ProfileTableReferencesTheAccountTable for Referencing {
+    fn after_one_row_was_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_one_row_was_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_value_of_a_row_of_another_table_to_delete,
+        )
+    }
+    fn after_multiple_rows_were_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_multiple_rows_were_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_values_of_rows_of_another_table_to_delete,
+        )
+    }
+    fn after_one_row_was_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_one_row_was_soft_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_value_of_a_row_of_another_table_to_delete,
+        )
+    }
+    fn after_multiple_rows_were_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_multiple_rows_were_soft_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_values_of_rows_of_another_table_to_delete,
+        )
+    }
+}
+const _: () = <self::ProfileTable as ProfileTableReferencesTheAccountTable>::HOLDS;
+#[diagnostic::on_unimplemented(
+    message = "the `account_note` table has no `#[foreign_key]` referencing the `account` table",
+    label = "remove this `#[referenced_by]`, or add the foreign key to the `account_note` table"
+)]
+#[allow(dead_code, clippy::ptr_arg)]
+trait AccountNoteTableReferencesTheAccountTable {
+    const HOLDS: () = ();
+    fn after_one_row_was_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    >;
+    fn after_multiple_rows_were_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    >;
+    fn after_one_row_was_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    >;
+    fn after_multiple_rows_were_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    >;
+}
+#[diagnostic::do_not_recommend]
+impl<
+    Referencing: crate::spacetimedsl::internal::References<AccountTable, u64>,
+> AccountNoteTableReferencesTheAccountTable for Referencing {
+    fn after_one_row_was_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_one_row_was_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_value_of_a_row_of_another_table_to_delete,
+        )
+    }
+    fn after_multiple_rows_were_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_multiple_rows_were_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_values_of_rows_of_another_table_to_delete,
+        )
+    }
+    fn after_one_row_was_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_one_row_was_soft_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_value_of_a_row_of_another_table_to_delete,
+        )
+    }
+    fn after_multiple_rows_were_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_multiple_rows_were_soft_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_values_of_rows_of_another_table_to_delete,
+        )
+    }
+}
+const _: () = <self::AccountNoteTable as AccountNoteTableReferencesTheAccountTable>::HOLDS;
+#[diagnostic::on_unimplemented(
+    message = "the `active_membership` table has no `#[foreign_key]` referencing the `account` table",
+    label = "remove this `#[referenced_by]`, or add the foreign key to the `active_membership` table"
+)]
+#[allow(dead_code, clippy::ptr_arg)]
+trait ActiveMembershipTableReferencesTheAccountTable {
+    const HOLDS: () = ();
+    fn after_one_row_was_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    >;
+    fn after_multiple_rows_were_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    >;
+    fn after_one_row_was_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    >;
+    fn after_multiple_rows_were_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    >;
+}
+#[diagnostic::do_not_recommend]
+impl<
+    Referencing: crate::spacetimedsl::internal::References<AccountTable, u64>,
+> ActiveMembershipTableReferencesTheAccountTable for Referencing {
+    fn after_one_row_was_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_one_row_was_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_value_of_a_row_of_another_table_to_delete,
+        )
+    }
+    fn after_multiple_rows_were_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_multiple_rows_were_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_values_of_rows_of_another_table_to_delete,
+        )
+    }
+    fn after_one_row_was_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_one_row_was_soft_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_value_of_a_row_of_another_table_to_delete,
+        )
+    }
+    fn after_multiple_rows_were_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_multiple_rows_were_soft_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_values_of_rows_of_another_table_to_delete,
+        )
+    }
+}
+const _: () = <self::ActiveMembershipTable as ActiveMembershipTableReferencesTheAccountTable>::HOLDS;
+#[diagnostic::on_unimplemented(
+    message = "the `expired_membership` table has no `#[foreign_key]` referencing the `account` table",
+    label = "remove this `#[referenced_by]`, or add the foreign key to the `expired_membership` table"
+)]
+#[allow(dead_code, clippy::ptr_arg)]
+trait ExpiredMembershipTableReferencesTheAccountTable {
+    const HOLDS: () = ();
+    fn after_one_row_was_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    >;
+    fn after_multiple_rows_were_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    >;
+    fn after_one_row_was_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    >;
+    fn after_multiple_rows_were_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    >;
+}
+#[diagnostic::do_not_recommend]
+impl<
+    Referencing: crate::spacetimedsl::internal::References<AccountTable, u64>,
+> ExpiredMembershipTableReferencesTheAccountTable for Referencing {
+    fn after_one_row_was_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_one_row_was_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_value_of_a_row_of_another_table_to_delete,
+        )
+    }
+    fn after_multiple_rows_were_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_multiple_rows_were_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_values_of_rows_of_another_table_to_delete,
+        )
+    }
+    fn after_one_row_was_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_value_of_a_row_of_another_table_to_delete: &u64,
+    ) -> Result<
+        Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_one_row_was_soft_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_value_of_a_row_of_another_table_to_delete,
+        )
+    }
+    fn after_multiple_rows_were_soft_deleted<'a, T: crate::spacetimedsl::WriteContext>(
+        &self,
+        dsl: &crate::spacetimedsl::DSL<'_, T>,
+        strategy: &crate::spacetimedsl::delete::OnDeleteStrategy,
+        primary_key_values_of_rows_of_another_table_to_delete: &'a [u64],
+    ) -> Result<
+        std::collections::HashMap<
+            &'a u64,
+            Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+        >,
+        crate::spacetimedsl::delete::OnDeleteStrategyFailure<
+            std::collections::HashMap<
+                &'a u64,
+                Vec<crate::spacetimedsl::delete::DeletionResultEntry>,
+            >,
+        >,
+    > {
+        <Referencing as crate::spacetimedsl::internal::References<
+            AccountTable,
+            u64,
+        >>::after_multiple_rows_were_soft_deleted(
+            self,
+            dsl,
+            strategy,
+            primary_key_values_of_rows_of_another_table_to_delete,
+        )
+    }
+}
+const _: () = <self::ExpiredMembershipTable as ExpiredMembershipTableReferencesTheAccountTable>::HOLDS;
 #[derive(
     Clone,
     Debug,

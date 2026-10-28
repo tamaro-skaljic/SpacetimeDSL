@@ -1,5 +1,8 @@
 //! A singleton's injected primary key has no wrapper type, so a singleton adds no method for
 //! the referenced row, and `referenced_row_method` would switch off nothing.
+//!
+//! The error after the first follows from it: the `#[referenced_by]` of the `region` table
+//! reports that the `server_binding` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

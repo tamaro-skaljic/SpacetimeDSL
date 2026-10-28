@@ -5,6 +5,10 @@ source: derive/src/characterization_tests.rs
 /// reach it.
 #[doc(hidden)]
 pub struct ArticleTable;
+impl crate::spacetimedsl::internal::AcceptedTable for article__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for ArticleTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for ArticleTable {}
+const _: () = {};
 #[derive(
     Clone,
     Debug,

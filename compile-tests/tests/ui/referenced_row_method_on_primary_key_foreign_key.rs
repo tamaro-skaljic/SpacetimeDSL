@@ -1,5 +1,8 @@
 //! A foreign key on the primary key adds no method for the referenced row: the row it
 //! references has the key's own value, so `referenced_row_method` would switch off nothing.
+//!
+//! The error after the first follows from it: the `#[referenced_by]` of the `account` table
+//! reports that the `profile` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

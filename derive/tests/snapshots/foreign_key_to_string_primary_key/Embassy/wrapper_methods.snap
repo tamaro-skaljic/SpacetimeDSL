@@ -10,7 +10,9 @@ Use it like `country_code.get_embassy(&dsl)`.*/
         dsl: impl Into<crate::spacetimedsl::ReadOnlyDSL<'a, T>>,
     ) -> Result<Embassy, crate::spacetimedsl::error::SpacetimeDSLError> {
         dsl.into()
-            .get_embassy_by_country_code(&crate::spacetimedsl::Wrapper::value(self))
+            .get_embassy_by_country_code(
+                &<Self as crate::spacetimedsl::Wrapper<String>>::value(self),
+            )
     }
 }
 impl EmbassyId {

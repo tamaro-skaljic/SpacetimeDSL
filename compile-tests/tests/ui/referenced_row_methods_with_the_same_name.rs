@@ -1,6 +1,9 @@
 //! `owner_id` and `owner` both reference `player`, so their methods for the referenced row
 //! take the stems of their columns, which are the same: both would add `get_owner` to
 //! `GameId`.
+//!
+//! The error after the first follows from it: the `#[referenced_by]` of the `player` table
+//! reports that the `game` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

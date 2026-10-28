@@ -1,5 +1,18 @@
 error: All foreign key columns which reference the same primary key of another table should have the same type
-  --> tests/ui/foreign_keys_with_mismatched_types_without_strategy.rs:36:13
+  --> tests/ui/foreign_keys_with_mismatched_types_without_strategy.rs:39:13
    |
-36 |         pub destination_warehouse_id: u128,
+39 |         pub destination_warehouse_id: u128,
    |             ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the `shipment` table can't reference the `warehouse` table, because its `#[spacetimedsl::dsl]` is rejected
+  --> tests/ui/foreign_keys_with_mismatched_types_without_strategy.rs:19:46
+   |
+19 |         #[referenced_by(path = self, table = shipment)]
+   |                                              ^^^^^^^^ fix the error of the `shipment` table first
+   |
+help: the trait `ShipmentTableIsAccepted` is not implemented for `warehouse::shipment__TableHandle`
+  --> tests/ui/foreign_keys_with_mismatched_types_without_strategy.rs:24:5
+   |
+24 |     #[spacetimedb::table(accessor = shipment, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

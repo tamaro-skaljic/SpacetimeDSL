@@ -24,10 +24,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::GadgetTable as crate::spacetimedsl::internal::References<
-            OwnerTable,
-            Uuid,
-        >>::after_one_row_was_deleted(
+        match <self::GadgetTable as GadgetTableReferencesTheOwnerTable>::after_one_row_was_deleted(
             &self::GadgetTable,
             dsl,
             &strategy,
@@ -92,10 +89,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::GadgetTable as crate::spacetimedsl::internal::References<
-            OwnerTable,
-            Uuid,
-        >>::after_multiple_rows_were_deleted(
+        match <self::GadgetTable as GadgetTableReferencesTheOwnerTable>::after_multiple_rows_were_deleted(
             &self::GadgetTable,
             dsl,
             &strategy,

@@ -1,5 +1,8 @@
 //! The same rule through the other field: `on_soft_delete = SoftDelete` also retires the
 //! rows of this table, so it also needs this table to have a marker column.
+//!
+//! The error after the first follows from it: the `#[referenced_by]` of the `warehouse` table
+//! reports that the `shipment` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

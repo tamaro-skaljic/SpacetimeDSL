@@ -1,5 +1,8 @@
 //! `OnDeleteStrategy::SoftDelete` retires the rows of *this* table, so this table needs a
 //! marker column for the DSL to write. Without `method(soft_delete = true)` there is none.
+//!
+//! The error after the first follows from it: the `#[referenced_by]` of the `warehouse` table
+//! reports that the `shipment` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

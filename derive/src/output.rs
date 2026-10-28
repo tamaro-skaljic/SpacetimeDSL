@@ -181,29 +181,11 @@ pub fn build(input: &Table, pass: DSLAttributePass) -> syn::Result<GeneratedOutp
         }
     }
 
-    let mut compile_error_checks = vec![];
+    let pairing = &input.spacetimedsl_table.pairing;
 
-    input
-        .spacetimedsl_table
-        .compile_error_checks
-        .iter()
-        .for_each(|compile_error_check| {
-            compile_error_checks.push(quote! {
-                pub trait #compile_error_check {}
-            });
-        });
-
-    let compile_error_check_imports = &input.spacetimedsl_table.compile_error_check_imports;
-
-    // A block scope, so the imports of two tables in one module cannot clash.
-    let compile_error_check_usages = match compile_error_check_imports.is_empty() {
-        true => TokenStream::default(),
-        false => quote! {
-            const _: () = {
-                #(use #compile_error_check_imports;)*
-            };
-        },
-    };
+    // As visible as the struct and its `<accessor>__TableHandle`, so that a lookup through it
+    // is no more public than the row it returns.
+    let table_type_visibility = &input.rust_struct.visibility;
 
     let create_dsl_method_arg = match &input.spacetimedsl_table.create_dsl_method_arg {
         Some(arg) => create_method_arg::build(&arg.struct_impl)?,
@@ -232,14 +214,12 @@ pub fn build(input: &Table, pass: DSLAttributePass) -> syn::Result<GeneratedOutp
 
     Ok(GeneratedOutput {
         items_outside_dsl_methods: quote! {
-            #(#compile_error_checks)*
-
-            #compile_error_check_usages
-
             /// The type through which the tables on the other side of this table's foreign keys
             /// reach it.
             #[doc(hidden)]
-            pub struct #table_type;
+            #table_type_visibility struct #table_type;
+
+            #pairing
 
             #(#wrapper_types)*
 

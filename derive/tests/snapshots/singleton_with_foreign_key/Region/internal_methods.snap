@@ -24,10 +24,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::ServerBindingTable as crate::spacetimedsl::internal::References<
-            RegionTable,
-            u64,
-        >>::after_one_row_was_deleted(
+        match <self::ServerBindingTable as ServerBindingTableReferencesTheRegionTable>::after_one_row_was_deleted(
             &self::ServerBindingTable,
             dsl,
             &strategy,
@@ -45,10 +42,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 entries.append(&mut child_entries);
             }
         };
-        match <self::ActiveTournamentTable as crate::spacetimedsl::internal::References<
-            RegionTable,
-            u64,
-        >>::after_one_row_was_deleted(
+        match <self::ActiveTournamentTable as ActiveTournamentTableReferencesTheRegionTable>::after_one_row_was_deleted(
             &self::ActiveTournamentTable,
             dsl,
             &strategy,
@@ -113,10 +107,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::ServerBindingTable as crate::spacetimedsl::internal::References<
-            RegionTable,
-            u64,
-        >>::after_multiple_rows_were_deleted(
+        match <self::ServerBindingTable as ServerBindingTableReferencesTheRegionTable>::after_multiple_rows_were_deleted(
             &self::ServerBindingTable,
             dsl,
             &strategy,
@@ -155,10 +146,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 }
             }
         };
-        match <self::ActiveTournamentTable as crate::spacetimedsl::internal::References<
-            RegionTable,
-            u64,
-        >>::after_multiple_rows_were_deleted(
+        match <self::ActiveTournamentTable as ActiveTournamentTableReferencesTheRegionTable>::after_multiple_rows_were_deleted(
             &self::ActiveTournamentTable,
             dsl,
             &strategy,

@@ -1,5 +1,8 @@
 //! Naming the same table twice in `#[referenced_by]` says nothing the first one did not: a
 //! table with several foreign keys to this one, like `shipment` here, is named once.
+//!
+//! The errors after the first follow from it: each foreign key to the `warehouse` table
+//! reports that it has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

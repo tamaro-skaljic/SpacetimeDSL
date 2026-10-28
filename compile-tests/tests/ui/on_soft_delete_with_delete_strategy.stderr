@@ -1,5 +1,18 @@
 error: `OnDeleteStrategy::Delete` is not allowed in `on_soft_delete`! Soft-deleting a row must not physically remove the rows which reference it. `on_soft_delete` must be one of `Error`, `SoftDelete` or `Ignore`.
-  --> tests/ui/on_soft_delete_with_delete_strategy.rs:37:11
+  --> tests/ui/on_soft_delete_with_delete_strategy.rs:40:11
    |
-37 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_soft_delete = Delete)]
+40 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_soft_delete = Delete)]
    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the `shipment` table can't reference the `warehouse` table, because its `#[spacetimedsl::dsl]` is rejected
+  --> tests/ui/on_soft_delete_with_delete_strategy.rs:20:57
+   |
+20 |         #[referenced_by(path = crate::shipment, table = shipment)]
+   |                                                         ^^^^^^^^ fix the error of the `shipment` table first
+   |
+help: the trait `ShipmentTableIsAccepted` is not implemented for `shipment::shipment__TableHandle`
+  --> tests/ui/on_soft_delete_with_delete_strategy.rs:31:5
+   |
+31 |     #[spacetimedb::table(accessor = shipment, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

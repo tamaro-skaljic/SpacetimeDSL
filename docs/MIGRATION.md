@@ -10,7 +10,28 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 
 Every table now gets a type `{Table}Table`, such as `EntityTable` for `accessor = entity`, through which the tables on the other side of its foreign keys reach it. A struct with that name is rejected: *`#[dsl]` generates the type `EntityTable` for the `entity` table, so the struct cannot be called `EntityTable` as well!* Rename the struct, or change the table's `accessor`.
 
+#### A private struct paired with a table in another module
+
+Tables paired across modules have to be visible to each other. A struct which a `#[foreign_key]` or a `#[referenced_by]` in another module names fails with `E0603` for its table type and its `<accessor>__TableHandle` when it is private. A referencing struct used to need no visibility. Make the struct `pub(crate)` or `pub`.
+
 ### Changed messages and generated code
+
+#### The pairing errors are trait errors that name the fix
+
+A broken pairing between `#[foreign_key]` and `#[referenced_by]` used to be an unresolved import of a trait named `this_compilation_error_occurs_because_…`. Each rule is now checked on its own, as an `E0277` with a message, a label and a note, underlined on the `table = …` of the attribute it belongs to:
+
+| Rule                                   | Message                                                                         |
+| -------------------------------------- | ------------------------------------------------------------------------------- |
+| The referenced table names this table  | *the `entity` table has no `#[referenced_by]` naming the `position` table*      |
+| A strategy can apply                   | *the `entity` table has no delete method, so `on_delete` can't apply*           |
+| A strategy is set                      | *the `entity` table has a delete method, so this foreign key needs `on_delete`* |
+| The named table has a foreign key back | *the `position` table has no `#[foreign_key]` referencing the `entity` table*   |
+
+The "or" of the old names is gone: a foreign key whose referenced table does not name its table reports only that.
+
+#### A rejected table reports once on each attribute that depends on it
+
+Every `#[foreign_key]` that references a rejected table reports *the `server` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected*, and every `#[referenced_by]` that names one reports *the `channel` table can't reference the `server` table, because its `#[spacetimedsl::dsl]` is rejected*. Nothing else of the generated code reports an error about it.
 
 #### A rejected `#[dsl]` keeps its struct
 
@@ -29,13 +50,19 @@ So the tables on the other side of a rejected table's foreign keys no longer rep
 
 ### For crates building on `spacetimedsl_derive-input`
 
+#### `SpacetimeDSLTable::pairing` replaces `compile_error_checks` and `compile_error_check_imports`
+
+`SpacetimeDSLTable::compile_error_checks` and `compile_error_check_imports` are gone. `SpacetimeDSLTable::pairing: TokenStream` holds the items which pair the table with the tables on the other side of its foreign keys: the facts it states about itself for their checks, the checks it makes of them, and the traits through which its cascades reach the tables referencing it. Emit it once per table at module level, as `spacetimedsl_derive` does. The cascades of `on_delete_strategies_of_referencing_tables` call into those traits, so they do not compile without it.
+
+The facts are traits of `crate::spacetimedsl::internal`, built by `runtime::accepted_table_trait`, `has_delete_method_trait`, `has_no_delete_method_trait`, `is_soft_deletable_trait`, `is_not_soft_deletable_trait` and `referenced_by_trait`.
+
 #### `api::attribute::is_table_attribute`
 
 `api::attribute::is_table_attribute(&Attribute) -> bool` tells whether an attribute is `#[spacetimedb::table]`, spelled `table`, `spacetimedb::table` or `::spacetimedb::table`.
 
 #### `api::dsl::table::table_type_name`
 
-`api::dsl::table::table_type_name(&Ident) -> Ident` builds the table type of a table from its accessor, such as `WarehouseTable` for `warehouse`. Emit `#[doc(hidden)] pub struct` of that name for every table.
+`api::dsl::table::table_type_name(&Ident) -> Ident` builds the table type of a table from its accessor, such as `WarehouseTable` for `warehouse`. Emit a `#[doc(hidden)]` unit struct of that name for every table, with the visibility of the table's struct.
 
 #### `SpacetimeDSLTableMethods::get_by_primary_key`
 

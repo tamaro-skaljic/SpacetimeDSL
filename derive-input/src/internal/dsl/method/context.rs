@@ -18,7 +18,6 @@ use {
     },
     proc_macro2::TokenStream,
     quote::{ToTokens, format_ident},
-    std::collections::BTreeSet,
     syn::Ident,
 };
 
@@ -88,8 +87,7 @@ impl<'a> MethodGenerationContext<'a> {
 #[derive(Default)]
 pub struct TableContributions {
     pub create_dsl_method_arg: Option<CreateDSLMethodArg>,
-    pub compile_error_checks: BTreeSet<Ident>,
-    pub compile_error_check_imports: Vec<syn::Path>,
+    pub pairing: TokenStream,
     pub struct_doc_comment: String,
 }
 
@@ -99,9 +97,7 @@ impl TableContributions {
             self.create_dsl_method_arg = Some(create_dsl_method_arg);
         }
 
-        self.compile_error_checks.extend(other.compile_error_checks);
-        self.compile_error_check_imports
-            .extend(other.compile_error_check_imports);
+        self.pairing.extend(other.pairing);
         self.struct_doc_comment = doc::paragraphs([
             self.struct_doc_comment.as_str(),
             other.struct_doc_comment.as_str(),
@@ -113,12 +109,7 @@ impl TableContributions {
             spacetimedsl_table.create_dsl_method_arg = Some(create_dsl_method_arg);
         }
 
-        spacetimedsl_table
-            .compile_error_checks
-            .extend(self.compile_error_checks);
-        spacetimedsl_table
-            .compile_error_check_imports
-            .extend(self.compile_error_check_imports);
+        spacetimedsl_table.pairing.extend(self.pairing);
         spacetimedsl_table.struct_doc_comment = doc::paragraphs([
             spacetimedsl_table.struct_doc_comment.as_str(),
             self.struct_doc_comment.as_str(),

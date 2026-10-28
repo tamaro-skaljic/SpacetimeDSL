@@ -1,5 +1,18 @@
 error: `OnDeleteStrategy::SetZero` is only allowed on unsigned integer and `Uuid` columns, which it sets to `0` or `Uuid::NIL`, the values that reference no row! Found: String
-  --> tests/ui/on_delete_set_zero_on_string_column.rs:31:25
+  --> tests/ui/on_delete_set_zero_on_string_column.rs:34:25
    |
-31 |         pub owner_name: String,
+34 |         pub owner_name: String,
    |                         ^^^^^^
+
+error[E0277]: the `gadget` table can't reference the `owner` table, because its `#[spacetimedsl::dsl]` is rejected
+  --> tests/ui/on_delete_set_zero_on_string_column.rs:15:55
+   |
+15 |         #[referenced_by(path = crate::gadget, table = gadget)]
+   |                                                       ^^^^^^ fix the error of the `gadget` table first
+   |
+help: the trait `GadgetTableIsAccepted` is not implemented for `gadget::gadget__TableHandle`
+  --> tests/ui/on_delete_set_zero_on_string_column.rs:24:5
+   |
+24 |     #[spacetimedb::table(accessor = gadget, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

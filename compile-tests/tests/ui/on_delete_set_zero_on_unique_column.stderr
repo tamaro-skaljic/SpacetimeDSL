@@ -1,6 +1,19 @@
 error: `OnDeleteStrategy::SetZero` is not allowed on a `#[unique]` column!
        A second cleared row would repeat `0` or `Uuid::NIL`, which the unique constraint rejects. Remove `#[unique]`, or choose another strategy, such as `on_delete = Delete`.
-  --> tests/ui/on_delete_set_zero_on_unique_column.rs:29:11
+  --> tests/ui/on_delete_set_zero_on_unique_column.rs:32:11
    |
-29 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_delete = SetZero)]
+32 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_delete = SetZero)]
    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the `shipment` table can't reference the `warehouse` table, because its `#[spacetimedsl::dsl]` is rejected
+  --> tests/ui/on_delete_set_zero_on_unique_column.rs:16:57
+   |
+16 |         #[referenced_by(path = crate::shipment, table = shipment)]
+   |                                                         ^^^^^^^^ fix the error of the `shipment` table first
+   |
+help: the trait `ShipmentTableIsAccepted` is not implemented for `shipment::shipment__TableHandle`
+  --> tests/ui/on_delete_set_zero_on_unique_column.rs:23:5
+   |
+23 |     #[spacetimedb::table(accessor = shipment, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

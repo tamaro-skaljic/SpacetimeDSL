@@ -1,5 +1,18 @@
 error: `#[disallow(zero)]` is not allowed together with `on_delete = SetZero`, which writes `0` or `Uuid::NIL` into this column when the referenced row is deleted! Remove `zero`, or choose another strategy, such as `on_delete = Delete`.
-  --> tests/ui/disallow_zero_with_set_zero_strategy.rs:30:9
+  --> tests/ui/disallow_zero_with_set_zero_strategy.rs:33:9
    |
-30 |         #[disallow(zero)]
+33 |         #[disallow(zero)]
    |         ^^^^^^^^^^^^^^^^^
+
+error[E0277]: the `shipment` table can't reference the `warehouse` table, because its `#[spacetimedsl::dsl]` is rejected
+  --> tests/ui/disallow_zero_with_set_zero_strategy.rs:16:57
+   |
+16 |         #[referenced_by(path = crate::shipment, table = shipment)]
+   |                                                         ^^^^^^^^ fix the error of the `shipment` table first
+   |
+help: the trait `ShipmentTableIsAccepted` is not implemented for `shipment::shipment__TableHandle`
+  --> tests/ui/disallow_zero_with_set_zero_strategy.rs:23:5
+   |
+23 |     #[spacetimedb::table(accessor = shipment, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

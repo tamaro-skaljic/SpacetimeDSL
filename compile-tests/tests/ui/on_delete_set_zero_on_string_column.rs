@@ -1,5 +1,8 @@
 //! `SetZero` resets a foreign key to the value that references no row: `0` for an unsigned
 //! integer, `Uuid::NIL` for a `Uuid`. A `String` has no such value.
+//!
+//! The error after the first follows from it: the `#[referenced_by]` of the `owner` table
+//! reports that the `gadget` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 

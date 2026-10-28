@@ -24,10 +24,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::CityTable as crate::spacetimedsl::internal::References<
-            CountryTable,
-            String,
-        >>::after_one_row_was_deleted(
+        match <self::CityTable as CityTableReferencesTheCountryTable>::after_one_row_was_deleted(
             &self::CityTable,
             dsl,
             &strategy,
@@ -45,10 +42,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 entries.append(&mut child_entries);
             }
         };
-        match <self::EmbassyTable as crate::spacetimedsl::internal::References<
-            CountryTable,
-            String,
-        >>::after_one_row_was_deleted(
+        match <self::EmbassyTable as EmbassyTableReferencesTheCountryTable>::after_one_row_was_deleted(
             &self::EmbassyTable,
             dsl,
             &strategy,
@@ -113,10 +107,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::CityTable as crate::spacetimedsl::internal::References<
-            CountryTable,
-            String,
-        >>::after_multiple_rows_were_deleted(
+        match <self::CityTable as CityTableReferencesTheCountryTable>::after_multiple_rows_were_deleted(
             &self::CityTable,
             dsl,
             &strategy,
@@ -155,10 +146,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 }
             }
         };
-        match <self::EmbassyTable as crate::spacetimedsl::internal::References<
-            CountryTable,
-            String,
-        >>::after_multiple_rows_were_deleted(
+        match <self::EmbassyTable as EmbassyTableReferencesTheCountryTable>::after_multiple_rows_were_deleted(
             &self::EmbassyTable,
             dsl,
             &strategy,

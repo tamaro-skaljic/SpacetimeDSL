@@ -9,15 +9,69 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: `Error`
 ///   - On soft delete: none, the `country` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_embassy_table_has_no_foreign_key_attribute_referencing_the_country_table {}
-const _: () = {
-    use self::this_compilation_error_occurs_because_the_country_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_embassy_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_country_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_country_table_has_no_referenced_by_attribute_referencing_the_embassy_table;
-};
 /// The type through which the tables on the other side of this table's foreign keys
 /// reach it.
 #[doc(hidden)]
 pub struct EmbassyTable;
+impl crate::spacetimedsl::internal::AcceptedTable for embassy__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for EmbassyTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for EmbassyTable {}
+const _: () = {
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `country` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `country` table first"
+        )]
+        trait CountryTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> CountryTableIsAccepted
+        for T {}
+        const _: () = <self::country__TableHandle as CountryTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `country` table has no `#[referenced_by]` naming the `embassy` table",
+            label = "the `country` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = embassy)]` to the primary key column of the `country` table"
+        )]
+        trait ReferencedByTheEmbassyTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<EmbassyTable>,
+        > ReferencedByTheEmbassyTable for T {}
+        const _: () = <self::CountryTable as ReferencedByTheEmbassyTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `country` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`"
+        )]
+        trait HasDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
+        const _: () = <self::CountryTable as HasDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `country` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait IsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
+        for T {}
+        const _: () = <self::CountryTable as IsNotSoftDeletable>::HOLDS;
+    };
+};
 #[derive(
     Clone,
     Debug,

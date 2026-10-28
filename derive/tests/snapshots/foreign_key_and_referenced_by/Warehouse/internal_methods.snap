@@ -24,10 +24,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::ShipmentTable as crate::spacetimedsl::internal::References<
-            WarehouseTable,
-            u64,
-        >>::after_one_row_was_deleted(
+        match <self::ShipmentTable as ShipmentTableReferencesTheWarehouseTable>::after_one_row_was_deleted(
             &self::ShipmentTable,
             dsl,
             &strategy,
@@ -45,10 +42,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 entries.append(&mut child_entries);
             }
         };
-        match <self::InspectionTable as crate::spacetimedsl::internal::References<
-            WarehouseTable,
-            u64,
-        >>::after_one_row_was_deleted(
+        match <self::InspectionTable as InspectionTableReferencesTheWarehouseTable>::after_one_row_was_deleted(
             &self::InspectionTable,
             dsl,
             &strategy,
@@ -113,10 +107,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
             Box<crate::spacetimedsl::error::SpacetimeDSLError>,
         > = None;
         let mut error = false;
-        match <self::ShipmentTable as crate::spacetimedsl::internal::References<
-            WarehouseTable,
-            u64,
-        >>::after_multiple_rows_were_deleted(
+        match <self::ShipmentTable as ShipmentTableReferencesTheWarehouseTable>::after_multiple_rows_were_deleted(
             &self::ShipmentTable,
             dsl,
             &strategy,
@@ -155,10 +146,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                 }
             }
         };
-        match <self::InspectionTable as crate::spacetimedsl::internal::References<
-            WarehouseTable,
-            u64,
-        >>::after_multiple_rows_were_deleted(
+        match <self::InspectionTable as InspectionTableReferencesTheWarehouseTable>::after_multiple_rows_were_deleted(
             &self::InspectionTable,
             dsl,
             &strategy,

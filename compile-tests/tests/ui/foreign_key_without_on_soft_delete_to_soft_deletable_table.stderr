@@ -1,7 +1,16 @@
-error[E0432]: unresolved import `crate::warehouse::this_compilation_error_occurs_because_your_foreign_key_referencing_the_warehouse_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_shipment_table`
-  --> tests/ui/foreign_key_without_on_soft_delete_to_soft_deletable_table.rs:27:5
+error[E0277]: the `warehouse` table is soft-deletable, so this foreign key needs `on_soft_delete`
+  --> tests/ui/foreign_key_without_on_soft_delete_to_soft_deletable_table.rs:37:56
    |
-27 |     #[spacetimedsl::dsl(plural_name = shipments, method(update = true, delete = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `this_compilation_error_occurs_because_your_foreign_key_referencing_the_warehouse_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_warehouse_table_has_no_referenced_by_attribute_referencing_the_shipment_table` in `warehouse`
+37 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_delete = Delete)]
+   |                                                        ^^^^^^^^^ add `on_soft_delete = …`
    |
+help: the trait `shipment::_::_::IsNotSoftDeletable` is not implemented for `WarehouseTable`
+  --> tests/ui/foreign_key_without_on_soft_delete_to_soft_deletable_table.rs:8:5
+   |
+ 8 | /     #[spacetimedsl::dsl(
+ 9 | |         plural_name = warehouses,
+10 | |         method(update = true, delete = true, soft_delete = true),
+11 | |     )]
+   | |______^
+   = note: `on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`
    = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

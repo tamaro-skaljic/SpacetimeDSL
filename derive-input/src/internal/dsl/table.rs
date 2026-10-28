@@ -6,9 +6,9 @@ use {
         },
         internal::{DSLData, column::ColumnTypeKind, dsl::column_role, error},
     },
+    proc_macro2::TokenStream,
     quote::format_ident,
     spacetime_bindings_macro_input::table::ColumnArgs,
-    std::collections::BTreeSet,
     syn::{Ident, Type},
 };
 
@@ -171,8 +171,7 @@ impl SpacetimeDSLTable {
             on_update_set_current_timestamp_column_name,
             referencing_tables,
             // `TableContributions::apply_to` fills these in, after the methods are generated.
-            compile_error_checks: BTreeSet::new(),
-            compile_error_check_imports: vec![],
+            pairing: TokenStream::new(),
             create_dsl_method_arg: None,
             struct_doc_comment: String::new(),
             hooks,

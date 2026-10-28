@@ -9,15 +9,69 @@ source: derive/src/characterization_tests.rs
 ///   - On delete: `Delete`
 ///   - On soft delete: none, the `shelf` table is not soft-deletable
 
-pub trait this_compilation_error_occurs_because_the_shelved_book_table_has_no_foreign_key_attribute_referencing_the_shelf_table {}
-const _: () = {
-    use self::this_compilation_error_occurs_because_the_shelf_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_shelved_book_table;
-    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_shelf_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_shelf_table_has_no_referenced_by_attribute_referencing_the_shelved_book_table;
-};
 /// The type through which the tables on the other side of this table's foreign keys
 /// reach it.
 #[doc(hidden)]
 pub struct ShelvedBookTable;
+impl crate::spacetimedsl::internal::AcceptedTable for shelved_book__TableHandle {}
+impl crate::spacetimedsl::internal::HasDeleteMethod for ShelvedBookTable {}
+impl crate::spacetimedsl::internal::IsNotSoftDeletable for ShelvedBookTable {}
+const _: () = {
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `shelf` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
+            label = "fix the error of the `shelf` table first"
+        )]
+        trait ShelfTableIsAccepted {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::AcceptedTable> ShelfTableIsAccepted
+        for T {}
+        const _: () = <self::shelf__TableHandle as ShelfTableIsAccepted>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `shelf` table has no `#[referenced_by]` naming the `shelved_book` table",
+            label = "the `shelf` table doesn't know about this foreign key",
+            note = "add `#[referenced_by(path = …, table = shelved_book)]` to the primary key column of the `shelf` table"
+        )]
+        trait ReferencedByTheShelvedBookTable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<
+            T: crate::spacetimedsl::internal::ReferencedBy<ShelvedBookTable>,
+        > ReferencedByTheShelvedBookTable for T {}
+        const _: () = <self::ShelfTable as ReferencedByTheShelvedBookTable>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `shelf` table has no delete method, so `on_delete` can't apply",
+            label = "remove `on_delete`"
+        )]
+        trait HasDeleteMethod {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
+        const _: () = <self::ShelfTable as HasDeleteMethod>::HOLDS;
+    };
+    const _: () = {
+        #[diagnostic::on_unimplemented(
+            message = "the `shelf` table is soft-deletable, so this foreign key needs `on_soft_delete`",
+            label = "add `on_soft_delete = …`",
+            note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
+        )]
+        trait IsNotSoftDeletable {
+            const HOLDS: () = ();
+        }
+        #[diagnostic::do_not_recommend]
+        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
+        for T {}
+        const _: () = <self::ShelfTable as IsNotSoftDeletable>::HOLDS;
+    };
+};
 #[derive(
     Clone,
     Debug,

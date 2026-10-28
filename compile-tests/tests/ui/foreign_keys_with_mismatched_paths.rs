@@ -4,6 +4,9 @@
 //!
 //! Like `foreign_keys_with_mismatched_types`, the diagnostic is spanned on the second of
 //! the two columns -- here the one naming the referenced table under the other path.
+//!
+//! The error after the first follows from it: the `#[referenced_by]` of the `warehouse` table
+//! reports that the `shipment` table has to be fixed first.
 
 ::spacetimedsl::spacetimedsl!();
 
