@@ -28,11 +28,15 @@ pub fn for_get_all(context: &MethodGenerationContext) -> SpacetimeDSLMethod {
         return_type: quote! {
             impl Iterator<Item = #struct_name>
         },
+        // `iter()` borrows the table handle, a temporary dropped when this method returns,
+        // so the rows are collected first.
         method_impl: quote! {
             self
                 .db()
                 .#singular_table_name()
                 .iter()
+                .collect::<::std::vec::Vec<_>>()
+                .into_iter()
         },
         // A read-only table handle offers no full-table `iter()`.
         read_context_compatible: false,

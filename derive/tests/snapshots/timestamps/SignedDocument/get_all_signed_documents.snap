@@ -9,6 +9,6 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     ) -> impl Iterator<Item = SignedDocument> {
         use crate::spacetimedsl::Wrapper;
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        self.db().signed_document().iter()
+        self.db().signed_document().iter().collect::<::std::vec::Vec<_>>().into_iter()
     }
 }

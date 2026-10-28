@@ -7,6 +7,6 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     pub fn get_all_potions<'a>(&'a self) -> impl Iterator<Item = Potion> {
         use crate::spacetimedsl::Wrapper;
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        self.db().potion().iter()
+        self.db().potion().iter().collect::<::std::vec::Vec<_>>().into_iter()
     }
 }

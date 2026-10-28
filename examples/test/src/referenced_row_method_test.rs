@@ -14,6 +14,7 @@ pub struct LookupSeason {
     #[referenced_by(path = crate::referenced_row_method_test, table = lookup_tournament)]
     #[referenced_by(path = crate::referenced_row_method_test, table = lookup_active_membership)]
     #[referenced_by(path = crate::referenced_row_method_test, table = lookup_expired_membership)]
+    #[referenced_by(path = crate::referenced_row_method_test, table = lookup_guild)]
     id: u64,
 
     max_alliance_level: u32,
@@ -139,6 +140,20 @@ pub struct LookupShop {
     region_id: u64,
 }
 
+/// A guild whose key is a string, which the lookups by that key take as a `&str`.
+#[spacetimedsl::dsl(plural_name = lookup_guilds, method(update = false, delete = false))]
+#[spacetimedb::table(accessor = lookup_guild)]
+pub struct LookupGuild {
+    #[primary_key]
+    #[create_wrapper]
+    name: String,
+
+    #[index(btree)]
+    #[use_wrapper(LookupSeasonId)]
+    #[foreign_key(path = crate::referenced_row_method_test, table = lookup_season, column = id)]
+    season_id: u64,
+}
+
 pub(crate) fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String> {
     a_chain_of_foreign_keys_is_followed_from_a_wrapper(dsl)?;
     a_column_referencing_no_row_finds_no_row(dsl)?;
@@ -146,6 +161,7 @@ pub(crate) fn run_tests<T: WriteContext>(dsl: &DSL<'_, T>) -> Result<(), String>
     each_of_several_foreign_keys_to_one_table_is_followed(dsl)?;
     a_unique_foreign_key_to_its_own_table_is_followed_both_ways(dsl)?;
     a_struct_with_several_tables_keeps_its_methods_for_referencing_rows(dsl)?;
+    a_wrapper_of_a_string_key_follows_its_foreign_key(dsl)?;
 
     Ok(())
 }
@@ -304,6 +320,27 @@ fn a_struct_with_several_tables_keeps_its_methods_for_referencing_rows<T: WriteC
     if season.get_id().get_lookup_active_memberships(dsl).len() != 1 {
         return Err(
             "LookupSeasonId::get_lookup_active_memberships should find the one active membership!"
+                .to_string(),
+        );
+    }
+
+    Ok(())
+}
+
+fn a_wrapper_of_a_string_key_follows_its_foreign_key<T: WriteContext>(
+    dsl: &DSL<'_, T>,
+) -> Result<(), String> {
+    let season = dsl.create_lookup_season(CreateLookupSeason {
+        max_alliance_level: 15,
+    })?;
+    let guild = dsl.create_lookup_guild(CreateLookupGuild {
+        name: "Wardens".to_string(),
+        season_id: season.get_id(),
+    })?;
+
+    if guild.get_name().get_lookup_season(dsl)?.get_id() != season.get_id() {
+        return Err(
+            "LookupGuildName::get_lookup_season should find the season the guild references!"
                 .to_string(),
         );
     }

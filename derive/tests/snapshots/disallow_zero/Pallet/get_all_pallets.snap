@@ -7,6 +7,6 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     pub fn get_all_pallets<'a>(&'a self) -> impl Iterator<Item = Pallet> {
         use crate::spacetimedsl::Wrapper;
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        self.db().pallet().iter()
+        self.db().pallet().iter().collect::<::std::vec::Vec<_>>().into_iter()
     }
 }

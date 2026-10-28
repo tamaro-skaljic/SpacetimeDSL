@@ -7,6 +7,6 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     pub fn get_all_timer_records<'a>(&'a self) -> impl Iterator<Item = TimerRecord> {
         use crate::spacetimedsl::Wrapper;
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        self.db().timer_record().iter()
+        self.db().timer_record().iter().collect::<::std::vec::Vec<_>>().into_iter()
     }
 }

@@ -7,6 +7,6 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     pub fn get_all_guilds<'a>(&'a self) -> impl Iterator<Item = Guild> {
         use crate::spacetimedsl::Wrapper;
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        self.db().guild().iter()
+        self.db().guild().iter().collect::<::std::vec::Vec<_>>().into_iter()
     }
 }

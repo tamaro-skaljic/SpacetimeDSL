@@ -7,6 +7,6 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     pub fn get_all_audited_entries<'a>(&'a self) -> impl Iterator<Item = AuditedEntry> {
         use crate::spacetimedsl::Wrapper;
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        self.db().audited_entry().iter()
+        self.db().audited_entry().iter().collect::<::std::vec::Vec<_>>().into_iter()
     }
 }

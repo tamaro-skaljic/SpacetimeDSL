@@ -150,7 +150,7 @@ impl Display for SpacetimeDSLError {
                     write!(
                         f,
                         "Reference Integrity Violation Error while trying to delete {one_or_multiple_rows} in the `{}` table because of:\n\n{}",
-                        &deletion_result.table_name, deletion_result
+                        deletion_result.table_name, deletion_result
                     )
                 }
             },

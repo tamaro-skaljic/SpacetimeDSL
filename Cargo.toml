@@ -11,7 +11,7 @@ publish = true
 include = ["README.md", "/src/**"]
 keywords = ["dsl", "spacetime", "macro", "codegen", "boilerplate"]
 resolver = "3"
-rust-version = "1.93.0"
+rust-version = "1.97.1"
 
 [dependencies]
 spacetimedb.workspace = true
@@ -30,7 +30,7 @@ members = [
 
 [workspace.dependencies]
 # https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
-spacetimedb = { version = "=2.10.1", features = ["unstable"] }
+spacetimedb = { version = "=2.13.0", features = ["unstable"] }
 
 # https://crates.io/crates/spacetime-bindings-macro-input Unofficial Input Crate for the SpacetimeDB Macro Bindings.
 spacetime-bindings-macro-input = { version = "=2.10.1" }

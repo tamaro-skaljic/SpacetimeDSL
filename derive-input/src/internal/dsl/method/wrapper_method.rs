@@ -135,6 +135,11 @@ pub fn for_referenced_row_methods(
         RenameRule::SnakeCase.apply_to_variant(primary_key_wrapper_struct_name.to_string());
     let get_this_row =
         naming::get_by_index_method_name(singular_table_name, primary_key_column_name);
+    // The lookup by a wrapped string key takes a `&str`, not the wrapper.
+    let this_row_key = match primary_key_column.rust_field_type_kind == ColumnTypeKind::String {
+        true => quote! { &crate::spacetimedsl::Wrapper::value(self) },
+        false => quote! { self },
+    };
 
     let mut methods = vec![];
     let mut column_by_method_name: BTreeMap<String, &Ident> = BTreeMap::new();
@@ -213,7 +218,7 @@ pub fn for_referenced_row_methods(
                 return_type: runtime::error_result_type(&referenced_row_type),
                 method_impl: quote! {
                     let dsl = dsl.into();
-                    let #singular_table_name = dsl.#get_this_row(self)?;
+                    let #singular_table_name = dsl.#get_this_row(#this_row_key)?;
                     #no_row_for_the_value_referencing_no_row
                     dsl.#get_referenced_row(#singular_table_name.#getter_name())
                 },

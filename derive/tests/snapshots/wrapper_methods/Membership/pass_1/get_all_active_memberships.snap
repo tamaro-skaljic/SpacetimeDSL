@@ -7,6 +7,6 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     pub fn get_all_active_memberships<'a>(&'a self) -> impl Iterator<Item = Membership> {
         use crate::spacetimedsl::Wrapper;
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        self.db().active_membership().iter()
+        self.db().active_membership().iter().collect::<::std::vec::Vec<_>>().into_iter()
     }
 }

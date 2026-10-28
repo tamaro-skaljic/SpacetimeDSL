@@ -7,6 +7,6 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     pub fn get_all_stages<'a>(&'a self) -> impl Iterator<Item = Stage> {
         use crate::spacetimedsl::Wrapper;
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        self.db().stage().iter()
+        self.db().stage().iter().collect::<::std::vec::Vec<_>>().into_iter()
     }
 }

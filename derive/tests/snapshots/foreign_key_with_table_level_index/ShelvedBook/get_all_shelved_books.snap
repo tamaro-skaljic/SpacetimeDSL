@@ -7,6 +7,6 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     pub fn get_all_shelved_books<'a>(&'a self) -> impl Iterator<Item = ShelvedBook> {
         use crate::spacetimedsl::Wrapper;
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        self.db().shelved_book().iter()
+        self.db().shelved_book().iter().collect::<::std::vec::Vec<_>>().into_iter()
     }
 }

@@ -7,6 +7,6 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     pub fn get_all_prices<'a>(&'a self) -> impl Iterator<Item = Price> {
         use crate::spacetimedsl::Wrapper;
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        self.db().price().iter()
+        self.db().price().iter().collect::<::std::vec::Vec<_>>().into_iter()
     }
 }

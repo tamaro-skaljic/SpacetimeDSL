@@ -7,6 +7,6 @@ impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
     pub fn get_all_profiles<'a>(&'a self) -> impl Iterator<Item = Profile> {
         use crate::spacetimedsl::Wrapper;
         use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
-        self.db().profile().iter()
+        self.db().profile().iter().collect::<::std::vec::Vec<_>>().into_iter()
     }
 }
