@@ -61,6 +61,7 @@ Made by Claude, as the spec leaves them to the builder:
 Made by the user, after the pull request was opened:
 
 - `docs/MIGRATION.md` holds only what existing code has to change, which narrows the global constraint on user-visible changes. The changed messages and generated code, and `api::attribute::is_table_attribute`, are named in the pull request's description instead, and `docs/DOCUMENTATION.md` describes them.
+- The released section `## 0.23 → 0.24` follows the same rule. Its notes on code that never compiled, on messages, on generated code and rustdoc, and on additions that need nothing are gone, and `The preludes export err!` moved to its *Breaking API changes*.
 
 ## Review Focus
 
