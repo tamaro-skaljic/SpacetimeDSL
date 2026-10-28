@@ -8,7 +8,6 @@ pub struct ThingTable;
 impl crate::spacetimedsl::internal::AcceptedTable for thing__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for ThingTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for ThingTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

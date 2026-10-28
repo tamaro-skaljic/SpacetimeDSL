@@ -19,8 +19,8 @@ impl crate::spacetimedsl::internal::IsSoftDeletable for GuestTable {}
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `guild` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `guild` table first"
+            message = "the `guild` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `guild` table first, or add one"
         )]
         trait GuildTableIsAccepted {
             const HOLDS: () = ();
@@ -50,24 +50,27 @@ const _: () = {
             message = "the `guild` table has no delete method, so `on_delete` can't apply",
             label = "remove `on_delete`"
         )]
-        trait HasDeleteMethod {
+        trait GuildTableHasADeleteMethod {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
-        const _: () = <self::GuildTable as HasDeleteMethod>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > GuildTableHasADeleteMethod for T {}
+        const _: () = <self::GuildTable as GuildTableHasADeleteMethod>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `guild` table isn't soft-deletable, so `on_soft_delete` can't apply",
             label = "remove `on_soft_delete`"
         )]
-        trait IsSoftDeletable {
+        trait GuildTableIsSoftDeletable {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::IsSoftDeletable> IsSoftDeletable for T {}
-        const _: () = <self::GuildTable as IsSoftDeletable>::HOLDS;
+        impl<T: crate::spacetimedsl::internal::IsSoftDeletable> GuildTableIsSoftDeletable
+        for T {}
+        const _: () = <self::GuildTable as GuildTableIsSoftDeletable>::HOLDS;
     };
 };
 #[derive(

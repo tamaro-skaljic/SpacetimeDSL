@@ -1,0 +1,25 @@
+error[E0603]: struct `warehouse__TableHandle` is private
+  --> tests/ui/foreign_key_to_a_private_struct_in_another_module.rs:34:21
+   |
+34 |             table = warehouse,
+   |                     ^^^^^^^^^ private struct
+   |
+note: the struct `warehouse__TableHandle` is defined here
+  --> tests/ui/foreign_key_to_a_private_struct_in_another_module.rs:11:5
+   |
+11 |     #[spacetimedb::table(accessor = warehouse, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0603]: struct `WarehouseTable` is private
+  --> tests/ui/foreign_key_to_a_private_struct_in_another_module.rs:34:21
+   |
+34 |             table = warehouse,
+   |                     ^^^^^^^^^ private struct
+   |
+note: the struct `WarehouseTable` is defined here
+  --> tests/ui/foreign_key_to_a_private_struct_in_another_module.rs:10:5
+   |
+10 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false, delete = true))]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

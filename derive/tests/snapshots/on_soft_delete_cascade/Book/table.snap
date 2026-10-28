@@ -24,8 +24,8 @@ impl crate::spacetimedsl::internal::ReferencedBy<self::ReviewTable> for BookTabl
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `author` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `author` table first"
+            message = "the `author` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `author` table first, or add one"
         )]
         trait AuthorTableIsAccepted {
             const HOLDS: () = ();
@@ -55,29 +55,33 @@ const _: () = {
             message = "the `author` table has no delete method, so `on_delete` can't apply",
             label = "remove `on_delete`"
         )]
-        trait HasDeleteMethod {
+        trait AuthorTableHasADeleteMethod {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
-        const _: () = <self::AuthorTable as HasDeleteMethod>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > AuthorTableHasADeleteMethod for T {}
+        const _: () = <self::AuthorTable as AuthorTableHasADeleteMethod>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `author` table isn't soft-deletable, so `on_soft_delete` can't apply",
             label = "remove `on_soft_delete`"
         )]
-        trait IsSoftDeletable {
+        trait AuthorTableIsSoftDeletable {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::IsSoftDeletable> IsSoftDeletable for T {}
-        const _: () = <self::AuthorTable as IsSoftDeletable>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::IsSoftDeletable,
+        > AuthorTableIsSoftDeletable for T {}
+        const _: () = <self::AuthorTable as AuthorTableIsSoftDeletable>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `review` table can't reference the `book` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `review` table first"
+            message = "the `review` table can't reference the `book` table, because the `review` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `review` table first, or add one"
         )]
         trait ReviewTableIsAccepted {
             const HOLDS: () = ();

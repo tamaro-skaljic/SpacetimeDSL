@@ -4,11 +4,11 @@ error: `#[referenced_by(table = shipment)]` is given twice! Name each table whic
 17 |         #[referenced_by(path = crate::shipment, table = shipment)]
    |                                                         ^^^^^^^^
 
-error[E0277]: the `warehouse` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected
+error[E0277]: the `warehouse` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`
   --> tests/ui/referenced_by_repeated.rs:33:56
    |
 33 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_delete = Delete)]
-   |                                                        ^^^^^^^^^ fix the error of the `warehouse` table first
+   |                                                        ^^^^^^^^^ fix the `#[spacetimedsl::dsl]` of the `warehouse` table first, or add one
    |
 help: the trait `shipment::_::_::WarehouseTableIsAccepted` is not implemented for `warehouse::warehouse__TableHandle`
   --> tests/ui/referenced_by_repeated.rs:11:5
@@ -17,11 +17,11 @@ help: the trait `shipment::_::_::WarehouseTableIsAccepted` is not implemented fo
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0277]: the `warehouse` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected
+error[E0277]: the `warehouse` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`
   --> tests/ui/referenced_by_repeated.rs:38:56
    |
 38 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_delete = Delete)]
-   |                                                        ^^^^^^^^^ fix the error of the `warehouse` table first
+   |                                                        ^^^^^^^^^ fix the `#[spacetimedsl::dsl]` of the `warehouse` table first, or add one
    |
 help: the trait `shipment::_::_::WarehouseTableIsAccepted` is not implemented for `warehouse::warehouse__TableHandle`
   --> tests/ui/referenced_by_repeated.rs:11:5

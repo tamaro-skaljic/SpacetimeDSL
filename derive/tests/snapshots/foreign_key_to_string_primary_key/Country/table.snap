@@ -20,8 +20,8 @@ impl crate::spacetimedsl::internal::ReferencedBy<self::EmbassyTable> for Country
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `city` table can't reference the `country` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `city` table first"
+            message = "the `city` table can't reference the `country` table, because the `city` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `city` table first, or add one"
         )]
         trait CityTableIsAccepted {
             const HOLDS: () = ();
@@ -32,8 +32,8 @@ const _: () = {
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `embassy` table can't reference the `country` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `embassy` table first"
+            message = "the `embassy` table can't reference the `country` table, because the `embassy` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `embassy` table first, or add one"
         )]
         trait EmbassyTableIsAccepted {
             const HOLDS: () = ();

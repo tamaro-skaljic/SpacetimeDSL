@@ -19,8 +19,8 @@ for ParentRecordTable {}
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `child_marker` table can't reference the `parent_record` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `child_marker` table first"
+            message = "the `child_marker` table can't reference the `parent_record` table, because the `child_marker` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `child_marker` table first, or add one"
         )]
         trait ChildMarkerTableIsAccepted {
             const HOLDS: () = ();

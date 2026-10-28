@@ -8,7 +8,6 @@ pub struct SingletonTable;
 impl crate::spacetimedsl::internal::AcceptedTable for singleton__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for SingletonTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for SingletonTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

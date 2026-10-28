@@ -8,7 +8,6 @@ pub struct ShipmentTable;
 impl crate::spacetimedsl::internal::AcceptedTable for shipment__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for ShipmentTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for ShipmentTable {}
-const _: () = {};
 impl Shipment {
     ///
     pub fn get_id(&self) -> OrderId {

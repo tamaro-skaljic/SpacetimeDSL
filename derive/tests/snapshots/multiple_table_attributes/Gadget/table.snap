@@ -8,7 +8,6 @@ pub struct Gadget2Table;
 impl crate::spacetimedsl::internal::AcceptedTable for gadget2__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for Gadget2Table {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for Gadget2Table {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

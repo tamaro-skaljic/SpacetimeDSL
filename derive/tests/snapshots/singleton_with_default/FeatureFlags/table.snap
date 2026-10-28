@@ -8,7 +8,6 @@ pub struct FeatureFlagsTable;
 impl crate::spacetimedsl::internal::AcceptedTable for feature_flags__TableHandle {}
 impl crate::spacetimedsl::internal::HasNoDeleteMethod for FeatureFlagsTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for FeatureFlagsTable {}
-const _: () = {};
 impl FeatureFlags {
     ///
     pub fn get_tutorial_is_enabled(&self) -> &bool {

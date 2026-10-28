@@ -18,8 +18,8 @@ impl crate::spacetimedsl::internal::ReferencedBy<self::ShelvedBookTable> for She
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `shelved_book` table can't reference the `shelf` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `shelved_book` table first"
+            message = "the `shelved_book` table can't reference the `shelf` table, because the `shelved_book` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `shelved_book` table first, or add one"
         )]
         trait ShelvedBookTableIsAccepted {
             const HOLDS: () = ();

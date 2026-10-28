@@ -4,7 +4,7 @@ error[E0277]: the `warehouse` table has no delete method, so `on_delete` can't a
 38 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_delete = Delete)]
    |                                                        ^^^^^^^^^ remove `on_delete`
    |
-help: the trait `shipment::_::_::HasDeleteMethod` is not implemented for `WarehouseTable`
+help: the trait `WarehouseTableHasADeleteMethod` is not implemented for `WarehouseTable`
   --> tests/ui/foreign_key_with_on_delete_to_table_without_delete_method.rs:8:5
    |
  8 | /     #[spacetimedsl::dsl(

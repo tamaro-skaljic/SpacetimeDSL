@@ -8,7 +8,6 @@ pub struct GaugeTable;
 impl crate::spacetimedsl::internal::AcceptedTable for gauge__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for GaugeTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for GaugeTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

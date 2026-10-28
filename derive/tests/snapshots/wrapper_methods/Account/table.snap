@@ -27,8 +27,8 @@ for AccountTable {}
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `profile` table can't reference the `account` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `profile` table first"
+            message = "the `profile` table can't reference the `account` table, because the `profile` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `profile` table first, or add one"
         )]
         trait ProfileTableIsAccepted {
             const HOLDS: () = ();
@@ -40,8 +40,8 @@ const _: () = {
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `account_note` table can't reference the `account` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `account_note` table first"
+            message = "the `account_note` table can't reference the `account` table, because the `account_note` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `account_note` table first, or add one"
         )]
         trait AccountNoteTableIsAccepted {
             const HOLDS: () = ();
@@ -53,8 +53,8 @@ const _: () = {
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `active_membership` table can't reference the `account` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `active_membership` table first"
+            message = "the `active_membership` table can't reference the `account` table, because the `active_membership` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `active_membership` table first, or add one"
         )]
         trait ActiveMembershipTableIsAccepted {
             const HOLDS: () = ();
@@ -67,8 +67,8 @@ const _: () = {
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `expired_membership` table can't reference the `account` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `expired_membership` table first"
+            message = "the `expired_membership` table can't reference the `account` table, because the `expired_membership` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `expired_membership` table first, or add one"
         )]
         trait ExpiredMembershipTableIsAccepted {
             const HOLDS: () = ();

@@ -4,11 +4,11 @@ error: `#[disallow(zero)]` is not allowed together with `on_delete = SetZero`, w
 33 |         #[disallow(zero)]
    |         ^^^^^^^^^^^^^^^^^
 
-error[E0277]: the `shipment` table can't reference the `warehouse` table, because its `#[spacetimedsl::dsl]` is rejected
+error[E0277]: the `shipment` table can't reference the `warehouse` table, because the `shipment` table has no accepted `#[spacetimedsl::dsl]`
   --> tests/ui/disallow_zero_with_set_zero_strategy.rs:16:57
    |
 16 |         #[referenced_by(path = crate::shipment, table = shipment)]
-   |                                                         ^^^^^^^^ fix the error of the `shipment` table first
+   |                                                         ^^^^^^^^ fix the `#[spacetimedsl::dsl]` of the `shipment` table first, or add one
    |
 help: the trait `ShipmentTableIsAccepted` is not implemented for `shipment::shipment__TableHandle`
   --> tests/ui/disallow_zero_with_set_zero_strategy.rs:23:5

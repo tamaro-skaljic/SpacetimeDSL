@@ -26,8 +26,8 @@ impl crate::spacetimedsl::internal::ReferencedBy<self::BannerTable> for ServerTa
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `season` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `season` table first"
+            message = "the `season` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `season` table first, or add one"
         )]
         trait SeasonTableIsAccepted {
             const HOLDS: () = ();
@@ -58,13 +58,14 @@ const _: () = {
             label = "add `on_delete = …`",
             note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
         )]
-        trait HasNoDeleteMethod {
+        trait SeasonTableHasNoDeleteMethod {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::HasNoDeleteMethod> HasNoDeleteMethod
-        for T {}
-        const _: () = <self::SeasonTable as HasNoDeleteMethod>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::HasNoDeleteMethod,
+        > SeasonTableHasNoDeleteMethod for T {}
+        const _: () = <self::SeasonTable as SeasonTableHasNoDeleteMethod>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
@@ -72,18 +73,19 @@ const _: () = {
             label = "add `on_soft_delete = …`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
-        trait IsNotSoftDeletable {
+        trait SeasonTableIsNotSoftDeletable {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
-        for T {}
-        const _: () = <self::SeasonTable as IsNotSoftDeletable>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > SeasonTableIsNotSoftDeletable for T {}
+        const _: () = <self::SeasonTable as SeasonTableIsNotSoftDeletable>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `alliance` table can't reference the `server` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `alliance` table first"
+            message = "the `alliance` table can't reference the `server` table, because the `alliance` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `alliance` table first, or add one"
         )]
         trait AllianceTableIsAccepted {
             const HOLDS: () = ();
@@ -95,8 +97,8 @@ const _: () = {
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `banner` table can't reference the `server` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `banner` table first"
+            message = "the `banner` table can't reference the `server` table, because the `banner` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `banner` table first, or add one"
         )]
         trait BannerTableIsAccepted {
             const HOLDS: () = ();

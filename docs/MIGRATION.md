@@ -8,7 +8,7 @@ What changes for a module, or for a crate building on `spacetimedsl_derive-input
 
 #### A struct named like the table type of its table
 
-Every table now gets a type `{Table}Table`, such as `EntityTable` for `accessor = entity`, through which the tables on the other side of its foreign keys reach it. A struct with that name is rejected: *`#[dsl]` generates the type `EntityTable` for the `entity` table, so the struct cannot be called `EntityTable` as well!* Rename the struct, or change the table's `accessor`.
+Every table now gets a type `{Table}Table`, such as `EntityTable` for `accessor = entity`, through which the tables on the other side of its foreign keys reach it. A struct with that name is rejected: *`#[dsl]` generates the type `EntityTable` for the `entity` table, so the struct cannot be called `EntityTable` as well!* Rename the struct, or change the table's `accessor`. Any other item of that name in the table's module, such as a second struct or a `use`, now fails with `E0428` as well.
 
 #### A private struct paired with a table in another module
 
@@ -31,17 +31,17 @@ The "or" of the old names is gone: a foreign key whose referenced table does not
 
 #### A rejected table reports once on each attribute that depends on it
 
-Every `#[foreign_key]` that references a rejected table reports *the `server` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected*, and every `#[referenced_by]` that names one reports *the `channel` table can't reference the `server` table, because its `#[spacetimedsl::dsl]` is rejected*. Nothing else of the generated code reports an error about it.
+Every `#[foreign_key]` that references a rejected table reports *the `server` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`*, and every `#[referenced_by]` that names one reports *the `channel` table can't reference the `server` table, because the `channel` table has no accepted `#[spacetimedsl::dsl]`*. A table without any `#[spacetimedsl::dsl]` reports the same. Nothing else of the generated code reports an error about it.
 
 #### A rejected `#[dsl]` keeps its struct
 
 A rejected `#[spacetimedsl::dsl]` used to emit only its error. It now emits the struct as well, when the struct carries `#[spacetimedb::table]`: with the `derive(SpacetimeDSL)` helper and, for a singleton, the injected `#[primary_key] id: u8`. Code that uses the table or its accessor `ctx.db.<table>()` keeps compiling.
 
-A rejection that **SpacetimeDB** shares, such as a column of an array, tuple or reference type, now also shows **SpacetimeDB**'s own errors on that column.
+A rejection that **SpacetimeDB** shares, such as a column of an array, tuple or reference type, now also shows **SpacetimeDB**'s own errors, on the column or on `#[spacetimedb::table]`.
 
 #### Tables reach each other through their table types
 
-Each table emits `#[doc(hidden)] pub struct {Table}Table;`, and generated code reaches the tables on the other side of a foreign key only through it:
+Each table emits a `#[doc(hidden)]` unit struct `{Table}Table`, as visible as its struct, and generated code reaches the tables on the other side of a foreign key only through it:
 
 - The existence checks of `create_*`, `update_*_by_*` and `upsert_*` and the methods which look up the referenced row call `{path}::{Table}Table::get_by_primary_key(…)`, instead of `get_<table>_by_<key>` on the `DSL`.
 - The cascade a referencing table runs moved from `DSLInternals::execute_on_delete_strategies_of_the_<table>_table_after_…` to an impl of `internal::References<{path}::{Referenced}Table, <key type>>` for its table type. Its methods are `after_one_row_was_deleted`, `after_multiple_rows_were_deleted`, `after_one_row_was_soft_deleted` and `after_multiple_rows_were_soft_deleted`.

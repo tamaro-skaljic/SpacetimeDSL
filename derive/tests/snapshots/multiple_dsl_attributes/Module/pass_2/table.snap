@@ -8,7 +8,6 @@ pub struct Module2Table;
 impl crate::spacetimedsl::internal::AcceptedTable for module2__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for Module2Table {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for Module2Table {}
-const _: () = {};
 impl Module {}
 ///
 pub struct CreateModule2 {

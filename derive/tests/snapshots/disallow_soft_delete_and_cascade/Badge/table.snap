@@ -19,8 +19,8 @@ impl crate::spacetimedsl::internal::IsNotSoftDeletable for BadgeTable {}
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `member` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `member` table first"
+            message = "the `member` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `member` table first, or add one"
         )]
         trait MemberTableIsAccepted {
             const HOLDS: () = ();
@@ -51,25 +51,28 @@ const _: () = {
             label = "add `on_delete = …`",
             note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
         )]
-        trait HasNoDeleteMethod {
+        trait MemberTableHasNoDeleteMethod {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::HasNoDeleteMethod> HasNoDeleteMethod
-        for T {}
-        const _: () = <self::MemberTable as HasNoDeleteMethod>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::HasNoDeleteMethod,
+        > MemberTableHasNoDeleteMethod for T {}
+        const _: () = <self::MemberTable as MemberTableHasNoDeleteMethod>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `member` table isn't soft-deletable, so `on_soft_delete` can't apply",
             label = "remove `on_soft_delete`"
         )]
-        trait IsSoftDeletable {
+        trait MemberTableIsSoftDeletable {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::IsSoftDeletable> IsSoftDeletable for T {}
-        const _: () = <self::MemberTable as IsSoftDeletable>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::IsSoftDeletable,
+        > MemberTableIsSoftDeletable for T {}
+        const _: () = <self::MemberTable as MemberTableIsSoftDeletable>::HOLDS;
     };
 };
 #[derive(

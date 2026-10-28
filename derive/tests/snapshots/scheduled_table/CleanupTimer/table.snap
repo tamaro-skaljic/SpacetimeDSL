@@ -8,7 +8,6 @@ pub struct CleanupTimerTable;
 impl crate::spacetimedsl::internal::AcceptedTable for cleanup_timer__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for CleanupTimerTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for CleanupTimerTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

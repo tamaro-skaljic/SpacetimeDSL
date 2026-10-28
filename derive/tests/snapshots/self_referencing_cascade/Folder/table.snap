@@ -24,8 +24,8 @@ impl crate::spacetimedsl::internal::ReferencedBy<self::FolderTable> for FolderTa
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `folder` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `folder` table first"
+            message = "the `folder` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `folder` table first, or add one"
         )]
         trait FolderTableIsAccepted {
             const HOLDS: () = ();
@@ -55,29 +55,33 @@ const _: () = {
             message = "the `folder` table has no delete method, so `on_delete` can't apply",
             label = "remove `on_delete`"
         )]
-        trait HasDeleteMethod {
+        trait FolderTableHasADeleteMethod {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
-        const _: () = <self::FolderTable as HasDeleteMethod>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > FolderTableHasADeleteMethod for T {}
+        const _: () = <self::FolderTable as FolderTableHasADeleteMethod>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `folder` table isn't soft-deletable, so `on_soft_delete` can't apply",
             label = "remove `on_soft_delete`"
         )]
-        trait IsSoftDeletable {
+        trait FolderTableIsSoftDeletable {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::IsSoftDeletable> IsSoftDeletable for T {}
-        const _: () = <self::FolderTable as IsSoftDeletable>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::IsSoftDeletable,
+        > FolderTableIsSoftDeletable for T {}
+        const _: () = <self::FolderTable as FolderTableIsSoftDeletable>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `folder` table can't reference the `folder` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `folder` table first"
+            message = "the `folder` table can't reference the `folder` table, because the `folder` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `folder` table first, or add one"
         )]
         trait FolderTableIsAccepted {
             const HOLDS: () = ();

@@ -19,8 +19,8 @@ impl crate::spacetimedsl::internal::IsNotSoftDeletable for PriceTable {}
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `currency` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `currency` table first"
+            message = "the `currency` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `currency` table first, or add one"
         )]
         trait CurrencyTableIsAccepted {
             const HOLDS: () = ();
@@ -51,13 +51,14 @@ const _: () = {
             label = "add `on_delete = …`",
             note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
         )]
-        trait HasNoDeleteMethod {
+        trait CurrencyTableHasNoDeleteMethod {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::HasNoDeleteMethod> HasNoDeleteMethod
-        for T {}
-        const _: () = <self::CurrencyTable as HasNoDeleteMethod>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::HasNoDeleteMethod,
+        > CurrencyTableHasNoDeleteMethod for T {}
+        const _: () = <self::CurrencyTable as CurrencyTableHasNoDeleteMethod>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
@@ -65,13 +66,14 @@ const _: () = {
             label = "add `on_soft_delete = …`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
-        trait IsNotSoftDeletable {
+        trait CurrencyTableIsNotSoftDeletable {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
-        for T {}
-        const _: () = <self::CurrencyTable as IsNotSoftDeletable>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > CurrencyTableIsNotSoftDeletable for T {}
+        const _: () = <self::CurrencyTable as CurrencyTableIsNotSoftDeletable>::HOLDS;
     };
 };
 #[derive(

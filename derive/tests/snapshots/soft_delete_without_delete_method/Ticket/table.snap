@@ -8,7 +8,6 @@ pub struct TicketTable;
 impl crate::spacetimedsl::internal::AcceptedTable for ticket__TableHandle {}
 impl crate::spacetimedsl::internal::HasNoDeleteMethod for TicketTable {}
 impl crate::spacetimedsl::internal::IsSoftDeletable for TicketTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

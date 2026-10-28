@@ -8,7 +8,6 @@ pub struct SeatTable;
 impl crate::spacetimedsl::internal::AcceptedTable for seat__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for SeatTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for SeatTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

@@ -160,10 +160,10 @@ fn the_model_holds_what_a_table_declares() {
         );
     }
     for check in [
-        "the `owner` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
+        "the `owner` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
         "the `owner` table has no `#[referenced_by]` naming the `gadget` table",
         "the `owner` table is soft-deletable, so this foreign key needs `on_soft_delete`",
-        "the `part` table can't reference the `gadget` table, because its `#[spacetimedsl::dsl]` is rejected",
+        "the `part` table can't reference the `gadget` table, because the `part` table has no accepted `#[spacetimedsl::dsl]`",
         "the `part` table has no `#[foreign_key]` referencing the `gadget` table",
     ] {
         assert!(

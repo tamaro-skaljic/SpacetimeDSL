@@ -5,11 +5,11 @@ error: `OnDeleteStrategy::SetZero` is not allowed on a column of the unique mult
 41 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_delete = SetZero)]
    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E0277]: the `shipment` table can't reference the `warehouse` table, because its `#[spacetimedsl::dsl]` is rejected
+error[E0277]: the `shipment` table can't reference the `warehouse` table, because the `shipment` table has no accepted `#[spacetimedsl::dsl]`
   --> tests/ui/on_delete_set_zero_on_unique_multi_column_index_column.rs:17:57
    |
 17 |         #[referenced_by(path = crate::shipment, table = shipment)]
-   |                                                         ^^^^^^^^ fix the error of the `shipment` table first
+   |                                                         ^^^^^^^^ fix the `#[spacetimedsl::dsl]` of the `shipment` table first, or add one
    |
 help: the trait `ShipmentTableIsAccepted` is not implemented for `shipment::shipment__TableHandle`
   --> tests/ui/on_delete_set_zero_on_unique_multi_column_index_column.rs:28:5

@@ -8,7 +8,6 @@ pub struct HiddenNoteTable;
 impl crate::spacetimedsl::internal::AcceptedTable for hidden_note__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for HiddenNoteTable {}
 impl crate::spacetimedsl::internal::IsSoftDeletable for HiddenNoteTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

@@ -8,7 +8,6 @@ pub struct SeasonTable;
 impl crate::spacetimedsl::internal::AcceptedTable for season__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for SeasonTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for SeasonTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

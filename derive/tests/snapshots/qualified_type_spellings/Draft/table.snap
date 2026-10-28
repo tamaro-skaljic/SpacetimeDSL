@@ -18,8 +18,8 @@ impl crate::spacetimedsl::internal::ReferencedBy<self::RevisionTable> for DraftT
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `revision` table can't reference the `draft` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `revision` table first"
+            message = "the `revision` table can't reference the `draft` table, because the `revision` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `revision` table first, or add one"
         )]
         trait RevisionTableIsAccepted {
             const HOLDS: () = ();

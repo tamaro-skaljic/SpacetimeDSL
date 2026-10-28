@@ -20,8 +20,8 @@ impl crate::spacetimedsl::internal::ReferencedBy<self::RefereeTable> for PlayerT
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `circle` table can't reference the `player` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `circle` table first"
+            message = "the `circle` table can't reference the `player` table, because the `circle` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `circle` table first, or add one"
         )]
         trait CircleTableIsAccepted {
             const HOLDS: () = ();
@@ -33,8 +33,8 @@ const _: () = {
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `referee` table can't reference the `player` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `referee` table first"
+            message = "the `referee` table can't reference the `player` table, because the `referee` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `referee` table first, or add one"
         )]
         trait RefereeTableIsAccepted {
             const HOLDS: () = ();

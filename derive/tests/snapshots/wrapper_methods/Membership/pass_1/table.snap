@@ -19,8 +19,8 @@ impl crate::spacetimedsl::internal::IsNotSoftDeletable for ActiveMembershipTable
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `account` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `account` table first"
+            message = "the `account` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `account` table first, or add one"
         )]
         trait AccountTableIsAccepted {
             const HOLDS: () = ();
@@ -50,12 +50,14 @@ const _: () = {
             message = "the `account` table has no delete method, so `on_delete` can't apply",
             label = "remove `on_delete`"
         )]
-        trait HasDeleteMethod {
+        trait AccountTableHasADeleteMethod {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
-        const _: () = <self::AccountTable as HasDeleteMethod>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > AccountTableHasADeleteMethod for T {}
+        const _: () = <self::AccountTable as AccountTableHasADeleteMethod>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
@@ -63,13 +65,14 @@ const _: () = {
             label = "add `on_soft_delete = …`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
-        trait IsNotSoftDeletable {
+        trait AccountTableIsNotSoftDeletable {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
-        for T {}
-        const _: () = <self::AccountTable as IsNotSoftDeletable>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > AccountTableIsNotSoftDeletable for T {}
+        const _: () = <self::AccountTable as AccountTableIsNotSoftDeletable>::HOLDS;
     };
 };
 #[derive(

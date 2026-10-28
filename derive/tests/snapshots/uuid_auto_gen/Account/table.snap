@@ -19,8 +19,8 @@ for AccountTable {}
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `session_token` table can't reference the `account` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `session_token` table first"
+            message = "the `session_token` table can't reference the `account` table, because the `session_token` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `session_token` table first, or add one"
         )]
         trait SessionTokenTableIsAccepted {
             const HOLDS: () = ();

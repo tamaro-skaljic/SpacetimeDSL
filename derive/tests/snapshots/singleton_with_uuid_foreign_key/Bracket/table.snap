@@ -19,8 +19,8 @@ for BracketTable {}
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `active_bracket` table can't reference the `bracket` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `active_bracket` table first"
+            message = "the `active_bracket` table can't reference the `bracket` table, because the `active_bracket` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `active_bracket` table first, or add one"
         )]
         trait ActiveBracketTableIsAccepted {
             const HOLDS: () = ();

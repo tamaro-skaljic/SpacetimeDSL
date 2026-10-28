@@ -8,7 +8,6 @@ pub struct ConfigurationTable;
 impl crate::spacetimedsl::internal::AcceptedTable for configuration__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for ConfigurationTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for ConfigurationTable {}
-const _: () = {};
 impl Configuration {
     ///
     pub fn get_maximum_player_count(&self) -> &u32 {

@@ -18,8 +18,8 @@ impl crate::spacetimedsl::internal::ReferencedBy<self::LoanTable> for BranchTabl
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `loan` table can't reference the `branch` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `loan` table first"
+            message = "the `loan` table can't reference the `branch` table, because the `loan` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `loan` table first, or add one"
         )]
         trait LoanTableIsAccepted {
             const HOLDS: () = ();

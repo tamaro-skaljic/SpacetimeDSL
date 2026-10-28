@@ -8,7 +8,6 @@ pub struct AuditedEntryTable;
 impl crate::spacetimedsl::internal::AcceptedTable for audited_entry__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for AuditedEntryTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for AuditedEntryTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

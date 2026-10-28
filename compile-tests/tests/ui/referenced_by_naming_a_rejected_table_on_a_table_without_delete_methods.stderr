@@ -4,11 +4,11 @@ error: PluralName must be set in `#[dsl(plural_name = PluralName)]`
 22 |     #[spacetimedsl::dsl(method(update = false, delete = true))]
    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E0277]: the `gadget` table can't reference the `owner` table, because its `#[spacetimedsl::dsl]` is rejected
+error[E0277]: the `gadget` table can't reference the `owner` table, because the `gadget` table has no accepted `#[spacetimedsl::dsl]`
   --> tests/ui/referenced_by_naming_a_rejected_table_on_a_table_without_delete_methods.rs:16:55
    |
 16 |         #[referenced_by(path = crate::gadget, table = gadget)]
-   |                                                       ^^^^^^ fix the error of the `gadget` table first
+   |                                                       ^^^^^^ fix the `#[spacetimedsl::dsl]` of the `gadget` table first, or add one
    |
 help: the trait `GadgetTableIsAccepted` is not implemented for `gadget::gadget__TableHandle`
   --> tests/ui/referenced_by_naming_a_rejected_table_on_a_table_without_delete_methods.rs:23:5

@@ -51,9 +51,13 @@ pub fn table_row_type(module_path: &Path, table_accessor: &Ident) -> TokenStream
 }
 
 /// `<accessor>__TableHandle`, the handle type SpacetimeDB generates next to the table
-/// `table_accessor`, with the visibility of its struct.
+/// `table_accessor`, with the visibility of its struct. Spanned like `table_accessor`, so that
+/// an error about the handle underlines the `table = …` which names it.
 pub fn table_handle_name(table_accessor: &Ident) -> Ident {
-    format_ident!("{table_accessor}__TableHandle")
+    format_ident!(
+        "{table_accessor}__TableHandle",
+        span = table_accessor.span()
+    )
 }
 
 /// `#module_path::<accessor>__TableHandle`: [`table_handle_name`] in `module_path`.

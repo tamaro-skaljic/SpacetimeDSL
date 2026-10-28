@@ -22,8 +22,8 @@ for WarehouseTable {}
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `shipment` table can't reference the `warehouse` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `shipment` table first"
+            message = "the `shipment` table can't reference the `warehouse` table, because the `shipment` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `shipment` table first, or add one"
         )]
         trait ShipmentTableIsAccepted {
             const HOLDS: () = ();
@@ -35,8 +35,8 @@ const _: () = {
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `inspection` table can't reference the `warehouse` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `inspection` table first"
+            message = "the `inspection` table can't reference the `warehouse` table, because the `inspection` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `inspection` table first, or add one"
         )]
         trait InspectionTableIsAccepted {
             const HOLDS: () = ();

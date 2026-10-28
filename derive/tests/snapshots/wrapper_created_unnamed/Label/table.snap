@@ -8,7 +8,6 @@ pub struct LabelTable;
 impl crate::spacetimedsl::internal::AcceptedTable for label__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for LabelTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for LabelTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

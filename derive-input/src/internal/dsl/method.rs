@@ -218,7 +218,7 @@ impl SpacetimeDSLTableMethods {
             get_count,
             on_delete_strategies_of_referencing_tables,
             on_delete_strategies_of_this_table,
-            get_by_primary_key: get_by_primary_key(context, columns),
+            get_by_primary_key: get_by_primary_key(context, columns)?,
             multi_column_indices: multi_column_index_methods(context),
             wrapper_methods: wrapper_methods(context, &foreign_key_columns_by_referenced_table),
             referenced_row_methods: for_referenced_row_methods(
@@ -449,9 +449,9 @@ fn referencing_side_entry_points(
 fn get_by_primary_key(
     context: &MethodGenerationContext,
     columns: &[Column],
-) -> Option<SpacetimeDSLMethod> {
+) -> syn::Result<Option<SpacetimeDSLMethod>> {
     if context.spacetimedsl_table.is_singleton() {
-        return None;
+        return Ok(None);
     }
 
     let get_one_by_primary_key = columns
@@ -463,9 +463,12 @@ fn get_by_primary_key(
             }
             _ => None,
         })
-        .expect(
-            "the primary key of a table which is not a singleton is a unique index with a getter",
-        );
+        .ok_or_else(|| {
+            error::generator_bug(
+                &context.struct_name,
+                "the primary key of a table which is not a singleton is a unique index with a getter",
+            )
+        })?;
 
     let dsl = quote::format_ident!("dsl");
     let read_only_dsl_type = runtime::read_only_dsl_type();
@@ -483,7 +486,7 @@ fn get_by_primary_key(
 
     method_args.extend(get_one_by_primary_key.method_args.iter().cloned());
 
-    Some(SpacetimeDSLMethod {
+    Ok(Some(SpacetimeDSLMethod {
         doc_comment: format!(
             "Look a row of the `{}` table up by its primary key, for the tables whose foreign keys reference it.",
             context.singular_table_name
@@ -493,7 +496,7 @@ fn get_by_primary_key(
         return_type: get_one_by_primary_key.return_type.clone(),
         method_impl: quote::quote! { #dsl.#get_one_method_name(#(#primary_key_arg_names),*) },
         read_context_compatible: true,
-    })
+    }))
 }
 
 /// The lookup methods each foreign key adds to its wrapper type.

@@ -8,7 +8,6 @@ pub struct BookingTable;
 impl crate::spacetimedsl::internal::AcceptedTable for booking__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for BookingTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for BookingTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

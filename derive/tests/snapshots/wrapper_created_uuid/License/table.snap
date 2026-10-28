@@ -8,7 +8,6 @@ pub struct LicenseTable;
 impl crate::spacetimedsl::internal::AcceptedTable for license__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for LicenseTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for LicenseTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

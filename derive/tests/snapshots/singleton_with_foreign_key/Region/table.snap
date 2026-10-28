@@ -22,8 +22,8 @@ for RegionTable {}
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `server_binding` table can't reference the `region` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `server_binding` table first"
+            message = "the `server_binding` table can't reference the `region` table, because the `server_binding` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `server_binding` table first, or add one"
         )]
         trait ServerBindingTableIsAccepted {
             const HOLDS: () = ();
@@ -36,8 +36,8 @@ const _: () = {
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `active_tournament` table can't reference the `region` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `active_tournament` table first"
+            message = "the `active_tournament` table can't reference the `region` table, because the `active_tournament` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `active_tournament` table first, or add one"
         )]
         trait ActiveTournamentTableIsAccepted {
             const HOLDS: () = ();

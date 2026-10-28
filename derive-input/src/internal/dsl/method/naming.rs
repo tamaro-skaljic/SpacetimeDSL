@@ -26,11 +26,13 @@ pub fn get_by_index_method_name(table_name: &Ident, index_name: &Ident) -> Ident
 ///
 /// A table emits it, and a table on the other side of a foreign key names it from the
 /// `table = …` of its `#[foreign_key]` or `#[referenced_by]`, so both have to call this one
-/// function.
+/// function. It is spanned like `singular_table_name`, so that an error about the table type,
+/// such as the privacy of a struct in another module, underlines that `table = …`.
 pub fn table_type_name(singular_table_name: &Ident) -> Ident {
     format_ident!(
         "{}Table",
-        RenameRule::PascalCase.apply_to_field(singular_table_name.to_string())
+        RenameRule::PascalCase.apply_to_field(singular_table_name.to_string()),
+        span = singular_table_name.span()
     )
 }
 

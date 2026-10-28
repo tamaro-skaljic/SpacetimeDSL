@@ -8,7 +8,6 @@ pub struct ReminderTable;
 impl crate::spacetimedsl::internal::AcceptedTable for reminder__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for ReminderTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for ReminderTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

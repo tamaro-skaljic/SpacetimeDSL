@@ -1,0 +1,39 @@
+error[E0433]: cannot find `WarehouseTable` in `warehouse`
+  --> tests/ui/foreign_key_to_a_table_without_dsl.rs:60:21
+   |
+60 |             table = warehouse,
+   |                     ^^^^^^^^^ could not find `WarehouseTable` in `warehouse`
+   |
+help: a struct with a similar name exists
+   |
+60 -             table = warehouse,
+60 +             table = WarehouseCols,
+   |
+
+error[E0425]: cannot find type `WarehouseTable` in module `crate::warehouse`
+  --> tests/ui/foreign_key_to_a_table_without_dsl.rs:60:21
+   |
+39 |     #[spacetimedb::table(accessor = warehouse, public)]
+   |                                     --------- similarly named struct `WarehouseCols` defined here
+...
+60 |             table = warehouse,
+   |                     ^^^^^^^^^
+   |
+help: a struct with a similar name exists
+   |
+60 -             table = warehouse,
+60 +             table = WarehouseCols,
+   |
+
+error[E0277]: the `warehouse` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`
+  --> tests/ui/foreign_key_to_a_table_without_dsl.rs:60:21
+   |
+60 |             table = warehouse,
+   |                     ^^^^^^^^^ fix the `#[spacetimedsl::dsl]` of the `warehouse` table first, or add one
+   |
+help: the trait `WarehouseTableIsAccepted` is not implemented for `warehouse::warehouse__TableHandle`
+  --> tests/ui/foreign_key_to_a_table_without_dsl.rs:39:5
+   |
+39 |     #[spacetimedb::table(accessor = warehouse, public)]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `spacetimedb::table` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -63,15 +63,22 @@ pub fn for_table(
 
     checks.extend(gates_of_referencing_tables(context));
 
+    // A table without foreign keys and `#[referenced_by]` makes no checks.
+    let checks = (!checks.is_empty()).then(|| {
+        quote! {
+            const _: () = {
+                #(#checks)*
+            };
+        }
+    });
+
     let foreign_key_back_checks = foreign_key_back_checks(context);
 
     TableContributions {
         pairing: quote! {
             #facts
 
-            const _: () = {
-                #(#checks)*
-            };
+            #checks
 
             #(#foreign_key_back_checks)*
         },
@@ -171,7 +178,7 @@ fn checks_of_referenced_tables(
             for removal in Removal::ALL {
                 let declares_a_strategy = removal.strategy_declared_by(foreign_key).is_some();
                 let fact = removal_fact(removal, declares_a_strategy);
-                let check_name = removal_fact_name(removal, declares_a_strategy);
+                let check_name = removal_check_name(referenced_table, removal, declares_a_strategy);
 
                 checks.push(check(
                     span,
@@ -190,17 +197,17 @@ fn checks_of_referenced_tables(
     checks
 }
 
-/// The name of the check of `removal_fact`, which the compiler shows when the fact is missing.
-fn removal_fact_name(removal: Removal, is_performed: bool) -> Ident {
-    format_ident!(
-        "{}",
-        match (removal, is_performed) {
-            (Removal::Hard, true) => "HasDeleteMethod",
-            (Removal::Hard, false) => "HasNoDeleteMethod",
-            (Removal::Soft, true) => "IsSoftDeletable",
-            (Removal::Soft, false) => "IsNotSoftDeletable",
-        }
-    )
+/// The name of the check that `referenced_table` states `removal_fact`, such as
+/// `WarehouseTableHasADeleteMethod`, which the compiler shows when the fact is missing.
+fn removal_check_name(referenced_table: &Ident, removal: Removal, is_performed: bool) -> Ident {
+    let fact = match (removal, is_performed) {
+        (Removal::Hard, true) => "HasADeleteMethod",
+        (Removal::Hard, false) => "HasNoDeleteMethod",
+        (Removal::Soft, true) => "IsSoftDeletable",
+        (Removal::Soft, false) => "IsNotSoftDeletable",
+    };
+
+    format_ident!("{}{fact}", naming::table_type_name(referenced_table))
 }
 
 /// For each table the `#[referenced_by]` attributes name: that it is accepted.
@@ -389,9 +396,11 @@ mod words {
     pub fn referenced_table_is_accepted(referenced_table: &Ident) -> Words {
         Words {
             message: format!(
-                "the `{referenced_table}` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected"
+                "the `{referenced_table}` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`"
             ),
-            label: format!("fix the error of the `{referenced_table}` table first"),
+            label: format!(
+                "fix the `#[spacetimedsl::dsl]` of the `{referenced_table}` table first, or add one"
+            ),
             note: None,
         }
     }
@@ -402,9 +411,11 @@ mod words {
     ) -> Words {
         Words {
             message: format!(
-                "the `{referencing_table}` table can't reference the `{referenced_table}` table, because its `#[spacetimedsl::dsl]` is rejected"
+                "the `{referencing_table}` table can't reference the `{referenced_table}` table, because the `{referencing_table}` table has no accepted `#[spacetimedsl::dsl]`"
             ),
-            label: format!("fix the error of the `{referencing_table}` table first"),
+            label: format!(
+                "fix the `#[spacetimedsl::dsl]` of the `{referencing_table}` table first, or add one"
+            ),
             note: None,
         }
     }

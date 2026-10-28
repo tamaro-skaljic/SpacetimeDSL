@@ -267,12 +267,13 @@ fn build_references_impl(
         &strategies.referenced_primary_key_type,
     );
 
-    let referenced_table_type_name = &strategies
-        .referenced_table_type
-        .segments
-        .last()
-        .expect("a table type is a path ending in its name")
-        .ident;
+    let Some(referenced_table_type) = strategies.referenced_table_type.segments.last() else {
+        return Err(syn::Error::new_spanned(
+            &strategies.referenced_table_type,
+            "SpacetimeDSL generated a table type without a name! This is a bug of SpacetimeDSL: please report it at https://github.com/tamaro-skaljic/SpacetimeDSL/issues.",
+        ));
+    };
+    let referenced_table_type_name = &referenced_table_type.ident;
 
     Ok(GeneratedDSLMethod {
         method_name: referenced_table_type_name.clone(),

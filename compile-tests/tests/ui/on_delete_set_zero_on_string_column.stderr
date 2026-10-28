@@ -4,11 +4,11 @@ error: `OnDeleteStrategy::SetZero` is only allowed on unsigned integer and `Uuid
 34 |         pub owner_name: String,
    |                         ^^^^^^
 
-error[E0277]: the `gadget` table can't reference the `owner` table, because its `#[spacetimedsl::dsl]` is rejected
+error[E0277]: the `gadget` table can't reference the `owner` table, because the `gadget` table has no accepted `#[spacetimedsl::dsl]`
   --> tests/ui/on_delete_set_zero_on_string_column.rs:15:55
    |
 15 |         #[referenced_by(path = crate::gadget, table = gadget)]
-   |                                                       ^^^^^^ fix the error of the `gadget` table first
+   |                                                       ^^^^^^ fix the `#[spacetimedsl::dsl]` of the `gadget` table first, or add one
    |
 help: the trait `GadgetTableIsAccepted` is not implemented for `gadget::gadget__TableHandle`
   --> tests/ui/on_delete_set_zero_on_string_column.rs:24:5

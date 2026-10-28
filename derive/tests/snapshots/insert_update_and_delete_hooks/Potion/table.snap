@@ -8,7 +8,6 @@ pub struct PotionTable;
 impl crate::spacetimedsl::internal::AcceptedTable for potion__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for PotionTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for PotionTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

@@ -4,11 +4,11 @@ error: The foreign key columns `owner_id` and `owner` would both add `get_owner`
 39 |         owner: u64,
    |         ^^^^^
 
-error[E0277]: the `game` table can't reference the `player` table, because its `#[spacetimedsl::dsl]` is rejected
+error[E0277]: the `game` table can't reference the `player` table, because the `game` table has no accepted `#[spacetimedsl::dsl]`
   --> tests/ui/referenced_row_methods_with_the_same_name.rs:17:53
    |
 17 |         #[referenced_by(path = crate::game, table = game)]
-   |                                                     ^^^^ fix the error of the `game` table first
+   |                                                     ^^^^ fix the `#[spacetimedsl::dsl]` of the `game` table first, or add one
    |
 help: the trait `GameTableIsAccepted` is not implemented for `game::game__TableHandle`
   --> tests/ui/referenced_row_methods_with_the_same_name.rs:24:5

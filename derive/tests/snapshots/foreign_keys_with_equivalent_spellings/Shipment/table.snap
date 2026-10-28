@@ -22,8 +22,8 @@ impl crate::spacetimedsl::internal::IsNotSoftDeletable for ShipmentTable {}
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `warehouse` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `warehouse` table first"
+            message = "the `warehouse` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `warehouse` table first, or add one"
         )]
         trait WarehouseTableIsAccepted {
             const HOLDS: () = ();
@@ -53,12 +53,14 @@ const _: () = {
             message = "the `warehouse` table has no delete method, so `on_delete` can't apply",
             label = "remove `on_delete`"
         )]
-        trait HasDeleteMethod {
+        trait WarehouseTableHasADeleteMethod {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
-        const _: () = <::other_crate::tables::WarehouseTable as HasDeleteMethod>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > WarehouseTableHasADeleteMethod for T {}
+        const _: () = <::other_crate::tables::WarehouseTable as WarehouseTableHasADeleteMethod>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
@@ -66,18 +68,19 @@ const _: () = {
             label = "add `on_soft_delete = …`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
-        trait IsNotSoftDeletable {
+        trait WarehouseTableIsNotSoftDeletable {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
-        for T {}
-        const _: () = <::other_crate::tables::WarehouseTable as IsNotSoftDeletable>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > WarehouseTableIsNotSoftDeletable for T {}
+        const _: () = <::other_crate::tables::WarehouseTable as WarehouseTableIsNotSoftDeletable>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `warehouse` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `warehouse` table first"
+            message = "the `warehouse` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `warehouse` table first, or add one"
         )]
         trait WarehouseTableIsAccepted {
             const HOLDS: () = ();
@@ -107,12 +110,14 @@ const _: () = {
             message = "the `warehouse` table has no delete method, so `on_delete` can't apply",
             label = "remove `on_delete`"
         )]
-        trait HasDeleteMethod {
+        trait WarehouseTableHasADeleteMethod {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
-        const _: () = <other_crate::tables::WarehouseTable as HasDeleteMethod>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > WarehouseTableHasADeleteMethod for T {}
+        const _: () = <other_crate::tables::WarehouseTable as WarehouseTableHasADeleteMethod>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
@@ -120,13 +125,14 @@ const _: () = {
             label = "add `on_soft_delete = …`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
-        trait IsNotSoftDeletable {
+        trait WarehouseTableIsNotSoftDeletable {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
-        for T {}
-        const _: () = <other_crate::tables::WarehouseTable as IsNotSoftDeletable>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > WarehouseTableIsNotSoftDeletable for T {}
+        const _: () = <other_crate::tables::WarehouseTable as WarehouseTableIsNotSoftDeletable>::HOLDS;
     };
 };
 #[derive(

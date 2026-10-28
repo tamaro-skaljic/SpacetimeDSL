@@ -18,8 +18,8 @@ impl crate::spacetimedsl::internal::ReferencedBy<self::BookTable> for AuthorTabl
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `book` table can't reference the `author` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `book` table first"
+            message = "the `book` table can't reference the `author` table, because the `book` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `book` table first, or add one"
         )]
         trait BookTableIsAccepted {
             const HOLDS: () = ();

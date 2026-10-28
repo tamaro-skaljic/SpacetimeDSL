@@ -1,8 +1,8 @@
 error[E0603]: struct `ShipmentTable` is private
-  --> tests/ui/referenced_by_naming_a_private_struct_in_another_module.rs:10:5
+  --> tests/ui/referenced_by_naming_a_private_struct_in_another_module.rs:16:57
    |
-10 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false, delete = true))]
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private struct
+16 |         #[referenced_by(path = crate::shipment, table = shipment)]
+   |                                                         ^^^^^^^^ private struct
    |
 note: the struct `ShipmentTable` is defined here
   --> tests/ui/referenced_by_naming_a_private_struct_in_another_module.rs:22:5

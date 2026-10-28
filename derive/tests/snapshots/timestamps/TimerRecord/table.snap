@@ -8,7 +8,6 @@ pub struct TimerRecordTable;
 impl crate::spacetimedsl::internal::AcceptedTable for timer_record__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for TimerRecordTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for TimerRecordTable {}
-const _: () = {};
 #[derive(
     Clone,
     Debug,

@@ -4,11 +4,11 @@ error: PluralName must be set in `#[dsl(plural_name = PluralName)]`
 29 |     #[spacetimedsl::dsl(table = archived_record, method(update = false, delete = true))]
    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E0277]: the `archived_record` table can't reference the `owner` table, because its `#[spacetimedsl::dsl]` is rejected
+error[E0277]: the `archived_record` table can't reference the `owner` table, because the `archived_record` table has no accepted `#[spacetimedsl::dsl]`
   --> tests/ui/referenced_by_naming_the_rejected_table_of_a_struct_with_two_tables.rs:17:55
    |
 17 |         #[referenced_by(path = crate::record, table = archived_record)]
-   |                                                       ^^^^^^^^^^^^^^^ fix the error of the `archived_record` table first
+   |                                                       ^^^^^^^^^^^^^^^ fix the `#[spacetimedsl::dsl]` of the `archived_record` table first, or add one
    |
 help: the trait `ArchivedRecordTableIsAccepted` is not implemented for `record::archived_record__TableHandle`
   --> tests/ui/referenced_by_naming_the_rejected_table_of_a_struct_with_two_tables.rs:30:5

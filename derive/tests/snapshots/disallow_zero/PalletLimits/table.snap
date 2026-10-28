@@ -8,7 +8,6 @@ pub struct PalletLimitsTable;
 impl crate::spacetimedsl::internal::AcceptedTable for pallet_limits__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for PalletLimitsTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for PalletLimitsTable {}
-const _: () = {};
 impl PalletLimits {
     ///
     pub fn get_maximum_quantity(&self) -> &u32 {

@@ -112,10 +112,24 @@ fn expand_dsl_attribute_parts(
     // this will ensure that we don't emit multiple conflicting implementations.
     // It comes first, so that a struct echoed after a rejection keeps its field attributes valid.
     let first_dsl_attribute = if !derive_input.attrs.contains(&derive_table_helper) {
-        derive_input.attrs.push(derive_table_helper);
+        derive_input.attrs.push(derive_table_helper.clone());
         true
     } else {
         false
+    };
+
+    // A rejected first `#[dsl]` of several hands the helper on to the next one, which then
+    // emits what only the first expansion of a struct emits, such as its wrapper types.
+    let reject = |error: syn::Error, derive_input: &syn::DeriveInput| {
+        let mut echoed_struct = derive_input.clone();
+
+        if first_dsl_attribute && !is_last_dsl_attribute(derive_input) {
+            echoed_struct
+                .attrs
+                .retain(|attribute| *attribute != derive_table_helper);
+        }
+
+        Rejection::of(error, &echoed_struct)
     };
 
     // A singleton is declared by the top-level argument `singleton`, not by the word as the
@@ -131,11 +145,11 @@ fn expand_dsl_attribute_parts(
 
     // For singletons, inject `#[primary_key] id: u8` into the struct
     if is_singleton && let Err(error) = inject_singleton_primary_key(&mut derive_input) {
-        return Err(Rejection::of(error, &derive_input));
+        return Err(reject(error, &derive_input));
     }
 
-    let input = Table::try_parse(args, &derive_input)
-        .map_err(|error| Rejection::of(error, &derive_input))?;
+    let input =
+        Table::try_parse(args, &derive_input).map_err(|error| reject(error, &derive_input))?;
 
     append_documentation(
         &mut derive_input,
@@ -146,7 +160,7 @@ fn expand_dsl_attribute_parts(
     let pass =
         output::DSLAttributePass::of(first_dsl_attribute, is_last_dsl_attribute(&derive_input));
     let generated_output =
-        output::build(&input, pass).map_err(|error| Rejection::of(error, &derive_input))?;
+        output::build(&input, pass).map_err(|error| reject(error, &derive_input))?;
 
     // If this is the last #[dsl] attribute, make all struct fields private
     // We do this AFTER parsing and generating methods so the setter logic works correctly

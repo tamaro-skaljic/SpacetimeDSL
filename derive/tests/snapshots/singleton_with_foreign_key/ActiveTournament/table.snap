@@ -22,8 +22,8 @@ impl crate::spacetimedsl::internal::IsNotSoftDeletable for ActiveTournamentTable
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `region` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `region` table first"
+            message = "the `region` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `region` table first, or add one"
         )]
         trait RegionTableIsAccepted {
             const HOLDS: () = ();
@@ -53,12 +53,14 @@ const _: () = {
             message = "the `region` table has no delete method, so `on_delete` can't apply",
             label = "remove `on_delete`"
         )]
-        trait HasDeleteMethod {
+        trait RegionTableHasADeleteMethod {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
-        const _: () = <self::RegionTable as HasDeleteMethod>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > RegionTableHasADeleteMethod for T {}
+        const _: () = <self::RegionTable as RegionTableHasADeleteMethod>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
@@ -66,18 +68,19 @@ const _: () = {
             label = "add `on_soft_delete = …`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
-        trait IsNotSoftDeletable {
+        trait RegionTableIsNotSoftDeletable {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
-        for T {}
-        const _: () = <self::RegionTable as IsNotSoftDeletable>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > RegionTableIsNotSoftDeletable for T {}
+        const _: () = <self::RegionTable as RegionTableIsNotSoftDeletable>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `region` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `region` table first"
+            message = "the `region` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `region` table first, or add one"
         )]
         trait RegionTableIsAccepted {
             const HOLDS: () = ();
@@ -107,12 +110,14 @@ const _: () = {
             message = "the `region` table has no delete method, so `on_delete` can't apply",
             label = "remove `on_delete`"
         )]
-        trait HasDeleteMethod {
+        trait RegionTableHasADeleteMethod {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::HasDeleteMethod> HasDeleteMethod for T {}
-        const _: () = <self::RegionTable as HasDeleteMethod>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::HasDeleteMethod,
+        > RegionTableHasADeleteMethod for T {}
+        const _: () = <self::RegionTable as RegionTableHasADeleteMethod>::HOLDS;
     };
     const _: () = {
         #[diagnostic::on_unimplemented(
@@ -120,13 +125,14 @@ const _: () = {
             label = "add `on_soft_delete = …`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
-        trait IsNotSoftDeletable {
+        trait RegionTableIsNotSoftDeletable {
             const HOLDS: () = ();
         }
         #[diagnostic::do_not_recommend]
-        impl<T: crate::spacetimedsl::internal::IsNotSoftDeletable> IsNotSoftDeletable
-        for T {}
-        const _: () = <self::RegionTable as IsNotSoftDeletable>::HOLDS;
+        impl<
+            T: crate::spacetimedsl::internal::IsNotSoftDeletable,
+        > RegionTableIsNotSoftDeletable for T {}
+        const _: () = <self::RegionTable as RegionTableIsNotSoftDeletable>::HOLDS;
     };
 };
 impl ActiveTournament {

@@ -577,15 +577,15 @@ A rejected `#[spacetimedsl::dsl]` reports why, at the attribute or column that h
 - **The struct stays** when it carries a `#[spacetimedb::table]`: the table and its accessor `ctx.db.<table>()` keep existing, so code that uses them keeps compiling.
 - **Nothing generated exists**, so a call of the rejected table's DSL methods, such as `dsl.get_entity_by_id(…)`, fails as well.
 - **Each attribute that depends on it reports one error**: every `#[foreign_key]` that references the rejected table and every `#[referenced_by]` that names it says that the rejected table has to be fixed first. Nothing else of the generated code reports an error: the other tables reach the rejected one only through its [table type](#struct-naming-patterns), which the compiler leaves unreported in a module with a rejected table.
+- **A rejection that SpacetimeDB shares**, such as a column of an array or tuple type, also shows **SpacetimeDB**'s own errors on that column.
 
 ```txt
-error[E0277]: the `server` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected
-  --> src/channel.rs:14:53
+error[E0277]: the `server` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`
+  --> src/channel.rs:14:49
    |
 14 |     #[foreign_key(path = crate::server, table = server, column = id, on_delete = Delete)]
-   |                                                 ^^^^^^ fix the error of the `server` table first
+   |                                                 ^^^^^^ fix the `#[spacetimedsl::dsl]` of the `server` table first, or add one
 ```
-- **A rejection that SpacetimeDB shares**, such as a column of an array or tuple type, also shows **SpacetimeDB**'s own errors on that column.
 
 ### Column Type Spellings
 
@@ -1579,18 +1579,18 @@ Each rule is checked on its own, and a broken rule reports one error, underlined
 
 | Rule                                   | Error                                                                                                     |
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| The referenced table is accepted       | *the `entity` table can't be referenced, because its `#[spacetimedsl::dsl]` is rejected*                  |
+| The referenced table is accepted       | *the `entity` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`*                  |
 | The referenced table names this table  | *the `entity` table has no `#[referenced_by]` naming the `position` table*                                |
 | A strategy can apply                   | *the `entity` table has no delete method, so `on_delete` can't apply*                                     |
 | A strategy is set                      | *the `entity` table has a delete method, so this foreign key needs `on_delete`*                           |
-| The named table is accepted            | *the `position` table can't reference the `entity` table, because its `#[spacetimedsl::dsl]` is rejected* |
+| The named table is accepted            | *the `position` table can't reference the `entity` table, because the `position` table has no accepted `#[spacetimedsl::dsl]`* |
 | The named table has a foreign key back | *the `position` table has no `#[foreign_key]` referencing the `entity` table*                             |
 
 The first four are checked on each `#[foreign_key]`, the last two on each `#[referenced_by]`. Soft deletion is checked the same way, with *isn't soft-deletable*, *is soft-deletable* and `on_soft_delete`.
 
 ```txt
 error[E0277]: the `entity` table has a delete method, so this foreign key needs `on_delete`
-  --> src/position.rs:14:53
+  --> src/position.rs:14:49
    |
 14 |     #[foreign_key(path = crate::entity, table = entity, column = id)]
    |                                                 ^^^^^^ add `on_delete = …`
@@ -2185,7 +2185,7 @@ All generated traits follow consistent naming patterns. The table name used in t
 | Wrapper type (custom)  | User-specified    | `EntityId`, `PlayerId`, `CircleId`, `CleanupJobScheduledId`        |
 | Table type             | `{Table}Table`    | `EntityTable`, `PositionTable`, `UserTable`, `GameConfigTable`     |
 
-`{Table}` is the PascalCase form of the table's accessor. The table type is `#[doc(hidden)]` and as visible as its struct: the tables on the other side of a table's foreign keys reach it through its table type. A struct named like the table type of its own table, such as `struct EntityTable` with `accessor = entity`, is rejected.
+`{Table}` is the PascalCase form of the table's accessor. The table type is `#[doc(hidden)]` and as visible as its struct: the tables on the other side of a table's foreign keys reach it through its table type. A struct named like the table type of its own table, such as `struct EntityTable` with `accessor = entity`, is rejected, and any other item of that name in the table's module fails to compile.
 
 ### Hook Trait Naming Patterns
 

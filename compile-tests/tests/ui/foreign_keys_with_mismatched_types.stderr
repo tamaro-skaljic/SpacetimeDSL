@@ -4,11 +4,11 @@ error: All foreign key columns which reference the same primary key of another t
 40 |         pub destination_warehouse_id: u128,
    |             ^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E0277]: the `shipment` table can't reference the `warehouse` table, because its `#[spacetimedsl::dsl]` is rejected
+error[E0277]: the `shipment` table can't reference the `warehouse` table, because the `shipment` table has no accepted `#[spacetimedsl::dsl]`
   --> tests/ui/foreign_keys_with_mismatched_types.rs:20:46
    |
 20 |         #[referenced_by(path = self, table = shipment)]
-   |                                              ^^^^^^^^ fix the error of the `shipment` table first
+   |                                              ^^^^^^^^ fix the `#[spacetimedsl::dsl]` of the `shipment` table first, or add one
    |
 help: the trait `ShipmentTableIsAccepted` is not implemented for `warehouse::shipment__TableHandle`
   --> tests/ui/foreign_keys_with_mismatched_types.rs:25:5

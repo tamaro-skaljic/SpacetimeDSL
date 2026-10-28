@@ -18,8 +18,8 @@ impl crate::spacetimedsl::internal::ReferencedBy<self::CircleTable> for EntityTa
 const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
-            message = "the `circle` table can't reference the `entity` table, because its `#[spacetimedsl::dsl]` is rejected",
-            label = "fix the error of the `circle` table first"
+            message = "the `circle` table can't reference the `entity` table, because the `circle` table has no accepted `#[spacetimedsl::dsl]`",
+            label = "fix the `#[spacetimedsl::dsl]` of the `circle` table first, or add one"
         )]
         trait CircleTableIsAccepted {
             const HOLDS: () = ();

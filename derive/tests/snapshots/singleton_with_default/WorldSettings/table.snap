@@ -8,7 +8,6 @@ pub struct WorldSettingsTable;
 impl crate::spacetimedsl::internal::AcceptedTable for world_settings__TableHandle {}
 impl crate::spacetimedsl::internal::HasDeleteMethod for WorldSettingsTable {}
 impl crate::spacetimedsl::internal::IsNotSoftDeletable for WorldSettingsTable {}
-const _: () = {};
 impl WorldSettings {
     ///
     pub fn get_maximum_player_count(&self) -> &u32 {
