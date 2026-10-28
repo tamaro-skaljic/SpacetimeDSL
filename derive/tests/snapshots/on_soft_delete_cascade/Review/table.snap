@@ -33,7 +33,7 @@ const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `book` table has no `#[referenced_by]` naming the `review` table",
             label = "the `book` table doesn't know about this foreign key",
-            note = "add `#[referenced_by(path = …, table = review)]` to the primary key column of the `book` table"
+            note = "add `#[referenced_by(path = …, table = review)]` to the primary key column of the `book` table, or remove this `#[foreign_key]`"
         )]
         trait ReferencedByTheReviewTable {
             const HOLDS: () = ();
@@ -47,7 +47,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `book` table has no delete method, so `on_delete` can't apply",
-            label = "remove `on_delete`"
+            label = "remove `on_delete`, or add `delete = true` to the `book`'s `#[dsl(method(...))]`"
         )]
         trait BookTableHasADeleteMethod {
             const HOLDS: () = ();
@@ -60,7 +60,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `book` table isn't soft-deletable, so `on_soft_delete` can't apply",
-            label = "remove `on_soft_delete`"
+            label = "remove `on_soft_delete`, or add `soft_delete = true` to the `book`'s `#[dsl(method(...))]`"
         )]
         trait BookTableIsSoftDeletable {
             const HOLDS: () = ();

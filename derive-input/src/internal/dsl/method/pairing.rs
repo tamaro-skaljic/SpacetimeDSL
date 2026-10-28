@@ -430,42 +430,51 @@ mod words {
             ),
             label: format!("the `{referenced_table}` table doesn't know about this foreign key"),
             note: Some(format!(
-                "add `#[referenced_by(path = …, table = {this_table})]` to the primary key column of the `{referenced_table}` table"
+                "add `#[referenced_by(path = …, table = {this_table})]` to the primary key column of the `{referenced_table}` table, or remove this `#[foreign_key]`"
             )),
         }
     }
 
     pub fn strategy_can_apply(removal: Removal, referenced_table: &Ident) -> Words {
         let strategy_argument = removal.strategy_argument();
-        let has_no_removal = match removal {
-            Removal::Hard => "has no delete method",
-            Removal::Soft => "isn't soft-deletable",
+        let (has_no_removal, method_argument) = match removal {
+            Removal::Hard => ("has no delete method", "delete"),
+            Removal::Soft => ("isn't soft-deletable", "soft_delete"),
         };
 
         Words {
             message: format!(
                 "the `{referenced_table}` table {has_no_removal}, so `{strategy_argument}` can't apply"
             ),
-            label: format!("remove `{strategy_argument}`"),
+            label: format!(
+                "remove `{strategy_argument}`, or add `{method_argument} = true` to the `{referenced_table}`'s `#[dsl(method(...))]`"
+            ),
             note: None,
         }
     }
 
     pub fn strategy_is_set(removal: Removal, referenced_table: &Ident) -> Words {
         let strategy_argument = removal.strategy_argument();
-        let (has_removal, strategies) = match removal {
+        let (has_removal, strategies, removal_fix) = match removal {
             Removal::Hard => (
                 "has a delete method",
                 "`Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`",
+                "add `delete = false` to",
             ),
-            Removal::Soft => ("is soft-deletable", "`Error`, `SoftDelete` or `Ignore`"),
+            Removal::Soft => (
+                "is soft-deletable",
+                "`Error`, `SoftDelete` or `Ignore`",
+                "remove `soft_delete = true` from",
+            ),
         };
 
         Words {
             message: format!(
                 "the `{referenced_table}` table {has_removal}, so this foreign key needs `{strategy_argument}`"
             ),
-            label: format!("add `{strategy_argument} = …`"),
+            label: format!(
+                "add `{strategy_argument} = …`, or {removal_fix} the `{referenced_table}`'s `#[dsl(method(...))]`"
+            ),
             note: Some(format!("`{strategy_argument}` takes {strategies}")),
         }
     }

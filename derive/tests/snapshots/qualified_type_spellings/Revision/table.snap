@@ -34,7 +34,7 @@ const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `draft` table has no `#[referenced_by]` naming the `revision` table",
             label = "the `draft` table doesn't know about this foreign key",
-            note = "add `#[referenced_by(path = …, table = revision)]` to the primary key column of the `draft` table"
+            note = "add `#[referenced_by(path = …, table = revision)]` to the primary key column of the `draft` table, or remove this `#[foreign_key]`"
         )]
         trait ReferencedByTheRevisionTable {
             const HOLDS: () = ();
@@ -48,7 +48,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `draft` table has no delete method, so `on_delete` can't apply",
-            label = "remove `on_delete`"
+            label = "remove `on_delete`, or add `delete = true` to the `draft`'s `#[dsl(method(...))]`"
         )]
         trait DraftTableHasADeleteMethod {
             const HOLDS: () = ();
@@ -62,7 +62,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `draft` table is soft-deletable, so this foreign key needs `on_soft_delete`",
-            label = "add `on_soft_delete = …`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `draft`'s `#[dsl(method(...))]`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
         trait DraftTableIsNotSoftDeletable {

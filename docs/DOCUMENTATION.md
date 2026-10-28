@@ -1577,14 +1577,14 @@ Tables paired across modules have to be visible to each other: a struct that a `
 
 Each rule is checked on its own, and a broken rule reports one error, underlined on the `table = …` of the attribute it belongs to, with what to change:
 
-| Rule                                   | Error                                                                                                     |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| The referenced table is accepted       | *the `entity` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`*                  |
-| The referenced table names this table  | *the `entity` table has no `#[referenced_by]` naming the `position` table*                                |
-| A strategy can apply                   | *the `entity` table has no delete method, so `on_delete` can't apply*                                     |
-| A strategy is set                      | *the `entity` table has a delete method, so this foreign key needs `on_delete`*                           |
+| Rule                                   | Error                                                                                                                          |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| The referenced table is accepted       | *the `entity` table can't be referenced, because it has no accepted `#[spacetimedsl::dsl]`*                                    |
+| The referenced table names this table  | *the `entity` table has no `#[referenced_by]` naming the `position` table*                                                     |
+| A strategy can apply                   | *the `entity` table has no delete method, so `on_delete` can't apply*                                                          |
+| A strategy is set                      | *the `entity` table has a delete method, so this foreign key needs `on_delete`*                                                |
 | The named table is accepted            | *the `position` table can't reference the `entity` table, because the `position` table has no accepted `#[spacetimedsl::dsl]`* |
-| The named table has a foreign key back | *the `position` table has no `#[foreign_key]` referencing the `entity` table*                             |
+| The named table has a foreign key back | *the `position` table has no `#[foreign_key]` referencing the `entity` table*                                                  |
 
 The first four are checked on each `#[foreign_key]`, the last two on each `#[referenced_by]`. Soft deletion is checked the same way, with *isn't soft-deletable*, *is soft-deletable* and `on_soft_delete`.
 
@@ -1593,7 +1593,7 @@ error[E0277]: the `entity` table has a delete method, so this foreign key needs 
   --> src/position.rs:14:49
    |
 14 |     #[foreign_key(path = crate::entity, table = entity, column = id)]
-   |                                                 ^^^^^^ add `on_delete = …`
+   |                                                 ^^^^^^ add `on_delete = …`, or add `delete = false` to the `entity`'s `#[dsl(method(...))]`
    |
    = note: `on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`
 ```

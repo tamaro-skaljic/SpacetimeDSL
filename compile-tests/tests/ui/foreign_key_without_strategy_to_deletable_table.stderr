@@ -2,7 +2,7 @@ error[E0277]: the `warehouse` table has a delete method, so this foreign key nee
   --> tests/ui/foreign_key_without_strategy_to_deletable_table.rs:32:56
    |
 32 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id)]
-   |                                                        ^^^^^^^^^ add `on_delete = …`
+   |                                                        ^^^^^^^^^ add `on_delete = …`, or add `delete = false` to the `warehouse`'s `#[dsl(method(...))]`
    |
 help: the trait `WarehouseTableHasNoDeleteMethod` is not implemented for `WarehouseTable`
   --> tests/ui/foreign_key_without_strategy_to_deletable_table.rs:8:5

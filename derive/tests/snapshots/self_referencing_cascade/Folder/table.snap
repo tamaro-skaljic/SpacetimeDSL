@@ -39,7 +39,7 @@ const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `folder` table has no `#[referenced_by]` naming the `folder` table",
             label = "the `folder` table doesn't know about this foreign key",
-            note = "add `#[referenced_by(path = …, table = folder)]` to the primary key column of the `folder` table"
+            note = "add `#[referenced_by(path = …, table = folder)]` to the primary key column of the `folder` table, or remove this `#[foreign_key]`"
         )]
         trait ReferencedByTheFolderTable {
             const HOLDS: () = ();
@@ -53,7 +53,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `folder` table has no delete method, so `on_delete` can't apply",
-            label = "remove `on_delete`"
+            label = "remove `on_delete`, or add `delete = true` to the `folder`'s `#[dsl(method(...))]`"
         )]
         trait FolderTableHasADeleteMethod {
             const HOLDS: () = ();
@@ -67,7 +67,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `folder` table isn't soft-deletable, so `on_soft_delete` can't apply",
-            label = "remove `on_soft_delete`"
+            label = "remove `on_soft_delete`, or add `soft_delete = true` to the `folder`'s `#[dsl(method(...))]`"
         )]
         trait FolderTableIsSoftDeletable {
             const HOLDS: () = ();

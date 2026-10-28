@@ -41,7 +41,7 @@ const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `season` table has no `#[referenced_by]` naming the `server` table",
             label = "the `season` table doesn't know about this foreign key",
-            note = "add `#[referenced_by(path = …, table = server)]` to the primary key column of the `season` table"
+            note = "add `#[referenced_by(path = …, table = server)]` to the primary key column of the `season` table, or remove this `#[foreign_key]`"
         )]
         trait ReferencedByTheServerTable {
             const HOLDS: () = ();
@@ -55,7 +55,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `season` table has a delete method, so this foreign key needs `on_delete`",
-            label = "add `on_delete = …`",
+            label = "add `on_delete = …`, or add `delete = false` to the `season`'s `#[dsl(method(...))]`",
             note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
         )]
         trait SeasonTableHasNoDeleteMethod {
@@ -70,7 +70,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `season` table is soft-deletable, so this foreign key needs `on_soft_delete`",
-            label = "add `on_soft_delete = …`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `season`'s `#[dsl(method(...))]`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
         trait SeasonTableIsNotSoftDeletable {

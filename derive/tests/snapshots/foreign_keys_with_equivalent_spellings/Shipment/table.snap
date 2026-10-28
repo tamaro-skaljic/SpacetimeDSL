@@ -37,7 +37,7 @@ const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `warehouse` table has no `#[referenced_by]` naming the `shipment` table",
             label = "the `warehouse` table doesn't know about this foreign key",
-            note = "add `#[referenced_by(path = …, table = shipment)]` to the primary key column of the `warehouse` table"
+            note = "add `#[referenced_by(path = …, table = shipment)]` to the primary key column of the `warehouse` table, or remove this `#[foreign_key]`"
         )]
         trait ReferencedByTheShipmentTable {
             const HOLDS: () = ();
@@ -51,7 +51,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `warehouse` table has no delete method, so `on_delete` can't apply",
-            label = "remove `on_delete`"
+            label = "remove `on_delete`, or add `delete = true` to the `warehouse`'s `#[dsl(method(...))]`"
         )]
         trait WarehouseTableHasADeleteMethod {
             const HOLDS: () = ();
@@ -65,7 +65,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `warehouse` table is soft-deletable, so this foreign key needs `on_soft_delete`",
-            label = "add `on_soft_delete = …`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `warehouse`'s `#[dsl(method(...))]`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
         trait WarehouseTableIsNotSoftDeletable {
@@ -94,7 +94,7 @@ const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `warehouse` table has no `#[referenced_by]` naming the `shipment` table",
             label = "the `warehouse` table doesn't know about this foreign key",
-            note = "add `#[referenced_by(path = …, table = shipment)]` to the primary key column of the `warehouse` table"
+            note = "add `#[referenced_by(path = …, table = shipment)]` to the primary key column of the `warehouse` table, or remove this `#[foreign_key]`"
         )]
         trait ReferencedByTheShipmentTable {
             const HOLDS: () = ();
@@ -108,7 +108,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `warehouse` table has no delete method, so `on_delete` can't apply",
-            label = "remove `on_delete`"
+            label = "remove `on_delete`, or add `delete = true` to the `warehouse`'s `#[dsl(method(...))]`"
         )]
         trait WarehouseTableHasADeleteMethod {
             const HOLDS: () = ();
@@ -122,7 +122,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `warehouse` table is soft-deletable, so this foreign key needs `on_soft_delete`",
-            label = "add `on_soft_delete = …`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `warehouse`'s `#[dsl(method(...))]`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
         trait WarehouseTableIsNotSoftDeletable {

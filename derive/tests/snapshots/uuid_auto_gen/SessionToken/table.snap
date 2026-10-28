@@ -34,7 +34,7 @@ const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `account` table has no `#[referenced_by]` naming the `session_token` table",
             label = "the `account` table doesn't know about this foreign key",
-            note = "add `#[referenced_by(path = …, table = session_token)]` to the primary key column of the `account` table"
+            note = "add `#[referenced_by(path = …, table = session_token)]` to the primary key column of the `account` table, or remove this `#[foreign_key]`"
         )]
         trait ReferencedByTheSessionTokenTable {
             const HOLDS: () = ();
@@ -48,7 +48,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `account` table has no delete method, so `on_delete` can't apply",
-            label = "remove `on_delete`"
+            label = "remove `on_delete`, or add `delete = true` to the `account`'s `#[dsl(method(...))]`"
         )]
         trait AccountTableHasADeleteMethod {
             const HOLDS: () = ();
@@ -62,7 +62,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `account` table is soft-deletable, so this foreign key needs `on_soft_delete`",
-            label = "add `on_soft_delete = …`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `account`'s `#[dsl(method(...))]`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
         trait AccountTableIsNotSoftDeletable {

@@ -37,7 +37,7 @@ const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `region` table has no `#[referenced_by]` naming the `active_tournament` table",
             label = "the `region` table doesn't know about this foreign key",
-            note = "add `#[referenced_by(path = …, table = active_tournament)]` to the primary key column of the `region` table"
+            note = "add `#[referenced_by(path = …, table = active_tournament)]` to the primary key column of the `region` table, or remove this `#[foreign_key]`"
         )]
         trait ReferencedByTheActiveTournamentTable {
             const HOLDS: () = ();
@@ -51,7 +51,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `region` table has no delete method, so `on_delete` can't apply",
-            label = "remove `on_delete`"
+            label = "remove `on_delete`, or add `delete = true` to the `region`'s `#[dsl(method(...))]`"
         )]
         trait RegionTableHasADeleteMethod {
             const HOLDS: () = ();
@@ -65,7 +65,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `region` table is soft-deletable, so this foreign key needs `on_soft_delete`",
-            label = "add `on_soft_delete = …`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `region`'s `#[dsl(method(...))]`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
         trait RegionTableIsNotSoftDeletable {
@@ -94,7 +94,7 @@ const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `region` table has no `#[referenced_by]` naming the `active_tournament` table",
             label = "the `region` table doesn't know about this foreign key",
-            note = "add `#[referenced_by(path = …, table = active_tournament)]` to the primary key column of the `region` table"
+            note = "add `#[referenced_by(path = …, table = active_tournament)]` to the primary key column of the `region` table, or remove this `#[foreign_key]`"
         )]
         trait ReferencedByTheActiveTournamentTable {
             const HOLDS: () = ();
@@ -108,7 +108,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `region` table has no delete method, so `on_delete` can't apply",
-            label = "remove `on_delete`"
+            label = "remove `on_delete`, or add `delete = true` to the `region`'s `#[dsl(method(...))]`"
         )]
         trait RegionTableHasADeleteMethod {
             const HOLDS: () = ();
@@ -122,7 +122,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `region` table is soft-deletable, so this foreign key needs `on_soft_delete`",
-            label = "add `on_soft_delete = …`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `region`'s `#[dsl(method(...))]`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
         trait RegionTableIsNotSoftDeletable {

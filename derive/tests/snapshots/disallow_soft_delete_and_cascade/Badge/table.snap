@@ -34,7 +34,7 @@ const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `member` table has no `#[referenced_by]` naming the `badge` table",
             label = "the `member` table doesn't know about this foreign key",
-            note = "add `#[referenced_by(path = …, table = badge)]` to the primary key column of the `member` table"
+            note = "add `#[referenced_by(path = …, table = badge)]` to the primary key column of the `member` table, or remove this `#[foreign_key]`"
         )]
         trait ReferencedByTheBadgeTable {
             const HOLDS: () = ();
@@ -48,7 +48,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `member` table has a delete method, so this foreign key needs `on_delete`",
-            label = "add `on_delete = …`",
+            label = "add `on_delete = …`, or add `delete = false` to the `member`'s `#[dsl(method(...))]`",
             note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
         )]
         trait MemberTableHasNoDeleteMethod {
@@ -63,7 +63,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `member` table isn't soft-deletable, so `on_soft_delete` can't apply",
-            label = "remove `on_soft_delete`"
+            label = "remove `on_soft_delete`, or add `soft_delete = true` to the `member`'s `#[dsl(method(...))]`"
         )]
         trait MemberTableIsSoftDeletable {
             const HOLDS: () = ();

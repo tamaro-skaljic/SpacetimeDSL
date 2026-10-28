@@ -9,5 +9,5 @@ help: the trait `ReferencedByTheShipmentTable` is not implemented for `Warehouse
    |
  8 |     #[spacetimedsl::dsl(plural_name = warehouses, method(update = false, delete = false))]
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   = note: add `#[referenced_by(path = …, table = shipment)]` to the primary key column of the `warehouse` table
+   = note: add `#[referenced_by(path = …, table = shipment)]` to the primary key column of the `warehouse` table, or remove this `#[foreign_key]`
    = note: this error originates in the attribute macro `spacetimedsl::dsl` (in Nightly builds, run with -Z macro-backtrace for more info)

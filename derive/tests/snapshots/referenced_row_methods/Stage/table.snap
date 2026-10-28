@@ -39,7 +39,7 @@ const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `stage` table has no `#[referenced_by]` naming the `stage` table",
             label = "the `stage` table doesn't know about this foreign key",
-            note = "add `#[referenced_by(path = …, table = stage)]` to the primary key column of the `stage` table"
+            note = "add `#[referenced_by(path = …, table = stage)]` to the primary key column of the `stage` table, or remove this `#[foreign_key]`"
         )]
         trait ReferencedByTheStageTable {
             const HOLDS: () = ();
@@ -53,7 +53,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `stage` table has a delete method, so this foreign key needs `on_delete`",
-            label = "add `on_delete = …`",
+            label = "add `on_delete = …`, or add `delete = false` to the `stage`'s `#[dsl(method(...))]`",
             note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
         )]
         trait StageTableHasNoDeleteMethod {
@@ -68,7 +68,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `stage` table is soft-deletable, so this foreign key needs `on_soft_delete`",
-            label = "add `on_soft_delete = …`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `stage`'s `#[dsl(method(...))]`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
         trait StageTableIsNotSoftDeletable {

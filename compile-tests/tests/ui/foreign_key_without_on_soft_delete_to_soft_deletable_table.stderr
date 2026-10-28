@@ -2,7 +2,7 @@ error[E0277]: the `warehouse` table is soft-deletable, so this foreign key needs
   --> tests/ui/foreign_key_without_on_soft_delete_to_soft_deletable_table.rs:37:56
    |
 37 |         #[foreign_key(path = crate::warehouse, table = warehouse, column = id, on_delete = Delete)]
-   |                                                        ^^^^^^^^^ add `on_soft_delete = …`
+   |                                                        ^^^^^^^^^ add `on_soft_delete = …`, or remove `soft_delete = true` from the `warehouse`'s `#[dsl(method(...))]`
    |
 help: the trait `WarehouseTableIsNotSoftDeletable` is not implemented for `WarehouseTable`
   --> tests/ui/foreign_key_without_on_soft_delete_to_soft_deletable_table.rs:8:5

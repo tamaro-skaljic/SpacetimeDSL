@@ -37,7 +37,7 @@ const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `entity` table has no `#[referenced_by]` naming the `circle` table",
             label = "the `entity` table doesn't know about this foreign key",
-            note = "add `#[referenced_by(path = …, table = circle)]` to the primary key column of the `entity` table"
+            note = "add `#[referenced_by(path = …, table = circle)]` to the primary key column of the `entity` table, or remove this `#[foreign_key]`"
         )]
         trait ReferencedByTheCircleTable {
             const HOLDS: () = ();
@@ -51,7 +51,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `entity` table has a delete method, so this foreign key needs `on_delete`",
-            label = "add `on_delete = …`",
+            label = "add `on_delete = …`, or add `delete = false` to the `entity`'s `#[dsl(method(...))]`",
             note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
         )]
         trait EntityTableHasNoDeleteMethod {
@@ -66,7 +66,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `entity` table is soft-deletable, so this foreign key needs `on_soft_delete`",
-            label = "add `on_soft_delete = …`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `entity`'s `#[dsl(method(...))]`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
         trait EntityTableIsNotSoftDeletable {
@@ -95,7 +95,7 @@ const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `player` table has no `#[referenced_by]` naming the `circle` table",
             label = "the `player` table doesn't know about this foreign key",
-            note = "add `#[referenced_by(path = …, table = circle)]` to the primary key column of the `player` table"
+            note = "add `#[referenced_by(path = …, table = circle)]` to the primary key column of the `player` table, or remove this `#[foreign_key]`"
         )]
         trait ReferencedByTheCircleTable {
             const HOLDS: () = ();
@@ -109,7 +109,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `player` table has a delete method, so this foreign key needs `on_delete`",
-            label = "add `on_delete = …`",
+            label = "add `on_delete = …`, or add `delete = false` to the `player`'s `#[dsl(method(...))]`",
             note = "`on_delete` takes `Error`, `Delete`, `SoftDelete`, `SetZero` or `Ignore`"
         )]
         trait PlayerTableHasNoDeleteMethod {
@@ -124,7 +124,7 @@ const _: () = {
     const _: () = {
         #[diagnostic::on_unimplemented(
             message = "the `player` table is soft-deletable, so this foreign key needs `on_soft_delete`",
-            label = "add `on_soft_delete = …`",
+            label = "add `on_soft_delete = …`, or remove `soft_delete = true` from the `player`'s `#[dsl(method(...))]`",
             note = "`on_soft_delete` takes `Error`, `SoftDelete` or `Ignore`"
         )]
         trait PlayerTableIsNotSoftDeletable {
