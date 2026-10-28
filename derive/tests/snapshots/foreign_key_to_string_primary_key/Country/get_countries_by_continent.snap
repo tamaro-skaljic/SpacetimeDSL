@@ -1,0 +1,27 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Country` iterator that contains all rows in the `country` table whose value matches the value from the single-column btree index on the `continent` column.
+    pub fn get_countries_by_continent<'a>(
+        &'a self,
+        continent: &'a str,
+    ) -> impl Iterator<Item = Country> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().country().continent().filter(continent)
+    }
+}
+impl<T: crate::spacetimedsl::ReadContext> crate::spacetimedsl::ReadOnlyDSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    ///Get a `Country` iterator that contains all rows in the `country` table whose value matches the value from the single-column btree index on the `continent` column.
+    pub fn get_countries_by_continent<'a>(
+        &'a self,
+        continent: &'a str,
+    ) -> impl Iterator<Item = Country> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        self.db().country().continent().filter(continent)
+    }
+}

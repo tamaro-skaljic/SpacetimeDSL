@@ -1,0 +1,70 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `City` row of the `city` table whose value matches the value from the unique single-column btree index on the `id` column.
+
+# Foreign keys
+
+Fails with `ReferenceIntegrityViolation` unless each of these columns references a row whenever its value changes:
+
+- `country_code`: a row of the `country` table (`self`)*/
+    pub fn update_city_by_id<'a>(
+        &'a self,
+        city: City,
+    ) -> Result<City, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut city = city;
+        let mut the_same_or_another_city: Option<City> = None;
+        let country_code = city.get_country_code().value();
+        if the_same_or_another_city.is_none() {
+            the_same_or_another_city = match self
+                .db()
+                .city()
+                .id()
+                .find(city.get_id().value())
+            {
+                Some(city) => Some(city),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "city".into(),
+                        column_names_and_row_values: format!(
+                            "{{ id : {} }}", city.get_id().value()
+                        )
+                            .into(),
+                    });
+                }
+            };
+        }
+        if the_same_or_another_city
+            .as_ref()
+            .expect(
+                "the stored row is looked up by its primary key before the row to write is compared with it",
+            )
+            .get_country_code()
+            .ne(&city.get_country_code())
+        {
+            match self.get_country_by_code(&city.country_code) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(
+                        crate::spacetimedsl::error::SpacetimeDSLError::ReferenceIntegrityViolation(crate::spacetimedsl::error::ReferenceIntegrityViolationError::OnCreateOrUpdate {
+                            table_name: "city".into(),
+                            create_or_update: crate::spacetimedsl::error::CreateOrUpdate::Update,
+                            column_names_and_row_values: format!(
+                                "{{ country_code : {} }}", country_code
+                            )
+                                .into(),
+                        }),
+                    );
+                }
+            };
+        }
+        let city = self.db().city().id().update(city);
+        Ok(city)
+    }
+}

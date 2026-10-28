@@ -1,0 +1,117 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Foreign keys of the `city` table
+///
+/// - `country_code` references the `code` column of the `country` table (`self`).
+///   - On delete: `Delete`
+///   - On soft delete: none, the `country` table is not soft-deletable
+
+pub trait this_compilation_error_occurs_because_the_city_table_has_no_foreign_key_attribute_referencing_the_country_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_country_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_city_table;
+    use self::this_compilation_error_occurs_because_your_foreign_key_referencing_the_country_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_country_table_has_no_referenced_by_attribute_referencing_the_city_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct CityId {
+    value: u64,
+}
+impl Default for CityId {
+    fn default() -> CityId {
+        CityId {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for CityId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "CityId", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<u64> for CityId {
+    fn new(value: u64) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> u64 {
+        self.value.clone()
+    }
+}
+impl From<&City> for CityId {
+    fn from(value: &City) -> Self {
+        CityId { value: value.id.clone() }
+    }
+}
+impl From<&City> for Option<CityId> {
+    fn from(value: &City) -> Option<CityId> {
+        Some(CityId { value: value.id.clone() })
+    }
+}
+impl From<&CityId> for Option<CityId> {
+    fn from(value: &CityId) -> Option<CityId> {
+        use crate::spacetimedsl::Wrapper;
+        Some(CityId::new(value.value()))
+    }
+}
+impl From<&CityId> for CityId {
+    fn from(value: &CityId) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        CityId::new(value.value())
+    }
+}
+impl City {
+    ///
+    pub fn get_id(&self) -> CityId {
+        use crate::spacetimedsl::Wrapper;
+        CityId::new(self.id.clone())
+    }
+    /**References the `code` column of the `country` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `country` table is not soft-deletable*/
+    pub fn get_country_code(&self) -> CountryCode {
+        use crate::spacetimedsl::Wrapper;
+        CountryCode::new(self.country_code.clone())
+    }
+    /**References the `code` column of the `country` table (`self`).
+
+- On delete: `Delete`
+- On soft delete: none, the `country` table is not soft-deletable*/
+    pub fn set_country_code(
+        &mut self,
+        country_code: impl Into<CountryCode>,
+    ) -> CountryCode {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(
+            &mut self.country_code,
+            country_code.into().value(),
+        );
+        CountryCode::new(old_value)
+    }
+}
+///
+pub struct CreateCity {
+    pub country_code: CountryCode,
+}
+
+// Generated DSL methods:
+// count_of_all_cities
+// create_city
+// delete_cities_by_country_code
+// delete_city_by_id
+// execute_on_delete_strategies_of_the_city_table_after_multiple_rows_of_the_country_table_were_deleted
+// execute_on_delete_strategies_of_the_city_table_after_one_row_of_the_country_table_was_deleted
+// get_all_cities
+// get_cities_by_country_code
+// get_city_by_id
+// update_city_by_id

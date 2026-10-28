@@ -8,7 +8,7 @@
 
 use {
     super::{
-        context::MethodGenerationContext, foreign_key::foreign_key_of, message, naming,
+        context::MethodGenerationContext, foreign_key::foreign_key_of, index, message, naming,
         reference_integrity,
     },
     crate::{
@@ -83,6 +83,9 @@ pub fn for_wrapper_methods(
             let wrapper_struct_name = wrapper_type.struct_name();
             let wrapper_variable_name =
                 RenameRule::SnakeCase.apply_to_variant(wrapper_struct_name.to_string());
+            let this_key = index::lookup_argument_from_wrapper(ColumnTypeKind::of(
+                &column.rust_field.type_name_or_path,
+            ));
 
             Some(WrapperMethod {
                 wrapper_type: wrapper_type_of(wrapper_type),
@@ -92,7 +95,7 @@ pub fn for_wrapper_methods(
                 method_name,
                 return_type,
                 method_impl: quote! {
-                    dsl.into().#dsl_method_name(self)#collect_rows
+                    dsl.into().#dsl_method_name(#this_key)#collect_rows
                 },
             })
         })
@@ -135,11 +138,7 @@ pub fn for_referenced_row_methods(
         RenameRule::SnakeCase.apply_to_variant(primary_key_wrapper_struct_name.to_string());
     let get_this_row =
         naming::get_by_index_method_name(singular_table_name, primary_key_column_name);
-    // The lookup by a wrapped string key takes a `&str`, not the wrapper.
-    let this_row_key = match primary_key_column.rust_field_type_kind == ColumnTypeKind::String {
-        true => quote! { &crate::spacetimedsl::Wrapper::value(self) },
-        false => quote! { self },
-    };
+    let this_row_key = index::lookup_argument_from_wrapper(primary_key_column.rust_field_type_kind);
 
     let mut methods = vec![];
     let mut column_by_method_name: BTreeMap<String, &Ident> = BTreeMap::new();
@@ -183,31 +182,32 @@ pub fn for_referenced_row_methods(
                 &foreign_key.table_name,
                 &foreign_key.primary_key_column_name,
             );
-            let getter_name = naming::getter_name(column_name);
+            let column_type_kind = ColumnTypeKind::of(&column.rust_field.type_name_or_path);
+            let referenced_primary_key =
+                index::lookup_argument_from_row(singular_table_name, column_name, column_type_kind);
             let referenced_row_type =
                 spacetimedb::table_row_type(&foreign_key.path, &foreign_key.table_name);
 
             // The value which references no row finds none, as create and update treat it,
             // even where the referenced table holds a row under that key.
             let no_row_for_the_value_referencing_no_row =
-                reference_integrity::value_referencing_no_row(ColumnTypeKind::of(
-                    &column.rust_field.type_name_or_path,
-                ))
-                .map(|value_referencing_no_row| {
-                    let not_found_error = runtime::not_found_error(
-                        &foreign_key.table_name.to_string(),
-                        &message::single_column_and_value(
-                            &foreign_key.primary_key_column_name,
-                            &value_referencing_no_row,
-                        ),
-                    );
+                reference_integrity::value_referencing_no_row(column_type_kind).map(
+                    |value_referencing_no_row| {
+                        let not_found_error = runtime::not_found_error(
+                            &foreign_key.table_name.to_string(),
+                            &message::single_column_and_value(
+                                &foreign_key.primary_key_column_name,
+                                &value_referencing_no_row,
+                            ),
+                        );
 
-                    quote! {
-                        if #singular_table_name.#column_name == #value_referencing_no_row {
-                            return Err(#not_found_error);
+                        quote! {
+                            if #singular_table_name.#column_name == #value_referencing_no_row {
+                                return Err(#not_found_error);
+                            }
                         }
-                    }
-                });
+                    },
+                );
 
             methods.push(WrapperMethod {
                 wrapper_type: wrapper_type_of(primary_key_wrapper),
@@ -220,7 +220,7 @@ pub fn for_referenced_row_methods(
                     let dsl = dsl.into();
                     let #singular_table_name = dsl.#get_this_row(#this_row_key)?;
                     #no_row_for_the_value_referencing_no_row
-                    dsl.#get_referenced_row(#singular_table_name.#getter_name())
+                    dsl.#get_referenced_row(#referenced_primary_key)
                 },
             });
         }

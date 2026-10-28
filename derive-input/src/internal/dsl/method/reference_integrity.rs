@@ -6,7 +6,7 @@
 //! on create and on update because the delete side is handled by the on-delete strategies.
 
 use {
-    super::{message, naming},
+    super::{index, message, naming},
     crate::{
         api::{
             db::{index::IndexType, table::SpacetimeDBTable},
@@ -143,6 +143,11 @@ pub fn reference_integrity_checks_on_create(
         let referencing_table_column_name = &column.rust_field_name;
         let referencing_table_column_getter_name =
             naming::getter_name(referencing_table_column_name);
+        let referenced_primary_key = index::lookup_argument_from_row(
+            referencing_table_name,
+            referencing_table_column_name,
+            column.rust_field_type_kind,
+        );
 
         let reference_integrity_violation_error =
             runtime::reference_integrity_violation_on_create_or_update(
@@ -155,7 +160,7 @@ pub fn reference_integrity_checks_on_create(
             );
 
         quote! {
-            match self.#get_row_of_referenced_table_by_primary_key_method_name(#referencing_table_name.#referencing_table_column_getter_name()) {
+            match self.#get_row_of_referenced_table_by_primary_key_method_name(#referenced_primary_key) {
                 Ok(_) => {},
                 Err(_) => {
                     return Err(#reference_integrity_violation_error);
@@ -260,6 +265,11 @@ pub fn reference_integrity_checks_on_update(
         let referencing_table_column_name = &column.rust_field_name;
         let referencing_table_column_getter_name =
             naming::getter_name(referencing_table_column_name);
+        let referenced_primary_key = index::lookup_argument_from_row(
+            referencing_table_name,
+            referencing_table_column_name,
+            column.rust_field_type_kind,
+        );
 
         let reference_integrity_violation_error =
             runtime::reference_integrity_violation_on_create_or_update(
@@ -274,7 +284,7 @@ pub fn reference_integrity_checks_on_update(
         quote! {
             #stored_row_lookup
             if #stored.#referencing_table_column_getter_name().ne(&#referencing_table_name.#referencing_table_column_getter_name()) {
-                match self.#get_row_of_referenced_table_by_primary_key_method_name(#referencing_table_name.#referencing_table_column_getter_name()) {
+                match self.#get_row_of_referenced_table_by_primary_key_method_name(#referenced_primary_key) {
                     Ok(_) => {},
                     Err(_) => return Err(#reference_integrity_violation_error)
                 };

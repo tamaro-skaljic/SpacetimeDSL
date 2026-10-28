@@ -73,14 +73,23 @@ Fails with `ReferenceIntegrityViolation` unless each of these columns references
             }
         }
         if the_same_or_another_member.is_none() {
-            the_same_or_another_member = Some(
-                self
-                    .db()
-                    .member()
-                    .id()
-                    .find(member.id)
-                    .expect("Row should exist for update"),
-            );
+            the_same_or_another_member = match self
+                .db()
+                .member()
+                .id()
+                .find(member.get_id().value())
+            {
+                Some(member) => Some(member),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "member".into(),
+                        column_names_and_row_values: format!(
+                            "{{ id : {} }}", member.get_id().value()
+                        )
+                            .into(),
+                    });
+                }
+            };
         }
         use self::BeforeMemberUpdateHook;
         let member = crate::spacetimedsl::DSLMethodHooks::before_member_update(

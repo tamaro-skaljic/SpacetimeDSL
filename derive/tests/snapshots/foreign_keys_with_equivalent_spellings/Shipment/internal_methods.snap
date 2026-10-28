@@ -46,7 +46,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     .into(),
                                 child_entries: child_entries,
                             });
-                        dsl.db().shipment().id().delete(row.id);
+                        dsl.db().shipment().id().delete(&row.id);
                     }
                     for row in dsl
                         .db()
@@ -65,7 +65,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     .into(),
                                 child_entries: child_entries,
                             });
-                        dsl.db().shipment().id().delete(row.id);
+                        dsl.db().shipment().id().delete(&row.id);
                     }
                 }
                 crate::spacetimedsl::delete::OnDeleteStrategy::SoftDelete => {}
@@ -152,7 +152,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                         .into(),
                                     child_entries: child_entries,
                                 });
-                            dsl.db().shipment().id().delete(row.id);
+                            dsl.db().shipment().id().delete(&row.id);
                         }
                         for row in dsl
                             .db()
@@ -182,7 +182,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                         .into(),
                                     child_entries: child_entries,
                                 });
-                            dsl.db().shipment().id().delete(row.id);
+                            dsl.db().shipment().id().delete(&row.id);
                         }
                     }
                 }

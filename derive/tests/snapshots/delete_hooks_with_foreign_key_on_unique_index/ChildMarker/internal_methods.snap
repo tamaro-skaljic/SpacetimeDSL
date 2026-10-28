@@ -59,7 +59,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                 error_from_hook = Some(Box::new(error_raised_by_the_hook));
                                 break 'outer;
                             }
-                            dsl.db().child_marker().id().delete(row.id);
+                            dsl.db().child_marker().id().delete(&row.id);
                             if let Err(error_raised_by_the_hook)
                                 = crate::spacetimedsl::DSLMethodHooks::after_child_marker_delete(
                                     &dsl,
@@ -167,7 +167,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     error_from_hook = Some(Box::new(error_raised_by_the_hook));
                                     break 'outer;
                                 }
-                                dsl.db().child_marker().id().delete(row.id);
+                                dsl.db().child_marker().id().delete(&row.id);
                                 if let Err(error_raised_by_the_hook)
                                     = crate::spacetimedsl::DSLMethodHooks::after_child_marker_delete(
                                         &dsl,

@@ -1,0 +1,117 @@
+---
+source: derive/src/characterization_tests.rs
+---
+// Documentation appended to the struct:
+///
+/// # Tables referencing the `country` table
+///
+/// - the `city` table (`self`)
+/// - the `embassy` table (`self`)
+
+pub trait this_compilation_error_occurs_because_the_country_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_city_table {}
+pub trait this_compilation_error_occurs_because_the_country_table_is_not_deletable_or_has_no_referenced_by_attribute_referencing_the_embassy_table {}
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_country_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_country_table_has_no_referenced_by_attribute_referencing_the_city_table {}
+pub trait this_compilation_error_occurs_because_your_foreign_key_referencing_the_country_table_needs_to_define_a_strategy_for_on_soft_delete_or_the_country_table_has_no_referenced_by_attribute_referencing_the_embassy_table {}
+const _: () = {
+    use self::this_compilation_error_occurs_because_the_city_table_has_no_foreign_key_attribute_referencing_the_country_table;
+    use self::this_compilation_error_occurs_because_the_embassy_table_has_no_foreign_key_attribute_referencing_the_country_table;
+};
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    ::spacetimedb::SpacetimeType
+)]
+pub struct CountryCode {
+    value: String,
+}
+impl Default for CountryCode {
+    fn default() -> CountryCode {
+        CountryCode {
+            value: Default::default(),
+        }
+    }
+}
+impl std::fmt::Display for CountryCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {{ id: {:?} }}", "CountryCode", self.value)
+    }
+}
+impl crate::spacetimedsl::Wrapper<String> for CountryCode {
+    fn new(value: String) -> Self {
+        Self { value }
+    }
+    fn value(&self) -> String {
+        self.value.clone()
+    }
+}
+impl From<&Country> for CountryCode {
+    fn from(value: &Country) -> Self {
+        CountryCode {
+            value: value.code.clone(),
+        }
+    }
+}
+impl From<&Country> for Option<CountryCode> {
+    fn from(value: &Country) -> Option<CountryCode> {
+        Some(CountryCode {
+            value: value.code.clone(),
+        })
+    }
+}
+impl From<&CountryCode> for Option<CountryCode> {
+    fn from(value: &CountryCode) -> Option<CountryCode> {
+        use crate::spacetimedsl::Wrapper;
+        Some(CountryCode::new(value.value()))
+    }
+}
+impl From<&CountryCode> for CountryCode {
+    fn from(value: &CountryCode) -> Self {
+        use crate::spacetimedsl::Wrapper;
+        CountryCode::new(value.value())
+    }
+}
+impl Country {
+    ///
+    pub fn get_code(&self) -> CountryCode {
+        use crate::spacetimedsl::Wrapper;
+        CountryCode::new(self.code.clone())
+    }
+    ///
+    pub fn get_continent(&self) -> &String {
+        use crate::spacetimedsl::Wrapper;
+        &self.continent
+    }
+    ///
+    pub fn get_continent_mut(&mut self) -> &mut String {
+        use crate::spacetimedsl::Wrapper;
+        &mut self.continent
+    }
+    ///
+    pub fn set_continent(&mut self, continent: String) -> String {
+        use crate::spacetimedsl::Wrapper;
+        let old_value = std::mem::replace(&mut self.continent, continent);
+        old_value
+    }
+}
+///
+pub struct CreateCountry {
+    pub code: String,
+    pub continent: String,
+}
+
+// Generated DSL methods:
+// count_of_all_countries
+// create_country
+// delete_countries_by_continent
+// delete_country_by_code
+// execute_on_delete_strategies_of_referencing_tables_after_multiple_rows_of_the_country_table_were_deleted
+// execute_on_delete_strategies_of_referencing_tables_after_one_row_of_the_country_table_was_deleted
+// get_all_countries
+// get_countries_by_continent
+// get_country_by_code
+// update_country_by_code

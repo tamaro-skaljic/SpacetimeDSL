@@ -67,12 +67,14 @@ pub fn referenced_table_function_call_for_dsl_method(
                 &OneOrMultiple::Multiple,
                 singular_table_name,
             );
+            // Cloned rather than copied out of the borrowed rows, because a `String` key is not
+            // `Copy`.
             let referenced_table_call = runtime::dsl_internals_call(
                 &referenced_table_function_name,
                 &quote! {
                     self,
                     #on_delete_strategy,
-                    &rows_to_delete.iter().map(|row| row.#primary_key_column_name).collect_vec()[..]
+                    &rows_to_delete.iter().map(|row| row.#primary_key_column_name.clone()).collect_vec()[..]
                 },
             );
 

@@ -77,7 +77,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                     row_value: "0".to_string().into(),
                                     child_entries: child_entries,
                                 });
-                            dsl.db().active_tournament().id().delete(row.id);
+                            dsl.db().active_tournament().id().delete(&row.id);
                         }
                     };
                 }
@@ -205,7 +205,7 @@ impl crate::spacetimedsl::internal::DSLInternals {
                                         row_value: "0".to_string().into(),
                                         child_entries: child_entries,
                                     });
-                                dsl.db().active_tournament().id().delete(row.id);
+                                dsl.db().active_tournament().id().delete(&row.id);
                             }
                         };
                     }

@@ -21,14 +21,23 @@ Fails with a *Disallowed Value Error* if a column holds what its `#[disallow]` f
         let mut season = season;
         let mut the_same_or_another_season: Option<Season> = None;
         if the_same_or_another_season.is_none() {
-            the_same_or_another_season = Some(
-                self
-                    .db()
-                    .season()
-                    .id()
-                    .find(season.id)
-                    .expect("Row should exist for update"),
-            );
+            the_same_or_another_season = match self
+                .db()
+                .season()
+                .id()
+                .find(season.get_id().value())
+            {
+                Some(season) => Some(season),
+                None => {
+                    return Err(crate::spacetimedsl::error::SpacetimeDSLError::NotFoundError {
+                        table_name: "season".into(),
+                        column_names_and_row_values: format!(
+                            "{{ id : {} }}", season.get_id().value()
+                        )
+                            .into(),
+                    });
+                }
+            };
         }
         use self::BeforeSeasonUpdateHook;
         let season = crate::spacetimedsl::DSLMethodHooks::before_season_update(

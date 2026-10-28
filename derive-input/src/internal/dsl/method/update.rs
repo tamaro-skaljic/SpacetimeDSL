@@ -125,28 +125,24 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
         &[&on_update_set_current_timestamp],
     );
 
-    let before_update_hook = if before_update_hook_call.is_empty() {
-        TokenStream::default()
-    } else {
-        quote! {
-            if #field_name_for_found_value.is_none() {
-                #field_name_for_found_value = Some(
-                    self.db().#singular_table_name().#primary_key_column_name()
-                        .find(#singular_table_name.#primary_key_column_name)
-                        .expect("Row should exist for update")
-                )
-            }
-
-            #use_before_update_hook_trait
-            #before_update_hook_call
-        }
-    };
-
     let after_update_hook = after_update_hook(
         spacetimedsl_table,
         singular_table_name,
         field_name_for_found_value,
     );
+
+    // Both update hooks receive the stored row, so it is looked up before the write whenever
+    // either of them runs.
+    let look_up_the_stored_row_for_the_hooks =
+        match before_update_hook_call.is_empty() && after_update_hook.is_empty() {
+            true => TokenStream::default(),
+            false => reference_integrity::look_up_the_stored_row(
+                singular_table_name,
+                field_name_for_found_value,
+                primary_key_column,
+                is_singleton_pk,
+            ),
+        };
 
     let set_singleton_id_to_zero = match is_singleton_pk {
         false => TokenStream::default(),
@@ -228,7 +224,9 @@ pub fn for_update(shape: &IndexShape, context: &MethodGenerationContext) -> Spac
             #(#row_value_getters)*
             #(#reference_integrity_checks)*
 
-            #before_update_hook
+            #look_up_the_stored_row_for_the_hooks
+            #use_before_update_hook_trait
+            #before_update_hook_call
 
             #look_up_the_stored_row
             #disallow_checks

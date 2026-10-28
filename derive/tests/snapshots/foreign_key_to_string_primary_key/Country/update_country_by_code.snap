@@ -1,0 +1,19 @@
+---
+source: derive/src/characterization_tests.rs
+---
+impl<T: crate::spacetimedsl::WriteContext> crate::spacetimedsl::DSL<'_, T> {
+    #[allow(clippy::needless_lifetimes, clippy::too_many_arguments)]
+    /**
+
+Try to update a `Country` row of the `country` table whose value matches the value from the unique single-column btree index on the `code` column.*/
+    pub fn update_country_by_code<'a>(
+        &'a self,
+        country: Country,
+    ) -> Result<Country, crate::spacetimedsl::error::SpacetimeDSLError> {
+        use crate::spacetimedsl::Wrapper;
+        use ::spacetimedb::{CtxDbRead, CtxDbWrite, Table as _};
+        let mut country = country;
+        let country = self.db().country().code().update(country);
+        Ok(country)
+    }
+}

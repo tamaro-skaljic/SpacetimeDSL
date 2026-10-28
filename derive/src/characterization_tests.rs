@@ -144,6 +144,11 @@ fn foreign_key_to_table_without_delete_methods() {
 }
 
 #[test]
+fn foreign_key_to_string_primary_key() {
+    snapshot_fixture("foreign_key_to_string_primary_key");
+}
+
+#[test]
 fn on_delete_error() {
     snapshot_fixture("on_delete_error");
 }
@@ -176,6 +181,11 @@ fn on_delete_ignore() {
 #[test]
 fn insert_update_and_delete_hooks() {
     snapshot_fixture("insert_update_and_delete_hooks");
+}
+
+#[test]
+fn after_update_hook_only() {
+    snapshot_fixture("after_update_hook_only");
 }
 
 #[test]
