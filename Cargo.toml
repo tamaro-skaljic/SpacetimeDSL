@@ -1,7 +1,7 @@
 [package]
 authors = ["Tamaro Skaljic<mail@tamaro-skaljic.de>"]
 name = "spacetimedsl"
-version = "0.27.0"
+version = "0.28.0"
 edition = "2024"
 description = "The SpacetimeDB Rust Server Module meta-framework"
 documentation = "https://docs.rs/spacetimedsl"
@@ -30,19 +30,19 @@ members = [
 
 [workspace.dependencies]
 # https://crates.io/crates/spacetimedb Easy support for interacting between SpacetimeDB and Rust.
-spacetimedb = { version = "=2.14.1", features = ["unstable"] }
+spacetimedb = { version = "=2.15.0", features = ["unstable"] }
 
 # https://crates.io/crates/spacetime-bindings-macro-input Unofficial Input Crate for the SpacetimeDB Macro Bindings.
 spacetime-bindings-macro-input = { version = "=2.10.1" }
 
 # https://crates.io/crates/spacetimedsl The SpacetimeDB Rust Server Module meta-framework
-spacetimedsl = { version = "=0.27.0", path = "." }
+spacetimedsl = { version = "=0.28.0", path = "." }
 
 # https://crates.io/crates/spacetimedsl_derive Macros to extend SpacetimeDSL
-spacetimedsl_derive = { version = "=0.27.0", path = "derive" }
+spacetimedsl_derive = { version = "=0.28.0", path = "derive" }
 
 # https://crates.io/crates/spacetimedsl_derive-input Contains structs which represent the output of SpacetimeDSL.
-spacetimedsl_derive-input = { version = "=0.27.0", path = "derive-input" }
+spacetimedsl_derive-input = { version = "=0.28.0", path = "derive-input" }
 
 # https://crates.io/crates/itertools Extra iterator adaptors, iterator methods, free functions, and macros.
 itertools = "0.15"
